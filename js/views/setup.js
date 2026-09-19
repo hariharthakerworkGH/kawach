@@ -46,13 +46,14 @@ export async function needsSetup() {
 export async function render(container, params = {}) {
   if (params.restart) step = 0;
   shownIn = container;
-  const [accounts, recurring, income, salaryDay, keep, kind] = await Promise.all([
+  const [accounts, recurring, income, salaryDay, keep, kind, side] = await Promise.all([
     getAll('accounts'),
     getAll('recurring'),
     getSetting('monthlyIncome', null),
     getSetting('salaryDay', null),
     getSetting('keepInBank', DEFAULT_KEEP_IN_BANK),
     incomeType(),
+    getSetting('sideBusiness', false),
   ]);
   const banks = accounts.filter((a) => a.type === 'bank');
   const cards = accounts.filter((a) => a.type === 'card');
@@ -65,9 +66,9 @@ export async function render(container, params = {}) {
       ${
         {
           welcome: welcomeStep,
-          income: () => incomeStep(kind, income, salaryDay, keep),
-          bank: () => accountStep('bank', banks, kind),
-          cards: () => accountStep('card', cards, kind),
+          income: () => incomeStep(kind, side === true, income, salaryDay, keep),
+          bank: () => accountStep('bank', banks, kind, side === true),
+          cards: () => accountStep('card', cards, kind, side === true),
           commitments: () => commitmentsStep(commitments, [...banks, ...cards]),
           done: doneStep,
         }[name]()
@@ -102,7 +103,7 @@ const KINDS = [
   { id: 'household', icon: 'home', title: 'Household money', sub: 'Given to you for the house', amount: 'Household money each month', day: true },
 ];
 
-function incomeStep(kind, income, salaryDay, keep) {
+function incomeStep(kind, side, income, salaryDay, keep) {
   const chosen = KINDS.find((k) => k.id === kind) || KINDS[0];
   return `
     <h2 class="setup-title">How does money come in?</h2>
@@ -115,6 +116,10 @@ function incomeStep(kind, income, salaryDay, keep) {
         </label>`
       ).join('')}
     </div>
+    <label class="switch-row setup-side" id="setup-side-row" ${chosen.id === 'business' ? 'hidden' : ''}>
+      <span>I also run a business</span>
+      <input type="checkbox" role="switch" class="switch" id="setup-side" ${side ? 'checked' : ''}>
+    </label>
     <label class="field">
       <span id="setup-income-label">${chosen.amount}</span>
       <input type="number" id="setup-income" inputmode="decimal" min="0" step="1" value="${income != null ? Math.round(income / 100) : ''}" placeholder="60000">
@@ -136,14 +141,14 @@ function incomeStep(kind, income, salaryDay, keep) {
   `;
 }
 
-function accountStep(type, list, kind) {
+function accountStep(type, list, kind, side) {
   const isCard = type === 'card';
-  // A business owner marks which accounts are the business's: its money,
-  // and what it spends, are kept apart from the house.
-  const business = kind === 'business';
+  // Anyone with a business marks which accounts are the business's: its
+  // money, and what it spends, are kept apart from the house.
+  const business = kind === 'business' || side;
   return `
     <h2 class="setup-title">${isCard ? 'Your credit cards' : business ? 'Your bank accounts' : 'Your bank account'}</h2>
-    ${isCard ? '<p class="setup-lead">Each card\'s billing cycle is read from its first statement.</p>' : business ? '<p class="setup-lead">The business\'s current account, and your own savings account.</p>' : ''}
+    ${isCard ? '<p class="setup-lead">Each card\'s billing cycle is read from its first statement.</p>' : business ? `<p class="setup-lead">${kind === 'business' ? "The business's current account, and your own savings account." : "Your own account, and the business's."}</p>` : ''}
     ${
       list.length
         ? `<div class="totals-card">${list
@@ -169,7 +174,7 @@ function accountStep(type, list, kind) {
       ${
         business
           ? `<label class="checkbox-row">
-              <input type="checkbox" id="setup-account-business" ${!isCard && !list.some((a) => a.business) ? 'checked' : ''}>
+              <input type="checkbox" id="setup-account-business" ${kind === 'business' && !isCard && !list.some((a) => a.business) ? 'checked' : ''}>
               <span>For the business</span>
             </label>`
           : ''
@@ -271,6 +276,7 @@ function wire(container, name, { accounts }) {
       container.querySelector('#setup-income-label').textContent = k.amount;
       container.querySelector('#setup-day-field').hidden = !k.day;
       container.querySelector('#setup-business-note').hidden = k.id !== 'business';
+      container.querySelector('#setup-side-row').hidden = k.id === 'business';
     });
   });
 
@@ -338,12 +344,14 @@ async function saveIncome(container) {
   const kind = container.querySelector('input[name="income-kind"]:checked')?.value || 'salary';
   const income = parseFloat(container.querySelector('#setup-income').value);
   const keep = parseFloat(container.querySelector('#setup-keep').value);
+  const side = kind !== 'business' && container.querySelector('#setup-side').checked;
   await setSetting('incomeType', kind);
+  await setSetting('sideBusiness', side);
   if (Number.isFinite(income) && income > 0) await setSetting('monthlyIncome', Math.round(income * 100));
   // A business has no payday.
   await setSetting('salaryDay', kind === 'business' ? null : parseInt(container.querySelector('#setup-salary-day').value, 10));
   if (Number.isFinite(keep) && keep >= 0) await setSetting('keepInBank', Math.round(keep * 100));
-  if (kind === 'business') await ensureBusinessCategories();
+  if (kind === 'business' || side) await ensureBusinessCategories();
 }
 
 function escapeHtml(str) {

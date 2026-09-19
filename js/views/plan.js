@@ -10,7 +10,7 @@ import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequency
 import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder } from '../commitments.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
-import { incomeType, incomeWords, businessPlan, ensureBusinessCategories, isBusinessCategory } from '../business.js';
+import { incomeType, incomeWords, businessPlan, isBusinessCategory } from '../business.js';
 
 let adding = false;
 let editingId = null;
@@ -31,6 +31,7 @@ export async function render(container) {
   ]);
   const salaryDay = await getSetting('salaryDay', null);
   const kind = await incomeType();
+  const sideBusiness = kind !== 'business' && (await getSetting('sideBusiness', false)) === true;
   const words = incomeWords(kind);
 
   const accounts = await getAll('accounts');
@@ -52,6 +53,10 @@ export async function render(container) {
   // A business owner's month is planned on what came home (js/business.js);
   // what they typed is only the estimate it starts from.
   const plan = kind === 'business' ? businessPlan(transactions, accounts, todayIso, income) : null;
+  // A business on the side adds the lowest of its last three months, the
+  // same as Summary; nothing until there are three.
+  const sidePlan = sideBusiness ? businessPlan(transactions, accounts, todayIso, null, { outside: false }) : null;
+  const sideExtra = sidePlan && sidePlan.basis === 'lowest' ? sidePlan.amount : 0;
   const incomeValue = plan ? plan.amount : income != null ? income : suggestedIncome;
   const incomeLabel = !plan
     ? words.label
@@ -78,26 +83,22 @@ export async function render(container) {
   const budgetable = categories.filter((c) => !budgets[c.id] && !isBusinessCategory(c) && !/income|transfer/i.test(c.name));
 
   const keep = Math.max(0, Number(keepInBank) || 0);
-  const budget = disposable != null ? disposable + cashTotal - keep : null;
+  const budget = disposable != null ? disposable + sideExtra + cashTotal - keep : null;
 
   container.innerHTML = `
     <div class="totals-card">
       <div class="totals-row"><span>${incomeLabel}</span><span class="in">${incomeValue != null ? formatCurrency(incomeValue) : '-'}</span></div>
+      ${
+        sidePlan
+          ? `<div class="totals-row"><span>From the business${sideExtra ? `, lowest month (${formatMonthYear(sidePlan.lowestMonth).split(' ')[0]})` : '<br><span class="muted-note">counted after 3 months</span>'}</span><span class="in">${sideExtra ? formatCurrency(sideExtra) : '-'}</span></div>`
+          : ''
+      }
       <div class="totals-row"><span>Commitments</span><span class="out">−${formatCurrency(fixedTotal - cashTotal)}</span></div>
       <div class="totals-row"><span>Saved each month</span><span class="out">−${formatCurrency(keep)}</span></div>
       <div class="totals-row net"><span>Budget each month</span><span>${budget != null ? formatCurrency(budget) : '-'}</span></div>
       ${cashTotal > 0 ? `<p class="muted-note">${formatCurrency(cashTotal)} paid in cash comes out of your ATM money.</p>` : ''}
       <details class="fts-breakdown" ${income == null || (kind !== 'business' && !salaryDay) ? 'open' : ''}>
-        <summary>Change income or saving</summary>
-        <label class="field">
-          <span>Money comes in as</span>
-          <select id="plan-kind">
-            <option value="salary" ${kind === 'salary' ? 'selected' : ''}>Salary</option>
-            <option value="business" ${kind === 'business' ? 'selected' : ''}>Business or self-employed</option>
-            <option value="pension" ${kind === 'pension' ? 'selected' : ''}>Pension</option>
-            <option value="household" ${kind === 'household' ? 'selected' : ''}>Household money</option>
-          </select>
-        </label>
+        <summary>Change amounts</summary>
         <label class="field">
           <span>${kind === 'business' ? 'What the house needs a month' : words.label}</span>
           <input type="number" id="plan-income" inputmode="decimal" step="1" placeholder="${suggestedIncome != null ? (suggestedIncome / 100).toFixed(0) : '60000'}" value="${income != null ? (income / 100).toFixed(0) : ''}">
@@ -193,12 +194,6 @@ export async function render(container) {
       redraw(container, () => render(container));
     });
   }
-
-  container.querySelector('#plan-kind').addEventListener('change', async (e) => {
-    await setSetting('incomeType', e.target.value);
-    if (e.target.value === 'business') await ensureBusinessCategories();
-    redraw(container, () => render(container));
-  });
 
   const addBtn = container.querySelector('#plan-add-btn');
   if (addBtn) {

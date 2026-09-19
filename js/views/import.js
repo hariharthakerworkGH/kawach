@@ -15,7 +15,7 @@ import { sameTransaction } from '../duplicates.js';
 import * as csvParser from '../parsers/csv.js';
 import { readerFor, BANKS } from '../parsers/any-bank.js';
 import { enhancePasswords } from '../password-field.js';
-import { categoriesFor } from '../business.js';
+import { categoriesFor, moneyProfile } from '../business.js';
 import { isPfAccount, pfContribution, pfPosition, DEFAULT_PF_RATE } from '../pf.js';
 
 // Two kinds of import share this screen:
@@ -49,6 +49,7 @@ export async function render(container) {
   before = null;
   savedRows = [];
   categoriesCache = await getAll('categories');
+  const salaried = (await moneyProfile()).main === 'salary';
 
   container.innerHTML = `
     <ol class="import-steps" aria-label="Steps">
@@ -62,7 +63,7 @@ export async function render(container) {
         <input type="file" id="import-file" accept=".pdf,.csv,.txt,application/pdf,text/csv" hidden>
         <span class="import-drop-icon">${icon('file')}</span>
         <strong>Choose a statement</strong>
-        <span class="muted-note">Bank, card, loan, payslip or PF passbook. PDF or spreadsheet.</span>
+        <span class="muted-note">${salaried ? 'Bank, card, loan, payslip or PF passbook.' : 'Bank, card or loan statement.'} PDF or spreadsheet.</span>
       </label>
       <div id="import-password-box" class="totals-card" hidden>
         <label class="field">

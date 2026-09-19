@@ -222,9 +222,10 @@ function spendingStatus(f) {
 function incomeLine(f) {
   if (f.incomeKind !== 'business') return incomeWords(f.incomeKind).label;
   if (f.plan.basis !== 'lowest') return 'What the house needs';
-  const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(f.plan.lowestMonth.slice(5, 7)) - 1];
-  return `Taken home, lowest month (${month})`;
+  return `Taken home, lowest month (${monthShort(f.plan.lowestMonth)})`;
 }
+
+const monthShort = (month) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(month.slice(5, 7)) - 1];
 
 function renderCardsHero(f) {
   const until = formatDateNice(f.cycleKey);
@@ -254,6 +255,7 @@ function renderCardsHero(f) {
         <summary>How it's worked out</summary>
         <div class="totals-card">
           ${line(incomeLine(f), f.monthlyIncome, '+')}
+          ${f.sideBusiness && f.businessExtra ? line(`From the business, lowest month (${monthShort(f.plan.lowestMonth)})`, f.businessExtra, '+') : ''}
           ${group('Commitments from the bank', bankItems)}
           ${group('Commitments on cards', cardItems)}
           ${f.keep ? line('Saved each month', f.keep, '-') : ''}

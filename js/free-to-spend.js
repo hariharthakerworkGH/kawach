@@ -114,7 +114,7 @@ function daysBetweenInclusive(fromIso, toIso) {
 }
 
 export async function computeFreeToSpend(now = new Date()) {
-  const [allAccounts, allTransactions, importBatches, recurring, incomeSetting, salaryDay, keepInBank, incomeKind, categories] = await Promise.all([
+  const [allAccounts, allTransactions, importBatches, recurring, incomeSetting, salaryDay, keepInBank, incomeKind, categories, sideSetting] = await Promise.all([
     getAll('accounts'),
     getAll('transactions'),
     getAll('importBatches'),
@@ -124,6 +124,7 @@ export async function computeFreeToSpend(now = new Date()) {
     getSetting('keepInBank', DEFAULT_KEEP_IN_BANK),
     getSetting('incomeType', 'salary'),
     getAll('categories'),
+    getSetting('sideBusiness', false),
   ]);
   // The house's accounts. The business's are left to its own card.
   const accounts = allAccounts.filter((a) => !a.business);
@@ -139,8 +140,17 @@ export async function computeFreeToSpend(now = new Date()) {
   const today = isoLocal(now);
   // What the month is planned on. For a business owner that is worked out
   // from what came home; for everyone else it is the amount set on Plan.
-  const plan = isBusiness ? businessPlan(transactions, allAccounts, today, incomeSetting) : null;
+  // A business on the side adds what it brings home (moved over from its
+  // account, never the salary that also lands there), once there are three
+  // months to go on; until then it adds nothing rather than a guess.
+  const side = !isBusiness && sideSetting === true;
+  const plan = isBusiness
+    ? businessPlan(transactions, allAccounts, today, incomeSetting)
+    : side
+      ? businessPlan(transactions, allAccounts, today, null, { outside: false })
+      : null;
   const monthlyIncome = isBusiness ? plan.amount : incomeSetting;
+  const businessExtra = side && plan.basis === 'lowest' ? plan.amount : 0;
   // The accounts you spend from. A bank account you keep only for savings or
   // to pay a loan from (see isPutAway) is not among them.
   const bankAccounts = accounts.filter(isEverydayBank);
@@ -468,7 +478,7 @@ export async function computeFreeToSpend(now = new Date()) {
     .map((item) => ({ item, label: item.label, amount: monthlyAmountOf(item), paidBy: paidBy(item) }));
   const skippedItems = live.filter((item) => paidBy(item) !== 'cash' && skipped(item));
   const noCommitments = budgetItems.length === 0 && skippedItems.length === 0;
-  const limit = monthlyIncome ? monthlyIncome - sum(budgetItems) - keep : null;
+  const limit = monthlyIncome ? monthlyIncome + businessExtra - sum(budgetItems) - keep : null;
 
   // --- Spent this period -----------------------------------------------------
   // Card spending since the last statement day, and bank spending since the
@@ -785,6 +795,8 @@ export async function computeFreeToSpend(now = new Date()) {
     // the budget
     incomeKind: isBusiness ? 'business' : incomeKind,
     monthlyIncome,
+    sideBusiness: side,
+    businessExtra,
     // A business owner's plan: what it rests on, and what came home so far.
     plan,
     // How many months of the house's costs the money in the bank and put

@@ -10,6 +10,7 @@ import { syncNow, getSyncConfig, getSyncPassphrase, turnOnGoogleSync } from '../
 import { setBackupPassphrase, backUpToDrive, listBackups, SYNC_FILE } from '../js/drive.js';
 import { encryptPayload, decryptPayload, exportEncrypted, decryptBackup, restoreBackup } from '../js/backup.js';
 import { takenHome, categoriesFor } from '../js/business.js';
+import { notesFor } from '../js/whats-new.js';
 
 // Salary ₹1,00,000; commitments: EMI ₹40,000 (bank), rent ₹20,000 (bank),
 // ATM ₹10,000 (bank), Netflix ₹649 (card), Metro ₹1,000 (cash); ₹5,000 saved.
@@ -742,4 +743,48 @@ test('a backup keeps business accounts, business categories and the kind of inco
   ok((await getAll('accounts')).some((a) => a.id === 'shop' && a.business), 'business account kept');
   ok((await getAll('categories')).some((c) => c.id === 'cat-biz-own' && c.scope === 'business'), 'own business category kept');
   ok((await getAll('settings')).some((s) => s.id === 'incomeType' && s.value === 'business'), 'kind of income kept');
+});
+
+// --- A business on the side, and What's new --------------------------------
+
+async function seedSalaryWithShop(months) {
+  await seedBasics();
+  await put('accounts', { id: 'shop', label: 'Tiffin service', type: 'bank', issuer: 'Test Bank', last4: '7788', business: true });
+  await put('settings', { id: 'sideBusiness', value: true });
+  await putAll('recurring', [commitment({ label: 'House Rent', amount: 20000 })]);
+  const moves = [];
+  for (const [date, amount] of months) {
+    // The salary lands in the same account the business's money goes to.
+    moves.push(txn({ accountId: 'bank', date: `${date.slice(0, 8)}01`, amount: 100000, direction: 'credit', rawDescription: 'NEFT-SALARY-MADEUP CO' }));
+    moves.push(txn({ accountId: 'shop', date, amount, rawDescription: 'UPI-SELF' }));
+    moves.push(txn({ accountId: 'bank', date, amount, direction: 'credit', rawDescription: 'UPI-FROM TIFFIN' }));
+  }
+  await putAll('transactions', moves);
+  await detectTransfers();
+}
+
+test('salary and a business: the budget adds the lowest month the business brought home, never the salary twice', async () => {
+  await seedSalaryWithShop([['2026-06-12', 20000], ['2026-07-12', 15000], ['2026-08-12', 25000]]);
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  equal([f.incomeKind, f.sideBusiness, f.plan.lowestMonth], ['salary', true, '2026-07']);
+  paise(f.businessExtra, rupees(15000));
+  // ₹1,00,000 salary + ₹15,000 from the business − ₹20,000 rent − ₹5,000 saved.
+  paise(f.limit, rupees(100000 + 15000 - 20000 - 5000));
+});
+
+test('salary and a new business: nothing added from it until there are three months', async () => {
+  await seedSalaryWithShop([['2026-08-12', 25000]]);
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  equal(f.businessExtra, 0);
+  paise(f.limit, rupees(100000 - 20000 - 5000));
+});
+
+test("What's new shows only the notes that fit, from versions not yet seen", () => {
+  const titles = (profile, since) => notesFor(profile, since).flatMap((n) => n.items.map((i) => i.title));
+  const pensioner = { main: 'pension', business: false, side: false };
+  const shopkeeper = { main: 'business', business: true, side: false };
+  ok(!titles(pensioner, '01.10.00').includes('Business categories'), 'no business news for a pensioner');
+  ok(titles(shopkeeper, '01.10.00').includes('Business categories'), 'business news for a shopkeeper');
+  ok(!titles(shopkeeper, '01.10.00').includes('A business on the side'), 'no "on the side" for someone whose business is the main income');
+  equal(titles(pensioner, '02.01.00'), []);
 });
