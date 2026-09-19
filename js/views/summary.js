@@ -20,7 +20,7 @@ import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
 import { redraw } from '../redraw.js';
 import { installCard, wireInstallCard } from '../install.js';
-import { driveStatus } from '../drive.js';
+import { backupStatus } from '../drive.js';
 
 let currentRange = 'this-month';
 
@@ -529,11 +529,10 @@ async function renderAttention(container, transactions, fts = null) {
   ]);
   // Only once there's something worth losing.
   const safety = transactions.length ? dataSafety(syncConfig, syncPass, lastBackupAt) : { ok: true };
-  // With Drive backups set up, the reminder is about those: one more after a
+  // Once you back up to Drive, the reminder is about that: one more after a
   // week, one tap away.
-  const drive = await driveStatus();
-  const driveDays = drive.lastAt ? Math.floor((Date.now() - drive.lastAt) / 86400000) : null;
-  const driveDue = drive.setUp && (driveDays == null || driveDays >= 7);
+  const { driveLastAt } = await backupStatus();
+  const driveDays = driveLastAt ? Math.floor((Date.now() - driveLastAt) / 86400000) : null;
   const uncategorized = transactions.filter((t) => needsCategory(t));
   const monthStart = `${currentMonthKey()}-01`;
   const dismissed = new Set(await getSetting('dismissedAnomalies', []));
@@ -562,9 +561,9 @@ async function renderAttention(container, transactions, fts = null) {
     `<div class="todo-row"><span class="todo-icon" aria-hidden="true">${icon}</span><span class="todo-text"><span>${title}</span>${sub ? `<span class="muted-note ${tone}">${sub}</span>` : ''}</span>${action ? `<span class="attention-actions">${action}</span>` : ''}</div>`;
 
   const rows = [
-    drive.setUp
-      ? driveDue
-        ? todo(icon('backup'), 'Back up to Google Drive', driveDays == null ? 'Not backed up yet' : `Last one ${driveDays} days ago`, '<button type="button" class="btn-tiny primary" id="go-drive-btn">Back up</button>')
+    driveDays != null
+      ? driveDays >= 7
+        ? todo(icon('backup'), 'Back up to Google Drive', `Last one ${driveDays} days ago`, '<button type="button" class="btn-tiny primary" id="go-drive-btn">Back up</button>')
         : ''
       : safety.ok
         ? ''

@@ -1,13 +1,15 @@
 import { getAll, put, remove, get } from './db.js';
 import { encryptPayload, decryptPayload } from './backup.js';
+import { backupPassphrase, readSyncFile, writeSyncFile } from './drive.js';
 
-// Sync between your own devices through a single secret GitHub Gist.
+// Sync between your own devices through one encrypted file, kept either in
+// Kawach's hidden folder in your own Google Drive (the usual way: same Google
+// account and backup passphrase on each device, nothing else to set up) or in
+// a secret GitHub Gist (for those who already sync that way).
 //
-// The gist holds one file: the same AES-GCM encrypted blob the backup feature
-// produces. GitHub never sees anything but ciphertext, and a secret gist URL
-// leaking would still be useless without the passphrase. This is the only
-// network call the app ever makes, it is to your own gist, and it does nothing
-// until you set it up.
+// Either place holds the same AES-GCM encrypted blob the backup feature
+// produces. Google and GitHub never see anything but ciphertext. Nothing is
+// sent anywhere until you turn sync on.
 //
 // Merging is per record, not whole-file. Whole-file "last device wins" is what
 // loses an afternoon of entries from your phone because the laptop synced
@@ -19,13 +21,21 @@ const SYNCED_STORES = ['accounts', 'transactions', 'categories', 'merchantRules'
 const API = 'https://api.github.com';
 
 export async function getSyncConfig() {
-  const [token, gistId, lastSync, deviceName] = await Promise.all([
+  const [provider, token, gistId, lastSync, deviceName] = await Promise.all([
+    getMeta('provider'),
     getMeta('token'),
     getMeta('gistId'),
     getMeta('lastSync'),
     getMeta('deviceName'),
   ]);
-  return { token, gistId, lastSync, deviceName, configured: Boolean(token) };
+  // Phones that synced through GitHub before Google was an option have a
+  // token and no provider saved.
+  const via = provider || (token ? 'github' : null);
+  return { provider: via, token, gistId, lastSync, deviceName, configured: via === 'google' || Boolean(token) };
+}
+
+export async function turnOnGoogleSync() {
+  await setMeta('provider', 'google');
 }
 
 export async function saveSyncConfig({ token, gistId, deviceName }) {
@@ -35,6 +45,7 @@ export async function saveSyncConfig({ token, gistId, deviceName }) {
 }
 
 export async function clearSyncConfig() {
+  await remove('syncMeta', 'provider', { tombstone: false });
   await remove('syncMeta', 'token', { tombstone: false });
   await remove('syncMeta', 'gistId', { tombstone: false });
   await remove('syncMeta', 'lastSync', { tombstone: false });
@@ -47,7 +58,10 @@ export async function clearSyncConfig() {
 // gist - the copy that lives somewhere you don't control - and that stays
 // protected. It is stored in `syncMeta`, which is never itself synced.
 export async function getSyncPassphrase() {
-  return getMeta('passphrase');
+  const { provider } = await getSyncConfig();
+  // Google sync is locked with the backup passphrase: one passphrase for
+  // everything. GitHub sync keeps the one it was set up with.
+  return provider === 'google' ? backupPassphrase() : getMeta('passphrase');
 }
 
 export async function setSyncPassphrase(value) {
@@ -69,33 +83,25 @@ async function setMeta(key, value) {
 
 // --- The main entry point -------------------------------------------------
 
-// Pull what's on the gist, merge it with what's here, write the result back.
-// Safe to run on every app open: with nothing to change it is a single GET.
-export async function syncNow(passphrase, { onProgress = () => {} } = {}) {
-  const { token, gistId } = await getSyncConfig();
-  if (!token) throw new SyncError('Sync isn\'t set up yet.');
+// Pull what's in the sync file, merge it with what's here, write the result
+// back. Safe to run on every app open: with nothing to change it is one read
+// and one write.
+//
+// `previous`: the passphrase before a change on this device. The synced copy
+// may still be locked with it (or already with the new one, changed on the
+// other device first); either opens it, and it is written back with the new.
+export async function syncNow(passphrase, { onProgress = () => {}, previous = null } = {}) {
+  const config = await getSyncConfig();
+  if (!config.configured) throw new SyncError("Sync isn't set up yet.");
   if (!passphrase) throw new SyncError('Enter your passphrase to sync.');
+  const place = config.provider === 'google' ? googlePlace() : await gistPlace(config, onProgress);
 
   onProgress('Fetching…');
+  const found = await place.read();
   let remote = null;
-  let resolvedGistId = gistId;
-
-  // The second device you set up has a token but no gist id yet. Without this
-  // it would create its own gist and the two devices would sync happily to
-  // different files forever, each convinced it was working.
-  if (!resolvedGistId) {
-    onProgress('Looking for your existing gist…');
-    resolvedGistId = await findExistingGist(token);
-    if (resolvedGistId) await setMeta('gistId', resolvedGistId);
-  }
-
-  if (resolvedGistId) {
-    const found = await fetchGist(token, resolvedGistId);
-    if (!found) throw new SyncError('That gist no longer exists. Disconnect and set sync up again.');
-    if (found.content) {
-      onProgress('Decrypting…');
-      remote = await decryptPayload(found.content, passphrase);
-    }
+  if (found) {
+    onProgress('Decrypting…');
+    remote = await openWithEither(found, passphrase, previous);
   }
 
   onProgress('Merging…');
@@ -109,20 +115,69 @@ export async function syncNow(passphrase, { onProgress = () => {} } = {}) {
 
   onProgress('Uploading…');
   const payload = { data: merged.data, deletions: merged.deletions, syncedAt: Date.now() };
-  const content = await encryptPayload(payload, passphrase);
-
-  if (resolvedGistId) {
-    await updateGist(token, resolvedGistId, content);
-  } else {
-    resolvedGistId = await createGist(token, content);
-    await setMeta('gistId', resolvedGistId);
-  }
+  await place.write(await encryptPayload(payload, passphrase));
 
   await setMeta('lastSync', Date.now());
   return {
-    gistId: resolvedGistId,
     pulled: merged.stats || { added: 0, updated: 0, deleted: 0 },
     counts: Object.fromEntries(SYNCED_STORES.map((s) => [s, merged.data[s].length])),
+  };
+}
+
+async function openWithEither(content, passphrase, previous) {
+  try {
+    return await decryptPayload(content, passphrase);
+  } catch (err) {
+    if (previous) {
+      try {
+        return await decryptPayload(content, previous);
+      } catch {
+        // Neither opens it: say so below.
+      }
+    }
+    throw new SyncError("Your passphrase doesn't open the synced copy. If you changed it on another device, change it here too.");
+  }
+}
+
+// Where the sync file lives: read() gives its text or null; write() saves.
+function googlePlace() {
+  let id = null;
+  return {
+    read: async () => {
+      const file = await readSyncFile();
+      id = file ? file.id : null;
+      return file ? file.text : null;
+    },
+    write: async (text) => {
+      id = await writeSyncFile(id, text);
+    },
+  };
+}
+
+async function gistPlace({ token, gistId }, onProgress) {
+  let id = gistId;
+  // The second device you set up has a token but no gist id yet. Without this
+  // it would create its own gist and the two devices would sync happily to
+  // different files forever, each convinced it was working.
+  if (!id) {
+    onProgress('Looking for your existing gist…');
+    id = await findExistingGist(token);
+    if (id) await setMeta('gistId', id);
+  }
+  return {
+    read: async () => {
+      if (!id) return null;
+      const found = await fetchGist(token, id);
+      if (!found) throw new SyncError('That gist no longer exists. Disconnect and set sync up again.');
+      return found.content || null;
+    },
+    write: async (text) => {
+      if (id) await updateGist(token, id, text);
+      else {
+        id = await createGist(token, text);
+        await setMeta('gistId', id);
+      }
+    },
   };
 }
 

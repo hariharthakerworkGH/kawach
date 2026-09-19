@@ -3,7 +3,7 @@
 // ATM cash) but no real statement, name or account number.
 import { openDB, put, forgetCachedReads } from '../js/db.js';
 
-const STORES = ['accounts', 'transactions', 'categories', 'merchantRules', 'recurring', 'importBatches', 'settings', 'deletions', 'alertInbox'];
+const STORES = ['accounts', 'transactions', 'categories', 'merchantRules', 'recurring', 'importBatches', 'settings', 'deletions', 'alertInbox', 'syncMeta'];
 
 // Empties the TEST database. Refuses to run against any other.
 export async function resetDB() {

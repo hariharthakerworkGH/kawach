@@ -495,7 +495,7 @@ function fixedForm(categories, accounts, item) {
         <span>Its line on the bank or card statement contains <span class="muted">(optional, e.g. "Home Loan EMI", "DYSON")</span></span>
         <input type="text" class="ff-match" autocomplete="off" spellcheck="false" placeholder="Words from its line on your statement" value="${escapeHtml(v.matchText || '')}">
       </label>
-      <p class="muted-note">The app uses these words to recognise its payment, so it isn't counted as spending on top of the commitment. Leave empty and it looks for the same amount (or, for ones spread through the month, the same category). ATM cash is recognised on its own.</p>
+      <p class="muted-note">Words in its payment, so it isn't counted twice. Leave empty to match by amount.</p>
       <label class="field">
         <span>Category <span class="muted">(so this spend isn't counted twice)</span></span>
         <select class="ff-category">

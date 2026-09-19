@@ -9,6 +9,7 @@ import { versionStatus } from './version.js';
 import { fillIcons, icon } from './icons.js';
 import { redraw } from './redraw.js';
 import { keepDataSafe, isInstalled } from './install.js';
+import { signIn, rememberGoogleAccount } from './drive.js';
 import * as addView from './views/add.js';
 import * as categoriesView from './views/categories.js';
 import * as summaryView from './views/summary.js';
@@ -231,7 +232,23 @@ function typingInView() {
   return [...view.querySelectorAll('input:not([type=checkbox]):not([type=radio]), textarea')].some((el) => el.value !== el.defaultValue);
 }
 
-async function runSync({ silent = true } = {}) {
+// Google's sign-in pass lasts about an hour. When it has run out as the app
+// opens, Google's page is shown for a moment to renew it - silently, and only
+// once per visit, so being offline or signed out can never send you round in
+// a loop. Syncs later in the visit just wait for the next open.
+const RENEW_TRIED = 'kawach-sync-renew-tried';
+function renewGooglePassOnce() {
+  try {
+    if (!navigator.onLine || sessionStorage.getItem(RENEW_TRIED)) return false;
+    sessionStorage.setItem(RENEW_TRIED, '1');
+  } catch {
+    return false;
+  }
+  signIn('sync', { silent: true });
+  return true;
+}
+
+async function runSync({ silent = true, opening = false } = {}) {
   if (syncing) return;
   const [{ configured }, passphrase] = await Promise.all([getSyncConfig(), getSyncPassphrase()]);
   if (!configured || !passphrase) return;
@@ -258,7 +275,8 @@ async function runSync({ silent = true } = {}) {
       await redraw(container, () => view.module.render(container, currentParams));
     }
   } catch (err) {
-    setSyncIndicator('error', err.message);
+    if (err.needsSignIn && opening && renewGooglePassOnce()) return;
+    setSyncIndicator('error', err.needsSignIn ? 'Sync needs Google sign-in: Settings, Sync now' : err.message);
   } finally {
     syncing = false;
   }
@@ -274,12 +292,19 @@ function setSyncIndicator(state, title = '') {
 }
 
 function wireSync() {
+  // The warning beside the title is where sync says it needs you: tapping it
+  // opens Settings, where Sync now signs in again.
+  const indicator = document.getElementById('sync-indicator');
+  if (indicator) indicator.addEventListener('click', () => {
+    if (indicator.classList.contains('error')) showView('settings');
+  });
+
   onLocalChange(() => {
     clearTimeout(pushTimer);
     pushTimer = setTimeout(() => runSync(), PUSH_DELAY_MS);
   });
 
-  runSync({ silent: false });
+  runSync({ silent: false, opening: true });
 
   // Coming back to the app after it's been in the background is exactly when
   // the other device is most likely to have moved on.
@@ -422,7 +447,8 @@ async function init() {
   // (oauth.html): Settings carries on with it. This comes before Setup, so a
   // brand-new phone can restore straight away.
   const driveReturn = new URLSearchParams(location.search).get('drive');
-  if (driveReturn === 'backup' || driveReturn === 'restore') {
+  if (driveReturn) rememberGoogleAccount();
+  if (driveReturn === 'backup' || driveReturn === 'restore' || driveReturn === 'sync-on') {
     await showView('settings', { drive: driveReturn });
   } else if (openedFromShare || sharedCount > 0) {
     await showView('inbox');
