@@ -6,11 +6,14 @@ import { looksLikeCardPayment } from './transfers.js';
 import { findDuplicates } from './duplicates.js';
 import { isLoanAccount, loanCommitment, loanPosition, assignLoanPayments } from './loans.js';
 import { isPfAccount, pfPosition } from './pf.js';
+import { businessPlan, businessMonth } from './business.js';
 
 // THE RULE - how much you can spend this cycle (26th to 25th, the cards'
 // statement day).
 //
-//   Budget this cycle = monthly salary
+//   Budget this cycle = monthly income: the salary (or pension, or household
+//                       money); for a business owner, the lowest of the last
+//                       three months taken home from the business (js/business.js)
 //                     − every fixed commitment paid from the bank or a card
 //                     − what you save each month
 //   Spent this cycle  = card spends since the last statement day (refunds and
@@ -32,6 +35,9 @@ import { isPfAccount, pfPosition } from './pf.js';
 // has to pay before payday, and the balance after the next salary once the
 // card bills and next month's commitments are paid. It is worked out on the
 // accounts you spend from; money put away is shown beside it, never in it.
+//
+// A business's own accounts stand apart from all of this: what they pay out
+// is the business's, never the house's, and the business is shown on its own.
 //
 // Every line is returned so the screen can show the sum, not just its answer.
 
@@ -108,7 +114,7 @@ function daysBetweenInclusive(fromIso, toIso) {
 }
 
 export async function computeFreeToSpend(now = new Date()) {
-  const [accounts, allTransactions, importBatches, recurring, monthlyIncome, salaryDay, keepInBank] = await Promise.all([
+  const [allAccounts, allTransactions, importBatches, recurring, incomeSetting, salaryDay, keepInBank, incomeKind, categories] = await Promise.all([
     getAll('accounts'),
     getAll('transactions'),
     getAll('importBatches'),
@@ -116,7 +122,13 @@ export async function computeFreeToSpend(now = new Date()) {
     getSetting('monthlyIncome', null),
     getSetting('salaryDay', null),
     getSetting('keepInBank', DEFAULT_KEEP_IN_BANK),
+    getSetting('incomeType', 'salary'),
+    getAll('categories'),
   ]);
+  // The house's accounts. The business's are left to its own card.
+  const accounts = allAccounts.filter((a) => !a.business);
+  const hasBusiness = accounts.length !== allAccounts.length;
+  const isBusiness = incomeKind === 'business';
 
   // A payment saved twice by overlapping statement imports is counted once
   // until you remove the copy (Summary offers to).
@@ -125,6 +137,10 @@ export async function computeFreeToSpend(now = new Date()) {
   const transactions = duplicateIds.size ? allTransactions.filter((t) => !duplicateIds.has(t.id)) : allTransactions;
 
   const today = isoLocal(now);
+  // What the month is planned on. For a business owner that is worked out
+  // from what came home; for everyone else it is the amount set on Plan.
+  const plan = isBusiness ? businessPlan(transactions, allAccounts, today, incomeSetting) : null;
+  const monthlyIncome = isBusiness ? plan.amount : incomeSetting;
   // The accounts you spend from. A bank account you keep only for savings or
   // to pay a loan from (see isPutAway) is not among them.
   const bankAccounts = accounts.filter(isEverydayBank);
@@ -161,7 +177,7 @@ export async function computeFreeToSpend(now = new Date()) {
   const bankIds = new Set(bankAccounts.map((a) => a.id));
   let salary = { amount: 0, date: null, counted: false, alreadyIn: false, late: false, setUp: false, dates: [], billsPayday: null };
   let windowEnd;
-  if (salaryDay && monthlyIncome) {
+  if (!isBusiness && salaryDay && monthlyIncome) {
     salary.setUp = true;
     // Salaries land a few days early (payday on a weekend or holiday) or a
     // day or two late. A big enough credit near a payday is that payday's
@@ -213,7 +229,10 @@ export async function computeFreeToSpend(now = new Date()) {
     // Without a salary day there's no pay period to plan to, so plan to the
     // end of this month and count no future income.
     windowEnd = isoLocal(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-    notes.push('Set your salary day and monthly income on the Plan screen to count your next salary.');
+    // A business owner has no payday: the month runs by the calendar, and
+    // no money is counted before it has come home.
+    if (isBusiness) salary.setUp = monthlyIncome != null;
+    else notes.push('Set your income and the day it arrives on Plan.');
   }
 
   // Salary day at the end of a month: EMIs, rent and the rest with a set day
@@ -221,7 +240,7 @@ export async function computeFreeToSpend(now = new Date()) {
   // the salary landed (or the payday, if it hasn't) to the month's last day -
   // only when payday is in the month's last week. Null otherwise.
   const salaryDayWindow = (monthEnd) => {
-    if (!salary.setUp) return null;
+    if (!salary.setUp || !salaryDay || isBusiness) return null;
     const [y, m, last] = monthEnd.split('-').map(Number);
     const payday = isoLocal(new Date(y, m - 1, Math.min(salaryDay, last)));
     if (Math.min(salaryDay, last) < last - 6) return null;
@@ -566,7 +585,7 @@ export async function computeFreeToSpend(now = new Date()) {
   const cardSpent = owedCards - sum(cardCommitmentCharges);
   const spentThisCycle = cardSpent + bankSpent;
   const free = limit == null || noCommitments ? null : limit - spentThisCycle;
-  if (monthlyIncome && noCommitments) notes.push('Add your fixed commitments on Plan - without them your whole salary looks free.');
+  if (monthlyIncome && noCommitments) notes.push('Add your fixed commitments on Plan - without them your whole income looks free.');
 
   // --- The bank check -----------------------------------------------------
   // Never adds to the budget. Before payday: what the bank still has to pay.
@@ -764,7 +783,17 @@ export async function computeFreeToSpend(now = new Date()) {
     cards,
     keep,
     // the budget
+    incomeKind: isBusiness ? 'business' : incomeKind,
     monthlyIncome,
+    // A business owner's plan: what it rests on, and what came home so far.
+    plan,
+    // How many months of the house's costs the money in the bank and put
+    // away would cover, for a month when little comes home.
+    monthsCovered:
+      bank != null && monthlyIncome && monthlyIncome - keep > 0
+        ? Math.floor((bank + savingsAccounts.reduce((s, a) => s + Math.max(0, bankBalance(a, transactions) || 0), 0)) / (monthlyIncome - keep))
+        : null,
+    business: hasBusiness ? businessMonth(transactions, allAccounts, categories, today.slice(0, 7)) : null,
     budgetItems,
     skippedItems,
     noCommitments,

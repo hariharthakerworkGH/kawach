@@ -6,6 +6,7 @@ import { showToast } from '../toast.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, toMonthly, toYearly } from '../frequency.js';
 import { formatCurrency } from '../format.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
+import { isBusinessCategory, isBusinessAccount } from '../business.js';
 
 export async function render(container, params = {}) {
   const [categories, accounts, recurring] = await Promise.all([getAll('categories'), getAll('accounts'), getAll('recurring')]);
@@ -40,7 +41,7 @@ export async function render(container, params = {}) {
       </label>
       <div class="chip-row" id="add-categories">
         <button type="button" class="chip active" data-cat="">Uncategorized</button>
-        ${categories.map((c) => `<button type="button" class="chip" data-cat="${c.id}">${categoryStyle(c.name).icon} ${escapeHtml(c.name)}</button>`).join('')}
+        ${categories.map((c) => `<button type="button" class="chip" data-cat="${c.id}" data-business="${isBusinessCategory(c) ? '1' : ''}">${categoryStyle(c.name).icon} ${escapeHtml(c.name)}</button>`).join('')}
       </div>
       ${commitmentField(commitments)}
       <label class="field">
@@ -101,6 +102,27 @@ export async function render(container, params = {}) {
   const dateInput = container.querySelector('#add-date');
   const accountSelect = container.querySelector('#add-account');
   const form = container.querySelector('#add-form');
+
+  // Only the categories that fit the account: business ones for a business
+  // account, home ones otherwise. A choice that no longer fits is cleared.
+  const fitCategories = () => {
+    const business = isBusinessAccount(accounts.find((a) => a.id === accountSelect.value));
+    // Commitments are the house's; a business payment never counts towards one.
+    const commitmentEl = container.querySelector('#add-commitment');
+    if (commitmentEl) {
+      commitmentEl.closest('.field').hidden = business;
+      if (business) commitmentEl.value = '';
+    }
+    container.querySelectorAll('#add-categories .chip[data-cat]:not([data-cat=""])').forEach((chip) => {
+      chip.hidden = (chip.dataset.business === '1') !== business;
+      if (chip.hidden && chip.dataset.cat === categoryId) {
+        categoryId = null;
+        container.querySelectorAll('#add-categories .chip').forEach((c) => c.classList.toggle('active', c.dataset.cat === ''));
+      }
+    });
+  };
+  accountSelect.addEventListener('change', fitCategories);
+  fitCategories();
 
   // "This repeats" turns a one-off entry into a standing commitment as well,
   // so ₹120 of chai logged once becomes ₹3,650 a month in the plan without

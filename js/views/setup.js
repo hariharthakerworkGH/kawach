@@ -7,6 +7,7 @@ import { tellUser } from '../dialog.js';
 import { redraw } from '../redraw.js';
 import { BANKS as INDIAN_BANKS } from '../parsers/any-bank.js';
 import { playTour } from '../tour.js';
+import { incomeType, ensureBusinessCategories } from '../business.js';
 
 // First-run setup: a few short steps so a new user isn't left facing empty
 // screens. Everything it saves is the same data the Plan and Cards screens
@@ -14,10 +15,12 @@ import { playTour } from '../tour.js';
 //
 // Opens by itself only for someone with nothing set up yet - see needsSetup.
 
-const STEPS = ['welcome', 'salary', 'bank', 'cards', 'commitments', 'done'];
+const STEPS = ['welcome', 'income', 'bank', 'cards', 'commitments', 'done'];
 // Bank names as the statement readers write them, so an import recognises
 // the account without asking.
 const BANKS = [...INDIAN_BANKS.map(([label]) => label), 'Other'];
+// Card companies that aren't banks, left out of the bank account list.
+const CARD_ONLY = new Set(['SBI Card', 'American Express', 'OneCard']);
 
 let step = 0;
 let shownIn = null;
@@ -43,12 +46,13 @@ export async function needsSetup() {
 export async function render(container, params = {}) {
   if (params.restart) step = 0;
   shownIn = container;
-  const [accounts, recurring, income, salaryDay, keep] = await Promise.all([
+  const [accounts, recurring, income, salaryDay, keep, kind] = await Promise.all([
     getAll('accounts'),
     getAll('recurring'),
     getSetting('monthlyIncome', null),
     getSetting('salaryDay', null),
     getSetting('keepInBank', DEFAULT_KEEP_IN_BANK),
+    incomeType(),
   ]);
   const banks = accounts.filter((a) => a.type === 'bank');
   const cards = accounts.filter((a) => a.type === 'card');
@@ -61,9 +65,9 @@ export async function render(container, params = {}) {
       ${
         {
           welcome: welcomeStep,
-          salary: () => salaryStep(income, salaryDay, keep),
-          bank: () => accountStep('bank', banks),
-          cards: () => accountStep('card', cards),
+          income: () => incomeStep(kind, income, salaryDay, keep),
+          bank: () => accountStep('bank', banks, kind),
+          cards: () => accountStep('card', cards, kind),
           commitments: () => commitmentsStep(commitments, [...banks, ...cards]),
           done: doneStep,
         }[name]()
@@ -76,7 +80,7 @@ export async function render(container, params = {}) {
 function welcomeStep() {
   return `
     <h2 class="setup-title">Know what you can spend</h2>
-    <p class="setup-lead">Salary, minus fixed payments and savings, checked against every spend.</p>
+    <p class="setup-lead">Your income, minus fixed payments and savings, checked against every spend.</p>
     <ul class="setup-points">
       <li>${icon('lock')} Everything stays on this phone.</li>
       <li>${icon('key')} Sync is optional, and encrypted with a passphrase only you know.</li>
@@ -89,14 +93,33 @@ function welcomeStep() {
   `;
 }
 
-function salaryStep(income, salaryDay, keep) {
+// How money comes in decides what the rest of the app plans on, and the
+// words it uses. The kinds, and what each asks for, are in KINDS.
+const KINDS = [
+  { id: 'salary', icon: 'wallet', title: 'Salary', sub: 'A fixed amount on a set day', amount: 'Monthly salary (in hand)', day: true },
+  { id: 'business', icon: 'store', title: 'Business or self-employed', sub: 'What you take home varies', amount: 'Roughly what the house needs a month', day: false },
+  { id: 'pension', icon: 'clock', title: 'Pension', sub: 'A fixed amount each month', amount: 'Monthly pension', day: true },
+  { id: 'household', icon: 'home', title: 'Household money', sub: 'Given to you for the house', amount: 'Household money each month', day: true },
+];
+
+function incomeStep(kind, income, salaryDay, keep) {
+  const chosen = KINDS.find((k) => k.id === kind) || KINDS[0];
   return `
-    <h2 class="setup-title">Your salary</h2>
+    <h2 class="setup-title">How does money come in?</h2>
+    <div class="income-kinds" role="radiogroup">
+      ${KINDS.map(
+        (k) => `<label class="income-kind">
+          <input type="radio" name="income-kind" value="${k.id}" ${k.id === chosen.id ? 'checked' : ''}>
+          ${icon(k.icon)}
+          <span>${k.title}<br><span class="muted-note">${k.sub}</span></span>
+        </label>`
+      ).join('')}
+    </div>
     <label class="field">
-      <span>Monthly salary (in hand)</span>
-      <input type="number" id="setup-income" inputmode="decimal" min="0" step="1" value="${income != null ? Math.round(income / 100) : ''}" placeholder="85000">
+      <span id="setup-income-label">${chosen.amount}</span>
+      <input type="number" id="setup-income" inputmode="decimal" min="0" step="1" value="${income != null ? Math.round(income / 100) : ''}" placeholder="60000">
     </label>
-    <label class="field">
+    <label class="field" id="setup-day-field" ${chosen.day ? '' : 'hidden'}>
       <span>Day it arrives</span>
       <select id="setup-salary-day">
         ${Array.from({ length: 31 }, (_, i) => i + 1)
@@ -104,6 +127,7 @@ function salaryStep(income, salaryDay, keep) {
           .join('')}
       </select>
     </label>
+    <p class="muted-note setup-field-note" id="setup-business-note" ${chosen.id === 'business' ? '' : 'hidden'}>After 3 months, Kawach plans on your lowest month.</p>
     <label class="field">
       <span>Save each month</span>
       <input type="number" id="setup-keep" inputmode="decimal" min="0" step="1" value="${Math.round((keep ?? DEFAULT_KEEP_IN_BANK) / 100)}">
@@ -112,16 +136,19 @@ function salaryStep(income, salaryDay, keep) {
   `;
 }
 
-function accountStep(type, list) {
+function accountStep(type, list, kind) {
   const isCard = type === 'card';
+  // A business owner marks which accounts are the business's: its money,
+  // and what it spends, are kept apart from the house.
+  const business = kind === 'business';
   return `
-    <h2 class="setup-title">${isCard ? 'Your credit cards' : 'Your bank account'}</h2>
-    ${isCard ? '<p class="setup-lead">Each card\'s billing cycle is read from its first statement.</p>' : ''}
+    <h2 class="setup-title">${isCard ? 'Your credit cards' : business ? 'Your bank accounts' : 'Your bank account'}</h2>
+    ${isCard ? '<p class="setup-lead">Each card\'s billing cycle is read from its first statement.</p>' : business ? '<p class="setup-lead">The business\'s current account, and your own savings account.</p>' : ''}
     ${
       list.length
         ? `<div class="totals-card">${list
             .map(
-              (a) => `<div class="attention-row"><span>${escapeHtml(a.label)}<br><span class="muted-note">${escapeHtml(a.issuer || '')}${a.last4 ? ` ••${escapeHtml(a.last4)}` : ''}</span></span><button type="button" class="icon-btn setup-remove-account" data-id="${a.id}" aria-label="Remove">${icon('close')}</button></div>`
+              (a) => `<div class="attention-row"><span>${escapeHtml(a.label)}${a.business ? ' <span class="business-pill">Business</span>' : ''}<br><span class="muted-note">${escapeHtml(a.issuer || '')}${a.last4 ? ` ••${escapeHtml(a.last4)}` : ''}</span></span><button type="button" class="icon-btn setup-remove-account" data-id="${a.id}" aria-label="Remove">${icon('close')}</button></div>`
             )
             .join('')}</div>`
         : ''
@@ -129,16 +156,24 @@ function accountStep(type, list) {
     <form class="totals-card" id="setup-account-form">
       <label class="field">
         <span>Name</span>
-        <input type="text" id="setup-account-name" placeholder="${isCard ? 'e.g. Rewards card' : 'e.g. Salary account'}" required>
+        <input type="text" id="setup-account-name" placeholder="${isCard ? 'Rewards card' : business ? 'Shop current account' : 'Salary account'}" required>
       </label>
       <label class="field">
         <span>Bank</span>
-        <select id="setup-account-bank">${BANKS.map((b) => `<option>${b}</option>`).join('')}</select>
+        <select id="setup-account-bank">${BANKS.filter((b) => isCard || !CARD_ONLY.has(b)).map((b) => `<option>${b}</option>`).join('')}</select>
       </label>
       <label class="field">
         <span>Last 4 digits</span>
         <input type="text" id="setup-account-last4" inputmode="numeric" maxlength="4" pattern="\\d{4}" placeholder="1234">
       </label>
+      ${
+        business
+          ? `<label class="checkbox-row">
+              <input type="checkbox" id="setup-account-business" ${!isCard && !list.some((a) => a.business) ? 'checked' : ''}>
+              <span>For the business</span>
+            </label>`
+          : ''
+      }
       <button type="submit" class="btn-secondary btn-block">Add ${isCard ? 'card' : 'account'}</button>
     </form>
     ${nav(list.length ? 'Next' : 'Skip')}
@@ -216,7 +251,7 @@ function wire(container, name, { accounts }) {
         open('summary');
         return;
       }
-      if (btn.dataset.go === 'next' && name === 'salary') await saveSalary(container);
+      if (btn.dataset.go === 'next' && name === 'income') await saveIncome(container);
       step = Math.max(0, Math.min(STEPS.length - 1, step + (btn.dataset.go === 'back' ? -1 : 1)));
       if (STEPS[step] === 'done') await setSetting('setupDone', true);
       // A new step starts at its top, unlike a redraw of the same step.
@@ -228,6 +263,17 @@ function wire(container, name, { accounts }) {
   container.querySelectorAll('[data-open]').forEach((btn) => btn.addEventListener('click', () => open(btn.dataset.open)));
   container.querySelector('#setup-tour')?.addEventListener('click', playTour);
 
+  // Choosing a kind of income changes what is asked for, without losing
+  // what was typed.
+  container.querySelectorAll('input[name="income-kind"]').forEach((radio) => {
+    radio.addEventListener('change', () => {
+      const k = KINDS.find((x) => x.id === radio.value);
+      container.querySelector('#setup-income-label').textContent = k.amount;
+      container.querySelector('#setup-day-field').hidden = !k.day;
+      container.querySelector('#setup-business-note').hidden = k.id !== 'business';
+    });
+  });
+
   const accountForm = container.querySelector('#setup-account-form');
   if (accountForm) {
     accountForm.addEventListener('submit', async (e) => {
@@ -235,6 +281,7 @@ function wire(container, name, { accounts }) {
       const type = name === 'cards' ? 'card' : 'bank';
       const bank = container.querySelector('#setup-account-bank').value;
       const last4 = container.querySelector('#setup-account-last4').value.trim();
+      const forBusiness = container.querySelector('#setup-account-business')?.checked;
       await put('accounts', {
         id: newId(),
         label: container.querySelector('#setup-account-name').value.trim(),
@@ -242,6 +289,7 @@ function wire(container, name, { accounts }) {
         issuer: bank === 'Other' ? null : bank,
         last4: /^\d{4}$/.test(last4) ? last4 : null,
         billingCycleDay: null,
+        ...(forBusiness ? { business: true } : {}),
       });
       again();
     });
@@ -286,12 +334,16 @@ function wire(container, name, { accounts }) {
   }
 }
 
-async function saveSalary(container) {
+async function saveIncome(container) {
+  const kind = container.querySelector('input[name="income-kind"]:checked')?.value || 'salary';
   const income = parseFloat(container.querySelector('#setup-income').value);
   const keep = parseFloat(container.querySelector('#setup-keep').value);
+  await setSetting('incomeType', kind);
   if (Number.isFinite(income) && income > 0) await setSetting('monthlyIncome', Math.round(income * 100));
-  await setSetting('salaryDay', parseInt(container.querySelector('#setup-salary-day').value, 10));
+  // A business has no payday.
+  await setSetting('salaryDay', kind === 'business' ? null : parseInt(container.querySelector('#setup-salary-day').value, 10));
   if (Number.isFinite(keep) && keep >= 0) await setSetting('keepInBank', Math.round(keep * 100));
+  if (kind === 'business') await ensureBusinessCategories();
 }
 
 function escapeHtml(str) {

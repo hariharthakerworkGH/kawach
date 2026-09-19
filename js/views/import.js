@@ -15,6 +15,7 @@ import { sameTransaction } from '../duplicates.js';
 import * as csvParser from '../parsers/csv.js';
 import { readerFor, BANKS } from '../parsers/any-bank.js';
 import { enhancePasswords } from '../password-field.js';
+import { categoriesFor } from '../business.js';
 import { isPfAccount, pfContribution, pfPosition, DEFAULT_PF_RATE } from '../pf.js';
 
 // Two kinds of import share this screen:
@@ -670,9 +671,13 @@ function likelyStatementAccount(accounts, parser) {
 // account the rows land on.
 async function analyse() {
   const { rows, meta, provisional, account } = state;
+  // A business account's rows take business categories, and a home one's
+  // home categories: a category learned from the other kind is dropped.
+  const fits = new Set(categoriesFor(categoriesCache, account).map((c) => c.id));
   for (const row of rows) {
     if (!row) continue;
     if ('_ownCategoryId' in row) row.categoryId = row._ownCategoryId;
+    if (row.categoryId && !fits.has(row.categoryId)) row.categoryId = null;
     delete row._matchedManualId;
     delete row._matchedSource;
     delete row._carry;
@@ -923,7 +928,7 @@ function renderResults(resultsEl) {
 
   const fill = (selector, indexes) => {
     const el = resultsEl.querySelector(selector);
-    if (el) el.innerHTML = indexes.map((idx) => rowTemplate(rows[idx], idx, categoriesCache)).join('');
+    if (el) el.innerHTML = indexes.map((idx) => rowTemplate(rows[idx], idx, categoriesFor(categoriesCache, state.account))).join('');
   };
   fill('#import-row-attention', attention);
   fill('#import-row-list', others);

@@ -8,7 +8,8 @@ import { detectRecurring } from '../js/recurring.js';
 import { detectTransfers } from '../js/transfers.js';
 import { syncNow, getSyncConfig, getSyncPassphrase, turnOnGoogleSync } from '../js/sync.js';
 import { setBackupPassphrase, backUpToDrive, listBackups, SYNC_FILE } from '../js/drive.js';
-import { encryptPayload, decryptPayload } from '../js/backup.js';
+import { encryptPayload, decryptPayload, exportEncrypted, decryptBackup, restoreBackup } from '../js/backup.js';
+import { takenHome, categoriesFor } from '../js/business.js';
 
 // Salary ₹1,00,000; commitments: EMI ₹40,000 (bank), rent ₹20,000 (bank),
 // ATM ₹10,000 (bank), Netflix ₹649 (card), Metro ₹1,000 (cash); ₹5,000 saved.
@@ -651,4 +652,94 @@ test('Google sync: a passphrase changed on one device carries the synced copy wi
   } finally {
     drive.done();
   }
+});
+
+// --- Business owners (js/business.js) ---------------------------------------
+// A made-up shopkeeper: the shop's current account, a savings account at
+// home, and money moved from one to the other as the house needs it.
+
+async function seedShop({ months = [['2026-06-10', 70000], ['2026-07-10', 50000], ['2026-08-10', 65000]], estimate = 60000 } = {}) {
+  await seedBasics();
+  await put('accounts', { id: 'shop', label: 'Shop current account', type: 'bank', issuer: 'Test Bank', last4: '4411', business: true });
+  await put('settings', { id: 'incomeType', value: 'business' });
+  await put('settings', { id: 'monthlyIncome', value: rupees(estimate) });
+  await putAll('recurring', [commitment({ label: 'House Rent', amount: 15000 })]);
+  const moves = [];
+  for (const [date, amount] of months) {
+    moves.push(txn({ accountId: 'shop', date, amount, rawDescription: 'UPI-SELF-TRANSFER' }));
+    moves.push(txn({ accountId: 'bank', date, amount, direction: 'credit', rawDescription: 'UPI-FROM-SHOP' }));
+  }
+  await putAll('transactions', moves);
+}
+
+test('business: the month is planned on the lowest of the last three months taken home', async () => {
+  await seedShop();
+  await detectTransfers();
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  equal([f.incomeKind, f.plan.basis, f.plan.lowestMonth], ['business', 'lowest', '2026-07']);
+  paise(f.monthlyIncome, rupees(50000));
+  // ₹50,000 − ₹15,000 rent − ₹5,000 saved.
+  paise(f.limit, rupees(30000));
+});
+
+test('business: the shop spending on its own account never counts as the house spending', async () => {
+  await seedShop();
+  await putAll('transactions', [
+    txn({ accountId: 'shop', date: '2026-09-05', amount: 200000, rawDescription: 'NEFT-WHOLESALE SUPPLIER', categoryId: 'cat-biz-stock' }),
+    txn({ accountId: 'shop', date: '2026-09-06', amount: 350000, direction: 'credit', rawDescription: 'UPI-CUSTOMER PAYMENTS' }),
+    txn({ accountId: 'shop', date: '2026-09-08', amount: 40000, rawDescription: 'UPI-SELF-TRANSFER' }),
+    txn({ accountId: 'bank', date: '2026-09-08', amount: 40000, direction: 'credit', rawDescription: 'UPI-FROM-SHOP' }),
+    txn({ accountId: 'bank', date: '2026-09-09', amount: 5000, rawDescription: 'UPI-GROCER-777777777777' }),
+  ]);
+  await put('categories', { id: 'cat-biz-stock', name: 'Stock and purchases', scope: 'business' });
+  await detectTransfers();
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  paise(f.spentThisCycle, rupees(5000));
+  equal([f.business.moneyIn, f.business.moneyOut, f.business.takenHome], [rupees(350000), rupees(200000), rupees(40000)]);
+  equal(f.business.top[0], { name: 'Stock and purchases', amount: rupees(200000) });
+  paise(f.plan.thisMonth, rupees(40000));
+});
+
+test('business: the owner’s estimate until there are three months to go on', async () => {
+  await seedShop({ months: [['2026-08-10', 65000]] });
+  await detectTransfers();
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  equal(f.plan.basis, 'estimate');
+  paise(f.monthlyIncome, rupees(60000));
+});
+
+test('business: money moved between two home accounts, or paid back, is not taken home', async () => {
+  const accounts = [
+    { id: 'shop', type: 'bank', business: true },
+    { id: 'home', type: 'bank' },
+    { id: 'wife', type: 'bank' },
+  ];
+  const t = [
+    { id: 'a', accountId: 'shop', direction: 'debit', isTransfer: true, movedTo: 'home', amount: 30000, date: '2026-09-02' },
+    { id: 'b', accountId: 'home', direction: 'credit', isTransfer: true, movedFrom: 'shop', amount: 30000, date: '2026-09-02' },
+    { id: 'c', accountId: 'home', direction: 'credit', isTransfer: true, movedFrom: 'wife', amount: 8000, date: '2026-09-03' },
+    { id: 'd', accountId: 'home', direction: 'debit', amount: 2000, date: '2026-09-04', rawDescription: 'UPI-friend@okaxis-LOAN' },
+    { id: 'e', accountId: 'home', direction: 'credit', amount: 2000, date: '2026-09-10', rawDescription: 'UPI-friend@okaxis-BACK' },
+    { id: 'f', accountId: 'home', direction: 'credit', amount: 1500, date: '2026-09-11', rawDescription: 'UPI-customer@oksbi' },
+  ];
+  // The ₹30,000 from the shop and a customer's ₹1,500 came home.
+  equal(takenHome(t, accounts, '2026-09'), 31500);
+});
+
+test('business categories are offered only for business accounts', () => {
+  const categories = [{ id: 'food', name: 'Food' }, { id: 'stock', name: 'Stock', scope: 'business' }];
+  equal(categoriesFor(categories, { id: 'shop', business: true }).map((c) => c.id), ['stock']);
+  equal(categoriesFor(categories, { id: 'home' }).map((c) => c.id), ['food']);
+});
+
+test('a backup keeps business accounts, business categories and the kind of income', async () => {
+  await seedShop();
+  await put('categories', { id: 'cat-biz-own', name: 'Tailoring job work', scope: 'business' });
+  const { envelope } = await exportEncrypted('backup-phrase-1');
+  await seedBasics();
+  const { data } = await decryptBackup(JSON.stringify(envelope), 'backup-phrase-1');
+  await restoreBackup(data);
+  ok((await getAll('accounts')).some((a) => a.id === 'shop' && a.business), 'business account kept');
+  ok((await getAll('categories')).some((c) => c.id === 'cat-biz-own' && c.scope === 'business'), 'own business category kept');
+  ok((await getAll('settings')).some((s) => s.id === 'incomeType' && s.value === 'business'), 'kind of income kept');
 });

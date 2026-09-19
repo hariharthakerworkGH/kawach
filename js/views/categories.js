@@ -9,6 +9,7 @@ import { learnFromAssignment } from '../merchant-rules.js';
 import { formatRupees, formatDateNice } from '../format.js';
 import { showToast } from '../toast.js';
 import { displayName } from './transactions.js';
+import { isBusinessCategory, isBusinessAccount } from '../business.js';
 
 // Your categories: rename them, pick their icon, and say which sits under
 // which. Everything happens on this screen rather than in browser prompt
@@ -23,6 +24,9 @@ let review = null;
 // it: which payments, and the learned rules as they were before.
 let undo = null;
 let shownIn = null;
+// Which categories are shown: the house's, or the business's. A business
+// makes its own as its work needs; they sit apart from the home ones.
+let scope = 'home';
 
 // The phone's back button closes a review or an open form first.
 export function onBack() {
@@ -37,18 +41,37 @@ export async function render(container) {
   shownIn = container;
   const [categories, accounts] = await Promise.all([getAll('categories'), getAll('accounts')]);
   setCustomStyles(categories);
-  const topLevel = categories.filter((c) => !c.parentId);
-  const childrenOf = (id) => categories.filter((c) => c.parentId === id);
+  const hasBusiness = categories.some(isBusinessCategory) || accounts.some(isBusinessAccount);
+  if (!hasBusiness) scope = 'home';
+  const shown = categories.filter((c) => isBusinessCategory(c) === (scope === 'business'));
+  const topLevel = shown.filter((c) => !c.parentId);
+  const childrenOf = (id) => shown.filter((c) => c.parentId === id);
   const editingCat = editing && editing !== 'new' ? categories.find((c) => c.id === editing) : null;
 
   container.innerHTML = `
     ${review ? reviewPanel(review, accounts) : ''}
     ${undo && !review ? `<div class="totals-card cat-undo"><span>${undo.ids.length} payment${undo.ids.length === 1 ? '' : 's'} now in ${escapeHtml(undo.name)}</span><button type="button" class="link-btn cr-undo">Undo</button></div>` : ''}
+    ${
+      hasBusiness
+        ? `<div class="segmented">
+            <button type="button" class="seg-btn cat-scope ${scope === 'home' ? 'active' : ''}" data-scope="home">Home</button>
+            <button type="button" class="seg-btn cat-scope ${scope === 'business' ? 'active' : ''}" data-scope="business">Business</button>
+          </div>`
+        : ''
+    }
     <ul class="cat-list">
       ${topLevel.map((c) => (editingCat && editingCat.id === c.id ? categoryForm(c, topLevel) : renderCatRow(c, childrenOf(c.id), editingCat, topLevel))).join('')}
     </ul>
-    ${editing === 'new' ? categoryForm(null, topLevel) : '<button type="button" id="add-cat-btn" class="btn-secondary btn-block">+ Add category</button>'}
+    ${editing === 'new' ? categoryForm(null, topLevel) : `<button type="button" id="add-cat-btn" class="btn-secondary btn-block">+ Add ${scope === 'business' ? 'business ' : ''}category</button>`}
   `;
+
+  container.querySelectorAll('.cat-scope').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      scope = btn.dataset.scope;
+      editing = null;
+      redraw(container, () => render(container));
+    });
+  });
 
   const addBtn = container.querySelector('#add-cat-btn');
   if (addBtn) {
@@ -84,6 +107,7 @@ export async function render(container) {
         image: form.querySelector('.cf-image').value || null,
         color: form.querySelector('.cf-color').value || null,
         parentId: form.querySelector('.cf-parent').value || null,
+        ...(existing ? {} : scope === 'business' ? { scope: 'business' } : {}),
       };
       await put('categories', saved);
       setCustomStyles([...categories.filter((c) => c.id !== saved.id), saved]);
@@ -294,7 +318,14 @@ function renderCatRow(cat, children, editingCat, topLevel) {
 
 async function startReview(category, extra) {
   const words = searchWords(category.name, extra);
-  const found = findCandidates(await getAll('transactions'), words);
+  // A business category looks only at the business's payments, and a home
+  // one only at the house's.
+  const [transactions, accounts] = await Promise.all([getAll('transactions'), getAll('accounts')]);
+  const business = new Set(accounts.filter(isBusinessAccount).map((a) => a.id));
+  const found = findCandidates(
+    transactions.filter((t) => business.has(t.accountId) === isBusinessCategory(category)),
+    words
+  );
   review = { categoryId: category.id, name: category.name, extra, words, found, ticked: new Set(found.map((t) => t.id)) };
   undo = null;
 }

@@ -17,6 +17,9 @@ import { categoryIcon } from './category-icons.js';
 // Transfer" is savings before it is a transfer.
 const RULES = [
   { match: /^uncategori[sz]ed$/i, icons: ['question'], color: 'var(--cat-uncategorized)' },
+  // A business's own spending (js/business.js), before the rules below
+  // read "stock" as investing or "shop" as shopping.
+  { match: /stock|purchase|inventory|raw material|wholesale|supplier/i, icons: ['tag', 'bag'], color: 'var(--cat-1)' },
   { match: /loan|emi\b|mortgage/i, icons: ['loan', 'bank'], color: 'var(--cat-home)' },
   { match: /rent|house|flat|\bpg\b|hostel/i, icons: ['rent', 'home'], color: 'var(--cat-2)' },
   { match: /atm|withdraw|cash/i, icons: ['atm', 'cash'], color: 'var(--cat-1)' },

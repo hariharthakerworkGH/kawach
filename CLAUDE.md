@@ -38,10 +38,19 @@ Google's sign-in returns for Drive backups.
 comment is the specification; keep it true.
 
 ```
-Budget   = monthly salary − live fixed commitments (bank + card) − saved each month
+Budget   = monthly income − live fixed commitments (bank + card) − saved each month
 Spent    = card spends this card cycle + bank spends this month − commitment payments
 Left     = budget − spent
 ```
+
+Monthly income depends on how money comes in (`incomeType`, js/business.js):
+a salary, pension or household money is the amount set on Plan; for a
+business owner it is the lowest of the last three months taken home (money
+reaching the home accounts from the business, or from outside), and the
+owner's estimate of what the house needs until there are three months.
+Accounts marked `business` stand apart: their spending is never the house's,
+they get business categories (`scope: 'business'`, including the owner's own),
+and Summary shows the business on its own card.
 
 Periods:
 - **Cards:** the card cycle, the day after the statement day to the next statement

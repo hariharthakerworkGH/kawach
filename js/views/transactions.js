@@ -11,6 +11,7 @@ import { commitmentField, cardPaymentField } from './add.js';
 import { looksLikeCardPayment } from '../transfers.js';
 import { isoLocal } from '../frequency.js';
 import { icon } from '../icons.js';
+import { categoriesFor } from '../business.js';
 
 // History: one month at a time, newest first, grouped by day, one line per
 // payment. It used to be every transaction ever in one list, with a category
@@ -243,8 +244,10 @@ function resetPage(container) {
   renderList(container);
 }
 
-function categoryOptions(selectedId) {
-  return cache.categories
+// `list`: the categories to offer; a payment is offered the ones that fit
+// its account (business or home), the filters every one.
+function categoryOptions(selectedId, list = cache.categories) {
+  return list
     .map((c) => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)
     .join('');
 }
@@ -408,10 +411,16 @@ function rowTemplate(t) {
   `;
 }
 
+// The categories that fit a payment's account: business or home.
+function fitting(t) {
+  return categoriesFor(cache.categories, cache.accounts.find((a) => a.id === t.accountId));
+}
+
 function expandedTemplate(t) {
   if (splitDraft && splitDraft.id === t.id) return splitTemplate(t);
   const split = isSplit(t);
-  const quick = cache.quick.filter((id) => cache.categories.some((c) => c.id === id)).slice(0, 4);
+  const fits = fitting(t);
+  const quick = cache.quick.filter((id) => fits.some((c) => c.id === id)).slice(0, 4);
   const chip = (id) => {
     const name = catName(id);
     return `<button type="button" class="plan-chip hist-cat-pick ${t.categoryId === id ? 'on' : ''}" data-cat="${id}" aria-pressed="${t.categoryId === id}">${categoryStyle(name).icon} ${escapeHtml(name)}</button>`;
@@ -428,7 +437,7 @@ function expandedTemplate(t) {
               ${quick.map(chip).join('')}
               <select class="txn-cat hist-cat-more ${t.categoryId ? '' : 'needs-category'}" data-field="categoryId" aria-label="Category">
                 <option value="">${t.categoryId ? 'Other…' : 'Needs a category'}</option>
-                ${categoryOptions(quick.includes(t.categoryId) ? null : t.categoryId)}
+                ${categoryOptions(quick.includes(t.categoryId) ? null : t.categoryId, fits)}
               </select>
             </div>`
       }
@@ -480,7 +489,7 @@ function splitTemplate(t) {
           <div class="split-row" data-index="${i}">
             <select class="split-cat">
               <option value="">Pick a category</option>
-              ${categoryOptions(row.categoryId)}
+              ${categoryOptions(row.categoryId, fitting(t))}
             </select>
             <input type="number" step="0.01" class="split-amount" value="${row.amount ? (row.amount / 100).toFixed(2) : ''}" placeholder="0.00">
             <button type="button" class="icon-btn danger split-remove" aria-label="Remove">${icon('close')}</button>

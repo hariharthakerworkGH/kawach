@@ -8,6 +8,8 @@ import { isoLocal } from '../frequency.js';
 import { findDuplicates } from '../duplicates.js';
 import { byYourOrder } from '../commitments.js';
 import { redraw } from '../redraw.js';
+import { ensureBusinessCategories } from '../business.js';
+import { detectTransfers } from '../transfers.js';
 import { icon } from '../icons.js';
 import { displayName } from './transactions.js';
 
@@ -279,6 +281,10 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
         <input type="checkbox" class="af-spending" ${a.spending === false ? '' : 'checked'}>
         <span>I spend from this account<br><span class="muted-note">Off for savings or loan-only accounts: nothing from it counts as spending.</span></span>
       </label>
+      <label class="checkbox-row af-business-field" ${['bank', 'card', 'cash'].includes(a.type) ? '' : 'hidden'}>
+        <input type="checkbox" class="af-business" ${a.business ? 'checked' : ''}>
+        <span>For the business<br><span class="muted-note">Kept apart from the house, with business categories.</span></span>
+      </label>
       <div class="field af-cycle-field" ${a.type === 'card' ? '' : 'hidden'}>
         <span>Billing cycle</span>
         <span class="muted-note">${cycleNote(account, importBatches)}</span>
@@ -355,6 +361,7 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
 function wireForm(form, container, accounts, transactions) {
   const cycleField = form.querySelector('.af-cycle-field');
   const spendingField = form.querySelector('.af-spending-field');
+  const businessField = form.querySelector('.af-business-field');
   const loanFields = form.querySelector('.af-loan-fields');
   const pfFields = form.querySelector('.af-pf-fields');
   let type = form.querySelector('.af-type.active')?.dataset.type || 'card';
@@ -365,6 +372,7 @@ function wireForm(form, container, accounts, transactions) {
       form.querySelectorAll('.af-type').forEach((b) => b.classList.toggle('active', b === btn));
       cycleField.hidden = type !== 'card';
       spendingField.hidden = type !== 'bank';
+      businessField.hidden = !['bank', 'card', 'cash'].includes(type);
       loanFields.hidden = type !== 'loan';
       pfFields.hidden = type !== 'pf';
     });
@@ -410,8 +418,15 @@ function wireForm(form, container, accounts, transactions) {
       // left the app working it out from the full amount borrowed instead.
       loan: type === 'loan' ? { ...(existing?.loan || {}), ...readLoanFields(form) } : undefined,
       ...(type === 'pf' ? readPfFields(form, existing) : {}),
+      business: ['bank', 'card', 'cash'].includes(type) && form.querySelector('.af-business').checked ? true : undefined,
     };
     await put('accounts', account);
+    // A business account needs business categories, and the money already
+    // moved between it and a home account needs recognising as moved.
+    if (account.business) {
+      await ensureBusinessCategories();
+      if (!existing?.business) await detectTransfers();
+    }
     editing = null;
     redraw(container, () => render(container));
   });
@@ -624,7 +639,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
                 account.type === 'bank' ? account : null,
                 acctTxns,
                 `<span class="account-headline">${formatRupees(deposits.length ? total : balance)}</span>
-                 <span class="muted-note">${isPutAway(account) ? 'put away · ' : ''}statement ${formatDateNice(account.knownBalanceDate)}</span>`
+                 <span class="muted-note">${account.business ? 'business · ' : isPutAway(account) ? 'put away · ' : ''}statement ${formatDateNice(account.knownBalanceDate)}</span>`
               )}
                ${
                  deposits.length
@@ -638,7 +653,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
                    : ''
                }
                ${fdHint ? `<button type="button" class="link-btn account-go-import">Import SBI's statement PDF to see your FDs ›</button>` : ''}`
-            : `<p class="muted-note">Import a statement to see the balance.</p>`
+            : `<p class="muted-note">${account.business ? 'Business · i' : 'I'}mport a statement to see the balance.</p>`
         }
       </div>
     `;

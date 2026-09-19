@@ -18,7 +18,7 @@ const DISCRETIONARY_EXCLUDE = /rent|emi|loan|insurance|tax|income|transfer|bill|
 // A single read of everything the other functions need, so a screen asking
 // four questions doesn't hit the database four times.
 export async function financialSnapshot(now = new Date()) {
-  const [transactions, categories, recurring, income, budgets, accounts, cycleAware] = await Promise.all([
+  const [allTransactions, categories, recurring, incomeSetting, budgets, accounts, cycleAware] = await Promise.all([
     getAll('transactions'),
     getAll('categories'),
     getAll('recurring'),
@@ -28,6 +28,9 @@ export async function financialSnapshot(now = new Date()) {
     cycleAwareEnabled(),
   ]);
 
+  // The house's money only: a business's own accounts are its own.
+  const businessIds = new Set(accounts.filter((a) => a.business).map((a) => a.id));
+  const transactions = allTransactions.filter((t) => !businessIds.has(t.accountId));
   const fixed = recurring.filter((r) => isLiveCommitment(r));
   const fixedCategoryIds = new Set(fixed.map((r) => r.categoryId).filter(Boolean));
 
@@ -47,6 +50,9 @@ export async function financialSnapshot(now = new Date()) {
   // Summary's headline, so Plan, Coach and Summary - forecasts and notes
   // included - never give two different answers.
   const cycle = await computeFreeToSpend(now);
+  // What the month is planned on: a business owner's is worked out from what
+  // came home, so it comes from the same calculation.
+  const income = cycle.monthlyIncome ?? incomeSetting;
   const leftToSpend = cycle.free;
   const inCycle = cycle.free != null;
   const free = inCycle ? cycle.limit : income != null ? income - fixedMonthly : null;
