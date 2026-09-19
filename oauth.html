@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Kawach</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #121316; color: #a3a8b3;
+         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 24px; box-sizing: border-box; }
+  a { color: #d4f25c; }
+</style>
+</head>
+<body>
+<!-- Where Google sends the user back after signing in for Drive backups.
+     The pass Google gives is in the part of the address after '#', which
+     never reaches any server; it is checked, kept for this visit only, wiped
+     from the address, and the app carries on with what was asked. -->
+<p id="msg">Connecting to Google Drive…</p>
+<script type="module">
+  import { acceptSignIn } from './js/drive.js';
+  const hash = location.hash;
+  history.replaceState(null, '', location.pathname);
+  try {
+    const purpose = acceptSignIn(hash);
+    location.replace(`./?drive=${encodeURIComponent(purpose)}#settings`);
+  } catch (err) {
+    document.getElementById('msg').innerHTML = `${err.message.replace(/</g, '&lt;')}<br><br><a href="./#settings">Back to Kawach</a>`;
+  }
+</script>
+</body>
+</html>

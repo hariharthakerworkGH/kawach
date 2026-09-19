@@ -12,8 +12,13 @@ import { cycleAwareEnabled } from '../budgets.js';
 import { CYCLE_SETTING_KEY } from '../spending-month.js';
 import { redraw } from '../redraw.js';
 import { dataIsKept } from '../install.js';
+import { driveStatus, setDrivePassphrase, forgetDrive, signIn, backUpToDrive, listBackups, openDriveBackup, hasDrivePass } from '../drive.js';
 
-export async function render(container) {
+// Drive backups found after signing in to restore, kept while this screen is
+// open so a redraw doesn't lose the list.
+let driveList = null;
+
+export async function render(container, params = {}) {
   const sync = await getSyncConfig();
   const syncPass = await getSyncPassphrase();
   const cycleAware = await cycleAwareEnabled();
@@ -23,14 +28,40 @@ export async function render(container) {
   const lastBackupAt = await getSetting('lastBackupAt', null);
   const safety = dataSafety(sync, syncPass, lastBackupAt);
   const kept = await dataIsKept();
+  const drive = await driveStatus();
 
   container.innerHTML = `
     <div class="totals-card data-safety ${safety.ok ? '' : 'warn-card'}">
       <div class="totals-row"><span><strong>${safety.ok ? `${icon('check')} Your data is safe` : `${icon('alert')} Your data is only on this phone`}</strong></span></div>
       <div class="totals-row"><span class="muted">Sync</span><span>${safety.syncText}</span></div>
-      <div class="totals-row"><span class="muted">Backup file</span><span>${safety.backupText}</span></div>
+      <div class="totals-row"><span class="muted">Last backup</span><span>${safety.backupText}</span></div>
       <div class="totals-row"><span class="muted">Kept safe on this phone</span><span>${kept ? 'Yes' : 'Not yet'}</span></div>
       ${kept ? '' : '<p class="muted-note">Installing Kawach on your home screen lets the phone keep its data even when storage runs low.</p>'}
+    </div>
+
+    <h3>Google Drive backup</h3>
+    <p class="group-subtitle">Encrypted backups in your own Google Drive, to get everything back on a new phone.</p>
+    <div class="totals-card" id="drive-card">
+      ${
+        drive.setUp
+          ? `<div class="totals-row"><span class="muted">Last Drive backup</span><span>${drive.lastAt ? timeAgo(drive.lastAt) : 'Not yet'}</span></div>
+             <button type="button" id="drive-backup-btn" class="btn-primary">Back up to Drive now</button>`
+          : `<label class="field">
+               <span>Passphrase for Drive backups</span>
+               <input type="password" id="drive-pass" placeholder="At least 8 characters" autocomplete="new-password">
+             </label>
+             <label class="field">
+               <span>Type it again</span>
+               <input type="password" id="drive-pass-again" autocomplete="new-password">
+             </label>
+             <p class="muted-note">Needed to restore on a new phone, and it can't be recovered: write it down. Kept on this phone so you aren't asked every time.</p>
+             <button type="button" id="drive-connect-btn" class="btn-primary">Connect Google Drive and back up</button>`
+      }
+      <button type="button" id="drive-restore-btn" class="btn-secondary btn-block">Restore from Google Drive</button>
+      ${driveList ? driveRestorePanel(driveList) : ''}
+      ${drive.setUp ? '<button type="button" id="drive-stop-btn" class="link-btn">Stop Drive backups on this phone</button>' : ''}
+      <p id="drive-status" class="status" hidden></p>
+      <p class="muted-note">Kawach can only use its own hidden folder in your Drive, never your other files. Google shows its sign-in page for a moment when needed.</p>
     </div>
 
     <h3>Sync across your devices</h3>
@@ -117,7 +148,7 @@ export async function render(container) {
       }
     </div>
 
-    <h3>Backup</h3>
+    <h3>Backup file</h3>
     <p class="group-subtitle">An encrypted file you keep yourself - in Drive, email or anywhere.</p>
     <div class="totals-card">
       <label class="field">
@@ -129,7 +160,7 @@ export async function render(container) {
         <input type="password" id="backup-pass-again" autocomplete="new-password">
       </label>
       <p class="muted-note">Needed to restore, and it can't be recovered: write it down.${syncPass ? ' Your sync passphrase works too.' : ''}</p>
-      <button type="button" id="backup-export-btn" class="btn-primary">Save backup</button>
+      <button type="button" id="backup-export-btn" class="btn-secondary btn-block">Save backup</button>
       <button type="button" id="backup-share-btn" class="btn-secondary btn-block" hidden>Choose where to save it</button>
       <button type="button" id="backup-download-btn" class="link-btn">Or download to this phone</button>
       <p id="backup-status" class="status" hidden></p>
@@ -362,6 +393,8 @@ export async function render(container) {
     }
   });
 
+  wireDrive(container, params);
+
   container.querySelector('#run-setup').addEventListener('click', () => {
     container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'setup', restart: true } }));
   });
@@ -465,6 +498,130 @@ export function dataSafety(sync, syncPass, lastBackupAt, now = Date.now()) {
     backupText: lastBackupAt ? timeAgo(lastBackupAt) : 'Never',
     daysUnprotected: lastBackupAt || sync.lastSync ? Math.floor((now - Math.max(lastBackupAt || 0, sync.lastSync || 0)) / DAY) : null,
   };
+}
+
+// The Drive backups to pick from, newest first, and the passphrase to open one.
+function driveRestorePanel(list) {
+  if (!list.length) return '<p class="muted-note">No Kawach backups in this Google Drive yet.</p>';
+  return `
+    <div class="drive-restore">
+      ${list
+        .map(
+          (f, i) => `<label class="drive-file">
+            <input type="radio" name="drive-file" value="${escapeHtml(f.id)}" ${i === 0 ? 'checked' : ''}>
+            <span>${formatDateNice(f.modifiedTime.slice(0, 10))}, ${new Date(f.modifiedTime).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}${i === 0 ? ' <span class="muted">(latest)</span>' : ''}</span>
+          </label>`
+        )
+        .join('')}
+      <label class="field">
+        <span>Passphrase for Drive backups</span>
+        <input type="password" id="drive-restore-pass" autocomplete="current-password">
+      </label>
+      <button type="button" id="drive-restore-go" class="btn-primary">Restore this backup</button>
+    </div>`;
+}
+
+function wireDrive(container, params) {
+  const statusEl = container.querySelector('#drive-status');
+  const again = () => redraw(container, () => render(container));
+  // Anything that needs Google first goes to its sign-in page and comes back
+  // here with `purpose` to carry on (see oauth.html).
+  const orSignIn = (err, purpose) => {
+    if (err && err.needsSignIn) return signIn(purpose);
+    showStatus(statusEl, err && err.message ? err.message : 'Something went wrong.', true);
+  };
+
+  const backUp = async () => {
+    try {
+      showStatus(statusEl, 'Backing up to Google Drive…', false);
+      const counts = await backUpToDrive();
+      await setSetting('lastBackupAt', Date.now());
+      showToast(`Backed up ${counts.transactions} transactions to Drive`);
+      again();
+    } catch (err) {
+      orSignIn(err, 'backup');
+    }
+  };
+
+  const loadList = async () => {
+    try {
+      showStatus(statusEl, 'Looking in your Google Drive…', false);
+      driveList = await listBackups();
+      again();
+    } catch (err) {
+      orSignIn(err, 'restore');
+    }
+  };
+
+  const connect = container.querySelector('#drive-connect-btn');
+  if (connect) {
+    connect.addEventListener('click', async () => {
+      const pass = container.querySelector('#drive-pass').value;
+      if (pass.length < 8) return showStatus(statusEl, 'Use a passphrase of at least 8 characters.', true);
+      if (pass !== container.querySelector('#drive-pass-again').value) return showStatus(statusEl, "The two passphrases don't match.", true);
+      await setDrivePassphrase(pass);
+      if (hasDrivePass()) backUp();
+      else signIn('backup');
+    });
+  }
+  const backupBtn = container.querySelector('#drive-backup-btn');
+  if (backupBtn) backupBtn.addEventListener('click', backUp);
+
+  container.querySelector('#drive-restore-btn').addEventListener('click', () => {
+    if (hasDrivePass()) loadList();
+    else signIn('restore');
+  });
+
+  const stop = container.querySelector('#drive-stop-btn');
+  if (stop) {
+    stop.addEventListener('click', async () => {
+      const ok = await askConfirm({
+        title: 'Stop Drive backups on this phone?',
+        message: 'Backups already in your Drive stay there for a restore. To remove them too: Google Drive, Settings, Manage apps, Kawach, Delete hidden app data.',
+        confirmLabel: 'Stop',
+      });
+      if (!ok) return;
+      await forgetDrive();
+      again();
+    });
+  }
+
+  const go = container.querySelector('#drive-restore-go');
+  if (go) {
+    go.addEventListener('click', async () => {
+      const id = container.querySelector('input[name="drive-file"]:checked')?.value;
+      const pass = container.querySelector('#drive-restore-pass').value;
+      if (!pass) return showStatus(statusEl, 'Enter the passphrase for Drive backups.', true);
+      try {
+        showStatus(statusEl, 'Opening the backup…', false);
+        const { data, createdAt, counts } = await openDriveBackup(id, pass);
+        const ok = await askConfirm({
+          title: 'Replace everything with this backup?',
+          message: `From ${formatDateNice(createdAt)}, ${counts.transactions} transactions. Everything in the app now is replaced. This cannot be undone.`,
+          confirmLabel: 'Restore',
+          danger: true,
+        });
+        if (!ok) return showStatus(statusEl, 'Restore cancelled.', false);
+        await restoreBackup(data);
+        // The passphrase that opened it is the one for future backups too.
+        await setDrivePassphrase(pass);
+        driveList = null;
+        showToast(`Restored ${counts.transactions} transactions`);
+        setTimeout(() => location.replace(location.pathname), 800);
+      } catch (err) {
+        orSignIn(err, 'restore');
+      }
+    });
+  }
+
+  // Back from Google's sign-in page: carry on with what was asked, once.
+  if (params.drive === 'backup' && !params.driveDone) {
+    params.driveDone = true;
+    backUp();
+  } else if (params.drive === 'restore' && !params.driveDone) {
+    params.driveDone = true;
+    loadList();
+  }
 }
 
 function timeAgo(ts) {

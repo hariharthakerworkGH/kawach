@@ -10,12 +10,16 @@ Nothing personal belongs in this file - it is published with the app.
 Live at https://getkawach.com (GitHub Pages, the `kawach` repository; the
 `CNAME` file holds the address). Each user's data belongs to that address:
 changing it would leave every installed app empty, so it never changes.
-`welcome.html` is the page shared to invite people.
+`welcome.html` is the page shared to invite people; `privacy.html` is the
+privacy policy (Google and the Play Store require one); `oauth.html` is where
+Google's sign-in returns for Drive backups.
 
 ## Hard rules
 
 - No analytics, no third-party calls, no external services except the user's own
-  secret GitHub Gist. No LLM in the app.
+  secret GitHub Gist and, if they connect it, their own Google Drive (only the
+  hidden appDataFolder, scope drive.appdata, via Google's sign-in page - no
+  Google code is loaded; js/drive.js). No LLM in the app.
 - Statement PDFs are parsed in memory and never stored. PDF passwords are used
   once and never saved.
 - Sync and backup files are encrypted client side (AES-GCM) with a passphrase the
