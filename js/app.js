@@ -405,7 +405,13 @@ async function init() {
   const sharedCount = await collectSharedAlerts();
 
   wireBackButton();
-  if (openedFromShare || sharedCount > 0) {
+  // Back from Google's sign-in page for a Drive backup or restore
+  // (oauth.html): Settings carries on with it. This comes before Setup, so a
+  // brand-new phone can restore straight away.
+  const driveReturn = new URLSearchParams(location.search).get('drive');
+  if (driveReturn === 'backup' || driveReturn === 'restore') {
+    await showView('settings', { drive: driveReturn });
+  } else if (openedFromShare || sharedCount > 0) {
     await showView('inbox');
   } else if (await setupView.needsSetup()) {
     // Brand new: a few steps instead of empty screens.

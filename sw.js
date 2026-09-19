@@ -4,7 +4,7 @@
 // Keep the number identical to APP_VERSION in js/version.js. The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v67';
+const CACHE_NAME = 'expense-tracker-v68';
 
 const APP_SHELL = [
   './',
@@ -36,6 +36,7 @@ const APP_SHELL = [
   './js/category-icons.js',
   './js/category-match.js',
   './js/install.js',
+  './js/drive.js',
   './js/redraw.js',
   './js/frequency.js',
   './js/planner.js',

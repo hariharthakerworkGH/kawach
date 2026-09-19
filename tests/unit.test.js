@@ -19,6 +19,7 @@ import { formatRupees, formatCurrency } from '../js/format.js';
 import { displayName } from '../js/views/transactions.js';
 import { assignStyles } from '../js/category-style.js';
 import { searchWords, findCandidates } from '../js/category-match.js';
+import { acceptSignIn, hasDrivePass } from '../js/drive.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -34,6 +35,34 @@ test('a statement day typed in by hand is corrected by the card\'s own statement
   equal(fixes.map((a) => [a.id, a.billingCycleDay]), [['c1', 25]]);
   // Month in review files a spend on the 26th by the corrected day.
   equal(spendingMonthOf({ date: '2026-08-26' }, fixes[0]), '2026-09');
+});
+
+test('Google Drive sign-in is accepted only when it answers this visit, with the Drive folder, and a yes', () => {
+  const pending = (state) => sessionStorage.setItem('kawach-drive-pending', JSON.stringify({ purpose: 'backup', state }));
+  const fails = (hash) => {
+    try {
+      acceptSignIn(hash);
+      return false;
+    } catch {
+      return true;
+    }
+  };
+  sessionStorage.removeItem('kawach-drive-token');
+  // An answer to a sign-in this visit never asked for.
+  pending('abc');
+  ok(fails('#access_token=t&state=xyz&scope=https://www.googleapis.com/auth/drive.appdata'), 'wrong state refused');
+  ok(!hasDrivePass(), 'no pass kept');
+  // A "no" from the user.
+  pending('abc');
+  ok(fails('#error=access_denied&state=abc'), 'refusal reported');
+  // Signed in, but the Drive folder left unticked.
+  pending('abc');
+  ok(fails('#access_token=t&state=abc&scope=email'), 'missing permission refused');
+  // The real thing: kept for this visit, and it says what to carry on with.
+  pending('abc');
+  equal(acceptSignIn('#access_token=t&state=abc&expires_in=3599&scope=https://www.googleapis.com/auth/drive.appdata'), 'backup');
+  ok(hasDrivePass(), 'pass kept for this visit');
+  sessionStorage.removeItem('kawach-drive-token');
 });
 
 test('a new category is offered only uncategorised payments that name it as a whole word', () => {

@@ -3260,3 +3260,29 @@ textarea {
 .install-steps {
   margin: 0 0 var(--space-2xs);
 }
+
+/* ---------- Google Drive restore: pick a backup ---------- */
+
+.drive-restore {
+  margin: var(--space-sm) 0;
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border);
+}
+
+.drive-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.drive-file input {
+  accent-color: var(--accent);
+  width: 18px;
+  height: 18px;
+}
+
+#drive-card .btn-secondary {
+  margin-top: var(--space-xs);
+}

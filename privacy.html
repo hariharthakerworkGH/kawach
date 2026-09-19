@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kawach privacy policy</title>
+<link rel="icon" href="./icons/kawach.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./css/tokens.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-body); line-height: 1.6; overflow-x: clip; }
+  main { max-width: 680px; margin: 0 auto; padding: var(--space-2xl) var(--space-sm); }
+  h1 { font-family: var(--font-display); font-size: 2rem; letter-spacing: -0.02em; margin: 0 0 var(--space-2xs); }
+  h2 { font-size: 1.1rem; margin: var(--space-xl) 0 var(--space-2xs); }
+  p, li { color: var(--text-muted); }
+  strong { color: var(--text); }
+  a { color: var(--accent); }
+  .updated { font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Privacy policy</h1>
+  <p class="updated">Kawach · last updated 19 September 2026</p>
+
+  <p>Kawach is a personal finance app that runs in your phone's browser. It is built so that your financial information stays with you. This page explains, in plain words, what happens to your information.</p>
+
+  <h2>What Kawach keeps, and where</h2>
+  <p>Everything you add to Kawach - accounts, payments, categories, commitments, loans, savings and settings - is stored <strong>only on your own device</strong>, in your browser's storage. <strong>Kawach has no server and no database of its own.</strong> The people who make Kawach cannot see, read or receive your information.</p>
+
+  <h2>Bank statements and messages</h2>
+  <p>When you import a bank statement or share a bank SMS, it is read on your device and turned into entries. <strong>The statement file itself is never stored and never uploaded.</strong> A password you type to open a statement is used once and not saved.</p>
+
+  <h2>Backups you choose to make</h2>
+  <ul>
+    <li><strong>Backup file:</strong> a file you save wherever you choose. It is encrypted on your device with a passphrase you set, before it is saved.</li>
+    <li><strong>Google Drive backup (optional):</strong> if you connect Google Drive, Kawach saves encrypted backups in a hidden folder that only Kawach can use, inside <strong>your own</strong> Google Drive. Kawach asks Google only for access to that folder (the "drive.appdata" permission); it cannot see, open or change any other file in your Drive. The backups are encrypted with your passphrase before they leave your device, so Google stores only scrambled data. Kawach does not keep a copy, and the sign-in pass from Google is kept only while the app is open.</li>
+    <li><strong>Sync (optional):</strong> if you set up sync, an encrypted copy is stored in a secret (unlisted) GitHub Gist in <strong>your own</strong> GitHub account, using a token you provide.</li>
+  </ul>
+  <p>Your passphrase is kept on your device so backups don't ask for it every time. It is never sent anywhere. If you forget it, nobody - including us - can open your backups.</p>
+
+  <h2>What Kawach does not do</h2>
+  <ul>
+    <li>No accounts or sign-up with Kawach.</li>
+    <li>No advertising, and no selling or sharing of information.</li>
+    <li>No analytics, tracking or usage statistics.</li>
+    <li>No connection to your bank; Kawach never asks for bank logins.</li>
+  </ul>
+
+  <h2>Removing your information</h2>
+  <p>Uninstalling Kawach or clearing your browser's data for getkawach.com removes it from your device. Backups you saved yourself stay where you saved them. To remove Google Drive backups, open Google Drive's Settings, then Manage apps, then Kawach, and choose "Delete hidden app data"; you can also remove Kawach's access in your Google Account under "Third-party apps and services". To remove a sync copy, delete the Gist in your GitHub account.</p>
+
+  <h2>Children</h2>
+  <p>Kawach is meant for adults managing their own money and is not directed at children.</p>
+
+  <h2>Not financial advice</h2>
+  <p>Kawach helps you track and plan. Its figures depend on the information you give it, and it is not financial, tax or investment advice.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes, the new version will be published on this page with a new date.</p>
+
+  <p><a href="./welcome.html">Back to Kawach</a></p>
+</main>
+</body>
+</html>

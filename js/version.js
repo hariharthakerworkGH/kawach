@@ -9,7 +9,7 @@
 //
 // IMPORTANT: bump APP_VERSION and CACHE_NAME in sw.js together. They are
 // compared at runtime, and a mismatch is what drives the banner below.
-export const APP_VERSION = 67;
+export const APP_VERSION = 68;
 
 // What's running versus what's downloaded and waiting.
 export async function versionStatus() {
