@@ -1,0 +1,534 @@
+import { getAll, put, remove, newId, getSetting, setSetting } from '../db.js';
+import { icon } from '../icons.js';
+import { formatCurrency, ordinal, formatDateNice } from '../format.js';
+import { detectRecurring } from '../recurring.js';
+import { categoryStyle } from '../category-style.js';
+import { getBudgets, setBudget, budgetStatusForMonth } from '../budgets.js';
+import { DEFAULT_KEEP_IN_BANK } from '../free-to-spend.js';
+import { currentMonthKey } from '../spending-month.js';
+import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequencyShort, hasDueDate, toMonthly, toYearly, isoLocal } from '../frequency.js';
+import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder } from '../commitments.js';
+import { isLoanAccount, loanCommitment } from '../loans.js';
+import { redraw } from '../redraw.js';
+
+let adding = false;
+let editingId = null;
+let addingBudget = false;
+let reordering = false;
+
+// Fixed commitments live in the `recurring` store alongside auto-detected
+// bills; `source` tells them apart so detection never clobbers what you
+// entered by hand.
+
+export async function render(container) {
+  const [categories, recurring, transactions, income, budgets] = await Promise.all([
+    getAll('categories'),
+    getAll('recurring'),
+    getAll('transactions'),
+    getSetting('monthlyIncome', null),
+    getBudgets(),
+  ]);
+  const salaryDay = await getSetting('salaryDay', null);
+
+  const accounts = await getAll('accounts');
+  const todayIso = isoLocal(new Date());
+  // In the order you arranged them (new ones at the end).
+  const fixed = recurring.filter((r) => isLiveCommitment(r, todayIso)).sort(byYourOrder);
+  const finished = recurring.filter((r) => isFixed(r) && r.active !== false && isFinished(r, todayIso));
+  // Each commitment is stored the way you entered it ("₹120 a day"); what the
+  // budget needs is its monthly equivalent.
+  // A loan's EMI is set up on the loan account and counted here too, so the
+  // plan matches the Summary without it being typed in twice.
+  const loanItems = accounts.filter(isLoanAccount).map(loanCommitment).filter(Boolean);
+  const fixedTotal = [...fixed, ...loanItems].reduce((s, r) => s + monthlyAmountOf(r), 0);
+
+  const now = new Date();
+  const monthKey = currentMonthKey(now);
+
+  const suggestedIncome = suggestIncome(transactions, categories);
+  const incomeValue = income != null ? income : suggestedIncome;
+  const disposable = incomeValue != null ? incomeValue - fixedTotal : null;
+
+  const keepInBank = await getSetting('keepInBank', DEFAULT_KEEP_IN_BANK);
+  const cashTotal = fixed
+    .filter((r) => r.accountId === 'cash' || accounts.find((a) => a.id === r.accountId)?.type === 'cash')
+    .reduce((s, r) => s + monthlyAmountOf(r), 0);
+
+  // Hide suggestions already covered by something fixed. Category match only
+  // counts when both actually have one - otherwise a single uncategorised fixed
+  // expense would silently hide every suggestion.
+  const detected = (await detectRecurring()).filter((d) => !coveredByFixed(d, [...fixed, ...finished]));
+  const accountName = (id) => {
+    const a = accounts.find((x) => x.id === id);
+    return a ? a.label : null;
+  };
+
+  const budgetRows = await budgetStatusForMonth(budgets, categories, transactions, monthKey);
+  const budgetable = categories.filter((c) => !budgets[c.id] && !/income|transfer/i.test(c.name));
+
+  const keep = Math.max(0, Number(keepInBank) || 0);
+  const budget = disposable != null ? disposable + cashTotal - keep : null;
+
+  container.innerHTML = `
+    <div class="totals-card">
+      <div class="totals-row"><span>Monthly salary</span><span class="in">${incomeValue != null ? formatCurrency(incomeValue) : '-'}</span></div>
+      <div class="totals-row"><span>Commitments</span><span class="out">−${formatCurrency(fixedTotal - cashTotal)}</span></div>
+      <div class="totals-row"><span>Saved each month</span><span class="out">−${formatCurrency(keep)}</span></div>
+      <div class="totals-row net"><span>Budget each month</span><span>${budget != null ? formatCurrency(budget) : '-'}</span></div>
+      ${cashTotal > 0 ? `<p class="muted-note">${formatCurrency(cashTotal)} paid in cash comes out of your ATM money.</p>` : ''}
+      <details class="fts-breakdown" ${income == null || !salaryDay ? 'open' : ''}>
+        <summary>Change salary or saving</summary>
+        <label class="field">
+          <span>Monthly salary</span>
+          <input type="number" id="plan-income" inputmode="decimal" step="1" placeholder="${suggestedIncome != null ? (suggestedIncome / 100).toFixed(0) : '80000'}" value="${incomeValue != null ? (incomeValue / 100).toFixed(0) : ''}">
+        </label>
+        <label class="field">
+          <span>Salary day <span class="muted">(31 = last day)</span></span>
+          <input type="number" id="plan-salary-day" inputmode="numeric" min="1" max="31" step="1" placeholder="31" value="${salaryDay || ''}">
+        </label>
+        <label class="field">
+          <span>Save each month</span>
+          <input type="number" id="plan-keep" inputmode="decimal" step="1" min="0" placeholder="10000" value="${(keep / 100).toFixed(0)}">
+        </label>
+      </details>
+    </div>
+
+    <div class="section-head">
+      <h3>Commitments</h3>
+      ${fixed.length > 1 ? `<button type="button" class="icon-btn" id="plan-reorder">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
+    </div>
+    ${
+      fixed.length
+        ? `<div class="totals-card ${reordering ? 'reordering' : ''}">${fixed
+            .map((f, i) => (editingId === f.id ? fixedForm(categories, accounts, f) : fixedRow(f, categories, accountName(f.accountId), i, fixed.length)))
+            .join('')}${loanItems.map((l) => loanRow(l, accountName(l.accountId))).join('')}</div>`
+        : loanItems.length
+          ? `<div class="totals-card">${loanItems.map((l) => loanRow(l, accountName(l.accountId))).join('')}</div>`
+          : '<p class="empty">EMIs, rent, money home, ATM cash, subscriptions - add what goes out every month.</p>'
+    }
+    ${adding ? fixedForm(categories, accounts, null) : '<button type="button" id="plan-add-btn" class="btn-secondary btn-block">Add a commitment</button>'}
+    ${
+      finished.length
+        ? `<details class="fts-breakdown"><summary>Finished (${finished.length})</summary><div class="totals-card">${finished
+            .map((f) => `<div class="attention-row"><span>${escapeHtml(f.label)}<br><span class="muted-note">Last payment ${formatDateNice(f.endDate)}</span></span><button type="button" class="icon-btn fixed-delete" data-id="${f.id}" aria-label="Remove">${icon('close')}</button></div>`)
+            .join('')}</div></details>`
+        : ''
+    }
+
+    <h3>Category budgets</h3>
+    ${budgetRows.length ? budgetRows.map((b) => budgetCard(b)).join('') : '<p class="empty">No budgets set.</p>'}
+    ${
+      addingBudget
+        ? budgetForm(budgetable)
+        : budgetable.length
+          ? '<button type="button" id="budget-add-btn" class="btn-secondary btn-block">Set a budget</button>'
+          : ''
+    }
+
+    ${
+      detected.length
+        ? `<h3>Looks recurring</h3>
+           <div class="totals-card">
+             ${detected
+               .map(
+                 (d) => `<div class="attention-row">
+                   <span>${escapeHtml(d.label)}<br><span class="muted-note">${formatCurrency(d.amount)} · ${d.spread ? 'a month, taken out bit by bit' : `around the ${ordinal(d.dayOfMonth)}`}${
+                     accountName(d.accountId) ? ` · ${escapeHtml(accountName(d.accountId))}` : ''
+                   }</span></span>
+                   <span class="attention-actions">
+                     <button type="button" class="btn-tiny primary promote-detected" data-id="${d.id}">Add</button>
+                     <button type="button" class="btn-tiny dismiss-detected" data-id="${d.id}">Dismiss</button>
+                   </span>
+                 </div>`
+               )
+               .join('')}
+           </div>`
+        : ''
+    }
+  `;
+
+  const incomeEl = container.querySelector('#plan-income');
+  incomeEl.addEventListener('change', async () => {
+    const raw = parseFloat(incomeEl.value);
+    await setSetting('monthlyIncome', Number.isFinite(raw) ? Math.round(raw * 100) : null);
+    redraw(container, () => render(container));
+  });
+
+  const keepEl = container.querySelector('#plan-keep');
+  keepEl.addEventListener('change', async () => {
+    const raw = parseFloat(keepEl.value);
+    await setSetting('keepInBank', Number.isFinite(raw) && raw >= 0 ? Math.round(raw * 100) : DEFAULT_KEEP_IN_BANK);
+    redraw(container, () => render(container));
+  });
+
+  const salaryDayEl = container.querySelector('#plan-salary-day');
+  salaryDayEl.addEventListener('change', async () => {
+    const day = parseInt(salaryDayEl.value, 10);
+    await setSetting('salaryDay', Number.isInteger(day) && day >= 1 && day <= 31 ? day : null);
+    redraw(container, () => render(container));
+  });
+
+  const addBtn = container.querySelector('#plan-add-btn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      adding = true;
+      editingId = null;
+      redraw(container, () => render(container));
+    });
+  }
+
+  container.querySelectorAll('.fixed-edit').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      editingId = btn.dataset.id;
+      adding = false;
+      redraw(container, () => render(container));
+    });
+  });
+
+  const form = container.querySelector('#fixed-form');
+  if (form) {
+    // Show what the entered figure works out to per month as it's typed - the
+    // whole point of asking for a frequency is that you see the real cost.
+    const amountEl = form.querySelector('.ff-amount');
+    const freqEl = form.querySelector('.ff-frequency');
+    const previewEl = form.querySelector('#ff-preview');
+    const dayField = form.querySelector('.ff-day-field');
+    const spreadField = form.querySelector('.ff-spread-field');
+    const spreadEl = form.querySelector('.ff-spread');
+
+    const updatePreview = () => {
+      const raw = parseFloat(amountEl.value);
+      const freq = freqEl.value;
+      spreadField.hidden = freq !== 'monthly';
+      dayField.hidden = !hasDueDate(freq) || (freq === 'monthly' && spreadEl.checked);
+      if (!Number.isFinite(raw) || raw <= 0 || freq === 'monthly') {
+        previewEl.hidden = true;
+        return;
+      }
+      const minor = Math.round(raw * 100);
+      const monthly = toMonthly(minor, freq);
+      const yearly = toYearly(minor, freq);
+      previewEl.hidden = false;
+      previewEl.innerHTML = `That's <strong>${formatCurrency(monthly)} a month</strong> - ${formatCurrency(yearly)} a year.`;
+    };
+    amountEl.addEventListener('input', updatePreview);
+    freqEl.addEventListener('change', updatePreview);
+    spreadEl.addEventListener('change', updatePreview);
+    updatePreview();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const existing = editingId ? recurring.find((r) => r.id === editingId) : null;
+      const label = form.querySelector('.ff-label').value.trim();
+      const amount = Math.round(parseFloat(amountEl.value) * 100);
+      const day = parseInt(form.querySelector('.ff-day').value, 10);
+      if (!label || !Number.isFinite(amount) || amount <= 0) return;
+      const endMonth = form.querySelector('.ff-end').value; // YYYY-MM or ''
+      const dayOfMonth = Number.isInteger(day) && day >= 1 && day <= 31 ? day : existing ? existing.dayOfMonth : 1;
+      await put('recurring', {
+        ...(existing || {}),
+        id: existing ? existing.id : `fixed-${newId()}`,
+        label,
+        amount,
+        frequency: freqEl.value,
+        dayOfMonth,
+        spread: freqEl.value === 'monthly' && spreadEl.checked,
+        categoryId: form.querySelector('.ff-category').value || null,
+        accountId: form.querySelector('.ff-account').value || null,
+        matchText: form.querySelector('.ff-match').value.trim() || null,
+        endDate: endMonth ? lastPaymentInMonth(endMonth, dayOfMonth) : null,
+        active: true,
+        source: 'fixed',
+        // A statement re-import leaves figures you changed by hand alone.
+        amountEdited: existing ? existing.amountEdited || amount !== existing.amount : undefined,
+        dayEdited: existing ? existing.dayEdited || dayOfMonth !== existing.dayOfMonth : undefined,
+      });
+      adding = false;
+      editingId = null;
+      redraw(container, () => render(container));
+    });
+    form.querySelector('.ff-cancel').addEventListener('click', () => {
+      adding = false;
+      editingId = null;
+      redraw(container, () => render(container));
+    });
+  }
+
+  const budgetAddBtn = container.querySelector('#budget-add-btn');
+  if (budgetAddBtn) {
+    budgetAddBtn.addEventListener('click', () => {
+      addingBudget = true;
+      redraw(container, () => render(container));
+    });
+  }
+
+  const budgetFormEl = container.querySelector('#budget-form');
+  if (budgetFormEl) {
+    budgetFormEl.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const categoryId = budgetFormEl.querySelector('.bf-category').value;
+      const amount = Math.round(parseFloat(budgetFormEl.querySelector('.bf-amount').value) * 100);
+      if (!categoryId || !Number.isFinite(amount) || amount <= 0) return;
+      await setBudget(categoryId, amount);
+      addingBudget = false;
+      redraw(container, () => render(container));
+    });
+    budgetFormEl.querySelector('.bf-cancel').addEventListener('click', () => {
+      addingBudget = false;
+      redraw(container, () => render(container));
+    });
+  }
+
+  container.querySelectorAll('.budget-remove').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      await setBudget(btn.dataset.id, null);
+      redraw(container, () => render(container));
+    });
+  });
+
+  // Move a commitment up or down the list. Every commitment gets its place
+  // number; only the ones whose number changed are saved.
+  const reorderBtn = container.querySelector('#plan-reorder');
+  if (reorderBtn) {
+    reorderBtn.addEventListener('click', () => {
+      reordering = !reordering;
+      redraw(container, () => render(container));
+    });
+  }
+
+  container.querySelectorAll('.fixed-move').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const order = fixed.map((f) => f.id);
+      const from = order.indexOf(btn.dataset.id);
+      const to = from + Number(btn.dataset.step);
+      if (from < 0 || to < 0 || to >= order.length) return;
+      [order[from], order[to]] = [order[to], order[from]];
+      for (const [index, id] of order.entries()) {
+        const item = fixed.find((f) => f.id === id);
+        if (item.sortOrder !== index) await put('recurring', { ...item, sortOrder: index });
+      }
+      redraw(container, () => render(container));
+    });
+  });
+
+  container.querySelectorAll('.fixed-delete').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      await remove('recurring', btn.dataset.id);
+      redraw(container, () => render(container));
+    });
+  });
+
+  container.querySelectorAll('.go-loan').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'accounts' } }));
+    });
+  });
+
+  // Dismissing keeps it out of the suggestions for good, without touching
+  // the payments themselves.
+  container.querySelectorAll('.dismiss-detected').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const d = detected.find((x) => x.id === btn.dataset.id);
+      if (!d) return;
+      await put('recurring', { ...d, active: false });
+      redraw(container, () => render(container));
+    });
+  });
+
+  container.querySelectorAll('.promote-detected').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const d = detected.find((x) => x.id === btn.dataset.id);
+      await put('recurring', commitmentFromSuggestion(d, `fixed-${newId()}`));
+      redraw(container, () => render(container));
+    });
+  });
+}
+
+function budgetCard(b) {
+  const { icon: mark, color } = categoryStyle(b.name);
+  const width = Math.min(100, Math.round(b.pct * 100));
+  return `
+    <div class="budget-card" style="--chip-color:${color}">
+      <div class="budget-head">
+        <span class="budget-name"><span class="cat-chip" style="--chip-color:${color}">${mark}</span>${escapeHtml(b.name)}</span>
+        <span class="budget-nums">${formatCurrency(b.spent)} <span class="muted">/ ${formatCurrency(b.limit)}</span></span>
+      </div>
+      <div class="budget-meter"><div class="budget-fill ${b.state === 'ok' ? '' : b.state}" style="width:${width}%"></div></div>
+      <div class="budget-head">
+        <span class="budget-note">${
+          b.state === 'over'
+            ? `Over by ${formatCurrency(-b.left)}`
+            : `${formatCurrency(b.left)} left this month`
+        }</span>
+        <button type="button" class="icon-btn budget-remove" data-id="${b.categoryId}">Remove</button>
+      </div>
+    </div>
+  `;
+}
+
+function budgetForm(categories) {
+  return `
+    <form class="totals-card" id="budget-form">
+      <label class="field">
+        <span>Category</span>
+        <select class="bf-category" required>
+          ${categories.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+        </select>
+      </label>
+      <label class="field">
+        <span>Monthly limit</span>
+        <input type="number" class="bf-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="8000" required>
+      </label>
+      <button type="submit" class="btn-primary">Set budget</button>
+      <button type="button" class="btn-tiny bf-cancel btn-block" style="margin-top:var(--space-xs)">Cancel</button>
+    </form>
+  `;
+}
+
+// A loan's EMI, shown with the rest so the list adds up. It's changed on the
+// loan account itself, not here.
+function loanRow(item, paidFrom) {
+  return `
+    <div class="attention-row">
+      <span class="breakdown-label">
+        <span class="cat-chip" style="--chip-color:var(--violet)">${icon('accounts')}</span>
+        <span>${escapeHtml(item.label)}<br><span class="muted-note">${ordinal(item.dayOfMonth)} · ${paidFrom ? escapeHtml(paidFrom) : 'bank'} · loan</span></span>
+      </span>
+      <span class="fixed-row-right">
+        <span class="out">${formatCurrency(item.amount)}</span>
+        <button type="button" class="icon-btn go-loan" aria-label="Edit on Cards">${icon('edit')}</button>
+      </span>
+    </div>`;
+}
+
+function fixedRow(f, categories, paidFrom, index, count) {
+  const cat = categories.find((c) => c.id === f.categoryId);
+  const { icon: mark, color } = categoryStyle(cat?.name || f.label);
+  const freq = frequencyOf(f);
+  const monthly = monthlyAmountOf(f);
+  const isMonthly = freq === 'monthly';
+
+  // For anything that isn't already monthly, show both figures: what you
+  // actually pay, and what it costs you per month. The second number is the
+  // one people never work out for themselves.
+  const when = isMonthly
+    ? f.spread
+      ? 'bit by bit'
+      : ordinal(f.dayOfMonth)
+    : `${formatCurrency(f.amount)} ${frequencyShort(freq)}${hasDueDate(freq) ? ` · around the ${ordinal(f.dayOfMonth)}` : ''}`;
+  const parts = [when];
+  if (f.emi) parts.push(`EMI ${f.emi.current}/${f.emi.total}`);
+  parts.push(f.accountId === 'cash' ? 'cash' : paidFrom ? escapeHtml(paidFrom) : 'bank');
+
+  return `
+    <div class="attention-row">
+      <span class="breakdown-label">
+        <span class="cat-chip" style="--chip-color:${color}">${mark}</span>
+        <span>${escapeHtml(f.label)}<br><span class="muted-note">${parts.join(' · ')}</span></span>
+      </span>
+      <span class="fixed-row-right">
+        <span class="out">${formatCurrency(monthly)}${isMonthly ? '' : '<span class="muted freq-per-month">/mo</span>'}</span>
+        ${
+          reordering
+            ? `<button type="button" class="icon-btn fixed-move" data-id="${f.id}" data-step="-1" aria-label="Move up" ${index === 0 ? 'disabled' : ''}>${icon('up')}</button>
+               <button type="button" class="icon-btn fixed-move" data-id="${f.id}" data-step="1" aria-label="Move down" ${index === count - 1 ? 'disabled' : ''}>${icon('arrow-down')}</button>`
+            : `<button type="button" class="icon-btn fixed-edit" data-id="${f.id}" aria-label="Edit">${icon('edit')}</button>
+               <button type="button" class="icon-btn fixed-delete" data-id="${f.id}" aria-label="Remove">${icon('close')}</button>`
+        }
+      </span>
+    </div>
+  `;
+}
+
+// `item` is the commitment being edited, or null when adding a new one.
+function fixedForm(categories, accounts, item) {
+  const v = item || {};
+  const freqNow = item ? frequencyOf(item) : DEFAULT_FREQUENCY;
+  const selected = (a, b) => (a === b ? 'selected' : '');
+  return `
+    <form class="totals-card" id="fixed-form">
+      <label class="field">
+        <span>What is it</span>
+        <input type="text" class="ff-label" placeholder="e.g. House loan EMI, Sent to Papa, ATM cash" value="${escapeHtml(v.label || '')}" required>
+      </label>
+      <label class="field">
+        <span>Amount each time</span>
+        <input type="number" class="ff-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="68000" value="${v.amount ? (v.amount / 100).toFixed(2).replace(/\.00$/, '') : ''}" required>
+      </label>
+      <label class="field">
+        <span>How often</span>
+        <select class="ff-frequency">
+          ${Object.entries(FREQUENCIES)
+            .map(([key, f]) => `<option value="${key}" ${selected(key, freqNow)}>${f.label}</option>`)
+            .join('')}
+        </select>
+      </label>
+      <p class="freq-preview" id="ff-preview" hidden></p>
+      <label class="checkbox-row ff-spread-field">
+        <input type="checkbox" class="ff-spread" ${v.spread ? 'checked' : ''}>
+        <span>Goes out bit by bit through the month <span class="muted">(like ATM cash)</span></span>
+      </label>
+      <label class="field ff-day-field">
+        <span>Day of month it goes out</span>
+        <input type="number" class="ff-day" min="1" max="31" placeholder="1" value="${v.dayOfMonth || ''}">
+      </label>
+      <label class="field">
+        <span>Paid from</span>
+        <select class="ff-account">
+          <option value="">Any bank account</option>
+          <option value="cash" ${selected('cash', v.accountId)}>Cash (from your ATM money)</option>
+          ${accounts
+            .filter((a) => a.type === 'bank')
+            .map((a) => `<option value="${a.id}" ${selected(a.id, v.accountId)}>${escapeHtml(a.label)}</option>`)
+            .join('')}
+          ${accounts
+            .filter((a) => a.type === 'card')
+            .map((a) => `<option value="${a.id}" ${selected(a.id, v.accountId)}>${escapeHtml(a.label)}</option>`)
+            .join('')}
+        </select>
+      </label>
+      <label class="field">
+        <span>Last payment <span class="muted">(optional - for an EMI or loan that ends)</span></span>
+        <input type="month" class="ff-end" value="${v.endDate ? v.endDate.slice(0, 7) : ''}">
+      </label>
+      <label class="field">
+        <span>Its line on the bank or card statement contains <span class="muted">(optional, e.g. "Home Loan EMI", "DYSON")</span></span>
+        <input type="text" class="ff-match" autocomplete="off" spellcheck="false" placeholder="Words from its line on your statement" value="${escapeHtml(v.matchText || '')}">
+      </label>
+      <p class="muted-note">The app uses these words to recognise its payment, so it isn't counted as spending on top of the commitment. Leave empty and it looks for the same amount (or, for ones spread through the month, the same category). ATM cash is recognised on its own.</p>
+      <label class="field">
+        <span>Category <span class="muted">(so this spend isn't counted twice)</span></span>
+        <select class="ff-category">
+          <option value="">None</option>
+          ${categories.map((c) => `<option value="${c.id}" ${selected(c.id, v.categoryId)}>${escapeHtml(c.name)}</option>`).join('')}
+        </select>
+      </label>
+      <button type="submit" class="btn-primary">${item ? 'Save' : 'Add'}</button>
+      <button type="button" class="btn-tiny ff-cancel btn-block" style="margin-top:var(--space-xs)">Cancel</button>
+    </form>
+  `;
+}
+
+// "2027-04" and due on the 8th -> 2027-04-08, clamped to the month's end.
+function lastPaymentInMonth(yearMonth, dayOfMonth) {
+  const [y, m] = yearMonth.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  return isoLocal(new Date(y, m - 1, Math.min(dayOfMonth || 1, lastDay)));
+}
+
+// A rough read on typical income: the average of whatever landed in the
+// Income category over the last few months. Only a starting point.
+function suggestIncome(transactions, categories) {
+  const incomeCat = categories.find((c) => c.name.toLowerCase() === 'income');
+  if (!incomeCat) return null;
+  const now = new Date();
+  const cutoff = isoLocal(new Date(now.getFullYear(), now.getMonth() - 3, 1));
+  const credits = transactions.filter((t) => t.categoryId === incomeCat.id && t.direction === 'credit' && !t.isTransfer && t.date >= cutoff);
+  if (credits.length === 0) return null;
+  const months = new Set(credits.map((t) => t.date.slice(0, 7))).size || 1;
+  return Math.round(credits.reduce((s, t) => s + t.amount, 0) / months);
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+}

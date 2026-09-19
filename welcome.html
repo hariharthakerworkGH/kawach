@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kawach</title>
+<meta name="description" content="A shield for your money. See what you can safely spend, plan for what's coming, and worry less. Your data stays on your phone.">
+<meta name="theme-color" content="#121316">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/kawach.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="preload" href="./fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="./css/tokens.css">
+<!-- The page you share to invite someone: what Kawach is, how to install it,
+     and what happens to their data. It installs the same app as the root
+     page, so the Install button here puts Kawach on their home screen. -->
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
+  main {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: var(--space-2xl) var(--space-sm) var(--space-2xl);
+  }
+  .brand { display: flex; align-items: center; gap: var(--space-sm); }
+  .brand img { width: 72px; height: 72px; border-radius: 18px; }
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .lead { font-size: 1.1rem; margin: var(--space-md) 0 var(--space-lg); color: var(--text); }
+  .lead span { color: var(--text-muted); }
+  button, .open {
+    display: block;
+    width: 100%;
+    padding: var(--space-sm);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: inherit;
+    font-weight: 700;
+    font-size: 1.05rem;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .open.secondary { background: none; color: var(--text); border: 1px solid var(--border-hi); margin-top: var(--space-xs); }
+  h2 { font-size: 1rem; margin: var(--space-xl) 0 var(--space-xs); color: var(--text-muted); font-weight: 650; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-sm) var(--space-md);
+  }
+  ol, ul { margin: 0; padding-left: var(--space-md); }
+  li { margin: var(--space-3xs) 0; }
+  li strong { color: var(--text); }
+  .card p { margin: 0; }
+  .small { font-size: 0.85rem; color: var(--text-muted); margin-top: var(--space-lg); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">
+    <img src="./icons/icon-192.png" alt="" width="72" height="72">
+    <h1>Kawach</h1>
+  </div>
+  <p class="lead">A shield for your money. <span>See what you can safely spend, plan for what's coming, and worry less about the month.</span></p>
+
+  <button type="button" id="install" hidden>Install Kawach</button>
+  <a class="open" id="open" href="./">Open Kawach</a>
+
+  <h2>Put it on your home screen</h2>
+  <div class="card">
+    <p><strong>Android</strong> (Chrome)</p>
+    <ol>
+      <li>Open this page in <strong>Chrome</strong>.</li>
+      <li>Tap <strong>Install Kawach</strong> above, or Chrome's menu (three dots, top right) and then <strong>Install app</strong>.</li>
+    </ol>
+    <p style="margin-top: var(--space-sm)"><strong>iPhone</strong> (Safari)</p>
+    <ol>
+      <li>Open this page in <strong>Safari</strong>.</li>
+      <li>Tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</li>
+    </ol>
+  </div>
+
+  <h2>Your data stays yours</h2>
+  <div class="card">
+    <ul>
+      <li>Everything stays on <strong>your phone</strong>. There is no Kawach server, and nobody else can see your money.</li>
+      <li>Bank statements are read on the phone and never kept.</li>
+      <li>Backups are locked with a passphrase only you know.</li>
+      <li>No ads, no tracking, no bank logins.</li>
+    </ul>
+  </div>
+
+  <h2>Works best with</h2>
+  <div class="card">
+    <p>Statements from HDFC, ICICI and SBI, and a CSV download from any bank. Bank SMS alerts can be shared straight into the app on Android.</p>
+  </div>
+
+  <p class="small">Kawach helps you track and plan. It is not financial advice.</p>
+</main>
+<script>
+  // Installing needs the app's service worker running, the same one the app
+  // itself uses.
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+
+  const installBtn = document.getElementById('install');
+  const openLink = document.getElementById('open');
+  let offer = null;
+  // Chrome says when the app can be installed; only then is the button shown.
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    offer = e;
+    installBtn.hidden = false;
+    openLink.classList.add('secondary');
+  });
+  installBtn.addEventListener('click', async () => {
+    if (!offer) return;
+    offer.prompt();
+    await offer.userChoice;
+    offer = null;
+    installBtn.hidden = true;
+    openLink.classList.remove('secondary');
+  });
+  window.addEventListener('appinstalled', () => {
+    installBtn.hidden = true;
+    openLink.classList.remove('secondary');
+  });
+</script>
+</body>
+</html>

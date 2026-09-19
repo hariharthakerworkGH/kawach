@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Load a diagnostic report</title>
+<link rel="icon" href="data:,">
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 20px 16px; background: #0f1115; color: #e8eaed; }
+  .warn { color: #fbbf24; }
+  pre { white-space: pre-wrap; background: #16191f; padding: 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>Load a diagnostic report</h1>
+<p class="warn">For reproducing a problem on a development computer. It REPLACES everything in this browser's copy of the app with the report, so it only runs on localhost - never on the real app.</p>
+<input type="file" id="file" accept=".json,application/json">
+<pre id="out"></pre>
+<script type="module">
+  import { openDB, put, forgetCachedReads } from '../js/db.js';
+  import { computeFreeToSpend } from '../js/free-to-spend.js';
+
+  const out = document.getElementById('out');
+  const local = ['localhost', '127.0.0.1'].includes(location.hostname);
+  if (!local) {
+    out.textContent = 'Refusing to run: this page only works on localhost.';
+    document.getElementById('file').disabled = true;
+  }
+
+  // Loads a report object (also callable from the console as loadReport(obj)).
+  async function loadReport(report) {
+    if (!local) throw new Error('localhost only');
+    if (report.kind !== 'expense-tracker-diagnostic-report') throw new Error('Not a diagnostic report');
+    const stores = ['accounts', 'transactions', 'categories', 'recurring', 'importBatches', 'settings', 'merchantRules', 'deletions', 'alertInbox'];
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(stores, 'readwrite');
+      for (const s of stores) tx.objectStore(s).clear();
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    forgetCachedReads();
+    for (const s of ['accounts', 'categories', 'importBatches', 'settings']) {
+      for (const r of report[s] || []) await put(s, r, { stamp: false });
+    }
+    for (const r of report.recurring || []) await put('recurring', r, { stamp: false });
+    for (const r of report.transactions || []) await put('transactions', r, { stamp: false });
+    const [y, m, d] = report.today.split('-').map(Number);
+    const f = await computeFreeToSpend(new Date(y, m - 1, d, 12));
+    const now = { budget: f.limit, spent: f.spentThisCycle, left: f.free, bank: f.bank, bankAfterBills: f.bankAfterBills, level: f.level };
+    return { reported: report.figures, recomputedForSameDay: now, appVersion: report.appVersion };
+  }
+  window.loadReport = loadReport;
+
+  document.getElementById('file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const result = await loadReport(JSON.parse(await file.text()));
+      out.textContent = `Loaded. Open the app on this computer to see it.\n\n${JSON.stringify(result, null, 2)}`;
+    } catch (err) {
+      out.textContent = `Couldn't load it: ${err.message}`;
+    }
+  });
+</script>
+</body>
+</html>

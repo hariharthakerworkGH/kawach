@@ -1,0 +1,3262 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Stat-Led (Summary, Plan, Coach) + Index-First (Accounts, History, Categories) · design-system: design.md · designed-as-app */
+/* Hallmark · pre-emit critique: P4 H4 E3 S4 R4 V3 · slop test: fixed gradients (2), layout transitions (14), overflow clip (34), disabled inputs (26), dim-text contrast (40), raw radii (48), long figures (51); landing-page gates n/a */
+
+/* ==========================================================================
+   The app's look: dark-first, big numbers, plain surfaces, one lime accent.
+   Colour carries meaning (money in / money out / careful), never decoration.
+   Every colour, font, space, radius and easing comes from css/tokens.css by
+   name; this file never writes a raw one. The rules are in design.md.
+   ========================================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+/* clip, not hidden: nothing can push the page sideways on a phone, and unlike
+   hidden it doesn't turn the page into a scroll box that breaks sticky bars. */
+html, body {
+  min-height: 100%;
+  overflow-x: clip;
+}
+
+/* Reserve the scrollbar's width at all times. Without this, moving from a long
+   screen to a short one removes the scrollbar and every element jumps sideways
+   by its width. */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Several components set an explicit `display`, which beats the `hidden`
+   attribute's user-agent `display: none`. Without this, anything toggled
+   with `hidden` (the custom date range, status messages) stays visible. */
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.45;
+  /* --nav-height is measured from the real nav at runtime (app.js) because a
+     hardcoded guess is wrong the moment the system font scale changes, and
+     the bottom nav then covers the last rows of every screen. */
+  padding-bottom: calc(var(--nav-height, 84px) + var(--space-lg));
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Money should line up in columns and never jitter as digits change. */
+.num, .txn-amount, .hero-amount, .totals-row span:last-child, .amounts,
+.budget-nums, .recap-stat-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active {
+  transform: scale(0.985);
+}
+
+/* ---------- Chrome ---------- */
+
+.app-header {
+  padding: max(var(--space-md), env(safe-area-inset-top)) var(--space-md) var(--space-xs);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.app-header h1 {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+/* Only visible when sync is mid-flight or has failed - a permanent green tick
+   would be noise, but a silent failure would be a lie. */
+.sync-indicator .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.sync-indicator {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.sync-indicator.syncing {
+  color: var(--text-dim);
+  animation: spin 1.1s linear infinite;
+}
+
+.sync-indicator.error {
+  background: var(--out);
+  color: var(--bg);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-indicator.syncing { animation: none; }
+}
+
+/* Numbered setup instructions, for the one screen where the user has to go
+   and do something on another website. */
+.setup-steps {
+  margin: 0 0 var(--space-sm);
+  padding-left: var(--space-md);
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.setup-steps li {
+  margin-bottom: var(--space-2xs);
+}
+
+.setup-steps strong {
+  color: var(--text);
+}
+
+.setup-help summary {
+  color: var(--accent);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: var(--space-xs);
+}
+
+/* First-run setup */
+.setup {
+  padding-top: var(--space-2xs);
+}
+
+.setup-progress {
+  margin: 0 0 var(--space-2xs);
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.setup-title {
+  margin: 0 0 var(--space-2xs);
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+.setup-lead {
+  margin: 0 0 var(--space-md);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.setup-points {
+  list-style: none;
+  margin: 0 0 var(--space-sm);
+  padding: 0;
+  display: grid;
+  gap: var(--space-xs);
+  line-height: 1.45;
+}
+
+.setup-note {
+  margin: 0 0 var(--space-md);
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.setup-skip {
+  margin-top: var(--space-xs);
+}
+
+.setup-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}
+
+.setup-nav .btn-primary {
+  flex: 1;
+}
+
+.setup-actions {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.data-safety .totals-row span:last-child {
+  font-weight: 600;
+}
+
+code {
+  font-size: 0.78rem;
+  background: var(--surface-alt);
+  border-radius: 5px;
+  padding: var(--space-4xs) var(--space-3xs);
+  word-break: break-all;
+}
+
+.header-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+
+.view-container {
+  padding: 0 var(--space-sm) var(--space-xl);
+  max-width: 520px;
+  margin: 0 auto;
+  /* Stops a short screen (Add, Import) collapsing the page height so far that
+     the layout visibly snaps when you arrive from a long one. */
+  min-height: 70vh;
+}
+
+/* A screen arrives whole and at once (app.js builds it out of sight first).
+   It used to fade in from nothing, which on top of the old empty-then-fill
+   read as a blink on every tab. .view-enter now only fills the bars. */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--border);
+  padding: var(--space-2xs) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  z-index: 30;
+}
+
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3xs);
+  padding: var(--space-2xs) 0 var(--space-2xs);
+  margin: var(--space-3xs) var(--space-3xs);
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-dim);
+  font-size: 0.66rem;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.nav-btn.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* The app's line icons (js/icons.js) are sized by the text around them: one
+   inside a sentence sits on the line like a word; the tab bar's are larger. */
+.icon {
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: -0.18em;
+  flex-shrink: 0;
+}
+
+.nav-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+  display: inline-flex;
+}
+
+.nav-icon .icon {
+  vertical-align: 0;
+}
+
+.header-btn .icon {
+  font-size: 1.15rem;
+  vertical-align: -0.2em;
+}
+
+/* ---------- Hero: the one number that matters ---------- */
+
+.hero {
+  background: var(--surface);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  margin: var(--space-2xs) 0 var(--space-md);
+  box-shadow: var(--shadow);
+}
+
+/* Labels are quiet sentence-case text, not tracked capitals: an uppercase
+   label above every section is the most recognisable generated-UI tell. */
+.hero-label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-2xs);
+}
+
+.hero-amount {
+  font-size: 2.65rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.hero-amount.negative {
+  color: var(--out);
+}
+
+.hero-sub {
+  margin: var(--space-xs) 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.hero-meter {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-hi);
+  overflow: hidden;
+  margin: var(--space-sm) 0 var(--space-xs);
+  display: flex;
+}
+
+.hero-meter-fill {
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+}
+
+.hero-meter-fill.over {
+  background: var(--out);
+}
+
+.hero-meter-fill.warn {
+  background: var(--warn);
+}
+
+/* The spending hero's border turns amber, then red, as the limit gets close. */
+.hero.level-warning {
+  border-color: color-mix(in srgb, var(--warn) 55%, var(--border-hi));
+}
+
+.hero.level-critical,
+.hero.level-over {
+  border-color: color-mix(in srgb, var(--out) 60%, var(--border-hi));
+}
+
+/* ---------- Forms ---------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  margin-bottom: var(--space-sm);
+}
+
+.field span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="password"],
+input[type="file"],
+select {
+  font-size: 1rem;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+}
+
+input:focus, select:focus, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+input:disabled, select:disabled, textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-form {
+  padding-top: var(--space-sm);
+}
+
+/* The amount is the whole point of this screen, so it gets typed at a size
+   you can read at arm's length rather than in a standard form field. */
+.amount-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  background: var(--surface);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.amount-input-wrap:focus-within {
+  border-color: var(--accent);
+}
+
+.amount-prefix {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.amount-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 2.1rem !important;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  border: none !important;
+  background: none !important;
+  padding: var(--space-2xs) 0 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.amount-input:focus {
+  outline: none;
+}
+
+.direction-toggle {
+  display: flex;
+  gap: var(--space-2xs);
+  margin-bottom: var(--space-sm);
+}
+
+.dir-btn {
+  flex: 1;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-hi);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.dir-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.direction-toggle.small {
+  gap: var(--space-3xs);
+}
+
+.direction-toggle.small .dir-btn {
+  padding: var(--space-2xs) var(--space-xs);
+  font-size: 0.75rem;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  margin-bottom: var(--space-sm);
+}
+
+.chip {
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-hi);
+  background: var(--chip-bg);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* Button voice (design.md): the main action on a screen is one lime pill;
+   anything else is an outlined pill or a text link. Labels stay on one line -
+   a button whose words wrap reads as broken. Every button shows all its
+   states: hover, focus, pressed, disabled, busy, failed, done. */
+.btn-primary {
+  width: 100%;
+  padding: var(--space-sm);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.btn-secondary {
+  flex: 1;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .btn-primary:hover {
+    background: color-mix(in oklch, var(--accent) 88%, var(--text));
+  }
+  .btn-secondary:hover {
+    border-color: var(--text-muted);
+  }
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-primary[data-state="busy"],
+.btn-secondary[data-state="busy"] {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.btn-primary[data-state="failed"],
+.btn-secondary[data-state="failed"] {
+  background: var(--out);
+  border-color: var(--out);
+  color: var(--bg);
+}
+
+.btn-primary[data-state="done"],
+.btn-secondary[data-state="done"] {
+  background: var(--in);
+  border-color: var(--in);
+  color: var(--bg);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-tiny {
+  padding: var(--space-2xs) var(--space-sm);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-pill);
+  background: var(--surface-hi);
+  color: var(--text);
+  font-size: 0.76rem;
+  font-weight: 700;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.btn-tiny.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn-tiny.danger {
+  color: var(--out);
+  border-color: color-mix(in srgb, var(--out) 40%, transparent);
+  background: transparent;
+  width: 100%;
+  margin-top: var(--space-xs);
+  padding: var(--space-xs);
+}
+
+.icon-btn {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: 600;
+  padding: var(--space-3xs);
+}
+
+.icon-btn.danger {
+  color: var(--out);
+}
+
+.icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.status {
+  text-align: center;
+  color: var(--in);
+  margin-top: var(--space-xs);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.segmented {
+  display: flex;
+  gap: var(--space-3xs);
+  margin: var(--space-sm) 0;
+  background: var(--surface-alt);
+  border-radius: var(--radius-md);
+  padding: var(--space-3xs);
+}
+
+.seg-btn {
+  flex: 1;
+  padding: var(--space-xs) 0;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.seg-btn.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.custom-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: end;
+  margin-bottom: var(--space-sm);
+}
+
+.custom-range label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+  font-size: 0.88rem;
+}
+
+.checkbox-row input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+
+/* ---------- Cards & lists ---------- */
+
+.totals-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.totals-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-xs);
+  padding: var(--space-2xs) 0;
+  font-size: 0.92rem;
+}
+
+/* The payments making up the line above: indented, quiet, not a line of the
+   sum itself. */
+.totals-row.sub {
+  padding-left: var(--space-sm);
+  padding-top: var(--space-4xs);
+  padding-bottom: var(--space-4xs);
+}
+
+.totals-row.net {
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-2xs);
+  padding-top: var(--space-xs);
+  font-weight: 800;
+  font-size: 1.12rem;
+  letter-spacing: -0.02em;
+}
+
+.in {
+  color: var(--in);
+}
+
+.out {
+  color: var(--out);
+}
+
+.muted {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.muted-note {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  margin: var(--space-2xs) 0 0;
+  line-height: 1.45;
+}
+
+h3 {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  margin: var(--space-lg) var(--space-3xs) var(--space-xs);
+}
+
+.group-subtitle {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin: calc(var(--space-3xs) * -1) var(--space-3xs) var(--space-xs);
+  line-height: 1.45;
+}
+
+.breakdown-list,
+.cat-list,
+.cat-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.breakdown-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4xs) var(--space-sm);
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.92rem;
+}
+
+.breakdown-row:last-child {
+  border-bottom: none;
+}
+
+/* An account with no activity still gets a row, but shouldn't compete with
+   the ones that actually spent money. */
+.breakdown-idle {
+  opacity: 0.55;
+}
+
+.breakdown-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+/* A category's colour dot and emoji, so the eye sorts the list before the
+   brain reads it. */
+.cat-chip {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.92rem;
+  background: color-mix(in srgb, var(--chip-color, var(--accent)) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chip-color, var(--accent)) 42%, transparent);
+}
+
+.breakdown-bar {
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--chip-color, var(--accent));
+  margin-top: var(--space-2xs);
+  opacity: 0.85;
+}
+
+.amounts {
+  display: flex;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.empty {
+  color: var(--text-muted);
+  padding: var(--space-sm) 0;
+  font-size: 0.9rem;
+}
+
+.attention-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.89rem;
+  line-height: 1.4;
+}
+
+.totals-card .attention-row:last-child {
+  border-bottom: none;
+}
+
+.attention-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  flex-shrink: 0;
+}
+
+.upcoming-row {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-2xs);
+  margin-bottom: var(--space-3xs);
+}
+
+.upcoming-row .attention-row {
+  border-bottom: none;
+  padding-bottom: var(--space-3xs);
+}
+
+.upcoming-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+/* One commitment in "Commitments this cycle": its row, then a thin meter. */
+.tracker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+  margin-top: var(--space-2xs);
+}
+
+.tracker-match {
+  border-top: 1px solid var(--border);
+  padding: var(--space-2xs) 0 var(--space-2xs);
+}
+
+.tracker-match .tracker-actions {
+  margin-top: var(--space-4xs);
+}
+
+.warn-card {
+  border-color: color-mix(in srgb, var(--out) 45%, transparent);
+}
+
+.badge-warn {
+  color: var(--out) !important;
+}
+
+.bill-overdue {
+  color: var(--out);
+  font-weight: 700;
+}
+
+.bill-urgent {
+  color: var(--warn);
+  font-weight: 700;
+}
+
+.bill-tag {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/* ---------- Categories ---------- */
+
+.cat-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4xs) var(--space-sm);
+  margin-bottom: var(--space-2xs);
+}
+
+.cat-row {
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-xs) 0;
+}
+
+.cat-row:last-child {
+  border-bottom: none;
+}
+
+.cat-row-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.cat-name {
+  font-size: 0.98rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.cat-actions {
+  display: flex;
+  gap: var(--space-2xs);
+  flex-shrink: 0;
+}
+
+.cat-children {
+  margin-left: var(--space-sm);
+  margin-top: var(--space-2xs);
+}
+
+/* ---------- Accounts ---------- */
+
+.account-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.account-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2xs);
+}
+
+/* One line, always. A wrapping name pushed the balance below it out of step
+   with the card beside it, which is most of what made the grid look busy.
+   The full name is still there on a long press (title). */
+.account-name {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-headline {
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* "+ Spend" and "Edit", side by side in the card's top line. */
+.account-actions-inline {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.accounts-actions {
+  display: flex;
+  gap: var(--space-xs);
+  margin: var(--space-sm) 0 var(--space-md);
+}
+
+.account-form .segmented {
+  margin: 0 0 var(--space-sm);
+}
+
+.account-form .field:last-of-type {
+  margin-bottom: var(--space-md);
+}
+
+/* ---------- Import ---------- */
+
+.import-intro {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin: var(--space-sm) var(--space-3xs) var(--space-md);
+  line-height: 1.55;
+}
+
+.import-row-list {
+  margin: var(--space-sm) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* Choose, Check, Done: where you are, always visible at the top. */
+.import-steps {
+  list-style: none;
+  display: flex;
+  gap: var(--space-2xs);
+  margin: var(--space-2xs) 0 var(--space-md);
+  padding: 0;
+}
+
+.import-steps li {
+  flex: 1;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+  padding-top: var(--space-2xs);
+  border-top: 3px solid var(--border);
+}
+
+.import-steps li.past {
+  color: var(--text-muted);
+  border-top-color: var(--accent-line);
+}
+
+.import-steps li.current {
+  color: var(--text);
+  border-top-color: var(--accent);
+}
+
+/* One big target: tap it, or drop a file on it on a computer. */
+.import-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2xs);
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+  margin-bottom: var(--space-sm);
+  border: 2px dashed var(--border-hi);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.import-drop:hover,
+.import-drop.dragging {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.import-drop strong {
+  font-size: 1.1rem;
+}
+
+.import-drop-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.import-privacy {
+  text-align: center;
+  margin-top: var(--space-md);
+}
+
+.link-btn {
+  background: none;
+  border: 0;
+  padding: var(--space-3xs) 0;
+  margin-bottom: var(--space-xs);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* The answer first: how much is new. */
+.import-big {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: var(--space-3xs) 0 var(--space-4xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.import-headline .totals-row:first-of-type {
+  margin-top: var(--space-xs);
+}
+
+.import-all > summary,
+.import-more > summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: var(--space-xs) 0 var(--space-3xs);
+}
+
+/* Save stays in reach however long the list is, just above the tab bar. */
+.import-save-bar {
+  position: sticky;
+  bottom: calc(var(--nav-height, 84px) + 10px);
+  z-index: 5;
+  margin-top: var(--space-sm);
+  padding: var(--space-xs);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.import-save-bar .btn-tiny {
+  margin-top: var(--space-2xs);
+}
+
+.import-done-head {
+  text-align: center;
+  margin: var(--space-md) 0 var(--space-md);
+}
+
+.import-done-head h2 {
+  margin: var(--space-xs) 0 0;
+  font-size: 1.4rem;
+}
+
+.import-done-icon {
+  display: inline-flex;
+  width: 52px;
+  height: 52px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.import-done-note {
+  text-align: center;
+  margin: var(--space-xs) 0 var(--space-md);
+}
+
+#import-done .btn-block + .btn-block {
+  margin-top: var(--space-xs);
+}
+
+.import-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs);
+  position: relative;
+}
+
+.import-row-matched {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.import-row-duplicate {
+  opacity: 0.55;
+}
+
+.import-row-badge {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: var(--space-2xs);
+}
+
+.import-row-top {
+  display: flex;
+  gap: var(--space-2xs);
+  align-items: center;
+  margin-bottom: var(--space-2xs);
+}
+
+.import-row-top .ir-date {
+  flex: 0 0 128px;
+  font-size: 0.8rem;
+  padding: var(--space-2xs);
+}
+
+.import-row-top .ir-desc {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  padding: var(--space-2xs);
+}
+
+.import-row-bottom {
+  display: flex;
+  gap: var(--space-2xs);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.import-row-bottom .ir-amount {
+  flex: 0 0 92px;
+  padding: var(--space-2xs);
+  font-size: 0.85rem;
+}
+
+.import-row-bottom .ir-category {
+  flex: 1;
+  min-width: 110px;
+  padding: var(--space-2xs);
+  font-size: 0.8rem;
+}
+
+/* ---------- Transactions ---------- */
+
+
+
+
+
+.txn-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: var(--space-xs) var(--space-4xs) var(--space-xs);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+
+
+
+
+.txn-check {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+
+.txn-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4xs);
+  border: none;
+  background: none;
+  padding: var(--space-3xs) 0;
+  text-align: left;
+  font-family: inherit;
+  color: var(--text);
+}
+
+
+
+.txn-amount {
+  font-weight: 800;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+}
+
+.txn-cat {
+  width: 100%;
+  margin-top: var(--space-2xs);
+  font-size: 0.8rem;
+  padding: var(--space-2xs) var(--space-xs);
+  background: var(--surface-alt);
+  border-color: var(--border);
+}
+
+.txn-cat.needs-category {
+  border-color: color-mix(in srgb, var(--out) 50%, var(--border));
+  color: var(--out);
+}
+
+.txn-expanded {
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.txn-edit-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  flex-wrap: wrap;
+}
+
+.txn-edit-row .rv-field[type="date"] {
+  flex: 0 0 130px;
+  font-size: 0.8rem;
+  padding: var(--space-2xs);
+}
+
+.bulk-bar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--nav-height, 84px) + 10px);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background: var(--surface-hi);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lift);
+  padding: var(--space-xs) var(--space-xs);
+  z-index: 20;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.bulk-bar select {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.84rem;
+  padding: var(--space-2xs);
+}
+
+/* ---------- Split editor ---------- */
+
+.split-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  margin: var(--space-2xs) 0;
+}
+
+.split-row {
+  display: flex;
+  gap: var(--space-2xs);
+  align-items: center;
+}
+
+.split-row select {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+  padding: var(--space-2xs);
+}
+
+.split-row input {
+  flex: 0 0 100px;
+  font-size: 0.82rem;
+  padding: var(--space-2xs);
+}
+
+.split-remainder {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: var(--space-3xs) 0;
+}
+
+.split-remainder.bad {
+  color: var(--out);
+}
+
+.split-remainder.good {
+  color: var(--in);
+}
+
+.split-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--violet);
+}
+
+/* ---------- Budgets ---------- */
+
+.budget-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.budget-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.budget-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.budget-nums {
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.budget-meter {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-hi);
+  overflow: hidden;
+  margin-top: var(--space-xs);
+}
+
+.budget-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--chip-color, var(--accent));
+}
+
+.budget-fill.warn {
+  background: var(--warn);
+}
+
+.budget-fill.over {
+  background: var(--out);
+}
+
+.budget-note {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin-top: var(--space-2xs);
+}
+
+/* ---------- Recap ---------- */
+
+.recap-deck {
+  position: relative;
+}
+
+.recap-card {
+  background: var(--surface);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg) var(--space-lg);
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  animation: recap-in var(--dur-slow) var(--ease-out);
+}
+
+@keyframes recap-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recap-card { animation: none; }
+  .hero-meter-fill, .budget-fill { transition: none; }
+  button:active { transform: none; }
+}
+
+.recap-kicker {
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: var(--accent);
+  margin: 0 0 var(--space-sm);
+}
+
+.recap-stat-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 0 0 var(--space-xs);
+  word-break: break-word;
+}
+
+.recap-stat-value.small {
+  font-size: 1.5rem;
+}
+
+.recap-line {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.recap-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.recap-dots {
+  display: flex;
+  gap: var(--space-2xs);
+}
+
+.recap-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-hi);
+  border: none;
+  padding: 0;
+}
+
+.recap-dot.active {
+  background: var(--accent);
+  width: 20px;
+}
+
+
+.fixed-row-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+/* ---------- Coach ---------- */
+
+.coach-questions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  margin-bottom: var(--space-sm);
+}
+
+.coach-q {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  text-align: left;
+  padding: var(--space-sm) var(--space-sm);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.coach-q.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.coach-q-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.coach-panel {
+  background: var(--surface-alt);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  animation: recap-in var(--dur) var(--ease-out);
+}
+
+.coach-panel .totals-card {
+  background: var(--bg);
+  margin-bottom: var(--space-xs);
+}
+
+.coach-answer {
+  margin-top: var(--space-sm);
+}
+
+.coach-verdict {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 var(--space-2xs);
+}
+
+.coach-verdict.good {
+  color: var(--in);
+}
+
+.coach-verdict.warn {
+  color: var(--warn);
+}
+
+.coach-verdict.bad {
+  color: var(--out);
+}
+
+/* Things the coach noticed. The kind (careful / good / for your
+   information) is carried by the icon's colour, not a stripe down the side
+   of the card - a coloured side-stripe is a stock generated-UI tell. */
+.coach-note {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.coach-note-warn .coach-note-icon {
+  color: var(--warn);
+}
+
+.coach-note-good .coach-note-icon {
+  color: var(--in);
+}
+
+.coach-note-info .coach-note-icon {
+  color: var(--violet);
+}
+
+.coach-note strong {
+  display: block;
+  font-size: 0.93rem;
+  margin-bottom: var(--space-3xs);
+}
+
+.coach-note .muted-note {
+  margin: 0;
+}
+
+.coach-note-icon {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding-top: var(--space-4xs);
+}
+
+/* What a repeating amount works out to per month, shown as you type it. */
+.freq-preview {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-xs);
+  margin: 0 0 var(--space-sm);
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.freq-per-month {
+  font-size: 0.72rem;
+  margin-left: var(--space-4xs);
+}
+
+/* ---------- Free to spend breakdown ---------- */
+
+.fts-breakdown {
+  margin-top: var(--space-sm);
+}
+
+.fts-breakdown summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent);
+  padding: var(--space-3xs) 0;
+}
+
+.fts-breakdown .totals-card {
+  background: var(--bg);
+  margin: var(--space-xs) 0 var(--space-2xs);
+}
+
+.fts-breakdown .muted-note {
+  margin: var(--space-2xs) var(--space-4xs) 0;
+}
+
+/* ---------- Bank alert inbox ---------- */
+
+.inbox-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: var(--space-sm) var(--space-4xs) var(--space-xs);
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.alert-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.alert-unreadable {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--border));
+}
+
+.alert-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.alert-kind {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.alert-unreadable .alert-kind {
+  color: var(--warn);
+  font-size: 0.95rem;
+}
+
+.alert-amount {
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.alert-note {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2xs) var(--space-xs);
+  margin: 0 0 var(--space-sm);
+}
+
+.alert-note.warn {
+  color: var(--text);
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+}
+
+.alert-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xs);
+}
+
+.alert-grid .field {
+  min-width: 0;
+}
+
+.alert-card .al-direction {
+  margin-bottom: var(--space-sm);
+}
+
+.alert-original {
+  margin: var(--space-xs) 0 var(--space-3xs);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.alert-original summary {
+  cursor: pointer;
+}
+
+.alert-raw-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-xs);
+  margin: var(--space-2xs) 0 0;
+  color: var(--text-muted);
+}
+
+.alert-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  margin-top: var(--space-sm);
+}
+
+textarea {
+  font-size: 0.95rem;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  resize: vertical;
+  width: 100%;
+}
+
+.alert-shortcut {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px dashed var(--border-hi);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.84rem;
+  text-align: left;
+}
+
+.alert-shortcut-go {
+  color: var(--accent);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ---------- Version / update ---------- */
+
+.update-banner {
+  /* Not sticky: the header already sticks to top:0, and two stacked sticky
+     bars fight over the same spot and overlap as you scroll. */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  margin: 0 var(--space-sm) var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: var(--radius-md);
+  font-size: 0.86rem;
+  font-weight: 600;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.update-banner button {
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: var(--space-2xs) var(--space-sm);
+  background: var(--accent-ink);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.version-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  margin: var(--space-lg) var(--space-3xs) 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+  font-size: 0.74rem;
+  color: var(--text-dim);
+}
+
+.version-line .stale {
+  color: var(--warn);
+  font-weight: 700;
+}
+
+/* ---------- Toast ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  bottom: calc(var(--nav-height, 84px) + 20px);
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-pill);
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-out);
+  z-index: 50;
+  box-shadow: var(--shadow-lift);
+}
+
+.toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ==========================================================================
+   Readable Summary (v40): numbers first, one line per item, detail on tap.
+   ========================================================================== */
+
+.hero-top {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+}
+
+.hero-top .hero-label {
+  margin: 0;
+}
+
+.hero-figures {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-figures .muted {
+  font-weight: 500;
+  margin-right: var(--space-3xs);
+}
+
+.hero-status {
+  margin: var(--space-xs) 0 0;
+  padding: var(--space-2xs) var(--space-xs);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: var(--surface-hi);
+  color: var(--text);
+}
+
+.hero-status.level-warning {
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
+  color: var(--warn);
+}
+
+.hero-status.level-critical,
+.hero-status.level-over {
+  background: color-mix(in srgb, var(--out) 16%, transparent);
+  color: var(--out);
+}
+
+.bank-card {
+  margin-top: calc(var(--space-2xs) * -1);
+}
+
+.bank-figures {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--space-xs);
+}
+
+/* Where the money actually sits, under the total. */
+.bank-accounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs) var(--space-md);
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border);
+  font-size: 0.86rem;
+}
+
+.bank-account {
+  display: flex;
+  gap: var(--space-2xs);
+  align-items: baseline;
+}
+
+.bank-account span:last-child {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Yours but not for spending: quieter than the accounts in the total. */
+.bank-account.put-away span:last-child {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.bank-figures .hero-label {
+  display: block;
+  margin: 0;
+}
+
+.bank-after {
+  text-align: right;
+}
+
+.bank-amount {
+  margin: var(--space-3xs) 0 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bank-amount.small {
+  font-size: 1.2rem;
+}
+
+.bank-amount.out {
+  color: var(--out);
+}
+
+.bank-amount.warn {
+  color: var(--warn);
+}
+
+.bank-card.level-warning {
+  border-color: color-mix(in srgb, var(--warn) 55%, var(--border));
+}
+
+.bank-card.level-over {
+  border-color: color-mix(in srgb, var(--out) 60%, var(--border));
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2xs);
+  margin: var(--space-lg) var(--space-3xs) var(--space-xs);
+}
+
+.section-head h3 {
+  margin: 0;
+}
+
+.section-note {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.commitment-list {
+  padding-top: var(--space-3xs);
+  padding-bottom: var(--space-3xs);
+}
+
+.commitment-row {
+  border-bottom: 1px solid var(--border);
+}
+
+.commitment-row:last-child,
+.commitment-done .commitment-row:last-child {
+  border-bottom: none;
+}
+
+.commitment-row > summary,
+.section-fold > summary,
+.commitment-done > summary,
+.todo-more > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.commitment-row > summary::-webkit-details-marker,
+.section-fold > summary::-webkit-details-marker,
+.commitment-done > summary::-webkit-details-marker,
+.todo-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Name and figures on one line, the bar under both at the full width: with
+   the bar beside the figures, every row's bar was a different length. */
+.commitment-row > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-xs);
+  min-height: 52px;
+  padding: var(--space-xs) 0;
+}
+
+.commitment-row > summary > .commitment-bar {
+  grid-column: 1 / -1;
+}
+
+.commitment-name {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commitment-bar {
+  display: block;
+  height: 4px;
+  margin-top: var(--space-2xs);
+  border-radius: var(--radius-pill);
+  background: var(--surface-hi);
+  overflow: hidden;
+}
+
+.commitment-bar span {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+}
+
+.commitment-bar span.warn {
+  background: var(--warn);
+}
+
+.commitment-bar span.over {
+  background: var(--out);
+}
+
+.commitment-side {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.commitment-amount {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.pill {
+  display: inline-block;
+  padding: var(--space-3xs) var(--space-2xs);
+  border-radius: var(--radius-pill);
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--surface-hi);
+  color: var(--text-muted);
+}
+
+.pill.ok {
+  background: color-mix(in srgb, var(--in) 16%, transparent);
+  color: var(--in);
+}
+
+.pill.warn {
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
+  color: var(--warn);
+}
+
+.pill.over {
+  background: color-mix(in srgb, var(--out) 16%, transparent);
+  color: var(--out);
+}
+
+.commitment-row.is-skipped .commitment-name {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.commitment-detail {
+  padding: 0 0 var(--space-xs);
+}
+
+.commitment-detail > .muted-note:first-child {
+  margin-top: 0;
+}
+
+.commitment-done > summary {
+  padding: var(--space-xs) 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+
+/* The fold arrow is drawn, the same stroke as the icons, rather than a
+   text triangle that each phone's font draws differently. It turns over
+   when the section is open. */
+.commitment-done > summary::after,
+.section-fold > summary::after,
+.todo-more > summary::after {
+  content: '';
+  float: right;
+  width: 0.45em;
+  height: 0.45em;
+  margin: 0.3em 0.25em 0 0;
+  border-right: 1.75px solid var(--text-dim);
+  border-bottom: 1.75px solid var(--text-dim);
+  transform: rotate(45deg);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.commitment-done[open] > summary::after,
+.section-fold[open] > summary::after,
+.todo-more[open] > summary::after {
+  margin-top: 0.55em;
+  transform: rotate(-135deg);
+}
+
+.todo-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 48px;
+  padding: var(--space-2xs) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.todo-list > .todo-row:last-child {
+  border-bottom: none;
+}
+
+.todo-icon {
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.todo-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.92rem;
+}
+
+.todo-text .muted-note {
+  margin: var(--space-4xs) 0 0;
+}
+
+.todo-row select {
+  max-width: 130px;
+  padding: var(--space-2xs) var(--space-2xs);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-hi);
+  background: var(--surface-hi);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.todo-more > summary {
+  padding: var(--space-xs) 0 var(--space-3xs);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.section-fold {
+  margin: var(--space-xs) 0;
+}
+
+.section-fold > summary {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.section-fold > summary .muted {
+  font-weight: 500;
+  margin-left: var(--space-2xs);
+}
+
+/* A figure under a folded section's heading, on its own line so a long one
+   never wraps into the heading. */
+.section-fold > summary .summary-sub {
+  display: block;
+  margin-top: var(--space-4xs);
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.section-fold[open] > summary {
+  margin-bottom: var(--space-xs);
+}
+
+.in-out {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2xs);
+}
+
+.in-out p {
+  margin: var(--space-3xs) 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.compare-note {
+  margin: calc(var(--space-2xs) * -1) var(--space-3xs) var(--space-xs);
+}
+
+/* Anything focusable shows where focus is, for keyboard and switch users. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.loan-detail summary {
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--accent);
+  padding: var(--space-2xs) 0 var(--space-3xs);
+}
+
+/* The app's own question box, instead of the browser's, which puts the
+   website address at the top as if the warning came from somewhere else. */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: var(--scrim);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.dialog {
+  width: 100%;
+  max-width: 340px;
+  background: var(--surface);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  padding: var(--space-md);
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.dialog-message {
+  margin: var(--space-2xs) 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: var(--space-xs);
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: var(--space-md);
+}
+
+.dialog-actions .btn-primary {
+  width: auto;
+  padding: var(--space-xs) var(--space-md);
+}
+
+.dialog-actions .btn-primary.danger {
+  background: var(--out);
+  color: var(--bg);
+}
+
+/* Accounts: one per row, full width. */
+.account-group {
+  display: block;
+}
+
+.account-move {
+  display: flex;
+  gap: var(--space-4xs);
+}
+
+/* A loan's small print: plain rows separated by a hairline, label left and
+   value right, rather than a stack of bordered boxes. */
+.loan-lines {
+  margin: var(--space-xs) 0 0;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.loan-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-xs);
+  padding: var(--space-2xs) 0;
+  border-top: 1px solid var(--border);
+}
+
+.loan-line dt {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.loan-line dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The loan card: one status line, the EMI line, the last payment as a bar. */
+.loan-status {
+  margin-top: var(--space-2xs);
+}
+
+.tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: var(--space-4xs) var(--space-2xs);
+  margin-left: var(--space-3xs);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-hi);
+  color: var(--text-muted);
+  vertical-align: 1px;
+}
+
+.loan-pay-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+  font-weight: 600;
+}
+
+.loan-last {
+  margin-top: var(--space-xs);
+}
+
+/* Pay it off faster: pick an amount, two figures answer. It sits flat on the
+   loan card under a hairline - a box inside the card was a card in a card. */
+.loan-planner {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
+
+.loan-planner-title {
+  font-weight: 700;
+  margin-bottom: var(--space-xs);
+}
+
+.plan-chips {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2xs);
+}
+
+.plan-chip {
+  border: 1px solid var(--border-hi);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2xs) var(--space-3xs);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.plan-chip.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.plan-other-input {
+  width: 100%;
+  margin-top: var(--space-xs);
+}
+
+.plan-result {
+  margin-top: var(--space-2xs);
+}
+
+.plan-result .muted-note {
+  margin: var(--space-2xs) 0 0;
+}
+
+.loan-recent {
+  margin-top: var(--space-2xs);
+  padding-top: var(--space-2xs);
+  border-top: 1px solid var(--border);
+}
+
+.split-bar {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--in);
+  overflow: hidden;
+  display: flex;
+}
+
+.split-bar .split-interest {
+  display: block;
+  height: 100%;
+  background: var(--out);
+}
+
+.split-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+  margin-top: var(--space-2xs);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.split-legend .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  margin-right: var(--space-3xs);
+}
+
+.split-legend .dot.interest {
+  background: var(--out);
+}
+
+.split-legend .dot.principal {
+  background: var(--in);
+}
+
+/* Choosing an icon for a category. */
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: var(--space-2xs);
+  margin-top: var(--space-2xs);
+}
+
+.icon-choice {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: var(--space-2xs) 0;
+}
+
+.icon-choice.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ---------- Motion ----------
+   Kept to what tells you something (design.md): a screen fades in, a pressed
+   button gives, a bar fills to its value, a folded section unfolds, a
+   question box settles. Nothing springs or bounces, nothing rises piece by
+   piece, and every movement uses one of the three named easings in
+   tokens.css. All of it is off for anyone whose phone asks for less motion.
+
+   Bars fill only when a screen arrives: .view-enter comes off again once it
+   has (app.js), so a screen redrawing itself doesn't replay them. Every
+   animation fills "backwards", leaving nothing transformed afterwards - a
+   leftover transform would pin the fixed bars (bulk actions, Save) to the
+   card instead of the screen. */
+@media (prefers-reduced-motion: no-preference) {
+  /* Bars fill from empty when a screen arrives. */
+  .view-enter .hero-meter-fill,
+  .view-enter .budget-fill {
+    transform-origin: left center;
+    animation: fill-in var(--dur-slow) var(--ease-out) backwards;
+  }
+
+  /* Import: each step fades in as it's reached. */
+  .import-stage:not([hidden]) {
+    animation: fade-in var(--dur) var(--ease-out) backwards;
+  }
+  .import-steps li {
+    transition: color var(--dur) var(--ease-out), border-top-color var(--dur) var(--ease-out);
+  }
+  .import-done-icon {
+    animation: settle-in var(--dur) var(--ease-out) backwards;
+  }
+  .import-drop {
+    transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  }
+  .import-drop:active {
+    transform: scale(0.985);
+  }
+
+  /* A tap gives a little and comes back. */
+  button {
+    transition: transform var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+  }
+  button:active {
+    transform: scale(0.97);
+  }
+
+  /* What's folded away unfolds when you tap it (app.js adds .unfolding). */
+  details.unfolding[open] > :not(summary) {
+    animation: fade-in var(--dur) var(--ease-out) backwards;
+  }
+
+  /* The question box: the screen dims, the box settles in. */
+  .dialog-backdrop {
+    animation: fade-in var(--dur-fast) var(--ease-out) backwards;
+  }
+  .dialog {
+    animation: settle-in var(--dur) var(--ease-out) backwards;
+  }
+}
+
+@keyframes fill-in {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes settle-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* A card inside a card reads as clutter. Anything nested - the breakdown
+   under a headline, an answer inside a question panel - sits flat on its
+   parent, divided from what's above by a hairline. */
+.hero .totals-card,
+.totals-card .totals-card,
+.coach-panel .totals-card {
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+  padding: var(--space-sm) 0 0;
+  margin: var(--space-sm) 0 0;
+}
+/* ---------- Shared: figures and "tap to open" links ---------- */
+
+/* A figure at the end of a row never breaks: "−₹34,067" split over two
+   lines read as a dash and a positive number. */
+.totals-row > span:last-child:not(:first-child) {
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The note under a row's label lines up with the label above it. */
+.totals-row span.muted-note {
+  margin: 0;
+}
+
+/* Every "tap to open" link inside a card looks and behaves the same: lime,
+   one size, and the same small arrow as the folded sections, after the words. */
+.fts-breakdown > summary,
+.loan-detail > summary,
+.setup-help > summary,
+.import-all > summary,
+.import-more > summary,
+.alert-original > summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.86rem;
+  font-weight: 650;
+  padding: var(--space-2xs) 0;
+}
+
+.fts-breakdown > summary::-webkit-details-marker,
+.loan-detail > summary::-webkit-details-marker,
+.setup-help > summary::-webkit-details-marker,
+.import-all > summary::-webkit-details-marker,
+.import-more > summary::-webkit-details-marker,
+.alert-original > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fts-breakdown > summary::after,
+.loan-detail > summary::after,
+.setup-help > summary::after,
+.import-all > summary::after,
+.import-more > summary::after,
+.alert-original > summary::after {
+  content: '';
+  display: inline-block;
+  width: 0.4em;
+  height: 0.4em;
+  margin: 0 0 0.2em 0.5em;
+  border-right: 1.75px solid currentColor;
+  border-bottom: 1.75px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.fts-breakdown[open] > summary::after,
+.loan-detail[open] > summary::after,
+.setup-help[open] > summary::after,
+.import-all[open] > summary::after,
+.import-more[open] > summary::after,
+.alert-original[open] > summary::after {
+  margin-bottom: -0.05em;
+  transform: rotate(-135deg);
+}
+
+/* Two ways a fund can grow, each under its own small heading. */
+.pf-case {
+  margin: var(--space-xs) 0 0;
+  font-size: 0.84rem;
+  font-weight: 650;
+  color: var(--text-muted);
+}
+
+/* ---------- History ---------- */
+
+/* Search and Select on one line, above the month. */
+.hist-top {
+  display: flex;
+  gap: var(--space-2xs);
+  align-items: center;
+  margin: var(--space-sm) 0 var(--space-xs);
+}
+
+.hist-search {
+  flex: 1;
+  min-width: 0;
+  font-size: 1rem;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+}
+
+.hist-select-btn {
+  flex: 0 0 auto;
+  width: auto;
+  padding-inline: var(--space-md);
+}
+
+/* One month at a time: the arrows step between them. */
+.hist-month {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.hist-month-name {
+  font-size: 1.1rem;
+  font-weight: 750;
+  letter-spacing: var(--tracking-display, -0.02em);
+}
+
+.hist-step {
+  font-size: 1.5rem;
+  line-height: 1;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.hist-step:disabled {
+  visibility: hidden;
+}
+
+.hist-totals {
+  text-align: center;
+  margin: 0 0 var(--space-xs);
+  font-size: 0.9rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Filters as a row of small pills. */
+.hist-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  margin-bottom: var(--space-3xs);
+}
+
+/* The two lists share the first line; the "need a category" pill sits
+   under them. */
+.hist-chip {
+  flex: 1 1 40%;
+  min-width: 0;
+  width: auto;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: var(--space-2xs) var(--space-sm);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: inherit;
+}
+
+.hist-needs {
+  flex: 0 0 auto;
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--border));
+}
+
+.hist-needs.on {
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
+}
+
+.hist-month-head {
+  margin-top: var(--space-md);
+}
+
+/* A day: its date and total, then its payments in one card. */
+.hist-day-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-3xs) var(--space-2xs);
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.hist-day-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0 var(--space-xs);
+}
+
+.hist-row + .hist-row {
+  border-top: 1px solid var(--border);
+}
+
+.hist-row.selected {
+  background: var(--accent-soft);
+  margin-inline: calc(var(--space-xs) * -1);
+  padding-inline: var(--space-xs);
+}
+
+.hist-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+/* The whole line is the button: icon, name and account, amount. */
+.hist-main {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0;
+  min-height: 52px;
+  cursor: pointer;
+}
+
+.hist-cat {
+  flex-shrink: 0;
+}
+
+.hist-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.hist-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hist-sub {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.txn-amount.muted {
+  color: var(--text-muted);
+}
+
+.hist-raw {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* A category is one tap: the ones you use most, and the rest in a list. */
+.hist-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.hist-cats .plan-chip {
+  width: auto;
+  padding-inline: var(--space-sm);
+}
+
+.hist-cat-more {
+  width: auto;
+  margin-top: 0;
+  border-radius: var(--radius-pill);
+}
+
+.hist-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-xs);
+}
+
+.hist-edit .rv-field {
+  width: 100%;
+  margin-top: var(--space-2xs);
+}
+
+.hist-older {
+  display: block;
+  margin: var(--space-md) auto 0;
+}
+
+.link-btn.danger {
+  color: var(--out);
+}
+
+/* ---------- Category icons ---------- */
+
+/* A drawn icon in its category's colour, on a tint of that colour. */
+.cat-chip {
+  color: var(--chip-color, var(--accent));
+  overflow: hidden;
+}
+
+.cat-chip .icon {
+  width: 17px;
+  height: 17px;
+  vertical-align: 0;
+}
+
+/* Your own picture fills the chip, round. */
+.cat-chip .cat-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.cat-chip:has(.cat-img) {
+  border-radius: 50%;
+}
+
+.cat-emoji {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.cat-chip-lg {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+}
+
+.cat-chip-lg .icon {
+  width: 26px;
+  height: 26px;
+}
+
+.cat-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.icon-choice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  color: var(--text-muted);
+}
+
+.icon-choice .icon {
+  width: 21px;
+  height: 21px;
+}
+
+.icon-choice.active {
+  color: var(--accent);
+}
+
+.color-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  margin-top: var(--space-2xs);
+}
+
+.color-choice {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: var(--chip-color);
+  background-clip: content-box;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.color-choice.active {
+  border-color: var(--text);
+}
+
+.own-picture {
+  margin: var(--space-sm) 0;
+}
+
+.own-picture-pick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px dashed var(--border-hi);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.own-picture-pick .cat-chip {
+  color: var(--text-muted);
+  --chip-color: var(--text-muted);
+}
+
+.own-picture-title {
+  font-weight: 600;
+}
+
+/* Drawn icons inside small icon buttons (remove, move, edit). */
+.icon-btn .icon {
+  width: 18px;
+  height: 18px;
+  vertical-align: -0.25em;
+}
+/* ---------- Accounts: tap an account to see its latest payments ---------- */
+
+/* The figures of a card, bank or cash account are one big button. */
+.account-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Figures shown without the button (FDs) sit on their own lines too. */
+.account-open > span,
+.account-card > span.account-headline,
+.account-card > span.muted-note {
+  display: block;
+}
+
+/* The same small turning arrow as a folded section, after the last line. */
+.account-open > span.muted-note:last-child::after {
+  content: '';
+  display: inline-block;
+  width: 0.4em;
+  height: 0.4em;
+  margin: 0 0 0.2em 0.5em;
+  border-right: 1.75px solid currentColor;
+  border-bottom: 1.75px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.account-open[aria-expanded="true"] > span.muted-note:last-child::after {
+  margin-bottom: -0.05em;
+  transform: rotate(-135deg);
+}
+
+.account-recent {
+  margin-top: var(--space-xs);
+  padding-top: var(--space-2xs);
+  border-top: 1px solid var(--border);
+}
+
+.account-recent .totals-row > span:last-child.muted {
+  color: var(--text-muted);
+}
+
+/* ---------- Categories: checking the payments a new category is for ---------- */
+
+.cat-review {
+  margin-bottom: var(--space-sm);
+}
+
+.cat-review-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.cat-review-find {
+  display: flex;
+  gap: var(--space-2xs);
+  margin: var(--space-sm) 0;
+}
+
+.cat-review-find input {
+  flex: 1;
+  min-width: 0;
+}
+
+.cat-review-find .btn-secondary {
+  flex: 0 0 auto;
+  width: auto;
+  padding-inline: var(--space-md);
+}
+
+.cat-review-list {
+  margin-bottom: var(--space-sm);
+}
+
+/* One payment per line: tick, name and date, amount. The whole line ticks. */
+.cat-review-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 52px;
+  padding: var(--space-2xs) 0;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.cat-review-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cat-review-row > span:last-child {
+  white-space: nowrap;
+  font-weight: 650;
+}
+
+.cat-undo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+/* ---------- Install card (Summary, while Kawach runs in a browser tab) ---------- */
+
+.install-card {
+  margin-bottom: var(--space-sm);
+}
+
+.install-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.install-logo {
+  flex-shrink: 0;
+  border-radius: 10px;
+}
+
+.install-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.install-head .muted-note {
+  margin-top: var(--space-4xs);
+}
+
+.install-steps {
+  margin: 0 0 var(--space-2xs);
+}
