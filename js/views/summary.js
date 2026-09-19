@@ -21,6 +21,7 @@ import { askConfirm } from '../dialog.js';
 import { redraw } from '../redraw.js';
 import { installCard, wireInstallCard } from '../install.js';
 import { backupStatus } from '../drive.js';
+import { incomeWords } from '../business.js';
 
 let currentRange = 'this-month';
 
@@ -60,7 +61,15 @@ async function renderDashboard(container) {
   const dashboardEl = container.querySelector('#dashboard');
   const [transactions, fts, install] = await Promise.all([getAll('transactions'), computeFreeToSpend(), installCard()]);
 
-  dashboardEl.innerHTML = [install, renderSpendingLimit(fts), renderCommitmentTracker(fts), renderLoansSavings(fts), '<div id="attention-section"></div>', '<div id="upcoming-section"></div>'].join('');
+  dashboardEl.innerHTML = [install, renderSpendingLimit(fts), renderBusiness(fts), renderCommitmentTracker(fts), renderLoansSavings(fts), '<div id="attention-section"></div>', '<div id="upcoming-section"></div>'].join('');
+
+  // The business card opens that account's History.
+  const businessBtn = dashboardEl.querySelector('#business-open');
+  if (businessBtn) {
+    businessBtn.addEventListener('click', () => {
+      container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'transactions', accountId: businessBtn.dataset.account } }));
+    });
+  }
 
   // Mark paid / Skip this month, and their Undo: a per-cycle choice stored on
   // the commitment. Only recent cycles are kept, so the record can't grow forever.
@@ -128,7 +137,7 @@ async function renderDashboard(container) {
 export function spendingWarning(f) {
   const until = formatDateNice(f.cycleKey);
   if (f.level === 'over')
-    return `You're ${formatCurrency(-f.free)} over this cycle's budget. Stop spending until ${until}, on cards and by UPI - anything more comes out of next month's salary.`;
+    return `You're ${formatCurrency(-f.free)} over this cycle's budget. Stop spending until ${until}, on cards and by UPI - anything more comes out of next month.`;
   if (f.level === 'critical') return `Critical: only ${formatCurrency(f.free)} left of this cycle's budget${f.crossesOn ? ` - at your pace it runs out on ${formatDateNice(f.crossesOn)}` : ''}.`;
   if (f.level === 'warning')
     return f.crossesOn
@@ -139,13 +148,45 @@ export function spendingWarning(f) {
 
 export function bankWarning(f) {
   if (f.bankAfterBills == null) return null;
+  // A business owner has no payday to count on: the bank has to cover the
+  // bills from what is in it.
+  const payday = f.incomeKind === 'business' ? null : f.salary.dates[0] || f.salary.nextUnreceived;
+  const next = payday ? `After your next ${incomeWords(f.incomeKind).noun}, the` : 'After the';
   if (f.bankBeforeCards < 0)
-    return `Your bank is ${formatCurrency(-f.bankBeforeCards)} short of what it has to pay before your salary on ${formatDateNice(f.salary.dates[0] || f.salary.nextUnreceived)}.`;
-  if (f.bankAfterBills < 0)
-    return `After your next salary, the card bills and next month's commitments, your bank would be ${formatCurrency(-f.bankAfterBills)} short.`;
+    return payday
+      ? `Your bank is ${formatCurrency(-f.bankBeforeCards)} short of what it has to pay before your ${incomeWords(f.incomeKind).noun} on ${formatDateNice(payday)}.`
+      : `Your bank is ${formatCurrency(-f.bankBeforeCards)} short of what it has to pay this month.`;
+  if (f.bankAfterBills < 0) return `${next} card bills and next month's commitments, your bank would be ${formatCurrency(-f.bankAfterBills)} short.`;
   if (f.bankLevel === 'warning')
-    return `After your next salary and the bills, only ${formatCurrency(f.bankAfterBills)} would be left in your bank - less than the ${formatCurrency(f.keep)} you save each month.`;
+    return `${next} bills, only ${formatCurrency(f.bankAfterBills)} would be left in your bank - less than the ${formatCurrency(f.keep)} you save each month.`;
   return null;
+}
+
+// The business on its own: money in and out of its accounts this month, what
+// came home from it, and where most of it went. Only for those with one.
+function renderBusiness(f) {
+  const b = f.business;
+  if (!b) return '';
+  const above = f.plan && f.plan.basis === 'lowest' && f.plan.thisMonth > f.plan.amount ? f.plan.thisMonth - f.plan.amount : 0;
+  const lean = f.plan && f.plan.amount && f.plan.thisMonth < f.plan.amount && f.monthsCovered != null;
+  return `
+    <div class="totals-card business-card">
+      <button type="button" class="business-head" id="business-open" data-account="${escapeHtml(b.accountIds[0] || '')}">
+        <span class="hero-label">Business this month</span>${icon('forward')}
+      </button>
+      <div class="totals-row"><span>Money in</span><span class="in">${formatRupees(b.moneyIn)}</span></div>
+      <div class="totals-row"><span>Money out</span><span class="out">${formatRupees(b.moneyOut)}</span></div>
+      <div class="totals-row"><span>Taken home</span><span>${formatRupees(b.takenHome)}</span></div>
+      ${
+        b.top.length
+          ? `<details class="fts-breakdown"><summary>Where it went</summary><div class="totals-card">${b.top
+              .map((c) => `<div class="totals-row"><span>${escapeHtml(c.name)}</span><span class="out">${formatRupees(c.amount)}</span></div>`)
+              .join('')}</div></details>`
+          : ''
+      }
+      ${above ? `<p class="business-note in">${formatRupees(above)} more than your plan came home. Put it away?</p>` : ''}
+      ${!above && lean ? `<p class="business-note">Your savings cover about ${f.monthsCovered} month${f.monthsCovered === 1 ? '' : 's'} of the house.</p>` : ''}
+    </div>`;
 }
 
 const breakdownLine = (label, amount, sign, note = '') =>
@@ -155,13 +196,14 @@ const breakdownLine = (label, amount, sign, note = '') =>
 // behind them are one tap away.
 function renderSpendingLimit(f) {
   if (!f.monthlyIncome || !f.salary.setUp) {
-    return `<div class="totals-card"><p class="muted-note">Add your salary and salary day on Plan to see what you can spend.</p></div>${renderBankCard(f)}`;
+    const ask = f.incomeKind === 'business' ? 'what the house needs a month' : `your ${incomeWords(f.incomeKind).noun} and the day it arrives`;
+    return `<div class="totals-card"><p class="muted-note">Add ${ask} on Plan to see what you can spend.</p></div>${renderBankCard(f)}`;
   }
   if (f.noCommitments) {
     return `<div class="hero level-warning">
         <p class="hero-label">Left to spend</p>
         <p class="hero-amount">-</p>
-        <p class="hero-sub">Add your fixed commitments on Plan first - without them your whole salary looks free.</p>
+        <p class="hero-sub">Add your fixed commitments on Plan first - without them your whole income looks free.</p>
       </div>${renderBankCard(f)}`;
   }
   return renderCardsHero(f) + renderBankCard(f);
@@ -174,6 +216,14 @@ function spendingStatus(f) {
   if (f.level === 'critical') return f.crossesOn ? `Critical - runs out ${formatDateNice(f.crossesOn)} at this pace` : 'Critical - almost all used';
   if (f.level === 'warning') return f.crossesOn ? `Careful - runs out ${formatDateNice(f.crossesOn)} at this pace` : `Careful - ${Math.round(f.used * 100)}% used`;
   return `About ${formatRupees(f.perDay)} a day until ${until}`;
+}
+
+// What the budget starts from, in the words of the kind of income.
+function incomeLine(f) {
+  if (f.incomeKind !== 'business') return incomeWords(f.incomeKind).label;
+  if (f.plan.basis !== 'lowest') return 'What the house needs';
+  const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(f.plan.lowestMonth.slice(5, 7)) - 1];
+  return `Taken home, lowest month (${month})`;
 }
 
 function renderCardsHero(f) {
@@ -203,7 +253,7 @@ function renderCardsHero(f) {
       <details class="fts-breakdown">
         <summary>How it's worked out</summary>
         <div class="totals-card">
-          ${line('Monthly salary', f.monthlyIncome, '+')}
+          ${line(incomeLine(f), f.monthlyIncome, '+')}
           ${group('Commitments from the bank', bankItems)}
           ${group('Commitments on cards', cardItems)}
           ${f.keep ? line('Saved each month', f.keep, '-') : ''}
@@ -300,11 +350,14 @@ function renderBankCard(f) {
   }
 
   const tone = f.bankLevel === 'over' ? 'out' : f.bankLevel === 'warning' ? 'warn' : '';
+  // What the bank pays before money next comes in: before payday, or for a
+  // business owner, this month.
+  const before = f.incomeKind === 'business' ? 'this month' : `before ${incomeWords(f.incomeKind).noun}`;
   return `
     <div class="totals-card bank-card level-${f.bankLevel}">
       <div class="bank-figures">
         <div><span class="hero-label">In bank</span><p class="bank-amount">${formatRupees(f.bank)}</p></div>
-        <div class="bank-after"><span class="hero-label">After salary and bills</span><p class="bank-amount small ${tone}">${formatRupees(f.bankAfterBills)}</p></div>
+        <div class="bank-after"><span class="hero-label">${incomeWords(f.incomeKind).afterBank}</span><p class="bank-amount small ${tone}">${formatRupees(f.bankAfterBills)}</p></div>
       </div>
       ${perAccount}
       <details class="fts-breakdown">
@@ -312,20 +365,20 @@ function renderBankCard(f) {
         <div class="totals-card">
           ${f.bankLines.map((l) => line(escapeHtml(l.account.label), l.balance, '+', `as of ${formatDateNice(l.asOf)}${l.entriesSince ? ` + ${l.entriesSince} since` : ''}`)).join('')}
           ${f.bankLines.length > 1 ? `<div class="totals-row net"><span>In bank now</span><span>${formatRupees(f.bank)}</span></div>` : ''}
-          ${f.bankBeforeSalary.map((c) => line(escapeHtml(c.label), c.amount, '-', `before salary · ${c.detail}`)).join('')}
-          ${f.billsBeforeSalary.map((b) => line(escapeHtml(b.label), b.amount, '-', `before salary · ${b.detail}`)).join('')}
-          <div class="totals-row net"><span>Before salary</span><span>${formatRupees(f.bankBeforeCards)}</span></div>
+          ${f.bankBeforeSalary.map((c) => line(escapeHtml(c.label), c.amount, '-', `${before} · ${c.detail}`)).join('')}
+          ${f.billsBeforeSalary.map((b) => line(escapeHtml(b.label), b.amount, '-', `${before} · ${b.detail}`)).join('')}
+          <div class="totals-row net"><span>${before[0].toUpperCase() + before.slice(1)}</span><span>${formatRupees(f.bankBeforeCards)}</span></div>
           ${f.fundedMonths
             .map(
               (m) =>
-                line('Salary', m.amount, '+', `${formatDateNice(m.payday)}${f.salary.late && m.payday === f.salary.dates[0] ? ' · not in yet' : ''}`) +
+                line(incomeWords(f.incomeKind).paid, m.amount, '+', `${formatDateNice(m.payday)}${f.salary.late && m.payday === f.salary.dates[0] ? ' · not in yet' : ''}`) +
                 m.commitments.map((c) => line(escapeHtml(c.label), c.amount, '-', c.detail)).join('')
             )
             .join('')}
           ${f.cardBills.map((b) => line(escapeHtml(b.label), b.amount, '-', b.detail)).join('')}
           ${f.cards.filter((c) => c.owed > 0).map((c) => line(`${escapeHtml(c.account.label)} bill`, c.owed, '-', 'this cycle')).join('')}
           ${f.cardUpcoming.map((c) => line(escapeHtml(c.label), c.amount, '-', `still to come · ${escapeHtml(c.detail)}`)).join('')}
-          <div class="totals-row net"><span>After salary and bills</span><span>${formatRupees(f.bankAfterBills)}</span></div>
+          <div class="totals-row net"><span>${incomeWords(f.incomeKind).afterBank}</span><span>${formatRupees(f.bankAfterBills)}</span></div>
         </div>
       </details>
     </div>`;
@@ -863,7 +916,7 @@ async function renderContent(container) {
     monthKey
       ? transactions.filter((t) => spendingMonthOf(t, byAccountId.get(t.accountId), cycleAware) === monthKey)
       : transactions.filter((t) => t.date >= from && t.date <= to)
-  ).filter((t) => !t.isTransfer);
+  ).filter((t) => !t.isTransfer && !byAccountId.get(t.accountId)?.business);
 
   let totalIn = 0;
   let totalOut = 0;

@@ -1,6 +1,6 @@
 import { getAll, put, remove, newId, getSetting, setSetting } from '../db.js';
 import { icon } from '../icons.js';
-import { formatCurrency, ordinal, formatDateNice } from '../format.js';
+import { formatCurrency, ordinal, formatDateNice, formatMonthYear } from '../format.js';
 import { detectRecurring } from '../recurring.js';
 import { categoryStyle } from '../category-style.js';
 import { getBudgets, setBudget, budgetStatusForMonth } from '../budgets.js';
@@ -10,6 +10,7 @@ import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequency
 import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder } from '../commitments.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
+import { incomeType, incomeWords, businessPlan, ensureBusinessCategories, isBusinessCategory } from '../business.js';
 
 let adding = false;
 let editingId = null;
@@ -29,6 +30,8 @@ export async function render(container) {
     getBudgets(),
   ]);
   const salaryDay = await getSetting('salaryDay', null);
+  const kind = await incomeType();
+  const words = incomeWords(kind);
 
   const accounts = await getAll('accounts');
   const todayIso = isoLocal(new Date());
@@ -46,7 +49,15 @@ export async function render(container) {
   const monthKey = currentMonthKey(now);
 
   const suggestedIncome = suggestIncome(transactions, categories);
-  const incomeValue = income != null ? income : suggestedIncome;
+  // A business owner's month is planned on what came home (js/business.js);
+  // what they typed is only the estimate it starts from.
+  const plan = kind === 'business' ? businessPlan(transactions, accounts, todayIso, income) : null;
+  const incomeValue = plan ? plan.amount : income != null ? income : suggestedIncome;
+  const incomeLabel = !plan
+    ? words.label
+    : plan.basis === 'lowest'
+      ? `Taken home, lowest month (${formatMonthYear(plan.lowestMonth).split(' ')[0]})`
+      : 'What the house needs';
   const disposable = incomeValue != null ? incomeValue - fixedTotal : null;
 
   const keepInBank = await getSetting('keepInBank', DEFAULT_KEEP_IN_BANK);
@@ -64,28 +75,41 @@ export async function render(container) {
   };
 
   const budgetRows = await budgetStatusForMonth(budgets, categories, transactions, monthKey);
-  const budgetable = categories.filter((c) => !budgets[c.id] && !/income|transfer/i.test(c.name));
+  const budgetable = categories.filter((c) => !budgets[c.id] && !isBusinessCategory(c) && !/income|transfer/i.test(c.name));
 
   const keep = Math.max(0, Number(keepInBank) || 0);
   const budget = disposable != null ? disposable + cashTotal - keep : null;
 
   container.innerHTML = `
     <div class="totals-card">
-      <div class="totals-row"><span>Monthly salary</span><span class="in">${incomeValue != null ? formatCurrency(incomeValue) : '-'}</span></div>
+      <div class="totals-row"><span>${incomeLabel}</span><span class="in">${incomeValue != null ? formatCurrency(incomeValue) : '-'}</span></div>
       <div class="totals-row"><span>Commitments</span><span class="out">−${formatCurrency(fixedTotal - cashTotal)}</span></div>
       <div class="totals-row"><span>Saved each month</span><span class="out">−${formatCurrency(keep)}</span></div>
       <div class="totals-row net"><span>Budget each month</span><span>${budget != null ? formatCurrency(budget) : '-'}</span></div>
       ${cashTotal > 0 ? `<p class="muted-note">${formatCurrency(cashTotal)} paid in cash comes out of your ATM money.</p>` : ''}
-      <details class="fts-breakdown" ${income == null || !salaryDay ? 'open' : ''}>
-        <summary>Change salary or saving</summary>
+      <details class="fts-breakdown" ${income == null || (kind !== 'business' && !salaryDay) ? 'open' : ''}>
+        <summary>Change income or saving</summary>
         <label class="field">
-          <span>Monthly salary</span>
-          <input type="number" id="plan-income" inputmode="decimal" step="1" placeholder="${suggestedIncome != null ? (suggestedIncome / 100).toFixed(0) : '80000'}" value="${incomeValue != null ? (incomeValue / 100).toFixed(0) : ''}">
+          <span>Money comes in as</span>
+          <select id="plan-kind">
+            <option value="salary" ${kind === 'salary' ? 'selected' : ''}>Salary</option>
+            <option value="business" ${kind === 'business' ? 'selected' : ''}>Business or self-employed</option>
+            <option value="pension" ${kind === 'pension' ? 'selected' : ''}>Pension</option>
+            <option value="household" ${kind === 'household' ? 'selected' : ''}>Household money</option>
+          </select>
         </label>
         <label class="field">
-          <span>Salary day <span class="muted">(31 = last day)</span></span>
+          <span>${kind === 'business' ? 'What the house needs a month' : words.label}</span>
+          <input type="number" id="plan-income" inputmode="decimal" step="1" placeholder="${suggestedIncome != null ? (suggestedIncome / 100).toFixed(0) : '60000'}" value="${income != null ? (income / 100).toFixed(0) : ''}">
+        </label>
+        ${
+          kind === 'business'
+            ? ''
+            : `<label class="field">
+          <span>Day it arrives <span class="muted">(31 = last day)</span></span>
           <input type="number" id="plan-salary-day" inputmode="numeric" min="1" max="31" step="1" placeholder="31" value="${salaryDay || ''}">
-        </label>
+        </label>`
+        }
         <label class="field">
           <span>Save each month</span>
           <input type="number" id="plan-keep" inputmode="decimal" step="1" min="0" placeholder="10000" value="${(keep / 100).toFixed(0)}">
@@ -162,9 +186,17 @@ export async function render(container) {
   });
 
   const salaryDayEl = container.querySelector('#plan-salary-day');
-  salaryDayEl.addEventListener('change', async () => {
-    const day = parseInt(salaryDayEl.value, 10);
-    await setSetting('salaryDay', Number.isInteger(day) && day >= 1 && day <= 31 ? day : null);
+  if (salaryDayEl) {
+    salaryDayEl.addEventListener('change', async () => {
+      const day = parseInt(salaryDayEl.value, 10);
+      await setSetting('salaryDay', Number.isInteger(day) && day >= 1 && day <= 31 ? day : null);
+      redraw(container, () => render(container));
+    });
+  }
+
+  container.querySelector('#plan-kind').addEventListener('change', async (e) => {
+    await setSetting('incomeType', e.target.value);
+    if (e.target.value === 'business') await ensureBusinessCategories();
     redraw(container, () => render(container));
   });
 

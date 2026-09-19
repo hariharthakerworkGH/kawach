@@ -81,6 +81,11 @@ function detectOwnAccountTransfers(auto, accounts, accountType) {
   );
   const debits = auto.filter((t) => !t.isTransfer && t.direction === 'debit' && holds(t.accountId));
   const credits = auto.filter((t) => !t.isTransfer && t.direction === 'credit' && holds(t.accountId));
+  // From the business's account to a home one (or back) is how an owner
+  // takes money home, often by UPI with nothing in the wording to go on. Both
+  // sides are yours, so the same amount within the days is enough.
+  const business = new Set(accounts.filter((a) => a.business).map((a) => a.id));
+  const acrossBusiness = (a, b) => business.has(a) !== business.has(b);
   const moved = [];
   for (const debit of debits) {
     const desc = (debit.rawDescription || '').toLowerCase();
@@ -90,12 +95,16 @@ function detectOwnAccountTransfers(auto, accounts, accountType) {
         credit.amount === debit.amount &&
         !credit._claimed &&
         daysApart(debit.date, credit.date) <= 3 &&
-        ((names.get(credit.accountId) || []).some((n) => desc.includes(n)) || MOVED_RE.test(desc))
+        ((names.get(credit.accountId) || []).some((n) => desc.includes(n)) || MOVED_RE.test(desc) || acrossBusiness(debit.accountId, credit.accountId))
     );
     if (!twin) continue;
     twin._claimed = true;
     debit.isTransfer = true;
     twin.isTransfer = true;
+    // Which way it went, so money moved home from the business can be told
+    // from money moved between two home accounts.
+    debit.movedTo = twin.accountId;
+    twin.movedFrom = debit.accountId;
     moved.push(debit, twin);
   }
   return moved;

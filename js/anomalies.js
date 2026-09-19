@@ -8,8 +8,11 @@ const MIN_HISTORY_FOR_STATS = 2;
 // debits that are unusually large for that specific merchant (based on their
 // own history), or a meaningfully-sized spend at a merchant never seen before.
 export async function detectAnomalies(sinceDate) {
-  const transactions = await getAll('transactions');
-  const debits = transactions.filter((t) => t.direction === 'debit' && !t.isTransfer);
+  const [transactions, accounts] = await Promise.all([getAll('transactions'), getAll('accounts')]);
+  // The house's spending only: a business's supplier payments aren't unusual
+  // household spends.
+  const business = new Set(accounts.filter((a) => a.business).map((a) => a.id));
+  const debits = transactions.filter((t) => t.direction === 'debit' && !t.isTransfer && !business.has(t.accountId));
 
   const byMerchant = new Map();
   for (const t of debits) {

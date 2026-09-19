@@ -63,7 +63,7 @@ function heroTemplate(snapshot) {
       <div class="hero">
         <p class="hero-label">Left to spend</p>
         <p class="hero-amount">-</p>
-        <p class="hero-sub">Add your salary and commitments on Plan first.</p>
+        <p class="hero-sub">Add your income and commitments on Plan first.</p>
       </div>`;
   }
 
@@ -177,7 +177,7 @@ function wirePanel(container, s, cash) {
 
 function affordAnswer(s, a) {
   if (!a.known) {
-    return `<div class="coach-answer"><p class="coach-verdict">I need your income first</p><p class="recap-line">Put your monthly income and salary day on the Plan screen and I can tell you whether this fits.</p></div>`;
+    return `<div class="coach-answer"><p class="coach-verdict">I need your income first</p><p class="recap-line">Add your income on Plan and I can tell you whether this fits.</p></div>`;
   }
 
   const verdict = !a.canAfford ? 'Not right now' : a.tight ? 'It fits, but only just' : 'Yes, comfortably';

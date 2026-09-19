@@ -15,7 +15,10 @@ const AMOUNT_TOLERANCE = 0.15; // same "merchant" charging within 15% counts as 
 // store so a dismissal ("not recurring") persists across re-runs - this
 // function is safe to call every time the dashboard loads.
 export async function detectRecurring(now = new Date()) {
-  const [transactions, existingRecurring, accounts] = await Promise.all([getAll('transactions'), getAll('recurring'), getAll('accounts')]);
+  const [allTransactions, existingRecurring, accounts] = await Promise.all([getAll('transactions'), getAll('recurring'), getAll('accounts')]);
+  // Household commitments only: a business's regular payments are its own.
+  const business = new Set(accounts.filter((a) => a.business).map((a) => a.id));
+  const transactions = allTransactions.filter((t) => !business.has(t.accountId));
   const bankIds = new Set(accounts.filter((a) => a.type === 'bank').map((a) => a.id));
   // Money sent to people (rent, home) is often marked as moved rather than
   // spent, but it's still a monthly commitment. Card bills aren't: the card's
