@@ -1,10 +1,11 @@
 // Bump this on every deploy that changes any cached file, otherwise
 // installed phones keep serving the old version from cache.
 //
-// Keep the number identical to APP_VERSION in js/version.js. The app compares
+// Keep the number identical to BUILD in js/version.js (the hidden release
+// counter, not the version people see). The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v69';
+const CACHE_NAME = 'expense-tracker-v70';
 
 const APP_SHELL = [
   './',

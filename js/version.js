@@ -7,9 +7,16 @@
 // change never happened. So the app now compares the version it is actually
 // running against the newest version sitting in the cache, and says so.
 //
-// IMPORTANT: bump APP_VERSION and CACHE_NAME in sw.js together. They are
-// compared at runtime, and a mismatch is what drives the banner below.
-export const APP_VERSION = 69;
+// The version people see: major.minor.fix, two digits each.
+//   Major (02.00.00): the app rebuilt with a new set of features.
+//   Minor (01.09.00): features added or changed; the fix number goes back to 00.
+//   Fix   (01.08.01): bugs and glitches only.
+export const APP_VERSION = '01.08.00';
+
+// A counter one higher with every release, never shown. The offline copy is
+// named after it (CACHE_NAME in sw.js), so a newer download can be told from
+// the one running. IMPORTANT: bump BUILD and CACHE_NAME together.
+export const BUILD = 70;
 
 // What's running versus what's downloaded and waiting.
 export async function versionStatus() {
@@ -27,7 +34,7 @@ export async function versionStatus() {
   return {
     running: APP_VERSION,
     cached,
-    stale: cached != null && cached > APP_VERSION,
+    stale: cached != null && cached > BUILD,
   };
 }
 
