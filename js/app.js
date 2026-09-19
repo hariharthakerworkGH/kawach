@@ -5,11 +5,13 @@ import { detectTransfers } from './transfers.js';
 import { statementDayFixes } from './account-metrics.js';
 import { showToast } from './toast.js';
 import { setCustomStyles } from './category-style.js';
-import { versionStatus } from './version.js';
+import { versionStatus, APP_VERSION } from './version.js';
 import { fillIcons, icon } from './icons.js';
 import { redraw } from './redraw.js';
 import { keepDataSafe, isInstalled } from './install.js';
 import { signIn, rememberGoogleAccount } from './drive.js';
+import { showIfUpdated } from './whats-new.js';
+import { moneyProfile } from './business.js';
 import * as addView from './views/add.js';
 import * as categoriesView from './views/categories.js';
 import * as summaryView from './views/summary.js';
@@ -461,8 +463,12 @@ async function init() {
     }
     // Brand new: a few steps instead of empty screens.
     await showView('setup', {}, true);
+    // Nothing to catch up on: this version's notes are simply seen.
+    showIfUpdated(APP_VERSION, await moneyProfile(), { isNew: true });
   } else {
     await showView('summary', {}, true);
+    // After an update, once: what changed, for this person.
+    setTimeout(async () => showIfUpdated(APP_VERSION, await moneyProfile(), { isNew: false }), 600);
   }
 
   if ('serviceWorker' in navigator) {

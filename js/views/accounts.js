@@ -8,7 +8,7 @@ import { isoLocal } from '../frequency.js';
 import { findDuplicates } from '../duplicates.js';
 import { byYourOrder } from '../commitments.js';
 import { redraw } from '../redraw.js';
-import { ensureBusinessCategories } from '../business.js';
+import { ensureBusinessCategories, moneyProfile } from '../business.js';
 import { detectTransfers } from '../transfers.js';
 import { icon } from '../icons.js';
 import { displayName } from './transactions.js';
@@ -27,6 +27,8 @@ let accountLabels = new Map();
 let depositsOf = new Map();
 
 let shownIn = null;
+// Who is using the app (js/business.js): the form offers what fits them.
+let profile = { main: 'salary', business: false };
 // Accounts opened to show their latest payments, kept while the app is open
 // so a redraw (Edit, Reorder, a sync) doesn't fold them shut.
 const opened = new Set();
@@ -43,7 +45,8 @@ export function onBack() {
 
 export async function render(container) {
   shownIn = container;
-  const [accounts, allTransactions, importBatches] = await Promise.all([getAll('accounts'), getAll('transactions'), getAll('importBatches')]);
+  const [accounts, allTransactions, importBatches, who] = await Promise.all([getAll('accounts'), getAll('transactions'), getAll('importBatches'), moneyProfile()]);
+  profile = { ...who, hasPf: accounts.some((a) => a.type === 'pf') };
   // Copies saved by overlapping statement imports are left out of every
   // balance here, the same as on the Summary.
   const duplicateIds = new Set(findDuplicates(allTransactions).map((t) => t.id));
@@ -261,6 +264,8 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
             ['pf', 'Provident fund'],
             ['loan', 'Loan'],
           ]
+            // A provident fund comes with a salary.
+            .filter(([t]) => t !== 'pf' || profile.main === 'salary' || profile.hasPf)
             .map(
               ([t, labelText]) =>
                 `<button type="button" class="seg-btn af-type ${a.type === t ? 'active' : ''}" data-type="${t}">${labelText}</button>`
@@ -281,9 +286,9 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
         <input type="checkbox" class="af-spending" ${a.spending === false ? '' : 'checked'}>
         <span>I spend from this account<br><span class="muted-note">Off for savings or loan-only accounts: nothing from it counts as spending.</span></span>
       </label>
-      <label class="checkbox-row af-business-field" ${['bank', 'card', 'cash'].includes(a.type) ? '' : 'hidden'}>
+      <label class="checkbox-row af-business-field" ${['bank', 'card', 'cash'].includes(a.type) && (profile.business || a.business) ? '' : 'hidden'} data-offered="${profile.business || a.business ? '1' : ''}">
         <input type="checkbox" class="af-business" ${a.business ? 'checked' : ''}>
-        <span>For the business<br><span class="muted-note">Kept apart from the house, with business categories.</span></span>
+        <span>For the business</span>
       </label>
       <div class="field af-cycle-field" ${a.type === 'card' ? '' : 'hidden'}>
         <span>Billing cycle</span>
@@ -372,7 +377,7 @@ function wireForm(form, container, accounts, transactions) {
       form.querySelectorAll('.af-type').forEach((b) => b.classList.toggle('active', b === btn));
       cycleField.hidden = type !== 'card';
       spendingField.hidden = type !== 'bank';
-      businessField.hidden = !['bank', 'card', 'cash'].includes(type);
+      businessField.hidden = !businessField.dataset.offered || !['bank', 'card', 'cash'].includes(type);
       loanFields.hidden = type !== 'loan';
       pfFields.hidden = type !== 'pf';
     });

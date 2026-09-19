@@ -11,12 +11,12 @@
 //   Major (02.00.00): the app rebuilt with a new set of features.
 //   Minor (01.09.00): features added or changed; the fix number goes back to 00.
 //   Fix   (01.08.01): bugs and glitches only.
-export const APP_VERSION = '02.00.00';
+export const APP_VERSION = '02.01.00';
 
 // A counter one higher with every release, never shown. The offline copy is
 // named after it (CACHE_NAME in sw.js), so a newer download can be told from
 // the one running. IMPORTANT: bump BUILD and CACHE_NAME together.
-export const BUILD = 73;
+export const BUILD = 74;
 
 // What's running versus what's downloaded and waiting.
 export async function versionStatus() {

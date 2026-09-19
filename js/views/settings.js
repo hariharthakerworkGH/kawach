@@ -1,4 +1,4 @@
-import { getAll, remove, setSetting, getSetting } from '../db.js';
+import { getAll, put, remove, setSetting, getSetting } from '../db.js';
 import { icon } from '../icons.js';
 import { exportEncrypted, decryptBackup, restoreBackup } from '../backup.js';
 import { formatDateNice } from '../format.js';
@@ -14,6 +14,8 @@ import { redraw } from '../redraw.js';
 import { dataIsKept } from '../install.js';
 import { playTour, shareKawach } from '../tour.js';
 import { enhancePasswords, checkPair, MIN_PASSPHRASE } from '../password-field.js';
+import { moneyProfile, ensureBusinessCategories, isBusinessAccount } from '../business.js';
+import { notesFor, openNotes } from '../whats-new.js';
 import { backupStatus, backupPassphrase, setBackupPassphrase, markFileBackup, signIn, hasGooglePass, backUpToDrive, listBackups, openDriveBackup } from '../drive.js';
 
 // Kept while this screen is open, so a redraw doesn't lose them: the Drive
@@ -34,8 +36,10 @@ export async function render(container, params = {}) {
   const safety = dataSafety(sync, syncPass, lastBackupAt);
   const kept = await dataIsKept();
   const backup = await backupStatus();
+  const profile = await moneyProfile();
 
   container.innerHTML = `
+    ${moneyCard(profile)}
     <div class="totals-card data-safety ${safety.ok ? '' : 'warn-card'}">
       <div class="totals-row"><span><strong>${safety.ok ? `${icon('check')} Your data is safe` : `${icon('alert')} Your data is only on this phone`}</strong></span></div>
       <div class="totals-row"><span class="muted">Sync</span><span>${safety.syncText}</span></div>
@@ -102,6 +106,7 @@ export async function render(container, params = {}) {
       <button type="button" id="go-categories" class="btn-secondary btn-block">Manage categories</button>
       <button type="button" id="watch-tour" class="btn-secondary btn-block">Watch the 1-minute tour</button>
       <button type="button" id="run-setup" class="btn-secondary btn-block">Run setup again</button>
+      <button type="button" id="whats-new-btn" class="btn-secondary btn-block">What's new</button>
       <button type="button" id="share-app-btn" class="btn-secondary btn-block">Share Kawach with a friend</button>
     </div>
 
@@ -164,6 +169,10 @@ export async function render(container, params = {}) {
   });
 
   container.querySelector('#share-app-btn').addEventListener('click', shareKawach);
+  container.querySelector('#whats-new-btn').addEventListener('click', async () => {
+    openNotes(notesFor(await moneyProfile()), { title: "What's new" });
+  });
+  wireMoneyCard(container, profile);
   container.querySelector('#watch-tour').addEventListener('click', playTour);
 
   container.querySelector('#run-setup').addEventListener('click', () => {
@@ -308,6 +317,93 @@ export function dataSafety(sync, syncPass, lastBackupAt, now = Date.now()) {
     backupText: lastBackupAt ? timeAgo(lastBackupAt) : 'Never',
     daysUnprotected: lastBackupAt || sync.lastSync ? Math.floor((now - Math.max(lastBackupAt || 0, sync.lastSync || 0)) / DAY) : null,
   };
+}
+
+// --- Your money ---------------------------------------------------------------
+// How money mainly comes in, and whether there's a business on the side. The
+// rest of the app shows what fits (js/business.js, moneyProfile).
+
+const KINDS = [
+  ['salary', 'Salary'],
+  ['household', 'Household money'],
+  ['business', 'Business'],
+  ['pension', 'Pension'],
+];
+
+function moneyCard(profile) {
+  return `
+    <div class="totals-card" id="money-card">
+      <p class="money-label">Money mainly comes in as</p>
+      <div class="money-kinds" role="radiogroup" aria-label="Money mainly comes in as">
+        ${KINDS.map(
+          ([id, label]) =>
+            `<button type="button" class="money-kind ${profile.main === id ? 'on' : ''}" role="radio" aria-checked="${profile.main === id}" data-kind="${id}">${label}</button>`
+        ).join('')}
+      </div>
+      ${
+        profile.main === 'business'
+          ? ''
+          : `<label class="switch-row" id="side-business-row">
+              <span>I also run a business</span>
+              <input type="checkbox" role="switch" class="switch" id="side-business" ${profile.side ? 'checked' : ''}>
+            </label>`
+      }
+    </div>`;
+}
+
+function wireMoneyCard(container, profile) {
+  const again = () => redraw(container, () => render(container));
+  const businessAccounts = async () => (await getAll('accounts')).filter(isBusinessAccount);
+
+  container.querySelectorAll('.money-kind').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const kind = btn.dataset.kind;
+      if (kind === profile.main) return;
+      await setSetting('incomeType', kind);
+      if (kind === 'business') {
+        await setSetting('sideBusiness', false);
+        await ensureBusinessCategories();
+      } else if (profile.main === 'business' && (await businessAccounts()).length) {
+        // Leaving "Business" as the main income doesn't close the shop: it
+        // carries on, as a business on the side.
+        await setSetting('sideBusiness', true);
+      }
+      showToast(`Money comes in as ${btn.textContent.toLowerCase()}`);
+      again();
+    });
+  });
+
+  const side = container.querySelector('#side-business');
+  if (side) {
+    side.addEventListener('change', async () => {
+      if (side.checked) {
+        await setSetting('sideBusiness', true);
+        await ensureBusinessCategories();
+        showToast('Business on. Mark its account on Accounts.');
+        return again();
+      }
+      // Turning it off makes the business's accounts home accounts again,
+      // said first, so their spending doesn't join the house's by surprise.
+      const accounts = await businessAccounts();
+      if (accounts.length) {
+        const ok = await askConfirm({
+          title: 'Stop keeping the business apart?',
+          message: `${accounts.map((a) => a.label).join(', ')} will count as home again.`,
+          confirmLabel: 'Stop',
+        });
+        if (!ok) {
+          side.checked = true;
+          return;
+        }
+        for (const a of accounts) {
+          const { business, ...rest } = a;
+          await put('accounts', rest);
+        }
+      }
+      await setSetting('sideBusiness', false);
+      again();
+    });
+  }
 }
 
 // --- Backup -----------------------------------------------------------------

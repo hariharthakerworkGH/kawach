@@ -9,7 +9,7 @@ import { learnFromAssignment } from '../merchant-rules.js';
 import { formatRupees, formatDateNice } from '../format.js';
 import { showToast } from '../toast.js';
 import { displayName } from './transactions.js';
-import { isBusinessCategory, isBusinessAccount } from '../business.js';
+import { isBusinessCategory, isBusinessAccount, moneyProfile } from '../business.js';
 
 // Your categories: rename them, pick their icon, and say which sits under
 // which. Everything happens on this screen rather than in browser prompt
@@ -39,9 +39,10 @@ export function onBack() {
 
 export async function render(container) {
   shownIn = container;
-  const [categories, accounts] = await Promise.all([getAll('categories'), getAll('accounts')]);
+  const [categories, accounts, profile] = await Promise.all([getAll('categories'), getAll('accounts'), moneyProfile()]);
   setCustomStyles(categories);
-  const hasBusiness = categories.some(isBusinessCategory) || accounts.some(isBusinessAccount);
+  // The Business tab is there for those with a business, and only them.
+  const hasBusiness = profile.business;
   if (!hasBusiness) scope = 'home';
   const shown = categories.filter((c) => isBusinessCategory(c) === (scope === 'business'));
   const topLevel = shown.filter((c) => !c.parentId);
@@ -55,7 +56,7 @@ export async function render(container) {
       hasBusiness
         ? `<div class="segmented">
             <button type="button" class="seg-btn cat-scope ${scope === 'home' ? 'active' : ''}" data-scope="home">Home</button>
-            <button type="button" class="seg-btn cat-scope ${scope === 'business' ? 'active' : ''}" data-scope="business">Business</button>
+            <button type="button" class="seg-btn cat-scope ${scope === 'business' ? 'active' : ''}" data-scope="business" id="cat-scope-business">Business</button>
           </div>`
         : ''
     }

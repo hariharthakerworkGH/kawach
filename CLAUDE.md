@@ -48,6 +48,13 @@ a salary, pension or household money is the amount set on Plan; for a
 business owner it is the lowest of the last three months taken home (money
 reaching the home accounts from the business, or from outside), and the
 owner's estimate of what the house needs until there are three months.
+Anyone else can have a business on the side (`sideBusiness`): a salary,
+pension or household money plus the lowest of the business's last three
+months (only money moved over from its accounts, so a salary landing in the
+same account is never counted twice), and nothing from it before then.
+`moneyProfile()` says who someone is, and screens show only what fits them:
+PF for salaried people, business accounts and categories for those with a
+business. Settings holds the switch.
 Accounts marked `business` stand apart: their spending is never the house's,
 they get business categories (`scope: 'business'`, including the owner's own),
 and Summary shows the business on its own card.
@@ -142,13 +149,17 @@ There is no Node and no git on the owner's machine; Python is `py`.
    separate database and made-up data only.
 2. Unregister the service worker and clear caches before re-testing, or stale
    modules are served.
-3. Versions are `major.minor.fix`, two digits each (`APP_VERSION` in
+3. Every release a user would notice gets its lines in `NOTES` in
+   `js/whats-new.js` (shown once after the update, filtered to who they
+   concern), and every new feature a `guide`: the screen, the thing to point
+   at, one line of tip (`js/guide.js`).
+4. Versions are `major.minor.fix`, two digits each (`APP_VERSION` in
    `js/version.js`, shown on screen): major for an app rebuilt with a new set
    of features, minor for features added or changed (fix goes back to 00),
    fix for bugs and glitches only. Every release also raises the hidden
    `BUILD` counter by one, together with `CACHE_NAME` in `sw.js`.
-4. Copy the whole app to `expense-tracker-versions/<version>` (e.g. `01.08.00`)
+5. Copy the whole app to `expense-tracker-versions/<version>` (e.g. `01.08.00`)
    so any version can be restored, and verify the copy.
-5. To debug the owner's figures, ask for Settings → "Save diagnostic report"
+6. To debug the owner's figures, ask for Settings → "Save diagnostic report"
    (redacted) and load it with `/tests/load-report.html` on localhost. Never ask
    for his GitHub token or passphrase.

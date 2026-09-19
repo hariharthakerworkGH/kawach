@@ -31,6 +31,15 @@ export async function incomeType() {
   return INCOME_TYPES.includes(type) ? type : 'salary';
 }
 
+// Who this is, for what the app shows: how money mainly comes in, and
+// whether there is a business - as the main income, or on the side
+// (`sideBusiness`: a salaried person opening a shop, a homemaker's tiffin
+// service, a pensioner's small trade).
+export async function moneyProfile() {
+  const [main, side] = await Promise.all([incomeType(), getSetting('sideBusiness', false)]);
+  return { main, business: main === 'business' || side === true, side: main !== 'business' && side === true };
+}
+
 // The words each kind of income is spoken of in.
 export function incomeWords(type) {
   return (
@@ -93,8 +102,10 @@ function fromBusiness(t, transactions, business) {
   );
 }
 
-// Money that reached the home accounts in a month ('2026-09').
-export function takenHome(transactions, accounts, month) {
+// Money that reached the home accounts in a month ('2026-09'). With
+// `outside` false, only what was moved over from the business counts: for
+// someone whose salary also lands there, that is the business's share.
+export function takenHome(transactions, accounts, month, { outside = true } = {}) {
   const home = homeBankIds(accounts);
   const business = businessIds(accounts);
   // A payment that came back (same account, amount and UPI ID) isn't income.
@@ -111,7 +122,7 @@ export function takenHome(transactions, accounts, month) {
     );
   return transactions
     .filter((t) => t.direction === 'credit' && home.has(t.accountId) && monthOf(t.date) === month)
-    .filter((t) => (t.isTransfer ? fromBusiness(t, transactions, business) : !sentBefore(t)))
+    .filter((t) => (t.isTransfer ? fromBusiness(t, transactions, business) : outside && !sentBefore(t)))
     .reduce((s, t) => s + t.amount, 0);
 }
 
@@ -123,11 +134,11 @@ const monthsBefore = (today, n) => {
 // The amount a business owner's month is planned on: the lowest of the last
 // three whole months taken home, once each of them has something on a home
 // account to go by; the owner's estimate until then.
-export function businessPlan(transactions, accounts, today, estimate = null) {
+export function businessPlan(transactions, accounts, today, estimate = null, { outside = true } = {}) {
   const home = homeBankIds(accounts);
-  const months = monthsBefore(today, 3).map((month) => ({ month, amount: takenHome(transactions, accounts, month) }));
+  const months = monthsBefore(today, 3).map((month) => ({ month, amount: takenHome(transactions, accounts, month, { outside }) }));
   const known = months.every(({ month }) => transactions.some((t) => home.has(t.accountId) && monthOf(t.date) === month));
-  const thisMonth = takenHome(transactions, accounts, monthOf(today));
+  const thisMonth = takenHome(transactions, accounts, monthOf(today), { outside });
   if (known) {
     const lowest = months.reduce((a, b) => (b.amount < a.amount ? b : a));
     return { amount: lowest.amount, basis: 'lowest', lowestMonth: lowest.month, months, thisMonth };
