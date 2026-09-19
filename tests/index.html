@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kawach tests</title>
+<link rel="icon" href="data:,">
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 0; padding: 20px 16px; background: #0f1115; color: #e8eaed; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .summary { margin: 0 0 16px; color: #9aa0a6; }
+  .row { padding: 6px 0; border-bottom: 1px solid #2a2e35; }
+  .pass::before { content: '✓ '; color: #7bd88f; }
+  .fail::before { content: '✗ '; color: #ff7a6b; }
+  .error { color: #ff7a6b; font-size: 13px; margin-left: 18px; }
+  .ms { color: #6b7280; font-size: 12px; }
+</style>
+<script>
+  // Before any app module loads: use a separate database, so the tests can
+  // never touch real data.
+  globalThis.EXPENSE_TRACKER_DB_NAME = 'expense-tracker-tests';
+</script>
+</head>
+<body>
+<h1>Kawach tests</h1>
+<p class="summary" id="summary">Running…</p>
+<div id="results"></div>
+<script type="module">
+  import { run } from './harness.js';
+  import './unit.test.js';
+  import './scenarios.test.js';
+
+  const list = document.getElementById('results');
+  const results = await run((r) => {
+    const div = document.createElement('div');
+    div.className = `row ${r.ok ? 'pass' : 'fail'}`;
+    div.textContent = r.name;
+    if (r.ok) div.insertAdjacentHTML('beforeend', ` <span class="ms">${r.ms} ms</span>`);
+    else div.insertAdjacentHTML('beforeend', `<div class="error"></div>`), (div.querySelector('.error').textContent = r.error);
+    list.appendChild(div);
+  });
+  const failed = results.filter((r) => !r.ok).length;
+  document.getElementById('summary').textContent = failed ? `${failed} of ${results.length} failed` : `All ${results.length} passed`;
+  window.testResults = results;
+</script>
+</body>
+</html>

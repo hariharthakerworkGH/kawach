@@ -1,0 +1,138 @@
+/* Hallmark · design system: design.md · genre: modern-minimal · designed-as-app
+ * Every colour, font, space, radius and easing the app uses. style.css refers
+ * to these by name and never writes a raw value of its own; see design.md for
+ * the rules they encode.
+ */
+
+/* Geist, shipped inside the app (fonts/, OFL licence alongside) so no screen
+   ever fetches a font from anywhere: the app makes no third-party calls. One
+   variable file carries every weight. */
+@font-face {
+  font-family: "Geist";
+  src: url("../fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* ---- Colour: dark first. Paper, ink, and meaning. ---- */
+  --bg: oklch(15.4% 0.005 264);
+  --bg-elevated: oklch(18.2% 0.009 264);
+  --surface: oklch(20.9% 0.01 268);
+  --surface-alt: oklch(24.3% 0.012 264);
+  --surface-hi: oklch(27.6% 0.014 262);
+  --text: oklch(96.9% 0.005 258);
+  --text-muted: oklch(66.8% 0.023 262);
+  --text-dim: oklch(63% 0.025 259);
+  --border: oklch(27.6% 0.014 262);
+  --border-hi: oklch(34.3% 0.021 263);
+
+  /* The one accent. Lime: the main action on a screen, and where you are. */
+  --accent: oklch(90.2% 0.191 122);
+  --accent-ink: oklch(17.6% 0.024 116);
+  --accent-soft: oklch(24.9% 0.028 126);
+  --accent-line: oklch(38.7% 0.068 123);
+  --violet: oklch(60.6% 0.219 293);
+  --violet-soft: oklch(22.9% 0.051 288);
+
+  /* Meaning, never decoration: money in, money out, careful. */
+  --in: oklch(83.2% 0.156 158);
+  --out: oklch(73.2% 0.165 28);
+  --warn: oklch(83.7% 0.164 84);
+
+  /* Category chips: one colour per kind of spending (js/category-style.js),
+     and eight more for categories you make yourself. */
+  --cat-uncategorized: oklch(61.8% 0.03 262);
+  --cat-food: oklch(75.3% 0.155 42);
+  --cat-groceries: oklch(80% 0.182 152);
+  --cat-transport: oklch(75.4% 0.139 233);
+  --cat-bills: oklch(83.7% 0.164 84);
+  --cat-home: oklch(70.9% 0.159 294);
+  --cat-shopping: oklch(72.5% 0.175 350);
+  --cat-fun: oklch(72.2% 0.177 306);
+  --cat-health: oklch(77.3% 0.153 163);
+  --cat-income: oklch(90.2% 0.191 122);
+  --cat-transfer: oklch(71.1% 0.035 257);
+  --cat-invest: oklch(79.7% 0.134 212);
+  --cat-learning: oklch(71.4% 0.143 255);
+  --cat-gifts: oklch(71.9% 0.169 13);
+  --cat-none: oklch(55.4% 0.041 257);
+  --cat-1: oklch(76.9% 0.165 70);
+  --cat-2: oklch(60.6% 0.219 293);
+  --cat-3: oklch(71.5% 0.126 215);
+  --cat-4: oklch(65.6% 0.212 354);
+  --cat-5: oklch(76.8% 0.204 131);
+  --cat-6: oklch(64.5% 0.215 16);
+  --cat-7: oklch(70.4% 0.123 183);
+  --cat-8: oklch(62.7% 0.233 304);
+
+  --chip-bg: var(--surface-alt);
+  --scrim: oklch(0% 0 0 / 0.55);
+  --shadow: 0 1px 2px oklch(0% 0 0 / 0.4), 0 8px 28px oklch(0% 0 0 / 0.35);
+  --shadow-lift: 0 10px 34px oklch(0% 0 0 / 0.5);
+
+  /* ---- Type: one family, Geist, set tight for figures. ---- */
+  --font-display: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body: var(--font-display);
+  --tracking-display: -0.025em;
+
+  /* ---- Space: a 4-point scale. Nothing is spaced by a raw value. ---- */
+  --space-4xs: 0.125rem; /*  2px: hairline gaps only */
+  --space-3xs: 0.25rem; /*  4px */
+  --space-2xs: 0.5rem; /*  8px */
+  --space-xs: 0.75rem; /* 12px */
+  --space-sm: 1rem; /* 16px */
+  --space-md: 1.25rem; /* 20px */
+  --space-lg: 1.5rem; /* 24px */
+  --space-xl: 2rem; /* 32px */
+  --space-2xl: 3rem; /* 48px */
+
+  /* ---- Shape ---- */
+  --radius-xl: 24px;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 11px;
+  --radius-pill: 999px;
+
+  /* ---- Motion: three easings, no springs on controls. ---- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur: 220ms;
+  --dur-slow: 480ms;
+}
+
+/* The light theme keeps the same bones: same contrast, same weight, just
+   inverted. It is not a softer or quieter version of the app. */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: oklch(97% 0.003 265);
+    --bg-elevated: oklch(100% 0 0);
+    --surface: oklch(100% 0 0);
+    --surface-alt: oklch(95.4% 0.005 258);
+    --surface-hi: oklch(92.7% 0.007 261);
+    --text: oklch(16.8% 0.007 258);
+    --text-muted: oklch(50.5% 0.023 260);
+    /* Dim, but still readable: it carries the small labels. */
+    --text-dim: oklch(50% 0.023 264);
+    --border: oklch(92.4% 0.006 255);
+    --border-hi: oklch(87.7% 0.011 257);
+
+    --accent: oklch(48.5% 0.118 128);
+    --accent-ink: oklch(100% 0 0);
+    --accent-soft: oklch(95.8% 0.043 120);
+    --accent-line: oklch(88.6% 0.099 121);
+    --violet: oklch(53.7% 0.253 286);
+    --violet-soft: oklch(94.7% 0.029 297);
+
+    --in: oklch(57.4% 0.13 159);
+    --out: oklch(58.8% 0.19 31);
+    --warn: oklch(57.9% 0.125 69);
+
+    --scrim: oklch(16.8% 0.007 258 / 0.45);
+    --shadow: 0 1px 2px oklch(16.8% 0.007 258 / 0.05), 0 6px 20px oklch(16.8% 0.007 258 / 0.06);
+    --shadow-lift: 0 10px 30px oklch(16.8% 0.007 258 / 0.12);
+  }
+}
