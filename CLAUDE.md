@@ -125,9 +125,13 @@ There is no Node and no git on the owner's machine; Python is `py`.
    separate database and made-up data only.
 2. Unregister the service worker and clear caches before re-testing, or stale
    modules are served.
-3. Bump `APP_VERSION` and `CACHE_NAME` together.
-4. Copy the whole app to `expense-tracker-versions/v<N>` so any version can be
-   restored, and verify the copy.
+3. Versions are `major.minor.fix`, two digits each (`APP_VERSION` in
+   `js/version.js`, shown on screen): major for an app rebuilt with a new set
+   of features, minor for features added or changed (fix goes back to 00),
+   fix for bugs and glitches only. Every release also raises the hidden
+   `BUILD` counter by one, together with `CACHE_NAME` in `sw.js`.
+4. Copy the whole app to `expense-tracker-versions/<version>` (e.g. `01.08.00`)
+   so any version can be restored, and verify the copy.
 5. To debug the owner's figures, ask for Settings → "Save diagnostic report"
    (redacted) and load it with `/tests/load-report.html` on localhost. Never ask
    for his GitHub token or passphrase.

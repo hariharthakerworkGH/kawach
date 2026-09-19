@@ -946,7 +946,7 @@ async function renderVersionLine(content) {
     const bits = [`Version ${status.running}`];
     // With no cached copy to compare against there is nothing to be stale
     // against either, so claim nothing rather than a reassuring "up to date".
-    if (status.stale) bits.push(`version ${status.cached} ready - reopen the app`);
+    if (status.stale) bits.push('a new version is ready - reopen the app');
     else if (status.cached != null) bits.push('up to date');
 
     const { configured, lastSync } = await getSyncConfig();

@@ -313,7 +313,7 @@ function showNotice(message, buttonLabel = null) {
 async function showUpdateBannerIfStale() {
   const status = await versionStatus();
   if (!status.stale) return;
-  showNotice(`Version ${status.cached} is ready - you're still seeing version ${status.running}.`, 'Reload');
+  showNotice(`A new version of Kawach is ready - you're still seeing ${status.running}.`, 'Reload');
 }
 
 function wireUpdateBanner() {

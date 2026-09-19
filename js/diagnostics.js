@@ -1,5 +1,5 @@
 import { getAll } from './db.js';
-import { APP_VERSION } from './version.js';
+import { APP_VERSION, BUILD } from './version.js';
 import { computeFreeToSpend } from './free-to-spend.js';
 import { isFixed } from './commitments.js';
 
@@ -85,6 +85,7 @@ export async function buildDiagnosticReport(now = new Date()) {
   return {
     kind: 'expense-tracker-diagnostic-report',
     appVersion: APP_VERSION,
+    build: BUILD,
     generatedAt: new Date().toISOString(),
     today: figures.today,
     // Your commitments, and apart from them the repeating payments the app
