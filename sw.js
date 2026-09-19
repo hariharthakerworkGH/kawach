@@ -4,7 +4,7 @@
 // Keep the number identical to APP_VERSION in js/version.js. The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v68';
+const CACHE_NAME = 'expense-tracker-v69';
 
 const APP_SHELL = [
   './',
@@ -67,6 +67,8 @@ const APP_SHELL = [
   './js/views/recap.js',
   './js/parsers/registry.js',
   './js/parsers/csv.js',
+  './js/parsers/any-bank.js',
+  './js/tour.js',
   './js/parsers/sbi-loan.js',
   './js/parsers/sbi-savings.js',
   './js/parsers/payslip.js',
@@ -130,6 +132,10 @@ self.addEventListener('fetch', (event) => {
   // of your gist it ever fetched, so changes from your other device never
   // arrived and each device overwrote the gist with a merge against old data.
   if (url.origin !== self.location.origin) return;
+
+  // The tour video streams straight from the network in pieces, and is never
+  // kept: five megabytes on every phone for a one-minute watch.
+  if (url.pathname.includes('/media/')) return;
 
   // Page loads can carry a query string (the app is reopened at ./?shared=1
   // after a share). Match those to the cached page regardless, so it opens

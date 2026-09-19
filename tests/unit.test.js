@@ -729,3 +729,93 @@ test('PF: the passbook balance is the anchor, and only months after it are added
   paise(pf.balance, rupees(28938 + 40512 * 2));
   ok(pf.pendingInterest > 0, 'interest waiting for March');
 });
+// Made-up statements in the layouts other Indian banks use, read by the
+// general reader (js/parsers/any-bank.js).
+import * as anyBank from '../js/parsers/any-bank.js';
+
+const AXIS_LIKE = `Axis Bank Ltd
+Statement of Account No : 912010000001234 for the period 01-09-2026 to 30-09-2026
+Tran Date Chq No Particulars Debit Credit Balance Init. Br
+OPENING BALANCE 20,000.00
+01-09-2026 UPI/P2M/600000000001/SWIGGY 450.00 19,550.00 2345
+03-09-2026 NEFT/SALARY/MADE UP EMPLOYER LTD 50,000.00 69,550.00 2345
+04-09-2026 ATM-CASH/MUMBAI 5,000.00 64,550.00 2345
+TRANSACTION TOTAL 5,450.00 50,000.00
+CLOSING BALANCE 64,550.00`;
+
+const NEWEST_FIRST = `Kotak Mahindra Bank
+Account No. XXXXXXXX5678
+Date Narration Chq/Ref No Withdrawal (Dr) Deposit (Cr) Balance
+12 Sep 2026 UPI/ZOMATO/ORDER 1,299.00(Dr) 45,000.00(Cr)
+10 Sep 2026 IMPS/REFUND FROM SHOP 299.00(Cr) 46,299.00(Cr)
+05 Sep 2026 BILL PAY ELECTRICITY 2,000.00(Dr) 46,000.00(Cr)
+continues on the next line
+Page 1 of 2`;
+
+const COLUMNS = `IDFC FIRST Bank
+Transaction Date Value Date Particulars Cheque No Debit Credit Balance
+01/09/2026 01/09/2026 RENT TO LANDLORD 15,000.00 - 35,000.00
+02/09/2026 02/09/2026 INTEREST CREDIT - 120.00 35,120.00`;
+
+const CARD = `IndusInd Bank Credit Card Statement
+Card Number 4xxx xxxx xxxx 4321
+Statement Date 15/09/2026
+Total Amount Due Rs. 3,650.00
+Minimum Amount Due Rs. 200.00
+Payment Due Date 05/10/2026
+Date Transaction Details Amount
+18/08/2026 AMAZON PAY INDIA 2,150.00
+02/09/2026 PAYMENT RECEIVED - THANK YOU 10,000.00 Cr
+09/09/2026 UBER INDIA TRIP 1,500.00`;
+
+test('general reader: a bank with a branch code after the balance, oldest first', () => {
+  const reader = anyBank.readerFor(AXIS_LIKE);
+  equal([reader.issuerLabel, reader.accountType], ['Axis Bank', 'bank']);
+  const { rows, meta } = reader.parse(AXIS_LIKE);
+  equal(rows.map((r) => [r.date, r.amount, r.direction]), [
+    ['2026-09-01', rupees(450), 'debit'],
+    ['2026-09-03', rupees(50000), 'credit'],
+    ['2026-09-04', rupees(5000), 'debit'],
+  ]);
+  equal(rows[0].description, 'UPI/P2M/600000000001/SWIGGY');
+  equal([meta.accountLast4, meta.statedClosingBalance, meta.reconciled], ['1234', 64550, true]);
+});
+
+test('general reader: newest first with Dr and Cr beside the amounts', () => {
+  const reader = anyBank.readerFor(NEWEST_FIRST);
+  equal(reader.issuerLabel, 'Kotak Mahindra Bank');
+  const { rows, meta } = reader.parse(NEWEST_FIRST);
+  equal(rows.map((r) => [r.date, r.amount, r.direction]), [
+    ['2026-09-12', rupees(1299), 'debit'],
+    ['2026-09-10', rupees(299), 'credit'],
+    ['2026-09-05', rupees(2000), 'debit'],
+  ]);
+  // The wrapped line is part of the description; the page number is not.
+  equal(rows[2].description, 'BILL PAY ELECTRICITY continues on the next line');
+  equal([meta.accountLast4, meta.statedClosingBalance, meta.reconciled], ['5678', 45000, true]);
+});
+
+test('general reader: separate withdrawal and deposit columns with a dash for the empty one', () => {
+  const { rows, meta } = anyBank.readerFor(COLUMNS).parse(COLUMNS);
+  equal(rows.map((r) => [r.date, r.description, r.amount, r.direction]), [
+    ['2026-09-01', 'RENT TO LANDLORD', rupees(15000), 'debit'],
+    ['2026-09-02', 'INTEREST CREDIT', rupees(120), 'credit'],
+  ]);
+  equal(meta.reconciled, true);
+});
+
+test('general reader: a card statement, its bill and due date', () => {
+  const reader = anyBank.readerFor(CARD);
+  equal([reader.issuerLabel, reader.accountType], ['IndusInd Bank', 'card']);
+  const { rows, meta } = reader.parse(CARD);
+  equal(rows.map((r) => [r.date, r.amount, r.direction]), [
+    ['2026-08-18', rupees(2150), 'debit'],
+    ['2026-09-02', rupees(10000), 'credit'],
+    ['2026-09-09', rupees(1500), 'debit'],
+  ]);
+  equal([meta.accountLast4, meta.totalAmountDue, meta.minimumDue, meta.paymentDueDate, meta.periodEnd], ['4321', rupees(3650), rupees(200), '2026-10-05', '2026-09-15']);
+});
+
+test('general reader: text with no dated amounts is not taken for a statement', () => {
+  equal(anyBank.readerFor('Some letter\nDear customer, 12 Sep 2026\nThank you'), null);
+});

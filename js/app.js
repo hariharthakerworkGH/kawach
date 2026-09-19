@@ -8,7 +8,7 @@ import { setCustomStyles } from './category-style.js';
 import { versionStatus } from './version.js';
 import { fillIcons, icon } from './icons.js';
 import { redraw } from './redraw.js';
-import { keepDataSafe } from './install.js';
+import { keepDataSafe, isInstalled } from './install.js';
 import * as addView from './views/add.js';
 import * as categoriesView from './views/categories.js';
 import * as summaryView from './views/summary.js';
@@ -344,6 +344,19 @@ function syncNavHeight() {
   document.documentElement.style.setProperty('--nav-height', `${nav.offsetHeight}px`);
 }
 
+// True the first time this browser opens the app, and never again. Marked
+// before the welcome page is shown, so it can't send anyone round in a loop;
+// with no storage at all, it is never the first visit.
+function firstVisit() {
+  try {
+    if (localStorage.getItem('kawach-welcomed')) return false;
+    localStorage.setItem('kawach-welcomed', '1');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function init() {
   // Registered before anything else. The service worker is what catches a
   // shared bank alert on the phone; until it's running, a share would go
@@ -414,6 +427,12 @@ async function init() {
   } else if (openedFromShare || sharedCount > 0) {
     await showView('inbox');
   } else if (await setupView.needsSetup()) {
+    // Someone opening the link in a browser for the first time sees what
+    // Kawach is and how to install it before any setup. Once only.
+    if (!isInstalled() && firstVisit()) {
+      location.replace('./welcome.html');
+      return;
+    }
     // Brand new: a few steps instead of empty screens.
     await showView('setup', {}, true);
   } else {

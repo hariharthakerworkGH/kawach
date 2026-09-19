@@ -2394,6 +2394,27 @@ textarea {
   padding: var(--space-md);
 }
 
+/* The one-minute tour, played over the app (js/tour.js). */
+.tour-box {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+}
+
+.tour-video {
+  display: block;
+  width: 100%;
+  max-height: 80vh;
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+}
+
+.tour-close {
+  position: absolute;
+  top: calc(-1 * var(--space-2xl));
+  right: 0;
+}
+
 .dialog-title {
   margin: 0;
   font-size: 1.05rem;
