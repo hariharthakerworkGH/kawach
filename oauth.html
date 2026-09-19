@@ -23,9 +23,12 @@
   history.replaceState(null, '', location.pathname);
   try {
     const purpose = acceptSignIn(hash);
-    location.replace(`./?drive=${encodeURIComponent(purpose)}#settings`);
+    location.replace(`./?drive=${encodeURIComponent(purpose)}#${purpose === 'sync' ? 'summary' : 'settings'}`);
   } catch (err) {
-    document.getElementById('msg').innerHTML = `${err.message.replace(/</g, '&lt;')}<br><br><a href="./#settings">Back to Kawach</a>`;
+    // A quiet renewal for sync that Google couldn't give without asking:
+    // straight back to the app, which says so beside sync.
+    if (err.silent) location.replace('./#summary');
+    else document.getElementById('msg').innerHTML = `${err.message.replace(/</g, '&lt;')}<br><br><a href="./#settings">Back to Kawach</a>`;
   }
 </script>
 </body>

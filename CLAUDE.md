@@ -16,14 +16,17 @@ Google's sign-in returns for Drive backups.
 
 ## Hard rules
 
-- No analytics, no third-party calls, no external services except the user's own
-  secret GitHub Gist and, if they connect it, their own Google Drive (only the
-  hidden appDataFolder, scope drive.appdata, via Google's sign-in page - no
-  Google code is loaded; js/drive.js). No LLM in the app.
+- No analytics, no third-party calls, no external services except, if the
+  user turns them on, their own Google Drive (only the hidden appDataFolder,
+  scope drive.appdata, via Google's sign-in page - no Google code is loaded;
+  js/drive.js) and, for advanced sync, their own secret GitHub Gist. No LLM in
+  the app.
 - Statement PDFs are parsed in memory and never stored. PDF passwords are used
   once and never saved.
 - Sync and backup files are encrypted client side (AES-GCM) with a passphrase the
-  user sets. It is held in memory, never written next to the data.
+  user sets: one backup passphrase for Drive backups, backup files and Google
+  sync (GitHub sync keeps its own). It is kept in `syncMeta` on the device,
+  never synced or put in a backup.
 - Never auto-commit parsed rows: always show a review table first.
 - If a PDF has no text layer, say so plainly instead of returning empty rows.
 - Never silently overwrite a category, amount or day the user set by hand.
@@ -82,10 +85,15 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   reader finds no rows, and its `BANKS` list names every Indian bank for
   setup and for matching accounts. Its review says it was read this way.
   `js/alerts.js` reads bank SMS. `js/sync.js`, `js/backup.js` encrypted transfer.
+  Sync goes through a file in the user's Google Drive (`kawach-sync.json`) or
+  a GitHub gist; the Google pass lasts an hour, and when it has run out as the
+  app opens, app.js renews it once, silently (prompt=none).
 - `js/views/*` one file per screen. `js/app.js` routes between them; back
   retraces the screens you opened, and a screen's `onBack()` closes what is
   open on it first. A screen redrawing itself goes through `js/redraw.js`,
   which keeps the scroll position and any open sections.
+- Every passphrase box gets a show button, and a passphrase typed twice goes
+  red as soon as the two differ (`js/password-field.js`).
 - A card's statement day is never typed in: it comes from its statements
   (`statementDayFixes` corrects a saved day that disagrees).
 - No card with a statement day yet (every new user): the spending period is

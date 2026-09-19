@@ -76,7 +76,7 @@ export async function render(container, params = {}) {
 function welcomeStep() {
   return `
     <h2 class="setup-title">Know what you can spend</h2>
-    <p class="setup-lead">Your salary, minus your fixed commitments, minus what you save - tracked against every card and UPI spend.</p>
+    <p class="setup-lead">Salary, minus fixed payments and savings, checked against every spend.</p>
     <ul class="setup-points">
       <li>${icon('lock')} Everything stays on this phone.</li>
       <li>${icon('key')} Sync is optional, and encrypted with a passphrase only you know.</li>
@@ -148,7 +148,7 @@ function accountStep(type, list) {
 function commitmentsStep(commitments, payers) {
   return `
     <h2 class="setup-title">Fixed monthly commitments</h2>
-    <p class="setup-lead">EMIs, rent, money home, ATM cash, subscriptions. Add the big ones now; the rest any time on Plan.</p>
+    <p class="setup-lead">Rent, EMIs, subscriptions. Add the big ones now.</p>
     ${
       commitments.length
         ? `<div class="totals-card">${commitments
@@ -186,7 +186,7 @@ function commitmentsStep(commitments, payers) {
 function doneStep() {
   return `
     <h2 class="setup-title">All set</h2>
-    <p class="setup-lead">Now bring in what you've spent - the more the app sees, the more exact it gets.</p>
+    <p class="setup-lead">Now bring in what you've spent.</p>
     <div class="setup-actions">
       <button type="button" class="btn-primary" data-open="import">Import a statement</button>
       <button type="button" class="btn-secondary btn-block" data-open="inbox">Paste a bank SMS</button>

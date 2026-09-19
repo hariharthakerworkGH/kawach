@@ -15,7 +15,7 @@
 // Nothing is saved without the review, and the review says it was read this
 // way, so a row read wrongly is caught there.
 export const id = 'any-bank';
-export const general = true;
+const general = true;
 
 // Indian banks and card issuers, for the account's name. The most specific
 // names come first where one contains another.
@@ -74,7 +74,7 @@ export const BANKS = [
 
 // The bank named first: the letterhead comes before any transaction that
 // mentions another bank.
-export function bankName(text) {
+function bankName(text) {
   let best = null;
   for (const [label, re] of BANKS) {
     const m = re.exec(text);

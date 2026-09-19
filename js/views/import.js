@@ -14,6 +14,7 @@ import { isoLocal } from '../frequency.js';
 import { sameTransaction } from '../duplicates.js';
 import * as csvParser from '../parsers/csv.js';
 import { readerFor, BANKS } from '../parsers/any-bank.js';
+import { enhancePasswords } from '../password-field.js';
 import { isPfAccount, pfContribution, pfPosition, DEFAULT_PF_RATE } from '../pf.js';
 
 // Two kinds of import share this screen:
@@ -92,6 +93,7 @@ export async function render(container) {
     </section>
   `;
 
+  enhancePasswords(container);
   const fileInput = container.querySelector('#import-file');
   // Picking the file is the whole of step one: it is read straight away.
   fileInput.addEventListener('change', () => {
@@ -373,7 +375,7 @@ function renderPassbookReview(resultsEl) {
       ${meta.closing ? line('Passbook closing balance', formatCurrency(both(meta.closing)), `as on ${formatDateNice(meta.closing.asOf)}`) : ''}
       ${
         meta.totals.pension === 0 && meta.months.length
-          ? '<p class="muted-note">Your employer puts their whole share into EPF - nothing goes to the pension scheme. Future months will be counted that way.</p>'
+          ? "<p class=\"muted-note\">Your employer's whole share goes to EPF, none to pension.</p>"
           : ''
       }
     </div>
@@ -483,7 +485,7 @@ function renderPayslipReview(resultsEl) {
           ? `<label class="checkbox-row"><input type="checkbox" id="payslip-set-income" checked><span>Use ${formatCurrency(meta.net)} as your monthly salary</span></label>`
           : ''
       }
-      <p class="muted-note">The employer's share isn't printed on a payslip, so it is worked out from the EPF rules: 12% of basic, less ₹1,250 to the pension scheme. Change that on the PF account if yours differs.</p>
+      <p class="muted-note">Employer's share worked out by EPF rules: 12% of basic, less ₹1,250 pension.</p>
     </div>
     <button type="button" id="payslip-save-btn" class="btn-primary">${account ? 'Add this month' : 'Start tracking my PF'}</button>
     <p id="import-commit-status" class="status" hidden></p>
@@ -863,7 +865,7 @@ function renderResults(resultsEl) {
                 <option value="" ${account ? '' : 'selected'}>A new account</option>
               </select>
             </label>
-            <p class="muted-note">The statement's bank and last four digits${meta.accountLast4 ? ` (••${meta.accountLast4})` : ''} don't match an account exactly. Once you pick one, they'll be recognised next time.</p>`
+            <p class="muted-note">The statement's bank and last four digits${meta.accountLast4 ? ` (••${meta.accountLast4})` : ''} don't match an account. Pick one once; next time it's automatic.</p>`
           : ''
       }
       ${
@@ -875,12 +877,12 @@ function renderResults(resultsEl) {
                 ${choices.map((a) => `<option value="${a.id}" ${account && account.id === a.id ? 'selected' : ''}>${escapeHtml(a.label)}</option>`).join('')}
               </select>
             </label>
-            ${!account ? `<p class="muted-note">Pick the ${noun} before saving - these transactions only mean something against the right ${noun}.${pickAccount && !choices.length ? ' Add the bank account on the Accounts tab first.' : ''}</p>` : ''}`
+            ${!account ? `<p class="muted-note">Pick the ${noun} first.${pickAccount && !choices.length ? ' Add the bank account on Accounts.' : ''}</p>` : ''}`
           : ''
       }
       ${
         parser.general && !pickAccount
-          ? `<p class="muted-note">Read without a reader made for this bank. Check a few rows below against the statement: dates, and money out vs money in.</p>`
+          ? `<p class="muted-note">New bank for Kawach: check a few rows against the statement.</p>`
           : ''
       }
       ${
@@ -955,7 +957,7 @@ function renderSuperseded(list, provisional) {
       <ul class="breakdown-list">
         ${list.map((t) => `<li class="breakdown-row"><span>${escapeHtml(t.rawDescription)} (${formatDateNice(t.date)})</span><span class="${t.direction === 'credit' ? 'in' : 'out'}">${t.direction === 'credit' ? '+' : '-'}${formatCurrency(t.amount)}</span></li>`).join('')}
       </ul>
-      <p class="muted-note">${provisional ? 'Usually a pre-authorisation that was dropped, or a charge reversed before it posted.' : 'They came from a current-transactions list; the statement is the final word.'}</p>
+      <p class="muted-note">${provisional ? 'Usually a dropped hold or a reversed charge.' : 'The statement is the final word.'}</p>
     </div>
   `;
 }
@@ -976,7 +978,7 @@ function renderEmis(emis) {
         </label>`
         )
         .join('')}
-      <p class="muted-note">Ticked EMIs are kept in your fixed commitments on Plan and drop off by themselves after the last instalment.</p>
+      <p class="muted-note">Ticked EMIs go on Plan and end after the last instalment.</p>
     </div>
   `;
 }
@@ -989,7 +991,7 @@ function renderUnmatchedLogged(list, provisional) {
       <ul class="breakdown-list">
         ${list.map((m) => `<li class="breakdown-row"><span>${escapeHtml(m.rawDescription)} (${formatDateNice(m.date)})</span><span class="${m.direction === 'credit' ? 'in' : 'out'}">${m.direction === 'credit' ? '+' : '-'}${formatCurrency(m.amount)}</span></li>`).join('')}
       </ul>
-      <p class="muted-note">${provisional ? "They stay. A spend from today can take a day or two to appear on the bank's list." : "These stay as-is - double check they're correct, or that the charge didn't get cancelled."}</p>
+      <p class="muted-note">${provisional ? "They stay. New spends take a day or two to appear." : "They stay. Check they weren't cancelled."}</p>
     </div>
   `;
 }

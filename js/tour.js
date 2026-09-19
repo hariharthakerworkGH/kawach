@@ -5,7 +5,7 @@
 import { icon } from './icons.js';
 import { showToast } from './toast.js';
 
-export const TOUR_VIDEO = './media/kawach-tour.mp4';
+const TOUR_VIDEO = './media/kawach-tour.mp4';
 const SHARE_URL = 'https://getkawach.com/welcome.html';
 
 export function playTour() {

@@ -19,7 +19,7 @@ import { formatRupees, formatCurrency } from '../js/format.js';
 import { displayName } from '../js/views/transactions.js';
 import { assignStyles } from '../js/category-style.js';
 import { searchWords, findCandidates } from '../js/category-match.js';
-import { acceptSignIn, hasDrivePass } from '../js/drive.js';
+import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -38,7 +38,7 @@ test('a statement day typed in by hand is corrected by the card\'s own statement
 });
 
 test('Google Drive sign-in is accepted only when it answers this visit, with the Drive folder, and a yes', () => {
-  const pending = (state) => sessionStorage.setItem('kawach-drive-pending', JSON.stringify({ purpose: 'backup', state }));
+  const pending = (state, silent = false) => sessionStorage.setItem('kawach-drive-pending', JSON.stringify({ purpose: 'backup', state, silent }));
   const fails = (hash) => {
     try {
       acceptSignIn(hash);
@@ -47,22 +47,32 @@ test('Google Drive sign-in is accepted only when it answers this visit, with the
       return true;
     }
   };
-  sessionStorage.removeItem('kawach-drive-token');
+  localStorage.removeItem('kawach-google-pass');
   // An answer to a sign-in this visit never asked for.
   pending('abc');
   ok(fails('#access_token=t&state=xyz&scope=https://www.googleapis.com/auth/drive.appdata'), 'wrong state refused');
-  ok(!hasDrivePass(), 'no pass kept');
+  ok(!hasGooglePass(), 'no pass kept');
   // A "no" from the user.
   pending('abc');
   ok(fails('#error=access_denied&state=abc'), 'refusal reported');
   // Signed in, but the Drive folder left unticked.
   pending('abc');
   ok(fails('#access_token=t&state=abc&scope=email'), 'missing permission refused');
-  // The real thing: kept for this visit, and it says what to carry on with.
+  // A quiet renewal Google couldn't give without asking: marked silent, so
+  // nobody is shown an error for it.
+  pending('abc', true);
+  let quiet = null;
+  try {
+    acceptSignIn('#error=interaction_required&state=abc');
+  } catch (err) {
+    quiet = err;
+  }
+  ok(quiet && quiet.silent, 'silent failure marked');
+  // The real thing: kept until it runs out, and it says what to carry on with.
   pending('abc');
   equal(acceptSignIn('#access_token=t&state=abc&expires_in=3599&scope=https://www.googleapis.com/auth/drive.appdata'), 'backup');
-  ok(hasDrivePass(), 'pass kept for this visit');
-  sessionStorage.removeItem('kawach-drive-token');
+  ok(hasGooglePass(), 'pass kept');
+  localStorage.removeItem('kawach-google-pass');
 });
 
 test('a new category is offered only uncategorised payments that name it as a whole word', () => {

@@ -274,10 +274,10 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
         <span>Last 4 digits <span class="muted">(optional)</span></span>
         <input type="text" class="af-last4" value="${escapeAttr(a.last4 || '')}" inputmode="numeric" maxlength="4" placeholder="4321">
       </label>
-      <p class="muted-note">Issuer and last 4 let the app recognise this account automatically when you import its statement.</p>
+      <p class="muted-note">Bank and last 4 digits match it to its statements.</p>
       <label class="checkbox-row af-spending-field" ${a.type === 'bank' ? '' : 'hidden'}>
         <input type="checkbox" class="af-spending" ${a.spending === false ? '' : 'checked'}>
-        <span>I spend from this account<br><span class="muted-note">Turn off for an account you only keep savings in or pay a loan from. Nothing leaving it counts as spending, and its balance is shown as put away, apart from what you can spend.</span></span>
+        <span>I spend from this account<br><span class="muted-note">Off for savings or loan-only accounts: nothing from it counts as spending.</span></span>
       </label>
       <div class="field af-cycle-field" ${a.type === 'card' ? '' : 'hidden'}>
         <span>Billing cycle</span>
@@ -338,7 +338,7 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
         </label>
         <label class="checkbox-row">
           <input type="checkbox" class="af-loan-in-budget" ${a.loan?.inBudget === false ? '' : 'checked'}>
-          <span>Count this EMI in my monthly budget<br><span class="muted-note">Turn off if a commitment on Plan already covers it - money you move to the account it leaves from.</span></span>
+          <span>Count this EMI in my monthly budget<br><span class="muted-note">Off if Plan already has it as a commitment.</span></span>
         </label>
       </div>
       <button type="submit" class="btn-primary">${account ? 'Save changes' : 'Add account'}</button>
@@ -508,7 +508,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
                 ${[5, 10, 20].map((y) => `<div class="totals-row"><span>In ${y} years</span><span class="in">${formatRupees(pf.in(y))}</span></div>`).join('')}
                 <p class="pf-case">If nothing more goes in</p>
                 ${[5, 10, 20].map((y) => `<div class="totals-row"><span>In ${y} years</span><span class="in">${formatRupees(pf.alone(y))}</span></div>`).join('')}
-                <p class="muted-note">At ${pf.ratePct}% a year. EPFO sets the rate each year and adds the interest every 31 March.</p>
+                <p class="muted-note">At ${pf.ratePct}% a year. Added every 31 March.</p>
               </details>`
             : '<p class="muted-note">Import a passbook or a payslip, or add a month below.</p>'
         }

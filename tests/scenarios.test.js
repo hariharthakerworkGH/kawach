@@ -6,6 +6,9 @@ import { computeFreeToSpend } from '../js/free-to-spend.js';
 import { getAll, put } from '../js/db.js';
 import { detectRecurring } from '../js/recurring.js';
 import { detectTransfers } from '../js/transfers.js';
+import { syncNow, getSyncConfig, getSyncPassphrase, turnOnGoogleSync } from '../js/sync.js';
+import { setBackupPassphrase, backUpToDrive, listBackups, SYNC_FILE } from '../js/drive.js';
+import { encryptPayload, decryptPayload } from '../js/backup.js';
 
 // Salary ₹1,00,000; commitments: EMI ₹40,000 (bank), rent ₹20,000 (bank),
 // ATM ₹10,000 (bank), Netflix ₹649 (card), Metro ₹1,000 (cash); ₹5,000 saved.
@@ -526,4 +529,126 @@ test('a new user whose card has no statement yet: this month is the period, not 
   equal([f.cycleStart, f.cycleKey], ['2026-09-01', '2026-09-30']);
   // What's left is spread over the 12 days to the 30th.
   equal(f.perDay, Math.floor(f.free / 12));
+});
+
+// --- Google Drive sync, against a pretend Google Drive ---------------------
+// Nothing here reaches Google: fetch is replaced for the length of each test
+// by a small copy of the parts of the Drive API the app uses.
+
+function fakeDrive() {
+  const files = new Map();
+  let n = 0;
+  const original = window.fetch;
+  const json = (o) => new Response(JSON.stringify(o), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  window.fetch = async (url, options = {}) => {
+    const u = new URL(url);
+    const method = options.method || 'GET';
+    if (u.pathname === '/drive/v3/files' && method === 'GET') {
+      const q = u.searchParams.get('q') || '';
+      let list = [...files.values()];
+      const exact = q.match(/name = '(.+)'/);
+      if (exact) list = list.filter((f) => f.name === exact[1]);
+      const part = q.match(/name contains '(.+)'/);
+      if (part) list = list.filter((f) => f.name.includes(part[1]));
+      return json({ files: list.map(({ id, name, modifiedTime }) => ({ id, name, modifiedTime })) });
+    }
+    if (u.pathname === '/upload/drive/v3/files' && method === 'POST') {
+      const parts = options.body.split('\r\n');
+      const id = `f${++n}`;
+      files.set(id, { id, name: JSON.parse(parts[3]).name, text: parts.slice(7, -1).join('\r\n'), modifiedTime: new Date().toISOString() });
+      return json({ id });
+    }
+    const upload = u.pathname.match(/^\/upload\/drive\/v3\/files\/(.+)$/);
+    if (upload && method === 'PATCH') {
+      files.get(decodeURIComponent(upload[1])).text = options.body;
+      return json({ id: upload[1] });
+    }
+    const one = u.pathname.match(/^\/drive\/v3\/files\/([^/]+)$/);
+    if (one && u.searchParams.get('alt') === 'media') return new Response(files.get(decodeURIComponent(one[1])).text);
+    if (one && method === 'DELETE') {
+      files.delete(decodeURIComponent(one[1]));
+      return new Response(null, { status: 204 });
+    }
+    return new Response('not in the pretend Drive', { status: 404 });
+  };
+  localStorage.setItem('kawach-google-pass', JSON.stringify({ token: 'pretend', expiresAt: Date.now() + 3600000 }));
+  return {
+    files,
+    syncFile: () => [...files.values()].find((f) => f.name === SYNC_FILE),
+    done: () => {
+      window.fetch = original;
+      localStorage.removeItem('kawach-google-pass');
+    },
+  };
+}
+
+async function googleSyncOn(passphrase) {
+  await setBackupPassphrase(passphrase);
+  await turnOnGoogleSync();
+}
+
+// What another device would have put in the sync file.
+async function otherDevice(transactions, passphrase) {
+  const stores = ['accounts', 'transactions', 'categories', 'merchantRules', 'recurring', 'importBatches', 'settings'];
+  const data = Object.fromEntries(stores.map((s) => [s, s === 'transactions' ? transactions : []]));
+  return encryptPayload({ data, deletions: [], syncedAt: Date.now() }, passphrase);
+}
+
+test('Google sync: the first device writes the sync file, locked with the backup passphrase', async () => {
+  await seedBasics();
+  const drive = fakeDrive();
+  try {
+    await googleSyncOn('shield-phrase-1');
+    ok((await getSyncConfig()).configured, 'sync counts as set up with Google alone');
+    equal(await getSyncPassphrase(), 'shield-phrase-1');
+    await putAll('transactions', [txn({ accountId: 'bank', date: '2026-09-10', amount: 450, rawDescription: 'CAFE', updatedAt: 1 })]);
+    await syncNow(await getSyncPassphrase());
+    const copy = await decryptPayload(drive.syncFile().text, 'shield-phrase-1');
+    equal(copy.data.transactions.map((t) => t.rawDescription), ['CAFE']);
+    ok((await getSyncConfig()).lastSync, 'time of the sync kept');
+  } finally {
+    drive.done();
+  }
+});
+
+test('Google sync: what the other device added arrives, and backups never touch the sync file', async () => {
+  await seedBasics();
+  const drive = fakeDrive();
+  try {
+    await googleSyncOn('shield-phrase-1');
+    drive.files.set('s1', { id: 's1', name: SYNC_FILE, modifiedTime: '2026-09-18T10:00:00Z', text: await otherDevice([txn({ accountId: 'bank', date: '2026-09-12', amount: 900, rawDescription: 'FROM LAPTOP', updatedAt: 5 })], 'shield-phrase-1') });
+    const result = await syncNow(await getSyncPassphrase());
+    equal(result.pulled.added, 1);
+    ok((await getAll('transactions')).some((t) => t.rawDescription === 'FROM LAPTOP'), 'the laptop entry is on this phone');
+    // Six backups: only the newest five are kept, and the sync file is not
+    // counted as one or tidied away with them.
+    for (let i = 0; i < 6; i++) await backUpToDrive();
+    equal((await listBackups()).length, 5);
+    ok(drive.files.has('s1'), 'sync file untouched');
+  } finally {
+    drive.done();
+  }
+});
+
+test('Google sync: a passphrase changed on one device carries the synced copy with it', async () => {
+  await seedBasics();
+  const drive = fakeDrive();
+  try {
+    await googleSyncOn('old-phrase-1');
+    drive.files.set('s1', { id: 's1', name: SYNC_FILE, modifiedTime: '2026-09-18T10:00:00Z', text: await otherDevice([], 'old-phrase-1') });
+    await setBackupPassphrase('new-phrase-2');
+    // Opened with the old one, written back with the new.
+    await syncNow('new-phrase-2', { previous: 'old-phrase-1' });
+    ok(await decryptPayload(drive.syncFile().text, 'new-phrase-2'), 'now locked with the new passphrase');
+    // The other device, still on the old one, is told what to do.
+    let message = '';
+    try {
+      await syncNow('old-phrase-1');
+    } catch (err) {
+      message = err.message;
+    }
+    ok(/change it here too/.test(message), message || 'no error');
+  } finally {
+    drive.done();
+  }
 });
