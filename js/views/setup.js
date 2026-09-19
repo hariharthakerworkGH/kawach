@@ -5,6 +5,8 @@ import { isFixed } from '../commitments.js';
 import { DEFAULT_KEEP_IN_BANK } from '../free-to-spend.js';
 import { tellUser } from '../dialog.js';
 import { redraw } from '../redraw.js';
+import { BANKS as INDIAN_BANKS } from '../parsers/any-bank.js';
+import { playTour } from '../tour.js';
 
 // First-run setup: a few short steps so a new user isn't left facing empty
 // screens. Everything it saves is the same data the Plan and Cards screens
@@ -15,7 +17,7 @@ import { redraw } from '../redraw.js';
 const STEPS = ['welcome', 'salary', 'bank', 'cards', 'commitments', 'done'];
 // Bank names as the statement readers write them, so an import recognises
 // the account without asking.
-const BANKS = ['HDFC Bank', 'ICICI Bank', 'SBI', 'Axis Bank', 'Kotak Bank', 'Other'];
+const BANKS = [...INDIAN_BANKS.map(([label]) => label), 'Other'];
 
 let step = 0;
 let shownIn = null;
@@ -82,6 +84,7 @@ function welcomeStep() {
     </ul>
     <p class="setup-note">A tracking tool, not financial advice.</p>
     <button type="button" class="btn-primary" data-go="next">Get started</button>
+    <button type="button" class="btn-secondary btn-block" id="setup-tour">Watch the 1-minute tour</button>
     <button type="button" class="btn-tiny btn-block setup-skip" data-go="finish">Skip - I'll set it up myself</button>
   `;
 }
@@ -223,6 +226,7 @@ function wire(container, name, { accounts }) {
   });
 
   container.querySelectorAll('[data-open]').forEach((btn) => btn.addEventListener('click', () => open(btn.dataset.open)));
+  container.querySelector('#setup-tour')?.addEventListener('click', playTour);
 
   const accountForm = container.querySelector('#setup-account-form');
   if (accountForm) {

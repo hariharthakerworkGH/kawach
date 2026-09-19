@@ -515,3 +515,15 @@ test('speed: three years of transactions work out in a fraction of a second', as
   const ms = performance.now() - started;
   ok(ms < 400, `took ${Math.round(ms)} ms`);
 });
+
+test('a new user whose card has no statement yet: this month is the period, not the month the next salary pays for', async () => {
+  await seedBasics();
+  await put('accounts', { id: 'card', label: 'Test Card', type: 'card', issuer: 'Test Bank', last4: '2222', billingCycleDay: null });
+  await put('settings', { id: 'salaryDay', value: 1 });
+  await putAll('recurring', [commitment({ label: 'House Rent', amount: 20000 })]);
+  await putAll('transactions', [txn({ accountId: 'bank', date: '2026-09-01', amount: 100000, direction: 'credit', rawDescription: 'NEFT SALARY' })]);
+  const f = await computeFreeToSpend(day('2026-09-19'));
+  equal([f.cycleStart, f.cycleKey], ['2026-09-01', '2026-09-30']);
+  // What's left is spread over the 12 days to the 30th.
+  equal(f.perDay, Math.floor(f.free / 12));
+});

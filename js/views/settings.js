@@ -12,6 +12,7 @@ import { cycleAwareEnabled } from '../budgets.js';
 import { CYCLE_SETTING_KEY } from '../spending-month.js';
 import { redraw } from '../redraw.js';
 import { dataIsKept } from '../install.js';
+import { playTour, shareKawach } from '../tour.js';
 import { driveStatus, setDrivePassphrase, forgetDrive, signIn, backUpToDrive, listBackups, openDriveBackup, hasDrivePass } from '../drive.js';
 
 // Drive backups found after signing in to restore, kept while this screen is
@@ -199,7 +200,11 @@ export async function render(container, params = {}) {
       <p id="diagnostic-status" class="status" hidden></p>
     </div>
 
+    <h3>Share Kawach</h3>
+    <button type="button" id="share-app-btn" class="btn-secondary btn-block">Share with a friend</button>
+
     <h3>Setup</h3>
+    <button type="button" id="watch-tour" class="btn-secondary btn-block">Watch the 1-minute tour</button>
     <button type="button" id="run-setup" class="btn-secondary btn-block">Run setup again</button>
 
     <h3>Categories</h3>
@@ -394,6 +399,9 @@ export async function render(container, params = {}) {
   });
 
   wireDrive(container, params);
+
+  container.querySelector('#share-app-btn').addEventListener('click', shareKawach);
+  container.querySelector('#watch-tour').addEventListener('click', playTour);
 
   container.querySelector('#run-setup').addEventListener('click', () => {
     container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'setup', restart: true } }));

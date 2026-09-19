@@ -76,7 +76,11 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
 - `js/parsers/*` statement readers (HDFC, ICICI, SBI savings and loan, payslip,
   EPFO passbook, CSV) + `registry.js`. The SBI savings reader also picks up the
   fixed deposits (MOD) linked to the account; they become a savings account of
-  their own.
+  their own. Any other bank's or card's PDF goes to `any-bank.js`, the general
+  reader: dated lines with amounts at the end, money in or out settled by the
+  running balance (or "Cr" on a card). It also takes over when a bank's own
+  reader finds no rows, and its `BANKS` list names every Indian bank for
+  setup and for matching accounts. Its review says it was read this way.
   `js/alerts.js` reads bank SMS. `js/sync.js`, `js/backup.js` encrypted transfer.
 - `js/views/*` one file per screen. `js/app.js` routes between them; back
   retraces the screens you opened, and a screen's `onBack()` closes what is
@@ -84,6 +88,14 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   which keeps the scroll position and any open sections.
 - A card's statement day is never typed in: it comes from its statements
   (`statementDayFixes` corrects a saved day that disagrees).
+- No card with a statement day yet (every new user): the spending period is
+  the calendar month, never the month the next salary pays for.
+- The one-minute tour (`media/kawach-tour.mp4`) is made from the real app with
+  made-up data, and plays from Setup, Settings (`js/tour.js`) and the welcome
+  page. The service worker never caches `media/`. Re-record it when the setup
+  screens change. A first visit in a browser (not installed, nothing set up)
+  goes to `welcome.html` once. The scripts that record it are kept outside
+  the repository, in `expense-tracker-versions/tools/tour`.
 - `sw.js` service worker: `CACHE_NAME` must match `APP_VERSION` in
   `js/version.js`, and `APP_SHELL` must list every js file, both stylesheets
   and the font, or the app breaks offline.

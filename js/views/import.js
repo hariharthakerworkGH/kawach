@@ -13,6 +13,7 @@ import { detectEmis, emiCommitment, emiCommitmentId } from '../commitments.js';
 import { isoLocal } from '../frequency.js';
 import { sameTransaction } from '../duplicates.js';
 import * as csvParser from '../parsers/csv.js';
+import { readerFor, BANKS } from '../parsers/any-bank.js';
 import { isPfAccount, pfContribution, pfPosition, DEFAULT_PF_RATE } from '../pf.js';
 
 // Two kinds of import share this screen:
@@ -208,9 +209,13 @@ async function readPdf(file, password) {
     passwordInput.value = '';
     passwordBox.hidden = true;
 
-    const parser = detectParser(text);
+    let parser = detectParser(text);
+    // A bank's own reader that finds nothing (the bank changed its layout)
+    // hands over to the general one, as does any bank without a reader.
+    if (parser && (parser.accountType === 'bank' || parser.accountType === 'card') && !parser.provisional && !parser.parse(text).rows.length) parser = null;
+    if (!parser) parser = readerFor(text);
     if (!parser) {
-      showStatus(status, "This PDF isn't one the app can read yet. It reads HDFC bank and card statements, ICICI card statements, SBI savings and loan statements, payslips and EPFO passbooks. For any other bank, download the statement as a spreadsheet (CSV) and choose that.", true);
+      showStatus(status, "Couldn't find any transactions in this PDF. Download the statement from your bank as a spreadsheet (CSV) instead and choose that.", true);
       return;
     }
     status.hidden = true;
@@ -641,7 +646,8 @@ function findStatementAccount(accounts, parser, last4) {
 
 // The same bank under the names it goes by: "SBI" on a statement is "State
 // Bank Of India" on an account set up by hand.
-const BANK_NAMES = [/\bsbi\b|state bank/i, /hdfc/i, /icici/i, /axis/i, /kotak/i];
+// Two names for one bank ("SBI" and "State Bank of India") are the same bank.
+const BANK_NAMES = BANKS.map(([, re]) => re);
 function sameBank(a, b) {
   if (!a || !b) return false;
   if (a.toLowerCase() === b.toLowerCase()) return true;
@@ -870,6 +876,11 @@ function renderResults(resultsEl) {
               </select>
             </label>
             ${!account ? `<p class="muted-note">Pick the ${noun} before saving - these transactions only mean something against the right ${noun}.${pickAccount && !choices.length ? ' Add the bank account on the Accounts tab first.' : ''}</p>` : ''}`
+          : ''
+      }
+      ${
+        parser.general && !pickAccount
+          ? `<p class="muted-note">Read without a reader made for this bank. Check a few rows below against the statement: dates, and money out vs money in.</p>`
           : ''
       }
       ${

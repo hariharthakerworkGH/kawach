@@ -126,7 +126,7 @@ async function renderDashboard(container) {
 
 // What the card level means in words, used by the hero and the attention list.
 export function spendingWarning(f) {
-  const until = formatDateNice(f.cycleClose || f.windowEnd);
+  const until = formatDateNice(f.cycleKey);
   if (f.level === 'over')
     return `You're ${formatCurrency(-f.free)} over this cycle's budget. Stop spending until ${until}, on cards and by UPI - anything more comes out of next month's salary.`;
   if (f.level === 'critical') return `Critical: only ${formatCurrency(f.free)} left of this cycle's budget${f.crossesOn ? ` - at your pace it runs out on ${formatDateNice(f.crossesOn)}` : ''}.`;
@@ -169,7 +169,7 @@ function renderSpendingLimit(f) {
 
 // One short line under the headline number.
 function spendingStatus(f) {
-  const until = formatDateNice(f.cycleClose || f.windowEnd);
+  const until = formatDateNice(f.cycleKey);
   if (f.level === 'over') return `Over budget - stop spending until ${until}`;
   if (f.level === 'critical') return f.crossesOn ? `Critical - runs out ${formatDateNice(f.crossesOn)} at this pace` : 'Critical - almost all used';
   if (f.level === 'warning') return f.crossesOn ? `Careful - runs out ${formatDateNice(f.crossesOn)} at this pace` : `Careful - ${Math.round(f.used * 100)}% used`;
@@ -177,7 +177,7 @@ function spendingStatus(f) {
 }
 
 function renderCardsHero(f) {
-  const until = formatDateNice(f.cycleClose || f.windowEnd);
+  const until = formatDateNice(f.cycleKey);
   const pct = f.limit > 0 ? Math.min(100, Math.round(f.used * 100)) : 100;
   const line = breakdownLine;
   const bankItems = f.budgetItems.filter((b) => b.paidBy === 'bank');
@@ -351,7 +351,7 @@ function renderCommitmentTracker(f) {
   return `
     <div class="section-head">
       <h3>Commitments</h3>
-      <span class="section-note">Bank: ${MONTH_NAMES[Number(f.bankMonthStart.slice(5, 7)) - 1]} · Cards: ${formatDateNice(f.cycleStart)} to ${formatDateNice(f.cycleClose || f.windowEnd)}</span>
+      <span class="section-note">Bank: ${MONTH_NAMES[Number(f.bankMonthStart.slice(5, 7)) - 1]} · Cards: ${formatDateNice(f.cycleStart)} to ${formatDateNice(f.cycleKey)}</span>
     </div>
     <div class="totals-card commitment-list">
       ${open.map((t) => commitmentRow(t)).join('')}

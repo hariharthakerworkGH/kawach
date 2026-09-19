@@ -353,7 +353,10 @@ export async function computeFreeToSpend(now = new Date()) {
   const bankEntries = transactions.filter((t) => bankIds.has(t.accountId) && t.direction === 'debit');
   const keep = Math.max(0, Number(keepInBank) || 0);
   const firstSalary = salary.setUp ? salary.dates[0] || salary.nextUnreceived : null;
-  const spendEnd = cycleClose || windowEnd;
+  // No card with a statement day yet (a new user, or cash and bank only):
+  // spending runs by the calendar month, like the bank's. The salary window
+  // can reach a month further, which would spread this month's budget thin.
+  const spendEnd = cycleClose || monthEnd;
   const windowStart = cycleStart || `${today.slice(0, 7)}-01`;
   // The period each commitment is tracked over. Cards: the card cycle (the day
   // after the statement day to the next statement day). The bank and cash:

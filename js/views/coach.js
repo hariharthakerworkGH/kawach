@@ -182,7 +182,7 @@ function affordAnswer(s, a) {
 
   const verdict = !a.canAfford ? 'Not right now' : a.tight ? 'It fits, but only just' : 'Yes, comfortably';
   const tone = !a.canAfford ? 'bad' : a.tight ? 'warn' : 'good';
-  const until = ` until ${formatDateNice(s.cycle.cycleClose || s.cycle.windowEnd)}`;
+  const until = ` until ${formatDateNice(s.cycle.cycleKey)}`;
 
   return `
     <div class="coach-answer">
