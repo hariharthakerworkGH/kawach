@@ -82,6 +82,9 @@ export async function render(container) {
   const cashTotal = fixed
     .filter((r) => r.accountId === 'cash' || accounts.find((a) => a.id === r.accountId)?.type === 'cash')
     .reduce((s, r) => s + monthlyAmountOf(r), 0);
+  // Rent and EMIs are sacrosanct; food and fun can move.
+  const flexTotal = fixed.filter((r) => r.flexible).reduce((s, r) => s + monthlyAmountOf(r), 0);
+  const mustTotal = fixedTotal - cashTotal - flexTotal;
 
   // Hide suggestions already covered by something fixed. Category match only
   // counts when both actually have one - otherwise a single uncategorised fixed
@@ -113,7 +116,8 @@ export async function render(container) {
           ? `<div class="totals-row"><span>From the business${sideExtra ? `, lowest month (${formatMonthYear(sidePlan.lowestMonth).split(' ')[0]})` : '<br><span class="muted-note">counted after 3 months</span>'}</span><span class="in">${sideExtra ? formatCurrency(sideExtra) : '-'}</span></div>`
           : ''
       }
-      <div class="totals-row"><span>Commitments</span><span class="out">−${formatCurrency(fixedTotal - cashTotal)}</span></div>
+      <div class="totals-row"><span>Must go out</span><span class="out">−${formatCurrency(mustTotal)}</span></div>
+      ${flexTotal ? `<div class="totals-row"><span>Can flex</span><span class="out">−${formatCurrency(flexTotal)}</span></div>` : ''}
       <div class="totals-row"><span>Saved each month</span><span class="out">−${formatCurrency(keep)}</span></div>
       <div class="totals-row net"><span>Budget each month</span><span>${budget != null ? formatCurrency(budget) : '-'}</span></div>
       ${cashTotal > 0 ? `<p class="muted-note">${formatCurrency(cashTotal)} paid in cash comes out of your ATM money.</p>` : ''}
@@ -387,6 +391,9 @@ export async function render(container) {
         frequency: freqEl.value,
         dayOfMonth,
         spread: freqEl.value === 'monthly' && spreadEl.checked,
+        // Rent and EMIs go out whatever happens; the rest is where the
+        // wiggle room is (js/views/summary.js groups the budget by this).
+        flexible: form.querySelector('.ff-flexible').checked,
         categoryId: form.querySelector('.ff-category').value || null,
         accountId: form.querySelector('.ff-account').value || null,
         matchText: form.querySelector('.ff-match').value.trim() || null,
@@ -621,6 +628,10 @@ function fixedForm(categories, accounts, item) {
         </select>
       </label>
       <p class="freq-preview" id="ff-preview" hidden></p>
+      <label class="checkbox-row">
+        <input type="checkbox" class="ff-flexible" ${v.flexible ? 'checked' : ''}>
+        <span>I can change this one <span class="muted">(food, fun, transport)</span></span>
+      </label>
       <label class="checkbox-row ff-spread-field">
         <input type="checkbox" class="ff-spread" ${v.spread ? 'checked' : ''}>
         <span>Goes out bit by bit through the month <span class="muted">(like ATM cash)</span></span>

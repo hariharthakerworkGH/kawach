@@ -611,6 +611,25 @@ function renderLoanReview(resultsEl) {
       },
     };
     await put('accounts', saved);
+    // The statement lists every EMI it has taken. Saved against the loan so
+    // they show in History, marked as money moved (they left the bank, which
+    // has its own line for them) and keyed by date and amount, so importing
+    // the statement again writes the same rows rather than copies. Dated on
+    // or before the statement, they never move the balance it states.
+    for (const e of (loan.ledger || []).filter((x) => x.kind === 'payment')) {
+      await put('transactions', {
+        id: `loan-${saved.id}-${e.date}-${e.amount}`,
+        accountId: saved.id,
+        date: e.date,
+        amount: e.amount,
+        direction: 'credit',
+        rawDescription: 'EMI',
+        source: 'statement',
+        isTransfer: true,
+        transferManual: true,
+        categoryId: null,
+      });
+    }
     const position = loanPosition(saved, await getAll('transactions'));
     const lines = [];
     if (position.outstanding != null) lines.push(['Still owed', formatRupees(position.outstanding), 'out']);

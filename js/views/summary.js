@@ -318,11 +318,15 @@ function renderCardsHero(f) {
   const until = formatDateNice(f.cycleKey);
   const pct = f.limit > 0 ? Math.min(100, Math.round(f.used * 100)) : 100;
   const line = breakdownLine;
-  const bankItems = f.budgetItems.filter((b) => b.paidBy === 'bank');
-  const cardItems = f.budgetItems.filter((b) => b.paidBy === 'card');
+  // What must go out (rent, EMIs) and what can move (food, fun): the wiggle
+  // room in the month, marked on each commitment on Plan.
+  const mustItems = f.budgetItems.filter((b) => !b.item.flexible);
+  const flexItems = f.budgetItems.filter((b) => b.item.flexible);
   const group = (title, items) =>
     items.length
-      ? `<div class="totals-row"><span class="muted-note">${title}</span></div>${items.map((b) => line(escapeHtml(b.label), b.amount, '-')).join('')}`
+      ? `<div class="totals-row"><span class="muted-note">${title} ${formatRupees(items.reduce((s, b) => s + b.amount, 0))}</span></div>${items
+          .map((b) => line(escapeHtml(b.label), b.amount, '-'))
+          .join('')}`
       : '';
 
   return `
@@ -343,8 +347,8 @@ function renderCardsHero(f) {
         <div class="totals-card">
           ${line(incomeLine(f), f.monthlyIncome, '+')}
           ${f.sideBusiness && f.businessExtra ? line(`From the business, lowest month (${monthShort(f.plan.lowestMonth)})`, f.businessExtra, '+') : ''}
-          ${group('Commitments from the bank', bankItems)}
-          ${group('Commitments on cards', cardItems)}
+          ${group('Must go out', mustItems)}
+          ${group('Can flex', flexItems)}
           ${f.keep ? line('Saved each month', f.keep, '-') : ''}
           <div class="totals-row net"><span>Budget</span><span>${formatRupees(f.limit)}</span></div>
           ${f.cards
@@ -694,7 +698,6 @@ async function renderAttention(container, transactions, fts = null) {
   // Spending, the bank and each commitment already speak for themselves
   // above; this list is only things to do.
   const duplicates = fts ? fts.duplicates : [];
-  const stale = fts ? fts.stale : [];
   const sameAccounts = fts ? fts.duplicateAccounts : [];
   const cardPayments = fts ? fts.unassignedCardPayments || [] : [];
   const cards = accounts.filter((a) => a.type === 'card');
@@ -719,7 +722,6 @@ async function renderAttention(container, transactions, fts = null) {
       )
     ),
     ...sameAccounts.map((group) => todo(icon('copy'), `${group.length} accounts for ••${escapeHtml(group[0].last4)}`, 'Delete one on Cards so it isn\'t counted twice', '', 'bill-overdue')),
-    ...stale.map((s) => todo(icon('clock'), `${escapeHtml(s.account.label)}: nothing for ${s.days} days`, s.account.type === 'card' ? 'Paste its transactions or import a statement' : 'Share its alerts or import a statement', '', 'bill-urgent')),
     duplicates.length ? todo(icon('copy'), `${duplicates.length} payment${duplicates.length === 1 ? '' : 's'} saved twice`, 'Already left out of every figure', '<button type="button" class="btn-tiny primary" id="remove-duplicates-btn">Remove</button>') : '',
     alertsWaiting > 0 ? todo(icon('inbox'), `${alertsWaiting} bank alert${alertsWaiting === 1 ? '' : 's'} to check`, '', '<button type="button" class="btn-tiny primary" id="go-inbox-btn">Check</button>') : '',
     ...dueCards.map(({ account, bill }) =>

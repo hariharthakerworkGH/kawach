@@ -166,12 +166,11 @@ There is no Node and no git on the owner's machine; Python is `py`.
    `js/whats-new.js` (shown once after the update, filtered to who they
    concern), and every new feature a `guide`: the screen, the thing to point
    at, one line of tip (`js/guide.js`).
-4. Versions are `major.minor.fix`, two digits each (`APP_VERSION` in
-   `js/version.js`, shown on screen): major for an app rebuilt with a new set
-   of features, minor for features added or changed (fix goes back to 00),
-   fix for bugs and glitches only. Every release also raises the hidden
-   `BUILD` counter by one, together with `CACHE_NAME` in `sw.js`.
-5. Copy the whole app to `expense-tracker-versions/<version>` (e.g. `01.08.00`)
+4. Versions on screen read like an app's: `3.0`, `3.1` for features, `3.1.1`
+   for a fix, `4.0` for a rebuild (`APP_VERSION` in `js/version.js`). No
+   leading zeros, and no third number until there is a fix. Every release also
+   raises the hidden `BUILD` counter by one, with `CACHE_NAME` in `sw.js`.
+5. Copy the whole app to `expense-tracker-versions/<version>` (e.g. `3.1.1`)
    so any version can be restored, and verify the copy.
 6. To debug the owner's figures, ask for Settings → "Save diagnostic report"
    (redacted) and load it with `/tests/load-report.html` on localhost. Never ask

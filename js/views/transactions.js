@@ -91,7 +91,7 @@ export async function render(container, params = {}) {
   container.innerHTML = `
     <div class="hist-top">
       <input type="search" id="txn-search" class="hist-search" placeholder="Search all months" value="${escapeAttr(filters.search)}" aria-label="Search all months">
-      <button type="button" id="txn-select" class="btn-secondary hist-select-btn">Select</button>
+      <button type="button" id="txn-select" class="btn-secondary hist-select-btn">Change many</button>
     </div>
     <div class="hist-month" id="hist-month">
       <button type="button" class="icon-btn hist-step" id="month-prev" aria-label="Month before">${icon('back')}</button>
@@ -334,9 +334,9 @@ function renderList(container) {
   needsChip.textContent = filters.categoryId === 'uncategorized' ? 'Showing: need a category' : `${needing} need a category`;
   needsChip.classList.toggle('on', filters.categoryId === 'uncategorized');
 
-  container.querySelector('#txn-select').textContent = selecting ? 'Done' : 'Select';
+  container.querySelector('#txn-select').textContent = selecting ? 'Done' : 'Change many';
   container.querySelector('#select-row').hidden = !selecting || rows.length === 0;
-  container.querySelector('#select-note').textContent = selected.size ? `${selected.size} ticked` : 'Tick the ones to change';
+  container.querySelector('#select-note').textContent = selected.size ? `${selected.size} ticked` : 'Tick payments to categorise or delete together';
   container.querySelector('#txn-select-all').textContent = selected.size === rows.length && rows.length ? 'Clear' : `Select all ${rows.length}`;
 
   container.querySelector('#txn-list').innerHTML = groupTemplate(visible, across);

@@ -7,16 +7,15 @@
 // change never happened. So the app now compares the version it is actually
 // running against the newest version sitting in the cache, and says so.
 //
-// The version people see: major.minor.fix, two digits each.
-//   Major (02.00.00): the app rebuilt with a new set of features.
-//   Minor (01.09.00): features added or changed; the fix number goes back to 00.
-//   Fix   (01.08.01): bugs and glitches only.
-export const APP_VERSION = '03.00.00';
+// The version people see, written the way apps are: 3.0, then 3.1 for
+// features, then 3.1.1 for a fix. No leading zeros, no third number until
+// there is a fix to number. Major (4.0) is the app rebuilt.
+export const APP_VERSION = '3.1';
 
 // A counter one higher with every release, never shown. The offline copy is
 // named after it (CACHE_NAME in sw.js), so a newer download can be told from
 // the one running. IMPORTANT: bump BUILD and CACHE_NAME together.
-export const BUILD = 75;
+export const BUILD = 76;
 
 // What's running versus what's downloaded and waiting.
 export async function versionStatus() {

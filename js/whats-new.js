@@ -12,7 +12,23 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
-    version: '03.00.00',
+    version: '3.1',
+    items: [
+      {
+        icon: 'loan',
+        title: 'Loan statements bring their history',
+        text: 'Every EMI the statement lists now shows in History.',
+      },
+      {
+        icon: 'flag',
+        title: 'What must go out, and what can flex',
+        text: 'Mark a commitment you can change; Summary then shows your wiggle room.',
+        guide: [{ view: 'plan', target: '#plan-add-btn, .fixed-edit', text: 'Open a commitment and tick "I can change this one" for food, fun and the like.' }],
+      },
+    ],
+  },
+  {
+    version: '3.0',
     items: [
       {
         icon: 'store',
@@ -39,7 +55,7 @@ const NOTES = [
     ],
   },
   {
-    version: '02.01.00',
+    version: '2.1',
     items: [
       {
         icon: 'settings',
@@ -61,7 +77,7 @@ const NOTES = [
     ],
   },
   {
-    version: '02.00.00',
+    version: '2.0',
     items: [
       {
         icon: 'store',
@@ -84,11 +100,10 @@ const NOTES = [
   },
 ];
 
-// "02.01.00" > "02.00.00": the parts compare as numbers.
+// "3.1" > "3.0.1" > "3.0": the parts compare as numbers, a missing one as 0.
 const newer = (a, b) => {
-  const x = a.split('.').map(Number);
-  const y = b.split('.').map(Number);
-  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i];
+  const part = (v, i) => Number(v.split('.')[i] || 0);
+  for (let i = 0; i < 3; i++) if (part(a, i) !== part(b, i)) return part(a, i) > part(b, i);
   return false;
 };
 
@@ -111,11 +126,11 @@ async function markSeen(version) {
 
 // Once after an update: the new notes, if there are any for this person.
 // Someone brand new has nothing to catch up on, so their first version is
-// simply noted as seen. Phones from before notes existed last saw 01.10.00.
+// simply noted as seen. Phones from before notes existed last saw 1.10.
 export async function showIfUpdated(current, profile, { isNew }) {
   const seen = await lastSeen();
   if (isNew && !seen) return markSeen(current);
-  const notes = notesFor(profile, seen || '01.10.00');
+  const notes = notesFor(profile, seen || '1.10');
   await markSeen(current);
   if (notes.length) openNotes(notes, { title: "What's new" });
 }

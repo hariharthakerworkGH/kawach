@@ -856,3 +856,20 @@ test('a goal says what a month gets you there, and counts what is already saved'
   // Due this month: the rest is needed now, not divided by zero.
   paise(goalProgress({ target: rupees(50000), by: '2026-09' }, 0, '2026-09-20').monthly, rupees(50000));
 });
+
+test("a loan's own payment history never moves the balance its statement states", () => {
+  const account = {
+    id: 'loan1',
+    type: 'loan',
+    loan: { emi: rupees(23000), ratePct: 8.5, outstanding: rupees(3100000), outstandingAsOf: '2026-08-31', startMonth: '2020-04' },
+  };
+  // The EMIs the statement itself listed, saved so they show in History.
+  const history = ['2026-06-05', '2026-07-05', '2026-08-05'].map((date) =>
+    txn({ accountId: 'loan1', date, amount: 23000, direction: 'credit', isTransfer: true })
+  );
+  paise(loanPosition(account, history, '2026-09-24').outstanding, rupees(3100000));
+  // One paid after the statement still counts.
+  const after = [...history, txn({ accountId: 'loan1', date: '2026-09-05', amount: 23000, direction: 'credit', isTransfer: true })];
+  const moved = loanPosition(account, after, '2026-09-24').outstanding;
+  ok(moved < rupees(3100000) && moved > rupees(3050000), `one EMI off the balance, got ${moved}`);
+});

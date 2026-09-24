@@ -1,4 +1,4 @@
-import { getAll, put, remove, setSetting, getSetting } from '../db.js';
+import { getAll, remove, setSetting, getSetting } from '../db.js';
 import { icon } from '../icons.js';
 import { exportEncrypted, decryptBackup, restoreBackup } from '../backup.js';
 import { formatDateNice } from '../format.js';

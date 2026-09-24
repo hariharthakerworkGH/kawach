@@ -631,11 +631,6 @@ export async function computeFreeToSpend(now = new Date()) {
     sameAccountGroups.set(key, [...(sameAccountGroups.get(key) || []), a]);
   }
   const duplicateAccounts = [...sameAccountGroups.values()].filter((g) => g.length > 1);
-  const stale = [...bankAccounts, ...cardAccounts]
-    .filter((a) => lastData.has(a.id))
-    .map((a) => ({ account: a, lastDate: lastData.get(a.id), days: daysBetweenInclusive(lastData.get(a.id), today) - 1 }))
-    .filter((s) => s.days > STALE_DAYS);
-
   // --- How close to the budget --------------------------------------------
   const daysToClose = Math.max(1, daysBetweenInclusive(today, spendEnd));
   const daysToSalary = Math.max(1, daysBetweenInclusive(today, beforeSalaryEnd));
@@ -844,7 +839,6 @@ export async function computeFreeToSpend(now = new Date()) {
     totals: { owedCards, unpaidBills, upcoming: upcomingTotal },
     duplicates,
     duplicateAccounts,
-    stale,
     notes,
   };
 }
@@ -879,6 +873,5 @@ const WARNING_SHARE = 0.75;
 const CRITICAL_SHARE = 0.9;
 const MIN_DAYS_FOR_PACE = 5;
 // An account with nothing new for more than a week gets a "data is old" warning.
-const STALE_DAYS = 7;
 // Estimated (not imported) bills below ₹10 are ignored.
 const MIN_ESTIMATED_BILL = 1000;
