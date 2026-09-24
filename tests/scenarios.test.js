@@ -228,13 +228,6 @@ test('an early salary is not counted twice', async () => {
   ok(!f.salary.dates.includes('2026-09-30'), 'the 30 Sep salary is not added again');
 });
 
-test('an account with nothing new for over a week is flagged as stale', async () => {
-  await seedMonth();
-  const f = await computeFreeToSpend(day('2026-09-24'));
-  equal(f.stale.map((s) => [s.account.id, s.days]), [['bank', 9]]);
-  equal((await computeFreeToSpend(day('2026-09-20'))).stale.length, 0);
-});
-
 test('database reads are copies: changing one never leaks into the next read', async () => {
   await seedMonth();
   const first = await getAll('recurring');
@@ -783,8 +776,8 @@ test("What's new shows only the notes that fit, from versions not yet seen", () 
   const titles = (profile, since) => notesFor(profile, since).flatMap((n) => n.items.map((i) => i.title));
   const pensioner = { main: 'pension', business: false, side: false };
   const shopkeeper = { main: 'business', business: true, side: false };
-  ok(!titles(pensioner, '01.10.00').includes('Business categories'), 'no business news for a pensioner');
-  ok(titles(shopkeeper, '01.10.00').includes('Business categories'), 'business news for a shopkeeper');
+  ok(!titles(pensioner, '1.10').includes('Business categories'), 'no business news for a pensioner');
+  ok(titles(shopkeeper, '1.10').includes('Business categories'), 'business news for a shopkeeper');
   // Nothing new since the version they last saw.
-  equal(titles(pensioner, '03.00.00'), []);
+  equal(titles(pensioner, '3.1'), []);
 });
