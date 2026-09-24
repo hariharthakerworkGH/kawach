@@ -1,5 +1,6 @@
-import { getAll, getSetting, put } from './db.js';
-import { isoLocal } from './frequency.js';
+import { getAll, getSetting, setSetting, put } from './db.js';
+import { isoLocal, monthlyAmountOf } from './frequency.js';
+import { isLiveCommitment, commitmentMatcher } from './commitments.js';
 
 // Everyone who doesn't live on a salary.
 //
@@ -31,13 +32,93 @@ export async function incomeType() {
   return INCOME_TYPES.includes(type) ? type : 'salary';
 }
 
-// Who this is, for what the app shows: how money mainly comes in, and
-// whether there is a business - as the main income, or on the side
-// (`sideBusiness`: a salaried person opening a shop, a homemaker's tiffin
-// service, a pensioner's small trade).
+// Who this is, for what the app shows: what pays for Home, and the
+// businesses they run - as what pays for Home, or on the side (a salaried
+// person opening a shop, a homemaker's tiffin service, a pensioner's trade).
 export async function moneyProfile() {
-  const [main, side] = await Promise.all([incomeType(), getSetting('sideBusiness', false)]);
-  return { main, business: main === 'business' || side === true, side: main !== 'business' && side === true };
+  const [main, list] = await Promise.all([incomeType(), businesses()]);
+  return { main, business: main === 'business' || list.length > 0, side: main !== 'business' && list.length > 0, businesses: list };
+}
+
+// --- Spaces: Home, and one for each business ------------------------------
+// Each business is a space of its own: its accounts (account.space), its
+// fixed costs (commitment.space) and its month. Home is everything else, and
+// is paid for by the salary, pension, household money or the business. The
+// space on screen is this device's choice, not data.
+
+export async function businesses() {
+  const list = await getSetting('businesses', []);
+  return Array.isArray(list) ? list : [];
+}
+
+export async function addBusiness(name) {
+  const list = await businesses();
+  const id = `biz-${Date.now().toString(36)}`;
+  await setSetting('businesses', [...list, { id, name: name.trim() || 'My business' }]);
+  await ensureBusinessCategories();
+  return id;
+}
+
+// GST registered: its return dates show in that business's Summary.
+export async function setBusinessGst(id, gst) {
+  const list = await businesses();
+  await setSetting('businesses', list.map((b) => (b.id === id ? { ...b, gst } : b)));
+}
+
+export async function renameBusiness(id, name) {
+  const list = await businesses();
+  await setSetting('businesses', list.map((b) => (b.id === id ? { ...b, name: name.trim() || b.name } : b)));
+}
+
+// A business closed: its accounts and costs come home, where they count.
+export async function removeBusiness(id) {
+  const [list, accounts, recurring] = await Promise.all([businesses(), getAll('accounts'), getAll('recurring')]);
+  for (const a of accounts.filter((x) => x.space === id)) {
+    const { business, space, ...rest } = a;
+    await put('accounts', rest);
+  }
+  for (const r of recurring.filter((x) => x.space === id)) {
+    const { space, ...rest } = r;
+    await put('recurring', rest);
+  }
+  const left = list.filter((b) => b.id !== id);
+  await setSetting('businesses', left);
+  if (currentSpace() === id) setCurrentSpace('home');
+}
+
+const SPACE_KEY = 'kawach-space';
+function currentSpace() {
+  try {
+    return localStorage.getItem(SPACE_KEY) || 'home';
+  } catch {
+    return 'home';
+  }
+}
+export function setCurrentSpace(id) {
+  try {
+    localStorage.setItem(SPACE_KEY, id);
+  } catch {
+    // Without storage the app simply opens at Home each time.
+  }
+}
+// The space on screen, falling back to Home if its business is gone.
+export async function activeSpace() {
+  const id = currentSpace();
+  if (id === 'home') return 'home';
+  return (await businesses()).some((b) => b.id === id) ? id : 'home';
+}
+
+export const accountInSpace = (space) => (a) => (space === 'home' ? !isBusinessAccount(a) : isBusinessAccount(a) && a.space === space);
+export const commitmentInSpace = (space) => (r) => (space === 'home' ? !r.space || r.space === 'home' : r.space === space);
+
+// Business accounts from before there were spaces, and a business chosen as
+// the main income with none named yet, get a business to belong to.
+export async function settleSpaces() {
+  const [list, accounts, main] = await Promise.all([businesses(), getAll('accounts'), incomeType()]);
+  const orphans = accounts.filter((a) => a.business && !list.some((b) => b.id === a.space));
+  if (!orphans.length && (list.length || main !== 'business')) return;
+  const id = list[0]?.id || (await addBusiness('My business'));
+  for (const a of orphans) await put('accounts', { ...a, space: id });
 }
 
 // The words each kind of income is spoken of in.
@@ -167,4 +248,56 @@ export function businessMonth(transactions, accounts, categories, month) {
     .slice(0, 3)
     .map(([id, amount]) => ({ name: name(id), amount }));
   return { moneyIn, moneyOut, takenHome: cameHome, top, accountIds: [...business] };
+}
+
+// A business's month, for its own Summary: money in and out of its
+// accounts, what it sent home, its fixed costs (shop rent, staff wages) and
+// how much of them is still to pay, and what is left:
+//   left = money in − money out − sent home − fixed costs still due
+export function businessSpace(transactions, accounts, recurring, categories, spaceId, today) {
+  const month = monthOf(today);
+  const own = new Set(accounts.filter(accountInSpace(spaceId)).map((a) => a.id));
+  const home = homeBankIds(accounts);
+  const inMonth = transactions.filter((t) => own.has(t.accountId) && monthOf(t.date) === month);
+  const moneyIn = inMonth.filter((t) => t.direction === 'credit' && !t.isTransfer).reduce((s, t) => s + t.amount, 0);
+  const spends = inMonth.filter((t) => t.direction === 'debit' && !t.isTransfer);
+  const moneyOut = spends.reduce((s, t) => s + t.amount, 0);
+  const sentHome = inMonth
+    .filter((t) => t.direction === 'debit' && t.isTransfer && (home.has(t.movedTo) || (!t.movedTo && transactions.some((c) => c.direction === 'credit' && c.isTransfer && home.has(c.accountId) && c.amount === t.amount && Math.abs(new Date(c.date) - new Date(t.date)) <= 3 * 86400000))))
+    .reduce((s, t) => s + t.amount, 0);
+  const claimed = new Set();
+  const fixed = recurring
+    .filter((r) => r.space === spaceId && isLiveCommitment(r, today))
+    .map((r) => {
+      const amount = monthlyAmountOf(r);
+      const matcher = commitmentMatcher(r);
+      let paid = 0;
+      for (const t of spends) {
+        if (claimed.has(t.id) || paid >= amount) continue;
+        if (t.commitmentId === r.id || (matcher && matcher(t))) {
+          claimed.add(t.id);
+          paid += t.amount;
+        }
+      }
+      return { id: r.id, label: r.label, amount, paid: Math.min(paid, amount), due: Math.max(0, amount - paid) };
+    });
+  const fixedDue = fixed.reduce((s, f) => s + f.due, 0);
+  const byCategory = new Map();
+  for (const t of spends) byCategory.set(t.categoryId || null, (byCategory.get(t.categoryId || null) || 0) + t.amount);
+  const name = (id) => (id ? categories.find((c) => c.id === id)?.name || 'Other' : 'No category yet');
+  const top = [...byCategory.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([id, amount]) => ({ name: name(id), amount }));
+  return {
+    moneyIn,
+    moneyOut,
+    sentHome,
+    fixed,
+    fixedDue,
+    left: moneyIn - moneyOut - sentHome - fixedDue,
+    top,
+    needsCategory: spends.filter((t) => !t.categoryId).length,
+    accountIds: [...own],
+  };
 }

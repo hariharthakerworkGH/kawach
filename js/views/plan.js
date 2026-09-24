@@ -1,6 +1,6 @@
 import { getAll, put, remove, newId, getSetting, setSetting } from '../db.js';
 import { icon } from '../icons.js';
-import { formatCurrency, ordinal, formatDateNice, formatMonthYear } from '../format.js';
+import { formatCurrency, formatRupees, ordinal, formatDateNice, formatMonthYear } from '../format.js';
 import { detectRecurring } from '../recurring.js';
 import { categoryStyle } from '../category-style.js';
 import { getBudgets, setBudget, budgetStatusForMonth } from '../budgets.js';
@@ -10,11 +10,17 @@ import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequency
 import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder } from '../commitments.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
-import { incomeType, incomeWords, businessPlan, isBusinessCategory } from '../business.js';
+import { COMMON_COSTS } from '../calendar.js';
+import { getGoals, saveGoals, goalProgress, GOAL_IDEAS } from '../goals.js';
+import { bankBalance } from '../account-metrics.js';
+import { incomeType, incomeWords, businessPlan, isBusinessCategory, businesses, activeSpace, commitmentInSpace, accountInSpace } from '../business.js';
 
 let adding = false;
 let editingId = null;
 let addingBudget = false;
+// A common cost tapped below the Add button, waiting in the form.
+let draft = null;
+let addingGoal = false;
 let reordering = false;
 
 // Fixed commitments live in the `recurring` store alongside auto-detected
@@ -31,19 +37,26 @@ export async function render(container) {
   ]);
   const salaryDay = await getSetting('salaryDay', null);
   const kind = await incomeType();
-  const sideBusiness = kind !== 'business' && (await getSetting('sideBusiness', false)) === true;
+  // In a business's lane, Plan is that business's fixed costs; Home keeps the
+  // income, the household commitments and the budgets.
+  const space = await activeSpace();
+  const inBusiness = space !== 'home';
+  const sideBusiness = kind !== 'business' && (await businesses()).length > 0;
   const words = incomeWords(kind);
 
   const accounts = await getAll('accounts');
   const todayIso = isoLocal(new Date());
   // In the order you arranged them (new ones at the end).
-  const fixed = recurring.filter((r) => isLiveCommitment(r, todayIso)).sort(byYourOrder);
-  const finished = recurring.filter((r) => isFixed(r) && r.active !== false && isFinished(r, todayIso));
+  const inLane = commitmentInSpace(space);
+  const fixed = recurring.filter((r) => inLane(r) && isLiveCommitment(r, todayIso)).sort(byYourOrder);
+  const finished = recurring.filter((r) => inLane(r) && isFixed(r) && r.active !== false && isFinished(r, todayIso));
+  const laneAccounts = accounts.filter(accountInSpace(space));
+  const laneCategories = categories.filter((c) => isBusinessCategory(c) === inBusiness);
   // Each commitment is stored the way you entered it ("₹120 a day"); what the
   // budget needs is its monthly equivalent.
   // A loan's EMI is set up on the loan account and counted here too, so the
   // plan matches the Summary without it being typed in twice.
-  const loanItems = accounts.filter(isLoanAccount).map(loanCommitment).filter(Boolean);
+  const loanItems = inBusiness ? [] : accounts.filter(isLoanAccount).map(loanCommitment).filter(Boolean);
   const fixedTotal = [...fixed, ...loanItems].reduce((s, r) => s + monthlyAmountOf(r), 0);
 
   const now = new Date();
@@ -80,13 +93,20 @@ export async function render(container) {
   };
 
   const budgetRows = await budgetStatusForMonth(budgets, categories, transactions, monthKey);
+  // What each goal is counted in: the savings pots picked for it.
+  const goals = inBusiness ? [] : await getGoals();
+  const savingsAccounts = accounts.filter((a) => a.type === 'savings' || a.type === 'pf');
+  const savedIn = (ids) => (ids || []).reduce((sum, id) => sum + (bankBalance(accounts.find((a) => a.id === id) || {}, transactions) || 0), 0);
   const budgetable = categories.filter((c) => !budgets[c.id] && !isBusinessCategory(c) && !/income|transfer/i.test(c.name));
 
   const keep = Math.max(0, Number(keepInBank) || 0);
   const budget = disposable != null ? disposable + sideExtra + cashTotal - keep : null;
 
   container.innerHTML = `
-    <div class="totals-card">
+    ${
+      inBusiness
+        ? ''
+        : `<div class="totals-card">
       <div class="totals-row"><span>${incomeLabel}</span><span class="in">${incomeValue != null ? formatCurrency(incomeValue) : '-'}</span></div>
       ${
         sidePlan
@@ -116,28 +136,83 @@ export async function render(container) {
           <input type="number" id="plan-keep" inputmode="decimal" step="1" min="0" placeholder="10000" value="${(keep / 100).toFixed(0)}">
         </label>
       </details>
-    </div>
+    </div>`
+    }
 
     <div class="section-head">
-      <h3>Commitments</h3>
+      <h3>${inBusiness ? 'Fixed costs' : 'Commitments'}</h3>
       ${fixed.length > 1 ? `<button type="button" class="icon-btn" id="plan-reorder">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
     </div>
     ${
       fixed.length
         ? `<div class="totals-card ${reordering ? 'reordering' : ''}">${fixed
-            .map((f, i) => (editingId === f.id ? fixedForm(categories, accounts, f) : fixedRow(f, categories, accountName(f.accountId), i, fixed.length)))
+            .map((f, i) => (editingId === f.id ? fixedForm(laneCategories, laneAccounts, f) : fixedRow(f, categories, accountName(f.accountId), i, fixed.length)))
             .join('')}${loanItems.map((l) => loanRow(l, accountName(l.accountId))).join('')}</div>`
         : loanItems.length
           ? `<div class="totals-card">${loanItems.map((l) => loanRow(l, accountName(l.accountId))).join('')}</div>`
-          : '<p class="empty">EMIs, rent, money home, ATM cash, subscriptions - add what goes out every month.</p>'
+          : `<p class="empty">${inBusiness ? 'Shop rent, staff wages, electricity: what the business pays each month.' : 'EMIs, rent, money home, ATM cash, subscriptions - add what goes out every month.'}</p>`
     }
-    ${adding ? fixedForm(categories, accounts, null) : '<button type="button" id="plan-add-btn" class="btn-secondary btn-block">Add a commitment</button>'}
+    ${
+      adding
+        ? fixedForm(laneCategories, laneAccounts, draft)
+        : `<button type="button" id="plan-add-btn" class="btn-secondary btn-block">${inBusiness ? 'Add a fixed cost' : 'Add a commitment'}</button>
+           <div class="common-costs">${COMMON_COSTS[inBusiness ? 'business' : 'home']
+             .filter((c) => !fixed.some((f) => f.label.toLowerCase() === c.label.toLowerCase()))
+             .map((c) => `<button type="button" class="plan-chip common-cost" data-label="${escapeHtml(c.label)}" data-frequency="${c.frequency}">+ ${escapeHtml(c.label)}</button>`)
+             .join('')}</div>`
+    }
     ${
       finished.length
         ? `<details class="fts-breakdown"><summary>Finished (${finished.length})</summary><div class="totals-card">${finished
             .map((f) => `<div class="attention-row"><span>${escapeHtml(f.label)}<br><span class="muted-note">Last payment ${formatDateNice(f.endDate)}</span></span><button type="button" class="icon-btn fixed-delete" data-id="${f.id}" aria-label="Remove">${icon('close')}</button></div>`)
             .join('')}</div></details>`
         : ''
+    }
+
+    ${
+      inBusiness
+        ? ''
+        : `<h3>Goals</h3>
+    ${goals
+      .map((g) => {
+        const p = goalProgress(g, savedIn(g.accountIds), todayIso);
+        return `<div class="totals-card">
+          <div class="attention-row">
+            <span>${escapeHtml(g.name)}<br><span class="muted-note">${formatRupees(p.saved)} of ${formatRupees(g.target)} · by ${formatMonthYear(`${g.by}-01`)}</span></span>
+            <button type="button" class="icon-btn goal-delete" data-id="${g.id}" aria-label="Remove">${icon('close')}</button>
+          </div>
+          <div class="hero-meter"><div class="hero-meter-fill" style="width:${Math.min(100, Math.round((p.saved / g.target) * 100))}%"></div></div>
+          <p class="muted-note">${p.done ? 'There already.' : `${formatRupees(p.monthly)} a month gets you there.`}</p>
+        </div>`;
+      })
+      .join('')}
+    ${
+      addingGoal
+        ? `<form class="totals-card" id="goal-form">
+            <label class="field">
+              <span>What for</span>
+              <input type="text" class="gf-name" placeholder="Child's education" required>
+            </label>
+            <div class="common-costs">${GOAL_IDEAS.map((g) => `<button type="button" class="plan-chip goal-idea">${g}</button>`).join('')}</div>
+            <label class="field">
+              <span>How much</span>
+              <input type="number" class="gf-target" inputmode="decimal" min="1" step="1" placeholder="1000000" required>
+            </label>
+            <label class="field">
+              <span>By when</span>
+              <input type="month" class="gf-by" value="${todayIso.slice(0, 7)}" required>
+            </label>
+            ${
+              savingsAccounts.length
+                ? `<div class="field"><span>Counted in</span>${savingsAccounts
+                    .map((a) => `<label class="checkbox-row"><input type="checkbox" class="gf-account" value="${a.id}" checked><span>${escapeHtml(a.label)}</span></label>`)
+                    .join('')}</div>`
+                : '<p class="muted-note">Add your PPF, FD or gold on Accounts to count what is already saved.</p>'
+            }
+            <button type="submit" class="btn-primary">Save goal</button>
+            <button type="button" class="btn-tiny btn-block goal-cancel">Cancel</button>
+          </form>`
+        : '<button type="button" id="goal-add-btn" class="btn-secondary btn-block">Add a goal</button>'
     }
 
     <h3>Category budgets</h3>
@@ -169,18 +244,19 @@ export async function render(container) {
                .join('')}
            </div>`
         : ''
+    }`
     }
   `;
 
   const incomeEl = container.querySelector('#plan-income');
-  incomeEl.addEventListener('change', async () => {
+  incomeEl?.addEventListener('change', async () => {
     const raw = parseFloat(incomeEl.value);
     await setSetting('monthlyIncome', Number.isFinite(raw) ? Math.round(raw * 100) : null);
     redraw(container, () => render(container));
   });
 
   const keepEl = container.querySelector('#plan-keep');
-  keepEl.addEventListener('change', async () => {
+  keepEl?.addEventListener('change', async () => {
     const raw = parseFloat(keepEl.value);
     await setSetting('keepInBank', Number.isFinite(raw) && raw >= 0 ? Math.round(raw * 100) : DEFAULT_KEEP_IN_BANK);
     redraw(container, () => render(container));
@@ -195,9 +271,60 @@ export async function render(container) {
     });
   }
 
+  container.querySelectorAll('.common-cost').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      draft = { label: chip.dataset.label, frequency: chip.dataset.frequency };
+      adding = true;
+      editingId = null;
+      redraw(container, () => render(container));
+    });
+  });
+
+  const goalAddBtn = container.querySelector('#goal-add-btn');
+  if (goalAddBtn) {
+    goalAddBtn.addEventListener('click', () => {
+      addingGoal = true;
+      redraw(container, () => render(container));
+    });
+  }
+  container.querySelectorAll('.goal-idea').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      container.querySelector('.gf-name').value = chip.textContent;
+    });
+  });
+  container.querySelector('.goal-cancel')?.addEventListener('click', () => {
+    addingGoal = false;
+    redraw(container, () => render(container));
+  });
+  container.querySelector('#goal-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = container.querySelector('.gf-name').value.trim();
+    const target = Math.round(parseFloat(container.querySelector('.gf-target').value) * 100);
+    if (!name || !Number.isFinite(target) || target <= 0) return;
+    await saveGoals([
+      ...(await getGoals()),
+      {
+        id: `goal-${newId()}`,
+        name,
+        target,
+        by: container.querySelector('.gf-by').value,
+        accountIds: [...container.querySelectorAll('.gf-account:checked')].map((c) => c.value),
+      },
+    ]);
+    addingGoal = false;
+    redraw(container, () => render(container));
+  });
+  container.querySelectorAll('.goal-delete').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      await saveGoals((await getGoals()).filter((g) => g.id !== btn.dataset.id));
+      redraw(container, () => render(container));
+    });
+  });
+
   const addBtn = container.querySelector('#plan-add-btn');
   if (addBtn) {
     addBtn.addEventListener('click', () => {
+      draft = null;
       adding = true;
       editingId = null;
       redraw(container, () => render(container));
@@ -266,12 +393,15 @@ export async function render(container) {
         endDate: endMonth ? lastPaymentInMonth(endMonth, dayOfMonth) : null,
         active: true,
         source: 'fixed',
+        // A business's fixed cost belongs to its lane.
+        ...(existing ? {} : inBusiness ? { space } : {}),
         // A statement re-import leaves figures you changed by hand alone.
         amountEdited: existing ? existing.amountEdited || amount !== existing.amount : undefined,
         dayEdited: existing ? existing.dayEdited || dayOfMonth !== existing.dayOfMonth : undefined,
       });
       adding = false;
       editingId = null;
+      draft = null;
       redraw(container, () => render(container));
     });
     form.querySelector('.ff-cancel').addEventListener('click', () => {

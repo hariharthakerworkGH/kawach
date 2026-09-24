@@ -12,6 +12,33 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '03.00.00',
+    items: [
+      {
+        icon: 'store',
+        title: 'Home and each business, apart',
+        text: 'Switch at the top of Summary. Each keeps its own accounts, costs and month.',
+        for: (p) => p.business,
+        guide: [
+          { view: 'summary', target: '.space-toggle', text: 'Home, and each business. What you see everywhere follows this.' },
+          { view: 'plan', target: '.common-costs', text: "In a business, Plan is that business's fixed costs." },
+        ],
+      },
+      {
+        icon: 'bill',
+        title: 'Tick the costs you pay',
+        text: 'School fees, insurance, festivals, shop rent: tap one and type the amount.',
+        guide: [{ view: 'plan', target: '.common-costs', text: 'Tap one, type your amount. Yearly ones are set aside month by month.' }],
+      },
+      {
+        icon: 'piggy',
+        title: 'Goals and your savings',
+        text: 'PPF, gold, FDs and the rest, and what a month reaches your goal.',
+        guide: [{ view: 'plan', target: '#goal-add-btn, .goal-delete', text: "A goal says what a month gets you there, counting the savings you've added." }],
+      },
+    ],
+  },
+  {
     version: '02.01.00',
     items: [
       {
@@ -25,11 +52,10 @@ const NOTES = [
       {
         icon: 'store',
         title: 'A business on the side',
-        text: 'A shop, tiffin or tuition? Keep its money apart.',
-        for: (p) => p.main !== 'business',
+        text: 'A shop, tiffin or tuition? It gets its own space.',
         guide: [
-          { view: 'settings', target: '#side-business-row', text: 'Turn this on if you also run a business.' },
-          { view: 'accounts', target: '#add-account-btn', text: 'Then add the business account here, and tick "For the business".' },
+          { view: 'settings', target: '#add-business-row', text: 'Name the business here to give it its own space.' },
+          { view: 'summary', target: '.space-toggle', text: 'Switch between Home and the business here. Each keeps its own accounts and money.' },
         ],
       },
     ],
@@ -42,7 +68,7 @@ const NOTES = [
         title: 'Your business on its own',
         text: 'Money in, out and taken home, apart from the house.',
         for: (p) => p.business,
-        guide: [{ view: 'summary', target: '.business-card', text: 'This month in the business. Tap it to see its payments.' }],
+        guide: [{ view: 'summary', target: '.space-toggle', text: 'The business has its own Summary: what came in, went out and is left.' }],
       },
       {
         icon: 'tag',

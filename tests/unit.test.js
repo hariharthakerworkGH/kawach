@@ -829,3 +829,30 @@ test('general reader: a card statement, its bill and due date', () => {
 test('general reader: text with no dated amounts is not taken for a statement', () => {
   equal(anyBank.readerFor('Some letter\nDear customer, 12 Sep 2026\nThank you'), null);
 });
+
+import { taxDates } from '../js/calendar.js';
+import { goalProgress, monthsLeft } from '../js/goals.js';
+
+test('tax dates: advance tax and the return for business income, GST only when registered', () => {
+  const plain = taxDates('2026-09-20', { business: false });
+  equal(plain, []);
+  const owner = taxDates('2026-09-20', { business: true });
+  equal(owner[0], { label: 'Advance tax', date: '2026-12-15', note: "75% of the year's tax" });
+  ok(!owner.some((d) => d.label.startsWith('GST')), 'no GST dates until registered');
+  ok(owner.every((d) => d.date >= '2026-09-20'), 'nothing already past');
+  const gst = taxDates('2026-09-20', { business: true, gst: true });
+  // Today's own date still counts as due; next month's follow.
+  equal(gst.slice(0, 3).map((d) => [d.label, d.date]), [['GSTR-3B', '2026-09-20'], ['GSTR-1', '2026-10-11'], ['GSTR-3B', '2026-10-20']]);
+});
+
+test('a goal says what a month gets you there, and counts what is already saved', () => {
+  const goal = { target: rupees(1000000), by: '2030-03' };
+  const p = goalProgress(goal, rupees(400000), '2026-09-20');
+  equal(monthsLeft('2030-03', '2026-09-20'), 42);
+  paise(p.left, rupees(600000));
+  paise(p.monthly, Math.ceil(rupees(600000) / 42));
+  // Already there: nothing more a month.
+  equal(goalProgress(goal, rupees(1200000), '2026-09-20').done, true);
+  // Due this month: the rest is needed now, not divided by zero.
+  paise(goalProgress({ target: rupees(50000), by: '2026-09' }, 0, '2026-09-20').monthly, rupees(50000));
+});

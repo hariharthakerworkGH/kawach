@@ -8,7 +8,7 @@ import { isoLocal } from '../frequency.js';
 import { findDuplicates } from '../duplicates.js';
 import { byYourOrder } from '../commitments.js';
 import { redraw } from '../redraw.js';
-import { ensureBusinessCategories, moneyProfile } from '../business.js';
+import { ensureBusinessCategories, moneyProfile, activeSpace, accountInSpace } from '../business.js';
 import { detectTransfers } from '../transfers.js';
 import { icon } from '../icons.js';
 import { displayName } from './transactions.js';
@@ -28,7 +28,13 @@ let depositsOf = new Map();
 
 let shownIn = null;
 // Who is using the app (js/business.js): the form offers what fits them.
-let profile = { main: 'salary', business: false };
+// The savings Indian households actually keep.
+const SAVINGS_KINDS = ['FD', 'RD', 'PPF', 'NPS', 'Sukanya Samriddhi', 'LIC or insurance', 'Gold', 'Mutual fund or SIP', 'Chit fund', 'Other'];
+
+let profile = { main: 'salary', business: false, businesses: [] };
+// The lane on screen: Home or a business. Only its accounts are listed, and
+// a new account belongs to it.
+let space = 'home';
 // Accounts opened to show their latest payments, kept while the app is open
 // so a redraw (Edit, Reorder, a sync) doesn't fold them shut.
 const opened = new Set();
@@ -47,6 +53,7 @@ export async function render(container) {
   shownIn = container;
   const [accounts, allTransactions, importBatches, who] = await Promise.all([getAll('accounts'), getAll('transactions'), getAll('importBatches'), moneyProfile()]);
   profile = { ...who, hasPf: accounts.some((a) => a.type === 'pf') };
+  space = await activeSpace();
   // Copies saved by overlapping statement imports are left out of every
   // balance here, the same as on the Summary.
   const duplicateIds = new Set(findDuplicates(allTransactions).map((t) => t.id));
@@ -60,7 +67,7 @@ export async function render(container) {
   const groups = { cash: [], bank: [], card: [], savings: [], loan: [], pf: [] };
   // In the order you arranged them, new ones last.
   for (const a of [...accounts].sort(byYourOrder)) {
-    if (isInsideParent(a)) continue;
+    if (isInsideParent(a) || !accountInSpace(space)(a)) continue;
     (groups[groupOf(a)] || (groups[groupOf(a)] = [])).push(a);
   }
 
@@ -286,13 +293,36 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
         <input type="checkbox" class="af-spending" ${a.spending === false ? '' : 'checked'}>
         <span>I spend from this account<br><span class="muted-note">Off for savings or loan-only accounts: nothing from it counts as spending.</span></span>
       </label>
-      <label class="checkbox-row af-business-field" ${['bank', 'card', 'cash'].includes(a.type) && (profile.business || a.business) ? '' : 'hidden'} data-offered="${profile.business || a.business ? '1' : ''}">
-        <input type="checkbox" class="af-business" ${a.business ? 'checked' : ''}>
-        <span>For the business</span>
-      </label>
+      ${
+        profile.businesses.length
+          ? `<label class="field af-business-field" ${['bank', 'card', 'cash'].includes(a.type) ? '' : 'hidden'}>
+              <span>Belongs to</span>
+              <select class="af-space">
+                ${[{ id: 'home', name: 'Home' }, ...profile.businesses]
+                  .map((sp) => {
+                    const chosen = account ? (a.business ? a.space : 'home') : space;
+                    return `<option value="${escapeAttr(sp.id)}" ${sp.id === chosen ? 'selected' : ''}>${escapeHtml(sp.name)}</option>`;
+                  })
+                  .join('')}
+              </select>
+            </label>`
+          : ''
+      }
       <div class="field af-cycle-field" ${a.type === 'card' ? '' : 'hidden'}>
         <span>Billing cycle</span>
         <span class="muted-note">${cycleNote(account, importBatches)}</span>
+      </div>
+      <div class="af-savings-fields" ${a.type === 'savings' ? '' : 'hidden'}>
+        <label class="field">
+          <span>Kind</span>
+          <select class="af-savings-kind">
+            ${SAVINGS_KINDS.map((k) => `<option ${a.savingsKind === k ? 'selected' : ''}>${k}</option>`).join('')}
+          </select>
+        </label>
+        <label class="field">
+          <span>Value now <span class="muted">(PPF, gold and the rest have no statement)</span></span>
+          <input type="number" class="af-savings-value" inputmode="decimal" min="0" step="1" value="${a.type === 'savings' && a.knownBalance ? Math.round(a.knownBalance / 100) : ''}" placeholder="250000">
+        </label>
       </div>
       <div class="af-pf-fields" ${a.type === 'pf' ? '' : 'hidden'}>
         <label class="field">
@@ -369,6 +399,7 @@ function wireForm(form, container, accounts, transactions) {
   const businessField = form.querySelector('.af-business-field');
   const loanFields = form.querySelector('.af-loan-fields');
   const pfFields = form.querySelector('.af-pf-fields');
+  const savingsFields = form.querySelector('.af-savings-fields');
   let type = form.querySelector('.af-type.active')?.dataset.type || 'card';
 
   form.querySelectorAll('.af-type').forEach((btn) => {
@@ -377,9 +408,10 @@ function wireForm(form, container, accounts, transactions) {
       form.querySelectorAll('.af-type').forEach((b) => b.classList.toggle('active', b === btn));
       cycleField.hidden = type !== 'card';
       spendingField.hidden = type !== 'bank';
-      businessField.hidden = !businessField.dataset.offered || !['bank', 'card', 'cash'].includes(type);
+      if (businessField) businessField.hidden = !['bank', 'card', 'cash'].includes(type);
       loanFields.hidden = type !== 'loan';
       pfFields.hidden = type !== 'pf';
+      savingsFields.hidden = type !== 'savings';
     });
   });
 
@@ -423,8 +455,17 @@ function wireForm(form, container, accounts, transactions) {
       // left the app working it out from the full amount borrowed instead.
       loan: type === 'loan' ? { ...(existing?.loan || {}), ...readLoanFields(form) } : undefined,
       ...(type === 'pf' ? readPfFields(form, existing) : {}),
-      business: ['bank', 'card', 'cash'].includes(type) && form.querySelector('.af-business').checked ? true : undefined,
+      ...(type === 'savings' ? readSavingsFields(form, existing) : {}),
     };
+    // Home, or the business it belongs to.
+    const belongs = ['bank', 'card', 'cash'].includes(type) ? form.querySelector('.af-space')?.value || (account.business ? account.space : 'home') : 'home';
+    if (belongs === 'home') {
+      delete account.business;
+      delete account.space;
+    } else {
+      account.business = true;
+      account.space = belongs;
+    }
     await put('accounts', account);
     // A business account needs business categories, and the money already
     // moved between it and a home account needs recognising as moved.
@@ -916,6 +957,18 @@ function readPfFields(form, existing) {
   };
 }
 // The numbers typed into the loan fields, as paise where they are money.
+// A savings pot: what kind it is, and what it is worth today. Typed in
+// because PPF, gold, a chit fund and an insurance policy have no statement
+// the app can read; an FD from a bank statement keeps the balance it read.
+function readSavingsFields(form, existing) {
+  const kind = form.querySelector('.af-savings-kind').value;
+  const raw = parseFloat(form.querySelector('.af-savings-value').value);
+  if (!Number.isFinite(raw) || raw < 0) return { savingsKind: kind };
+  const value = Math.round(raw * 100);
+  if (existing && existing.knownBalance === value) return { savingsKind: kind };
+  return { savingsKind: kind, knownBalance: value, knownBalanceDate: isoLocal(new Date()) };
+}
+
 function readLoanFields(form) {
   const num = (sel) => {
     const raw = parseFloat(form.querySelector(sel).value);

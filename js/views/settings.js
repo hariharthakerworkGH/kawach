@@ -14,7 +14,7 @@ import { redraw } from '../redraw.js';
 import { dataIsKept } from '../install.js';
 import { playTour, shareKawach } from '../tour.js';
 import { enhancePasswords, checkPair, MIN_PASSPHRASE } from '../password-field.js';
-import { moneyProfile, ensureBusinessCategories, isBusinessAccount } from '../business.js';
+import { moneyProfile, addBusiness, renameBusiness, removeBusiness, setBusinessGst, setCurrentSpace } from '../business.js';
 import { notesFor, openNotes } from '../whats-new.js';
 import { backupStatus, backupPassphrase, setBackupPassphrase, markFileBackup, signIn, hasGooglePass, backUpToDrive, listBackups, openDriveBackup } from '../drive.js';
 
@@ -320,90 +320,104 @@ export function dataSafety(sync, syncPass, lastBackupAt, now = Date.now()) {
 }
 
 // --- Your money ---------------------------------------------------------------
-// How money mainly comes in, and whether there's a business on the side. The
-// rest of the app shows what fits (js/business.js, moneyProfile).
+// What pays for Home, and the businesses, each a space of its own
+// (js/business.js). The toggle at the top of Summary moves between them.
 
 const KINDS = [
   ['salary', 'Salary'],
   ['household', 'Household money'],
-  ['business', 'Business'],
+  ['business', 'My business'],
   ['pension', 'Pension'],
 ];
 
 function moneyCard(profile) {
   return `
     <div class="totals-card" id="money-card">
-      <p class="money-label">Money mainly comes in as</p>
-      <div class="money-kinds" role="radiogroup" aria-label="Money mainly comes in as">
+      <p class="money-label">Home is paid for by</p>
+      <div class="money-kinds" role="radiogroup" aria-label="Home is paid for by">
         ${KINDS.map(
           ([id, label]) =>
             `<button type="button" class="money-kind ${profile.main === id ? 'on' : ''}" role="radio" aria-checked="${profile.main === id}" data-kind="${id}">${label}</button>`
         ).join('')}
       </div>
-      ${
-        profile.main === 'business'
-          ? ''
-          : `<label class="switch-row" id="side-business-row">
-              <span>I also run a business</span>
-              <input type="checkbox" role="switch" class="switch" id="side-business" ${profile.side ? 'checked' : ''}>
-            </label>`
-      }
+      <p class="money-label money-label-gap">Businesses</p>
+      ${profile.businesses
+        .map(
+          (b) => `<div class="biz-row">
+            ${icon('store')}
+            <input type="text" class="biz-name" data-id="${escapeHtml(b.id)}" value="${escapeHtml(b.name)}" aria-label="Business name">
+            <label class="biz-gst"><input type="checkbox" class="biz-gst-box" data-id="${escapeHtml(b.id)}" ${b.gst ? 'checked' : ''}> GST</label>
+            <button type="button" class="icon-btn biz-remove" data-id="${escapeHtml(b.id)}" aria-label="Remove ${escapeHtml(b.name)}">${icon('close')}</button>
+          </div>`
+        )
+        .join('')}
+      <div class="biz-add" id="add-business-row">
+        <input type="text" id="biz-new-name" placeholder="${profile.businesses.length ? 'Another business' : 'Shop, tiffin, tuition'}" aria-label="New business name">
+        <button type="button" class="btn-tiny primary" id="add-business-btn">Add</button>
+      </div>
     </div>`;
 }
 
 function wireMoneyCard(container, profile) {
   const again = () => redraw(container, () => render(container));
-  const businessAccounts = async () => (await getAll('accounts')).filter(isBusinessAccount);
 
   container.querySelectorAll('.money-kind').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const kind = btn.dataset.kind;
       if (kind === profile.main) return;
       await setSetting('incomeType', kind);
-      if (kind === 'business') {
-        await setSetting('sideBusiness', false);
-        await ensureBusinessCategories();
-      } else if (profile.main === 'business' && (await businessAccounts()).length) {
-        // Leaving "Business" as the main income doesn't close the shop: it
-        // carries on, as a business on the side.
-        await setSetting('sideBusiness', true);
-      }
-      showToast(`Money comes in as ${btn.textContent.toLowerCase()}`);
+      // Home paid for by a business needs a business to be paid by.
+      if (kind === 'business' && !profile.businesses.length) await addBusiness('My business');
+      showToast(`Home is paid for by ${btn.textContent.toLowerCase()}`);
       again();
     });
   });
 
-  const side = container.querySelector('#side-business');
-  if (side) {
-    side.addEventListener('change', async () => {
-      if (side.checked) {
-        await setSetting('sideBusiness', true);
-        await ensureBusinessCategories();
-        showToast('Business on. Mark its account on Accounts.');
-        return again();
+  const nameEl = container.querySelector('#biz-new-name');
+  const add = async () => {
+    const name = nameEl.value.trim();
+    if (!name) return nameEl.focus();
+    const id = await addBusiness(name);
+    setCurrentSpace(id);
+    showToast(`${name} added. Its switch is at the top of Summary.`);
+    again();
+  };
+  container.querySelector('#add-business-btn').addEventListener('click', add);
+  nameEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') add();
+  });
+
+  // GST registered: its return dates then show in that business's Summary.
+  container.querySelectorAll('.biz-gst-box').forEach((box) => {
+    box.addEventListener('change', async () => {
+      await setBusinessGst(box.dataset.id, box.checked);
+    });
+  });
+
+  container.querySelectorAll('.biz-name').forEach((input) => {
+    input.addEventListener('change', async () => {
+      await renameBusiness(input.dataset.id, input.value);
+      showToast('Renamed');
+    });
+  });
+
+  container.querySelectorAll('.biz-remove').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const b = profile.businesses.find((x) => x.id === btn.dataset.id);
+      if (profile.main === 'business' && profile.businesses.length === 1) {
+        return showToast('Home is paid for by this business. Change that above first.');
       }
-      // Turning it off makes the business's accounts home accounts again,
-      // said first, so their spending doesn't join the house's by surprise.
-      const accounts = await businessAccounts();
-      if (accounts.length) {
-        const ok = await askConfirm({
-          title: 'Stop keeping the business apart?',
-          message: `${accounts.map((a) => a.label).join(', ')} will count as home again.`,
-          confirmLabel: 'Stop',
-        });
-        if (!ok) {
-          side.checked = true;
-          return;
-        }
-        for (const a of accounts) {
-          const { business, ...rest } = a;
-          await put('accounts', rest);
-        }
-      }
-      await setSetting('sideBusiness', false);
+      const ok = await askConfirm({
+        title: `Remove ${b.name}?`,
+        message: 'Its accounts and fixed costs move to Home, where they count.',
+        confirmLabel: 'Remove',
+        danger: true,
+      });
+      if (!ok) return;
+      await removeBusiness(b.id);
       again();
     });
-  }
+  });
 }
 
 // --- Backup -----------------------------------------------------------------

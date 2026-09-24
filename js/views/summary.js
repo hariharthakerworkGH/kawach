@@ -21,14 +21,24 @@ import { askConfirm } from '../dialog.js';
 import { redraw } from '../redraw.js';
 import { installCard, wireInstallCard } from '../install.js';
 import { backupStatus } from '../drive.js';
-import { incomeWords } from '../business.js';
+import { incomeWords, businesses, activeSpace, setCurrentSpace, accountInSpace, businessSpace } from '../business.js';
+import { taxDates } from '../calendar.js';
 
 let currentRange = 'this-month';
 
+// The space on screen: 'home' or a business's id (js/business.js).
+let space = 'home';
+
 export async function render(container) {
+  const list = await businesses();
+  space = await activeSpace();
   container.innerHTML = `
+    ${list.length ? spaceToggle(list, space) : ''}
     <div id="dashboard"></div>
-    <div class="segmented">
+    ${
+      space !== 'home'
+        ? ''
+        : `<div class="segmented">
       <button type="button" class="seg-btn ${currentRange === 'this-month' ? 'active' : ''}" data-range="this-month">This month</button>
       <button type="button" class="seg-btn ${currentRange === 'last-month' ? 'active' : ''}" data-range="last-month">Last month</button>
       <button type="button" class="seg-btn ${currentRange === 'custom' ? 'active' : ''}" data-range="custom">Custom</button>
@@ -38,7 +48,8 @@ export async function render(container) {
       <label>To <input type="date" id="range-to"></label>
       <button type="button" id="range-apply" class="btn-secondary">Apply</button>
     </div>
-    <div id="summary-content">Loading…</div>
+    <div id="summary-content">Loading…</div>`
+    }
   `;
 
   container.querySelectorAll('.seg-btn').forEach((btn) => {
@@ -48,7 +59,17 @@ export async function render(container) {
     });
   });
 
-  if (currentRange === 'custom') {
+  // Home and each business, each in its own lane.
+  container.querySelectorAll('.space-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.space === space) return;
+      setCurrentSpace(btn.dataset.space);
+      document.dispatchEvent(new CustomEvent('space-changed'));
+      redraw(container, () => render(container));
+    });
+  });
+
+  if (currentRange === 'custom' && container.querySelector('#range-apply')) {
     container.querySelector('#range-apply').addEventListener('click', () => redraw(container, () => renderContent(container)));
   }
 
@@ -57,19 +78,112 @@ export async function render(container) {
 
 // --- Dashboard: net position, things needing attention, upcoming bills ---
 
-async function renderDashboard(container) {
+function spaceToggle(list, current) {
+  const spaces = [{ id: 'home', name: 'Home' }, ...list];
+  return `<div class="space-toggle" role="tablist" aria-label="Home or business">
+    ${spaces
+      .map(
+        (sp) =>
+          `<button type="button" role="tab" class="space-btn ${sp.id === current ? 'on' : ''}" aria-selected="${sp.id === current}" data-space="${escapeHtml(sp.id)}">${sp.id === 'home' ? icon('home') : icon('store')}<span>${escapeHtml(sp.name)}</span></button>`
+      )
+      .join('')}
+  </div>`;
+}
+
+// A business's own month: what is left, in and out, its fixed costs, and
+// where the money went. Nothing from Home is on it.
+async function renderBusinessDashboard(container) {
   const dashboardEl = container.querySelector('#dashboard');
-  const [transactions, fts, install] = await Promise.all([getAll('transactions'), computeFreeToSpend(), installCard()]);
-
-  dashboardEl.innerHTML = [install, renderSpendingLimit(fts), renderBusiness(fts), renderCommitmentTracker(fts), renderLoansSavings(fts), '<div id="attention-section"></div>', '<div id="upcoming-section"></div>'].join('');
-
-  // The business card opens that account's History.
-  const businessBtn = dashboardEl.querySelector('#business-open');
-  if (businessBtn) {
-    businessBtn.addEventListener('click', () => {
-      container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'transactions', accountId: businessBtn.dataset.account } }));
+  const [transactions, accounts, recurring, categories, list] = await Promise.all([getAll('transactions'), getAll('accounts'), getAll('recurring'), getAll('categories'), businesses()]);
+  const today = isoLocal(new Date());
+  const b = businessSpace(transactions, accounts, recurring, categories, space, today);
+  const line = breakdownLine;
+  const month = new Date().toLocaleDateString('en-IN', { month: 'long' });
+  const go = (view, extra = '') => `data-go="${view}" ${extra}`;
+  const hasAccounts = b.accountIds.length > 0;
+  dashboardEl.innerHTML = `
+    ${
+      hasAccounts
+        ? `<div class="hero level-${b.left < 0 ? 'over' : 'ok'}">
+        <div class="hero-top">
+          <span class="hero-label">Left this month</span>
+          <span class="hero-label">${month}</span>
+        </div>
+        <p class="hero-amount ${b.left < 0 ? 'negative' : ''}">${formatRupees(b.left)}</p>
+        <div class="hero-figures">
+          <span><span class="muted">In</span> ${formatRupees(b.moneyIn)}</span>
+          <span><span class="muted">Out</span> ${formatRupees(b.moneyOut)}</span>
+        </div>
+        ${b.fixedDue ? `<p class="hero-status level-warning">${formatRupees(b.fixedDue)} of fixed costs still to pay</p>` : ''}
+        <details class="fts-breakdown">
+          <summary>How it's worked out</summary>
+          <div class="totals-card">
+            ${line('Money in', b.moneyIn, '+')}
+            ${line('Money out', b.moneyOut, '-')}
+            ${b.sentHome ? line('Sent home', b.sentHome, '-') : ''}
+            ${b.fixedDue ? line('Fixed costs still to pay', b.fixedDue, '-') : ''}
+            <div class="totals-row net"><span>Left this month</span><span>${formatRupees(b.left)}</span></div>
+          </div>
+        </details>
+      </div>`
+        : `<div class="totals-card"><p class="muted-note">Add ${escapeHtml(list.find((x) => x.id === space)?.name || 'the business')}'s bank account to see its month.</p><button type="button" class="btn-primary" ${go('accounts')}>Add its account</button></div>`
+    }
+    <div class="section-head"><h3>Fixed costs</h3></div>
+    ${
+      b.fixed.length
+        ? `<div class="totals-card">${b.fixed
+            .map(
+              (f) => `<div class="totals-row"><span>${escapeHtml(f.label)}</span><span class="biz-fixed">${formatRupees(f.paid)} / ${formatRupees(f.amount)} <span class="pill ${f.due ? 'warn' : 'ok'}">${f.due ? 'Due' : 'Paid'}</span></span></div>`
+            )
+            .join('')}</div>`
+        : `<div class="totals-card"><p class="muted-note">Shop rent, staff wages and other costs each month.</p><button type="button" class="btn-secondary btn-block" ${go('plan')}>Add fixed costs</button></div>`
+    }
+    ${
+      b.top.length
+        ? `<div class="section-head"><h3>Where it went</h3></div><div class="totals-card">${b.top
+            .map((c) => `<div class="totals-row"><span>${escapeHtml(c.name)}</span><span class="out">${formatRupees(c.amount)}</span></div>`)
+            .join('')}</div>`
+        : ''
+    }
+    ${
+      b.needsCategory
+        ? `<div class="totals-card"><div class="todo-row"><span class="todo-icon" aria-hidden="true">${icon('tag')}</span><span class="todo-text"><span>${b.needsCategory} need a category</span></span><span class="attention-actions"><button type="button" class="btn-tiny" ${go('transactions')}>Open</button></span></div></div>`
+        : ''
+    }
+    ${taxCard(taxDates(today, { business: true, gst: (list.find((x) => x.id === space) || {}).gst }))}
+  `;
+  dashboardEl.querySelectorAll('[data-go]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: btn.dataset.go, ...(btn.dataset.go === 'transactions' ? { filter: 'uncategorized' } : {}) } }));
     });
-  }
+  });
+}
+
+// Dates only: Kawach never files anything and never says what is owed.
+function taxCard(dates) {
+  const soon = dates.filter((d) => d.date <= addDaysIso(isoLocal(new Date()), 45)).slice(0, 3);
+  if (!soon.length) return '';
+  return `<div class="section-head"><h3>Coming up</h3></div>
+    <div class="totals-card">${soon
+      .map((d) => `<div class="totals-row"><span>${escapeHtml(d.label)}<br><span class="muted-note">${escapeHtml(d.note)}</span></span><span>${formatDateNice(d.date)}</span></div>`)
+      .join('')}</div>`;
+}
+
+const addDaysIso = (from, days) => {
+  const [y, m, d] = from.split('-').map(Number);
+  return isoLocal(new Date(y, m - 1, d + days));
+};
+
+async function renderDashboard(container) {
+  if (space !== 'home') return renderBusinessDashboard(container);
+  const dashboardEl = container.querySelector('#dashboard');
+  const [transactions, fts, install, list] = await Promise.all([getAll('transactions'), computeFreeToSpend(), installCard(), businesses()]);
+  // Anyone with business income has tax dates to keep.
+  const tax = taxCard(taxDates(isoLocal(new Date()), { business: list.length > 0 || fts.incomeKind === 'business' }));
+
+  dashboardEl.innerHTML = [install, renderSpendingLimit(fts), renderCommitmentTracker(fts), renderLoansSavings(fts), '<div id="attention-section"></div>', '<div id="upcoming-section"></div>', tax].join('');
+
+
 
   // Mark paid / Skip this month, and their Undo: a per-cycle choice stored on
   // the commitment. Only recent cycles are kept, so the record can't grow forever.
@@ -160,33 +274,6 @@ export function bankWarning(f) {
   if (f.bankLevel === 'warning')
     return `${next} bills, only ${formatCurrency(f.bankAfterBills)} would be left in your bank - less than the ${formatCurrency(f.keep)} you save each month.`;
   return null;
-}
-
-// The business on its own: money in and out of its accounts this month, what
-// came home from it, and where most of it went. Only for those with one.
-function renderBusiness(f) {
-  const b = f.business;
-  if (!b) return '';
-  const above = f.plan && f.plan.basis === 'lowest' && f.plan.thisMonth > f.plan.amount ? f.plan.thisMonth - f.plan.amount : 0;
-  const lean = f.plan && f.plan.amount && f.plan.thisMonth < f.plan.amount && f.monthsCovered != null;
-  return `
-    <div class="totals-card business-card">
-      <button type="button" class="business-head" id="business-open" data-account="${escapeHtml(b.accountIds[0] || '')}">
-        <span class="hero-label">Business this month</span>${icon('forward')}
-      </button>
-      <div class="totals-row"><span>Money in</span><span class="in">${formatRupees(b.moneyIn)}</span></div>
-      <div class="totals-row"><span>Money out</span><span class="out">${formatRupees(b.moneyOut)}</span></div>
-      <div class="totals-row"><span>Taken home</span><span>${formatRupees(b.takenHome)}</span></div>
-      ${
-        b.top.length
-          ? `<details class="fts-breakdown"><summary>Where it went</summary><div class="totals-card">${b.top
-              .map((c) => `<div class="totals-row"><span>${escapeHtml(c.name)}</span><span class="out">${formatRupees(c.amount)}</span></div>`)
-              .join('')}</div></details>`
-          : ''
-      }
-      ${above ? `<p class="business-note in">${formatRupees(above)} more than your plan came home. Put it away?</p>` : ''}
-      ${!above && lean ? `<p class="business-note">Your savings cover about ${f.monthsCovered} month${f.monthsCovered === 1 ? '' : 's'} of the house.</p>` : ''}
-    </div>`;
 }
 
 const breakdownLine = (label, amount, sign, note = '') =>
@@ -892,6 +979,8 @@ function comparisonPeriod(now = new Date()) {
 
 async function renderContent(container) {
   const content = container.querySelector('#summary-content');
+  // A business's month is its own card; Home keeps the spending breakdown.
+  if (!content) return;
   let from;
   let to;
 
@@ -918,7 +1007,7 @@ async function renderContent(container) {
     monthKey
       ? transactions.filter((t) => spendingMonthOf(t, byAccountId.get(t.accountId), cycleAware) === monthKey)
       : transactions.filter((t) => t.date >= from && t.date <= to)
-  ).filter((t) => !t.isTransfer && !byAccountId.get(t.accountId)?.business);
+  ).filter((t) => !t.isTransfer && accountInSpace(space)(byAccountId.get(t.accountId) || {}));
 
   let totalIn = 0;
   let totalOut = 0;

@@ -11,7 +11,7 @@ import { redraw } from './redraw.js';
 import { keepDataSafe, isInstalled } from './install.js';
 import { signIn, rememberGoogleAccount } from './drive.js';
 import { showIfUpdated } from './whats-new.js';
-import { moneyProfile } from './business.js';
+import { moneyProfile, businesses, activeSpace, setCurrentSpace, settleSpaces } from './business.js';
 import * as addView from './views/add.js';
 import * as categoriesView from './views/categories.js';
 import * as summaryView from './views/summary.js';
@@ -119,6 +119,7 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0) {
   next.hidden = false;
   document.querySelectorAll('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
   document.getElementById('view-title').textContent = view.title;
+  showSpaceChip();
   window.scrollTo(0, scrollY);
 
   // Bars fill to their value as a screen arrives (css "Motion"); the class
@@ -371,6 +372,30 @@ function syncNavHeight() {
   document.documentElement.style.setProperty('--nav-height', `${nav.offsetHeight}px`);
 }
 
+// Which lane you're in, beside the title on the screens that follow it: Home
+// or a business. Tapping it moves to the next one. Summary has its own
+// switch; Settings, Setup and Coach are for everything, or for Home.
+const FOLLOWS_SPACE = new Set(['accounts', 'transactions', 'plan', 'add', 'categories']);
+async function showSpaceChip() {
+  const chip = document.getElementById('space-chip');
+  const list = await businesses();
+  if (!list.length || !FOLLOWS_SPACE.has(currentView)) {
+    chip.hidden = true;
+    return;
+  }
+  const spaces = [{ id: 'home', name: 'Home' }, ...list];
+  const now = await activeSpace();
+  const at = spaces.findIndex((sp) => sp.id === now);
+  chip.innerHTML = `${icon(now === 'home' ? 'home' : 'store')}<span>${spaces[at].name.replace(/</g, '&lt;')}</span>`;
+  chip.setAttribute('aria-label', `Showing ${spaces[at].name}. Switch`);
+  chip.hidden = false;
+  chip.onclick = () => {
+    setCurrentSpace(spaces[(at + 1) % spaces.length].id);
+    showView(currentView, currentParams, true, 0);
+  };
+}
+document.addEventListener('space-changed', () => showSpaceChip());
+
 // True the first time this browser opens the app, and never again. Marked
 // before the welcome page is shown, so it can't send anyone round in a loop;
 // with no storage at all, it is never the first visit.
@@ -413,6 +438,8 @@ async function init() {
   // Ask the phone not to clear Kawach's data when it runs low on space.
   keepDataSafe();
   await seedIfNeeded();
+  // Business accounts from before there were spaces get a business to live in.
+  await settleSpaces();
   // Icons you picked for your own categories, so every list shows them.
   setCustomStyles(await getAll('categories'));
   // Catches card-bill payments in statements imported before detection could
