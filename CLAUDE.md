@@ -48,16 +48,29 @@ a salary, pension or household money is the amount set on Plan; for a
 business owner it is the lowest of the last three months taken home (money
 reaching the home accounts from the business, or from outside), and the
 owner's estimate of what the house needs until there are three months.
-Anyone else can have a business on the side (`sideBusiness`): a salary,
-pension or household money plus the lowest of the business's last three
-months (only money moved over from its accounts, so a salary landing in the
-same account is never counted twice), and nothing from it before then.
-`moneyProfile()` says who someone is, and screens show only what fits them:
-PF for salaried people, business accounts and categories for those with a
-business. Settings holds the switch.
-Accounts marked `business` stand apart: their spending is never the house's,
-they get business categories (`scope: 'business'`, including the owner's own),
-and Summary shows the business on its own card.
+Anyone else can have a business on the side: a salary, pension or household
+money plus the lowest of the business's last three months (only money moved
+over from its accounts, so a salary landing in the same account is never
+counted twice), and nothing from it before then.
+
+**Spaces.** Home is one lane; each business (`businesses` setting) is another.
+An account (`account.space`) and a fixed cost (`commitment.space`) belong to
+one of them, and Summary, Plan, Accounts, History and Add all follow the
+space on screen (the toggle on Summary, the chip beside the title; the choice
+is this device's, in localStorage). A business's month is
+`businessSpace()`: money in − money out − sent home − fixed costs still due.
+Business accounts get business categories (`scope: 'business'`, including the
+owner's own). `moneyProfile()` says who someone is, and screens show only
+what fits: PF for salaried people, business things for those with a business.
+
+`js/calendar.js` holds the costs Indian homes and shops usually pay (tapped on
+Plan, never with a guessed amount) and the tax dates worth knowing (advance
+tax and the return for business income, GST when the business is marked
+registered) - dates only, Kawach never files or computes tax. `js/goals.js`
+holds goals: an amount, a month, and the savings pots it is counted in, with
+`goalProgress()` saying what a month gets there. Savings pots carry a
+`savingsKind` (PPF, gold, chit fund and the rest) and a value typed in,
+because those have no statement to read.
 
 Periods:
 - **Cards:** the card cycle, the day after the statement day to the next statement

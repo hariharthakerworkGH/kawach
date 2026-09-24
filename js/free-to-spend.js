@@ -114,7 +114,7 @@ function daysBetweenInclusive(fromIso, toIso) {
 }
 
 export async function computeFreeToSpend(now = new Date()) {
-  const [allAccounts, allTransactions, importBatches, recurring, incomeSetting, salaryDay, keepInBank, incomeKind, categories, sideSetting] = await Promise.all([
+  const [allAccounts, allTransactions, importBatches, allRecurring, incomeSetting, salaryDay, keepInBank, incomeKind, categories, sideSetting] = await Promise.all([
     getAll('accounts'),
     getAll('transactions'),
     getAll('importBatches'),
@@ -124,10 +124,12 @@ export async function computeFreeToSpend(now = new Date()) {
     getSetting('keepInBank', DEFAULT_KEEP_IN_BANK),
     getSetting('incomeType', 'salary'),
     getAll('categories'),
-    getSetting('sideBusiness', false),
+    getSetting('businesses', []),
   ]);
   // The house's accounts. The business's are left to its own card.
   const accounts = allAccounts.filter((a) => !a.business);
+  // And the house's commitments: a business's shop rent and wages are its own.
+  const recurring = allRecurring.filter((r) => !r.space || r.space === 'home');
   const hasBusiness = accounts.length !== allAccounts.length;
   const isBusiness = incomeKind === 'business';
 
@@ -143,7 +145,7 @@ export async function computeFreeToSpend(now = new Date()) {
   // A business on the side adds what it brings home (moved over from its
   // account, never the salary that also lands there), once there are three
   // months to go on; until then it adds nothing rather than a guess.
-  const side = !isBusiness && sideSetting === true;
+  const side = !isBusiness && Array.isArray(sideSetting) && sideSetting.length > 0;
   const plan = isBusiness
     ? businessPlan(transactions, allAccounts, today, incomeSetting)
     : side

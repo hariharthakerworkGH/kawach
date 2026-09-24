@@ -6,10 +6,12 @@ import { showToast } from '../toast.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, toMonthly, toYearly } from '../frequency.js';
 import { formatCurrency } from '../format.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
-import { isBusinessCategory, isBusinessAccount } from '../business.js';
+import { isBusinessCategory, isBusinessAccount, activeSpace, accountInSpace } from '../business.js';
 
 export async function render(container, params = {}) {
-  const [categories, accounts, recurring] = await Promise.all([getAll('categories'), getAll('accounts'), getAll('recurring')]);
+  const [categories, allAccounts, recurring, space] = await Promise.all([getAll('categories'), getAll('accounts'), getAll('recurring'), activeSpace()]);
+  // The accounts of the lane on screen: Home's, or one business's.
+  const accounts = allAccounts.filter(accountInSpace(space));
   const commitments = recurring.filter((r) => isLiveCommitment(r)).sort(byYourOrder);
   // The phone's own date. toISOString() is UTC, which in India is still
   // yesterday until 5:30am - so late-night spends were being dated the day

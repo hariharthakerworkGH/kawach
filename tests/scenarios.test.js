@@ -749,8 +749,8 @@ test('a backup keeps business accounts, business categories and the kind of inco
 
 async function seedSalaryWithShop(months) {
   await seedBasics();
-  await put('accounts', { id: 'shop', label: 'Tiffin service', type: 'bank', issuer: 'Test Bank', last4: '7788', business: true });
-  await put('settings', { id: 'sideBusiness', value: true });
+  await put('accounts', { id: 'shop', label: 'Tiffin service', type: 'bank', issuer: 'Test Bank', last4: '7788', business: true, space: 'biz1' });
+  await put('settings', { id: 'businesses', value: [{ id: 'biz1', name: 'Tiffin service' }] });
   await putAll('recurring', [commitment({ label: 'House Rent', amount: 20000 })]);
   const moves = [];
   for (const [date, amount] of months) {
@@ -785,6 +785,6 @@ test("What's new shows only the notes that fit, from versions not yet seen", () 
   const shopkeeper = { main: 'business', business: true, side: false };
   ok(!titles(pensioner, '01.10.00').includes('Business categories'), 'no business news for a pensioner');
   ok(titles(shopkeeper, '01.10.00').includes('Business categories'), 'business news for a shopkeeper');
-  ok(!titles(shopkeeper, '01.10.00').includes('A business on the side'), 'no "on the side" for someone whose business is the main income');
-  equal(titles(pensioner, '02.01.00'), []);
+  // Nothing new since the version they last saw.
+  equal(titles(pensioner, '03.00.00'), []);
 });

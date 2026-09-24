@@ -7,7 +7,7 @@ import { tellUser } from '../dialog.js';
 import { redraw } from '../redraw.js';
 import { BANKS as INDIAN_BANKS } from '../parsers/any-bank.js';
 import { playTour } from '../tour.js';
-import { incomeType, ensureBusinessCategories } from '../business.js';
+import { incomeType, businesses, addBusiness } from '../business.js';
 
 // First-run setup: a few short steps so a new user isn't left facing empty
 // screens. Everything it saves is the same data the Plan and Cards screens
@@ -46,14 +46,14 @@ export async function needsSetup() {
 export async function render(container, params = {}) {
   if (params.restart) step = 0;
   shownIn = container;
-  const [accounts, recurring, income, salaryDay, keep, kind, side] = await Promise.all([
+  const [accounts, recurring, income, salaryDay, keep, kind, bizList] = await Promise.all([
     getAll('accounts'),
     getAll('recurring'),
     getSetting('monthlyIncome', null),
     getSetting('salaryDay', null),
     getSetting('keepInBank', DEFAULT_KEEP_IN_BANK),
     incomeType(),
-    getSetting('sideBusiness', false),
+    businesses(),
   ]);
   const banks = accounts.filter((a) => a.type === 'bank');
   const cards = accounts.filter((a) => a.type === 'card');
@@ -66,9 +66,9 @@ export async function render(container, params = {}) {
       ${
         {
           welcome: welcomeStep,
-          income: () => incomeStep(kind, side === true, income, salaryDay, keep),
-          bank: () => accountStep('bank', banks, kind, side === true),
-          cards: () => accountStep('card', cards, kind, side === true),
+          income: () => incomeStep(kind, bizList, income, salaryDay, keep),
+          bank: () => accountStep('bank', banks, kind, bizList.length > 0),
+          cards: () => accountStep('card', cards, kind, bizList.length > 0),
           commitments: () => commitmentsStep(commitments, [...banks, ...cards]),
           done: doneStep,
         }[name]()
@@ -103,7 +103,7 @@ const KINDS = [
   { id: 'household', icon: 'home', title: 'Household money', sub: 'Given to you for the house', amount: 'Household money each month', day: true },
 ];
 
-function incomeStep(kind, side, income, salaryDay, keep) {
+function incomeStep(kind, bizList, income, salaryDay, keep) {
   const chosen = KINDS.find((k) => k.id === kind) || KINDS[0];
   return `
     <h2 class="setup-title">How does money come in?</h2>
@@ -118,7 +118,11 @@ function incomeStep(kind, side, income, salaryDay, keep) {
     </div>
     <label class="switch-row setup-side" id="setup-side-row" ${chosen.id === 'business' ? 'hidden' : ''}>
       <span>I also run a business</span>
-      <input type="checkbox" role="switch" class="switch" id="setup-side" ${side ? 'checked' : ''}>
+      <input type="checkbox" role="switch" class="switch" id="setup-side" ${bizList.length ? 'checked' : ''}>
+    </label>
+    <label class="field" id="setup-biz-field" ${chosen.id === 'business' || bizList.length ? '' : 'hidden'}>
+      <span>Business name</span>
+      <input type="text" id="setup-biz-name" value="${escapeHtml(bizList[0]?.name || '')}" placeholder="Shop, tiffin, tuition">
     </label>
     <label class="field">
       <span id="setup-income-label">${chosen.amount}</span>
@@ -270,6 +274,15 @@ function wire(container, name, { accounts }) {
 
   // Choosing a kind of income changes what is asked for, without losing
   // what was typed.
+  // The business's name is asked for whenever there is a business.
+  const showBizName = () => {
+    const field = container.querySelector('#setup-biz-field');
+    if (!field) return;
+    const kind = container.querySelector('input[name="income-kind"]:checked')?.value;
+    field.hidden = !(kind === 'business' || container.querySelector('#setup-side').checked);
+  };
+  container.querySelector('#setup-side')?.addEventListener('change', showBizName);
+
   container.querySelectorAll('input[name="income-kind"]').forEach((radio) => {
     radio.addEventListener('change', () => {
       const k = KINDS.find((x) => x.id === radio.value);
@@ -277,6 +290,7 @@ function wire(container, name, { accounts }) {
       container.querySelector('#setup-day-field').hidden = !k.day;
       container.querySelector('#setup-business-note').hidden = k.id !== 'business';
       container.querySelector('#setup-side-row').hidden = k.id === 'business';
+      showBizName();
     });
   });
 
@@ -287,7 +301,7 @@ function wire(container, name, { accounts }) {
       const type = name === 'cards' ? 'card' : 'bank';
       const bank = container.querySelector('#setup-account-bank').value;
       const last4 = container.querySelector('#setup-account-last4').value.trim();
-      const forBusiness = container.querySelector('#setup-account-business')?.checked;
+      const forBusiness = container.querySelector('#setup-account-business')?.checked ? (await businesses())[0]?.id : null;
       await put('accounts', {
         id: newId(),
         label: container.querySelector('#setup-account-name').value.trim(),
@@ -295,7 +309,7 @@ function wire(container, name, { accounts }) {
         issuer: bank === 'Other' ? null : bank,
         last4: /^\d{4}$/.test(last4) ? last4 : null,
         billingCycleDay: null,
-        ...(forBusiness ? { business: true } : {}),
+        ...(forBusiness ? { business: true, space: forBusiness } : {}),
       });
       again();
     });
@@ -346,12 +360,14 @@ async function saveIncome(container) {
   const keep = parseFloat(container.querySelector('#setup-keep').value);
   const side = kind !== 'business' && container.querySelector('#setup-side').checked;
   await setSetting('incomeType', kind);
-  await setSetting('sideBusiness', side);
   if (Number.isFinite(income) && income > 0) await setSetting('monthlyIncome', Math.round(income * 100));
   // A business has no payday.
   await setSetting('salaryDay', kind === 'business' ? null : parseInt(container.querySelector('#setup-salary-day').value, 10));
   if (Number.isFinite(keep) && keep >= 0) await setSetting('keepInBank', Math.round(keep * 100));
-  if (kind === 'business' || side) await ensureBusinessCategories();
+  // A business, as what pays for Home or on the side, gets its space.
+  if ((kind === 'business' || side) && !(await businesses()).length) {
+    await addBusiness(container.querySelector('#setup-biz-name').value || 'My business');
+  }
 }
 
 function escapeHtml(str) {

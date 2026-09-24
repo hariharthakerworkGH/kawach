@@ -11,7 +11,7 @@ import { commitmentField, cardPaymentField } from './add.js';
 import { looksLikeCardPayment } from '../transfers.js';
 import { isoLocal } from '../frequency.js';
 import { icon } from '../icons.js';
-import { categoriesFor } from '../business.js';
+import { categoriesFor, activeSpace, accountInSpace } from '../business.js';
 
 // History: one month at a time, newest first, grouped by day, one line per
 // payment. It used to be every transaction ever in one list, with a category
@@ -57,7 +57,11 @@ export function onBack() {
 
 export async function render(container, params = {}) {
   shownIn = container;
-  const [transactions, categories, accounts, recurring] = await Promise.all([getAll('transactions'), getAll('categories'), getAll('accounts'), getAll('recurring')]);
+  const [allTransactions, categories, allAccounts, recurring, space] = await Promise.all([getAll('transactions'), getAll('categories'), getAll('accounts'), getAll('recurring'), activeSpace()]);
+  // Only the lane on screen: Home's payments, or one business's.
+  const accounts = allAccounts.filter(accountInSpace(space));
+  const inLane = new Set(accounts.map((a) => a.id));
+  const transactions = allTransactions.filter((t) => inLane.has(t.accountId));
   cache = {
     transactions,
     categories,

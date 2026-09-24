@@ -3408,43 +3408,6 @@ textarea {
   outline-offset: 1px;
 }
 
-/* The business's own month, under the house's budget on Summary. */
-.business-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 0 0 var(--space-2xs);
-  background: none;
-  border: 0;
-  color: var(--text-muted);
-  font: inherit;
-  cursor: pointer;
-}
-
-.business-head .icon {
-  width: 18px;
-  height: 18px;
-}
-
-.business-note {
-  margin: var(--space-xs) 0 0;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-.business-note.in {
-  color: var(--in);
-}
-
-.setup-field-note {
-  margin: calc(-1 * var(--space-2xs)) 0 var(--space-sm);
-}
-
-.checkbox-row + .btn-block {
-  margin-top: var(--space-xs);
-}
-
 .business-pill {
   display: inline-block;
   padding: 0 var(--space-2xs);
@@ -3737,4 +3700,130 @@ textarea {
   .switch::after {
     transition: none;
   }
+}
+
+/* ---------- Home and each business (js/business.js, spaces) ---------- */
+
+.space-toggle {
+  display: flex;
+  gap: var(--space-3xs);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-3xs);
+  background: var(--surface-alt);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.space-btn {
+  flex: 1 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  min-height: 44px;
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.space-btn .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.space-btn.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.space-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  max-width: 45%;
+  margin: 0 auto 0 var(--space-2xs);
+  padding: var(--space-3xs) var(--space-xs);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.space-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.space-chip .icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.money-label-gap {
+  margin-top: var(--space-md);
+}
+
+.biz-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-2xs);
+}
+
+.biz-row > .icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.biz-row input,
+.biz-add input {
+  flex: 1;
+  min-width: 0;
+}
+
+.biz-add {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.biz-fixed {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+/* The common costs offered below Plan's Add button. */
+.common-costs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  margin-top: var(--space-sm);
+}
+
+.af-savings-fields {
+  margin-top: var(--space-sm);
+}
+
+.biz-gst {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
