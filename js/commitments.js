@@ -15,6 +15,22 @@ import { nextOccurrence, isoLocal, frequencyOf, toMonthly } from './frequency.js
 
 export const isFixed = (r) => r.source === 'fixed';
 
+/* Money set aside, as opposed to money that must be paid.
+ *
+ * Two different things were being asked on Plan as two separate questions -
+ * "I can change this one" and "goes out bit by bit" - and it was the second
+ * that actually decided the behaviour. Someone entering an Amazon Pay
+ * allowance naturally gave it a day of the month, so Kawach filed it as a
+ * dated bill and then reported it overdue when the day passed. It was never
+ * a bill: it is money kept back, and it may be spent in full, in part, or
+ * not at all.
+ *
+ * `spread` stays the field that carries it, so every record already in
+ * someone's phone keeps behaving exactly as it does today, and Plan now asks
+ * the question once.
+ */
+export const isSetAside = (r) => Boolean(r && r.spread);
+
 export function isFinished(r, today = isoLocal(new Date())) {
   return Boolean(r.endDate) && r.endDate < today;
 }

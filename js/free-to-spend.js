@@ -1,7 +1,7 @@
 import { getAll, getSetting } from './db.js';
 import { bankBalance, cardBillDue, cardOwedThisCycle, cardPosition, statementDay, afterKnownBalance, isEverydayBank, isPutAway } from './account-metrics.js';
 import { nextOccurrence, isoLocal, frequencyOf, monthlyAmountOf } from './frequency.js';
-import { isLiveCommitment, commitmentDueInWindow, paidAround, commitmentMatcher, matchWords } from './commitments.js';
+import { isLiveCommitment, commitmentDueInWindow, paidAround, commitmentMatcher, matchWords, isSetAside } from './commitments.js';
 import { looksLikeCardPayment } from './transfers.js';
 import { findDuplicates } from './duplicates.js';
 import { isLoanAccount, loanCommitment, loanPosition, assignLoanPayments } from './loans.js';
@@ -681,6 +681,9 @@ export async function computeFreeToSpend(now = new Date()) {
       order: b.item.sortOrder ?? null,
       tracked: b.tracked,
       variable,
+      // Money kept back rather than owed. It has no day, so it is never
+      // late, and whatever is not spent of it is still there.
+      setAside: isSetAside(b.item),
       left: b.amount - b.used,
       marked: markedPaid(b.item),
       // A loan's EMI is set up on the loan account, not on Plan.
@@ -764,6 +767,7 @@ export async function computeFreeToSpend(now = new Date()) {
       order: item.sortOrder ?? null,
       tracked: true,
       variable: Boolean(item.spread),
+      setAside: isSetAside(item),
       left: 0,
       marked: false,
       skipped: true,

@@ -144,26 +144,43 @@ section, never a screen-by-screen change.
 
 ### The scale
 
-| Role | Size | Weight | Tracking | Used for |
-| --- | --- | --- | --- | --- |
-| Hero money | 2.65rem | 800 | -0.042em | the one number a screen exists to answer |
-| Second money | 1.6rem | 800 | -0.02em | the bank figures, a card's balance |
-| Screen title | 1.55rem | 800 | -0.03em | the name in the header |
-| Section heading (`h3`) | 0.95rem | 650 | -0.005em | the name above a group, in `--text-muted` |
-| Row money | 0.95rem | 800 | -0.02em | money in a list row |
-| Body | 1rem | 400 | normal | names, descriptions |
-| Support | 0.86rem | 400 | normal | the muted second line |
-| Caption | 0.74rem | 500 | normal | dates, tags, counts |
+Eleven steps, every one a token in `css/tokens.css`. **A screen never writes a
+raw font size.** Before 3.3 the stylesheet held 38 different sizes and no two
+screens agreed, which is most of what made Kawach read as six screens rather
+than one product.
 
-Recap's deck uses 2.5rem for its stat: the same hero role inside a card.
+| Token | Size | Used for |
+| --- | --- | --- |
+| `--text-hero` | clamp(3.4rem, 14vw, 4.2rem) | the one figure a screen exists to answer |
+| `--text-fig-xl` | 2.1rem | the figure a review card is about |
+| `--text-display` | 1.55rem | the screen's name in the header |
+| `--text-head` | 1.25rem | a heading inside a screen |
+| `--text-fig-lg` | 1.45rem | the largest figure inside a panel |
+| `--text-fig` | 1.15rem | an ordinary money figure |
+| `--text-fig-sm` | 1.05rem | a figure in a stat pair, a dialog title |
+| `--text-body` | 0.95rem | sentences, names |
+| `--text-label` | 0.86rem | the name of a thing |
+| `--text-meta` | 0.8rem | the line under it |
+| `--text-micro` | 0.72rem | the smallest label that still has to be read |
+
+Weight carries meaning, not loudness, so the same kind of information is the
+same weight everywhere: `--weight-fig` 650 for a figure, `--weight-strong` 700
+for a name that must be found, `--weight-label` 500 for a label,
+`--weight-body` 400 for a sentence. Figures track tighter as they grow
+(`--tracking-fig`, `--tracking-hero`).
+
+Icons have three sizes and never set their own: `--icon-lg` for the one icon a
+screen is about, `--icon-md` for navigation and an icon standing alone,
+`--icon-sm` for an icon beside text.
 
 ### Money
 
-- **Three money sizes only** - hero, second, row. A fourth size on a screen
-  means the screen is doing too much.
-- **A supporting figure looks like support.** The two under a hero are
-  0.88rem with a muted label; the figure after bills is 1.15rem and muted.
-  Two figures the same size on one card is two answers to one question.
+- **Three money sizes on a screen** - the hero, one panel size, one row size.
+  A fourth means the screen is doing too much.
+- **A supporting figure looks like support.** The stats under a hero are
+  `--text-fig-sm` with a `--text-micro` label above them, stacked, so the
+  label is plainly metadata and the value carries the weight. Two figures the
+  same size on one card is two answers to one question.
 - **One hero figure per screen.** Never two big numbers competing.
 - **Whole rupees** everywhere (`formatRupees`). Paise appear only in the
   import review table, where they came from the statement.
@@ -203,7 +220,28 @@ padding, margin and gap uses a token by name; no screen writes a raw value.
 
 A hero and a row group never share a radius. Nothing rounder than its parent.
 
-## 6. The three cards
+## 6. Four surfaces, and a rule about boxes
+
+**Surfaces are used where grouping helps, not everywhere.** The stylesheet had
+grown 45 card-like rules, every one drawing a full border, so a screen read as
+a stack of outlined boxes rather than as information with some of it grouped.
+Depth now comes from tone, one pixel of light on the top edge and a soft
+shadow; the outline is a hairline at 60% of `--border` and is almost invisible
+by design.
+
+| Level | What it is | Treatment |
+| --- | --- | --- |
+| 1 | flush on the background | no surface at all |
+| 2 | a soft panel | `--surface`, hairline, light edge, `--shadow-card` |
+| 3 | the hero | translucent, blurred, ambient pool, `--shadow` |
+| 4 | a dialog | `--border-hi`, `--shadow-lift` |
+
+**There is one hero rule, and every screen that has a hero uses it.** Summary,
+Plan, Accounts and Coach share `.hero`. Through 3.2 the refined version was
+fenced inside `#dashboard` and only Summary had it, which is the single
+biggest reason the other screens looked like an older app.
+
+### The card types
 
 Every card on every screen is one of these three. There is no fourth. The
 hero and the panel are written once in `js/ui.js` (`hero`, `panel`) and a
@@ -266,11 +304,36 @@ own: it sits flat on its parent under a hairline, or on `--surface-hi`.
 
 ## 7. Buttons, controls and microinteractions
 
-- **Main action:** one lime filled pill per screen, full width, with a
+- **Main action:** one filled cyan pill per screen, full width, with a
   one-pixel highlight along its top edge and a soft shadow under it. Pressed,
   it loses the shadow: it goes down, it does not glow.
-- **Lime is for actions.** A way in - "How it's worked out", "Change amounts"
+- **Cyan is for actions.** A way in - "How it's worked out", "Change amounts"
   - is not an action: those read in `--text-muted` and keep their chevron.
+
+### Control heights, and touching them
+
+Three heights, all tokens: `--control-lg` 48px for a full-width button,
+`--control-md` 44px for a row, a select or a segmented control, `--control-sm`
+36px for a chip.
+
+**A glyph may be small. Its target may not.** Every small control
+(`.btn-tiny`, `.icon-btn`, `.link-btn`, `.chip`, `.plan-chip`, `.hist-chip`,
+`.seg-btn`, `.recap-dot`) keeps the size it looks and gains an invisible strip
+`--tap` (44px) tall, centred on it. Nothing moves and everything can be hit.
+Growing the pills instead would have changed the density of every screen.
+
+### One disclosure, everywhere
+
+There is **one** turning arrow in Kawach and it is written once. Four had
+grown up: one floated right with a top-margin nudge, two sat inline against
+the last word, one pushed itself to the row end - which is why the arrow
+looked jammed against one heading and well placed on another on the same
+screen.
+
+The rule: the summary row is a flex line with the arrow last, so the arrow is
+always at the trailing edge whatever the row holds; the whole row is the
+target and is at least `--tap` tall; closed the arrow is `--text-muted`, open
+it turns up and takes `--accent`. **A screen never nudges a chevron.**
 - **Secondary:** outlined pill.
 - **Small actions:** text links ("+ Spend", "Edit", "History ›").
 - Labels fit on one line, and say what happens ("Change many", not "Select").
@@ -298,6 +361,19 @@ kept on the phone). An emoji picked before the drawn set existed is kept.
 
 A drawing is allowed only when it answers a question a number cannot. The six
 below are the whole vocabulary; a seventh gets added here first.
+
+**One family of lines.** Every drawing is made of the same four strokes, and
+they are set in `style.css` rather than in the markup so they cannot drift
+apart: `.chart-line` (`--chart-line`, cyan, the line that carries the answer),
+`.chart-pace` (`--chart-pace`, dim, the comparison it is measured against),
+`.chart-axis` (`--chart-hair`, a baseline), `.chart-ring-track` and
+`.chart-ring-fill` (`--chart-ring`). A drawing sits in a `.chart-block` with
+`--space-sm` above it, and its sentence is a `.chart-note`, set like every
+other piece of metadata in the app.
+
+**Red is not a chart colour.** Cyan and violet carry information; red is kept
+for money that has actually gone, so a drawing never reaches for it to look
+lively.
 
 | Drawing | Answers | Lives on |
 | --- | --- | --- |

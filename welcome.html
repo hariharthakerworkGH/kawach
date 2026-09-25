@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kawach</title>
 <meta name="description" content="A shield for your money. See what you can safely spend, plan for what's coming, and worry less. Your data stays on your phone.">
-<meta name="theme-color" content="#121316">
+<meta name="theme-color" content="#07090f">
 <!-- What a link to this page shows when it's pasted into WhatsApp or a message. -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://getkawach.com/welcome.html">
@@ -27,6 +27,7 @@
   * { box-sizing: border-box; }
   body {
     margin: 0;
+    position: relative;
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-body);
@@ -34,6 +35,19 @@
     -webkit-font-smoothing: antialiased;
     overflow-x: clip;
   }
+  /* The same single light source the app has, from the same two colours. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: -10% -20% auto -20%;
+    height: 46vh;
+    background:
+      radial-gradient(58% 66% at 16% 0%, color-mix(in oklch, var(--accent) 24%, transparent), transparent 70%),
+      radial-gradient(50% 62% at 94% 4%, color-mix(in oklch, var(--violet) 19%, transparent), transparent 72%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  main { position: relative; z-index: 1; }
   main {
     max-width: 480px;
     margin: 0 auto;
@@ -46,9 +60,9 @@
     font-family: var(--font-display);
     font-size: 2.4rem;
     font-weight: 800;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.04em;
   }
-  .lead { font-size: 1.1rem; margin: var(--space-md) 0 var(--space-lg); color: var(--text); }
+  .lead { font-size: var(--text-fig); margin: var(--space-md) 0 var(--space-lg); color: var(--text); }
   .lead span { color: var(--text-muted); }
   button, .open {
     display: block;
@@ -60,18 +74,22 @@
     color: var(--accent-ink);
     font: inherit;
     font-weight: 700;
-    font-size: 1.05rem;
+    font-size: var(--text-fig-sm);
+    min-height: var(--control-lg);
     text-align: center;
     text-decoration: none;
     cursor: pointer;
   }
   .open.secondary { background: none; color: var(--text); border: 1px solid var(--border-hi); margin-top: var(--space-xs); }
-  h2 { font-size: 1rem; margin: var(--space-xl) 0 var(--space-xs); color: var(--text-muted); font-weight: 650; }
+  h2 { font-size: var(--text-label); margin: var(--space-xl) 0 var(--space-xs); color: var(--text-muted); font-weight: var(--weight-label); }
+  /* The same level-2 surface the app uses: one tone up, a hairline you can
+     just see, one pixel of light along the top. Not an outlined box. */
   .card {
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
     border-radius: var(--radius-lg);
     padding: var(--space-sm) var(--space-md);
+    box-shadow: inset 0 1px 0 0 var(--edge-lum), var(--shadow-card);
   }
   ol, ul { margin: 0; padding-left: var(--space-md); }
   li { margin: var(--space-3xs) 0; }

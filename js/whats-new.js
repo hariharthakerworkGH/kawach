@@ -12,6 +12,39 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '3.3',
+    items: [
+      {
+        icon: 'flag',
+        title: 'Must be paid, or set aside',
+        text: 'Rent and an EMI have a day. Groceries and Amazon Pay are money you keep back, and are never late.',
+        guide: [{ view: 'plan', target: '.type-field, #plan-add-btn', text: 'Every commitment is one or the other. Set aside is yours to spend, or not.' }],
+      },
+      {
+        icon: 'wallet',
+        title: 'What you kept back, still there',
+        text: 'Summary shows what is left of the money you set aside, instead of it quietly disappearing.',
+        guide: [{ view: 'summary', target: '#set-aside-stat, .hero-under', text: 'When money you set aside is still unspent, it shows here. Tap it for the list.' }],
+      },
+      {
+        icon: 'history',
+        title: 'History opens with the month',
+        text: 'What you kept, big, with money in and money out under it.',
+        guide: [{ view: 'transactions', target: '#hist-hero', text: 'In minus out. Red means the month ate into what you had.' }],
+      },
+      {
+        icon: 'add',
+        title: 'The amount you are adding is the big number',
+        text: 'Add is one number, so it is written like one.',
+      },
+      {
+        icon: 'summary',
+        title: 'The same look on every screen',
+        text: 'Plan, Accounts, History and Coach now read like Summary: one answer, then the detail.',
+      },
+    ],
+  },
+  {
     version: '3.2',
     items: [
       {

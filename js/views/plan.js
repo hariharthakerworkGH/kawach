@@ -7,7 +7,7 @@ import { getBudgets, setBudget, budgetStatusForMonth } from '../budgets.js';
 import { DEFAULT_KEEP_IN_BANK } from '../free-to-spend.js';
 import { currentMonthKey } from '../spending-month.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequencyShort, hasDueDate, toMonthly, toYearly, isoLocal } from '../frequency.js';
-import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder } from '../commitments.js';
+import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder, isSetAside } from '../commitments.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
 import { COMMON_COSTS } from '../calendar.js';
@@ -368,14 +368,15 @@ export async function render(container) {
     const freqEl = form.querySelector('.ff-frequency');
     const previewEl = form.querySelector('#ff-preview');
     const dayField = form.querySelector('.ff-day-field');
-    const spreadField = form.querySelector('.ff-spread-field');
-    const spreadEl = form.querySelector('.ff-spread');
+    const kindEls = [...form.querySelectorAll('.ff-kind')];
+    const setAside = () => form.querySelector('.ff-kind:checked')?.value === 'aside';
 
     const updatePreview = () => {
       const raw = parseFloat(amountEl.value);
       const freq = freqEl.value;
-      spreadField.hidden = freq !== 'monthly';
-      dayField.hidden = !hasDueDate(freq) || (freq === 'monthly' && spreadEl.checked);
+      // Money set aside has no day to be late on, so there is no day to ask
+      // for. A thing that must be paid keeps its day.
+      dayField.hidden = !hasDueDate(freq) || (freq === 'monthly' && setAside());
       if (!Number.isFinite(raw) || raw <= 0 || freq === 'monthly') {
         previewEl.hidden = true;
         return;
@@ -388,12 +389,13 @@ export async function render(container) {
     };
     amountEl.addEventListener('input', updatePreview);
     freqEl.addEventListener('change', updatePreview);
-    spreadEl.addEventListener('change', updatePreview);
+    for (const el of kindEls) el.addEventListener('change', updatePreview);
     updatePreview();
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const existing = editingId ? recurring.find((r) => r.id === editingId) : null;
+      const aside = setAside();
       const label = form.querySelector('.ff-label').value.trim();
       const amount = Math.round(parseFloat(amountEl.value) * 100);
       const day = parseInt(form.querySelector('.ff-day').value, 10);
@@ -407,10 +409,13 @@ export async function render(container) {
         amount,
         frequency: freqEl.value,
         dayOfMonth,
-        spread: freqEl.value === 'monthly' && spreadEl.checked,
-        // Rent and EMIs go out whatever happens; the rest is where the
-        // wiggle room is (js/views/summary.js groups the budget by this).
-        flexible: form.querySelector('.ff-flexible').checked,
+        // One question on screen, the two fields the app has always used.
+        // `spread` is what actually stops a thing being called late (it has
+        // no due date), and `flexible` is what puts it in the "can flex"
+        // half of the budget. Asking twice is what let a set-aside be
+        // entered as a dated bill and then be reported overdue.
+        spread: freqEl.value === 'monthly' && aside,
+        flexible: aside,
         categoryId: form.querySelector('.ff-category').value || null,
         accountId: form.querySelector('.ff-account').value || null,
         matchText: form.querySelector('.ff-match').value.trim() || null,
@@ -645,14 +650,17 @@ function fixedForm(categories, accounts, item) {
         </select>
       </label>
       <p class="freq-preview" id="ff-preview" hidden></p>
-      <label class="checkbox-row">
-        <input type="checkbox" class="ff-flexible" ${v.flexible ? 'checked' : ''}>
-        <span>I can change this one <span class="muted">(food, fun, transport)</span></span>
-      </label>
-      <label class="checkbox-row ff-spread-field">
-        <input type="checkbox" class="ff-spread" ${v.spread ? 'checked' : ''}>
-        <span>Goes out bit by bit through the month <span class="muted">(like ATM cash)</span></span>
-      </label>
+      <fieldset class="type-field">
+        <legend>What kind of money is this</legend>
+        <label class="type-choice">
+          <input type="radio" name="ff-kind" value="must" class="ff-kind" ${isSetAside(v) ? '' : 'checked'}>
+          <span><strong>Must be paid</strong><span class="muted-note">Rent, an EMI, a bill. It has a day, and Kawach tells you when it is late.</span></span>
+        </label>
+        <label class="type-choice">
+          <input type="radio" name="ff-kind" value="aside" class="ff-kind" ${isSetAside(v) ? 'checked' : ''}>
+          <span><strong>Set aside</strong><span class="muted-note">Money kept back for groceries, fuel, Amazon Pay and the like. Spend all of it, some of it or none of it. It is never late.</span></span>
+        </label>
+      </fieldset>
       <label class="field ff-day-field">
         <span>Day of month it goes out</span>
         <input type="number" class="ff-day" min="1" max="31" placeholder="1" value="${v.dayOfMonth || ''}">

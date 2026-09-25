@@ -67,9 +67,9 @@ export function burnLine({ totals = [], budget = 0, days = 0 }) {
         <stop offset="0" stop-color="var(--accent)" stop-opacity="0.2"/>
         <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/>
       </linearGradient></defs>
-      <line x1="0" y1="${H - pad}" x2="${W}" y2="${y(budget).toFixed(1)}" stroke="var(--text-dim)" stroke-width="2" stroke-dasharray="4 5" vector-effect="non-scaling-stroke"/>
+      <line x1="0" y1="${H - pad}" x2="${W}" y2="${y(budget).toFixed(1)}" class="chart-pace" stroke-dasharray="4 5" vector-effect="non-scaling-stroke"/>
       <path d="${area}" fill="url(#burn-fade)"/>
-      <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      <path d="${path}" fill="none" class="chart-line" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
       <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="5.5" fill="var(--accent)" opacity="0.18" vector-effect="non-scaling-stroke"/>
       <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="3" fill="var(--accent)" vector-effect="non-scaling-stroke"/>`,
     {
@@ -149,8 +149,8 @@ export function goalRing({ saved = 0, target = 0, size = 76, monthly = null, by 
   const circumference = 2 * Math.PI * r;
   const label = `${Math.round(share * 100)} per cent saved: ${formatRupees(saved)} of ${formatRupees(target)}${by ? ` by ${by}` : ''}.`;
   return `<svg class="goal-ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(label)}">
-      <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--surface-hi)" stroke-width="7"/>
-      <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"
+      <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" class="chart-ring-track"/>
+      <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" class="chart-ring-fill" stroke-linecap="round"
         stroke-dasharray="${(circumference * share).toFixed(1)} ${circumference.toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>
       <text x="${size / 2}" y="${size / 2 + 5}" text-anchor="middle" fill="var(--text)" font-size="${Math.round(size / 4.6)}" font-weight="700">${Math.round(share * 100)}%</text>
       ${monthly ? `<title>${esc(`${formatRupees(monthly)} a month gets there`)}</title>` : ''}
@@ -170,16 +170,17 @@ export function inOutBars({ months = [] }) {
   const base = H - 14;
   const top = Math.max(...real.map((m) => Math.max(m.in, m.out))) || 1;
   const slot = W / real.length;
-  const barW = Math.min(12, slot / 3.2);
-  const h = (v) => Math.max(2, (v / top) * (base - 6));
+  const barW = Math.min(7, slot / 5);
+  const h = (v) => Math.max(barW, (v / top) * (base - 6));
   const bars = real
     .map((m, i) => {
       const cx = i * slot + slot / 2;
       const inH = h(m.in);
       const outH = h(m.out);
-      return `<rect x="${(cx - barW - 1).toFixed(1)}" y="${(base - inH).toFixed(1)}" width="${barW.toFixed(1)}" height="${inH.toFixed(1)}" rx="3" fill="var(--in)"/>
-        <rect x="${(cx + 1).toFixed(1)}" y="${(base - outH).toFixed(1)}" width="${barW.toFixed(1)}" height="${outH.toFixed(1)}" rx="3" fill="var(--out)"/>
-        <text x="${cx.toFixed(1)}" y="${H - 2}" text-anchor="middle" font-size="9" fill="var(--text-dim)">${esc(m.label)}</text>`;
+      const gap = barW * 0.62;
+      return `<rect class="bar-in" x="${(cx - barW - gap).toFixed(1)}" y="${(base - inH).toFixed(1)}" width="${barW.toFixed(1)}" height="${inH.toFixed(1)}" rx="${(barW / 2).toFixed(1)}"/>
+        <rect class="bar-out" x="${(cx + gap).toFixed(1)}" y="${(base - outH).toFixed(1)}" width="${barW.toFixed(1)}" height="${outH.toFixed(1)}" rx="${(barW / 2).toFixed(1)}"/>
+        <text class="chart-tick" x="${cx.toFixed(1)}" y="${H - 2}" text-anchor="middle">${esc(m.label)}</text>`;
     })
     .join('');
   const last = real[real.length - 1];
@@ -190,7 +191,7 @@ export function inOutBars({ months = [] }) {
   const label = `Money in and out over ${real.length} months. ${real.map((m) => `${m.label}: in ${formatRupees(m.in)}, out ${formatRupees(m.out)}`).join('. ')}.`;
   const drawing = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
       ${bars}
-      <line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="var(--border)" stroke-width="1" vector-effect="non-scaling-stroke"/>
+      <line x1="0" y1="${base}" x2="${W}" y2="${base}" class="chart-axis" vector-effect="non-scaling-stroke"/>
     </svg>`;
   return `<div class="chart-block">${drawing}
       <p class="chart-note in-out-legend"><span><i class="key key-in"></i>in</span><span><i class="key key-out"></i>out</span><span>${sentence}</span></p>

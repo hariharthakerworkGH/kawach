@@ -11,6 +11,7 @@ import { setBackupPassphrase, backUpToDrive, listBackups, SYNC_FILE } from '../j
 import { encryptPayload, decryptPayload, exportEncrypted, decryptBackup, restoreBackup } from '../js/backup.js';
 import { takenHome, categoriesFor } from '../js/business.js';
 import { notesFor } from '../js/whats-new.js';
+import { isSetAside } from '../js/commitments.js';
 import { APP_VERSION } from '../js/version.js';
 
 // Salary ₹1,00,000; commitments: EMI ₹40,000 (bank), rent ₹20,000 (bank),
@@ -782,4 +783,103 @@ test("What's new shows only the notes that fit, from versions not yet seen", () 
   // Nothing new since the version they last saw. Read from APP_VERSION so a
   // release bump doesn't fail a test that is about the filtering, not the number.
   equal(titles(pensioner, APP_VERSION), []);
+});
+
+
+/* ---------- Must be paid, or set aside ----------
+ * The distinction Plan now asks about once. A thing that must be paid has a
+ * day and can be late; money set aside has neither, and whatever is left of
+ * it is still yours. Every case below is one a real record can be in,
+ * including the ones already sitting in someone's phone.
+ */
+
+// Two commitments, one of each kind, and whatever spending the case needs.
+async function seedTwoKinds(spent = []) {
+  await seedBasics({ income: 100000, keep: 5000 });
+  await putAll('recurring', [
+    commitment({ id: 'rent', label: 'House rent', amount: 20000, dayOfMonth: 3, accountId: 'bank' }),
+    commitment({ id: 'shop', label: 'Amazon Pay', amount: 2000, dayOfMonth: 14, spread: true, flexible: true, accountId: 'bank', matchText: 'AMAZON' }),
+  ]);
+  await putAll('transactions', [
+    txn({ id: 's', accountId: 'bank', date: '2026-09-01', amount: 100000, direction: 'credit', rawDescription: 'SALARY' }),
+    ...spent,
+  ]);
+}
+
+const rowFor = (f, id) => f.tracker.find((t) => t.id === id);
+
+test('a dated commitment must be paid, and can be late', async () => {
+  await seedTwoKinds();
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  const rent = rowFor(f, 'rent');
+  equal(rent.setAside, false);
+  ok(rent.due, 'a thing that must be paid has a day');
+  equal(rent.status, 'late');
+});
+
+test('money set aside has no day, so it is never late', async () => {
+  await seedTwoKinds();
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  const shop = rowFor(f, 'shop');
+  equal(shop.setAside, true);
+  equal(shop.due, undefined);
+  ok(!['late', 'due'].includes(shop.status), 'a set-aside is never reported late');
+});
+
+test('a set-aside spent in full leaves nothing set aside', async () => {
+  await seedTwoKinds([txn({ id: 'a1', accountId: 'bank', date: '2026-09-10', amount: 2000, rawDescription: 'AMAZON PAY' })]);
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  const shop = rowFor(f, 'shop');
+  paise(shop.used, rupees(2000));
+  paise(shop.left, 0);
+});
+
+test('a set-aside spent in part leaves the rest set aside', async () => {
+  await seedTwoKinds([txn({ id: 'a2', accountId: 'bank', date: '2026-09-10', amount: 1200, rawDescription: 'AMAZON PAY' })]);
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  const shop = rowFor(f, 'shop');
+  paise(shop.used, rupees(1200));
+  paise(shop.left, rupees(800));
+});
+
+test('a set-aside left alone is still there in full', async () => {
+  await seedTwoKinds();
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  paise(rowFor(f, 'shop').left, rupees(2000));
+});
+
+test('what is set aside never changes the budget or what is left to spend', async () => {
+  // The headline is a steady number all month: the whole amount comes out of
+  // the budget on day one whether it is spent or not. Spending against a
+  // set-aside is inside the budget already, so it is not spent twice either.
+  const none = await (async () => { await seedTwoKinds(); return computeFreeToSpend(day('2026-09-16')); })();
+  const part = await (async () => {
+    await seedTwoKinds([txn({ id: 'a3', accountId: 'bank', date: '2026-09-10', amount: 1200, rawDescription: 'AMAZON PAY' })]);
+    return computeFreeToSpend(day('2026-09-16'));
+  })();
+  paise(none.limit, rupees(100000 - 20000 - 2000 - 5000));
+  paise(part.limit, none.limit);
+  paise(part.free, none.free);
+});
+
+test('a record from before the question was asked keeps behaving as it did', async () => {
+  // Neither flag, a day of its own: this is what every commitment in a phone
+  // today looks like, and it stays a thing that must be paid.
+  await seedBasics({ income: 100000, keep: 5000 });
+  await putAll('recurring', [commitment({ id: 'old', label: 'Old bill', amount: 3000, dayOfMonth: 5, accountId: 'bank' })]);
+  await putAll('transactions', [txn({ id: 's2', accountId: 'bank', date: '2026-09-01', amount: 100000, direction: 'credit', rawDescription: 'SALARY' })]);
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  const old = rowFor(f, 'old');
+  equal(old.setAside, false);
+  equal(old.status, 'late');
+  paise(f.limit, rupees(100000 - 3000 - 5000));
+});
+
+test('isSetAside reads the field the app has always stored', () => {
+  equal(isSetAside({ spread: true }), true);
+  equal(isSetAside({ spread: true, flexible: true }), true);
+  equal(isSetAside({ dayOfMonth: 5 }), false);
+  equal(isSetAside({ flexible: true, dayOfMonth: 5 }), false);
+  equal(isSetAside(null), false);
+  equal(isSetAside({}), false);
 });

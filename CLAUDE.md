@@ -80,6 +80,15 @@ Periods:
   counts, with one exception: a commitment with a set day (EMI, rent) paid on
   salary day at the end of a month belongs to the month after.
 - The bank balance never raises the budget. It is a separate check that only warns.
+- A commitment is one of two things, asked once on Plan: **must be paid** (rent,
+  an EMI, a bill: it has a day and can be late) or **set aside** (groceries,
+  fuel, Amazon Pay: money kept back, spent in full, in part or not at all, and
+  never late). It is stored in the field the app has always used, `spread`
+  (`isSetAside`, js/commitments.js), so every existing record keeps behaving
+  as it does. The budget still takes the whole amount out at the start of the
+  month either way, which is what keeps "Left to spend" steady; what is left
+  of a set-aside is shown on Summary as "Still set aside" rather than
+  disappearing.
 - Account types: bank, card, cash, savings (FDs - a balance, never spendable) and
   loan. A loan is set up on its own account (amount, rate, EMI, day, the account
   it leaves from) and its EMI becomes a commitment by itself, so it is never also
