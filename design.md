@@ -586,7 +586,7 @@ job: if a screen needs something else, add the block here before drawing it.
 - **Structure:** back, the period in words, forward.
 - **States:** this period (forward off), an older one.
 
-### 17 Filter chips - exists (`.chip-row`, `.hist-chips`)
+### 17 Filter chips - exists (`.hist-chips`; Add chooses its category in a sheet)
 
 - **Purpose:** narrow a list without leaving it.
 - **Structure:** one line of pills that scrolls sideways, the chosen one lime.

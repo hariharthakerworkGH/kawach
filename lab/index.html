@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kawach design lab 2.0</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0a0c14">
+<!--
+  THE DESIGN LAB 2.0. Not a screen of the app.
+
+  It exists so the visual system can be judged on its own before a screen is
+  built on it. It loads css/dna.css for the system and two of the app's own
+  modules - js/icons.js and js/brand.js - so the icon set and the brand
+  resolver are the real ones rather than a drawing of them. No database, no
+  router, no service worker, no network. Deleting this folder would leave
+  Kawach exactly as it is.
+
+  Every figure here is invented, and every figure here adds up:
+
+      income                52,000
+      fixed commitments   - 18,800
+      saved each month    -  5,000
+      ------------------------------
+      budget                28,200
+      spent so far        - 19,960
+      ------------------------------
+      left to spend          8,240
+
+  A system that lies about arithmetic cannot be made to look right here.
+-->
+<link rel="stylesheet" href="../css/dna.css">
+<style>
+  /* Lab chrome only. Nothing in this block is part of the system. */
+  body { margin: 0; }
+  .lab { max-width: 430px; margin: 0 auto; padding: var(--k-5) var(--k-4) var(--k-16); }
+
+  .lab-bar {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; align-items: baseline; gap: var(--k-3);
+    padding: var(--k-3) var(--k-4);
+    background: color-mix(in oklch, var(--k-bg) 86%, transparent);
+    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--k-hairline);
+  }
+  .lab-bar b {
+    font-size: var(--k-label); font-weight: var(--k-w-fig);
+    letter-spacing: var(--k-track-caption); text-transform: uppercase; color: var(--k-text-2);
+  }
+  .lab-bar span { margin-left: auto; font-size: var(--k-caption); color: var(--k-text-3); }
+
+  .lab-sec { margin-top: var(--k-12); }
+  .lab-sec:first-of-type { margin-top: var(--k-6); }
+  .lab-sec > h2 {
+    margin: 0 0 var(--k-1);
+    font-size: var(--k-caption); font-weight: var(--k-w-fig);
+    letter-spacing: var(--k-track-caption); text-transform: uppercase; color: var(--k-text-3);
+  }
+  /* What the section is for, in one line. The lab explains itself or it is
+     just a page of pretty rectangles. */
+  .lab-sec > h2 + p { margin: 0 0 var(--k-4); font-size: var(--k-label); color: var(--k-text-2); line-height: var(--k-lh-body); }
+  .lab-note { font-size: var(--k-label); color: var(--k-text-3); margin: var(--k-3) 0 0; line-height: var(--k-lh-body); }
+  .lab-q { font-size: var(--k-caption); color: var(--k-text-3); margin: 0 0 var(--k-3); font-style: italic; }
+
+  .stack { display: flex; flex-direction: column; gap: var(--k-4); }
+  .stack--tight { gap: var(--k-3); }
+  .rowy { display: flex; gap: var(--k-2); flex-wrap: wrap; align-items: center; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--k-3); }
+  .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--k-3); }
+
+  .swatch { height: 52px; border-radius: var(--k-r-sm); border: 1px solid var(--k-hairline); }
+  .swatch-name { font-size: var(--k-caption); color: var(--k-text-3); margin-top: 5px; display: block; }
+
+  /* The app's icon helper returns <svg class="icon">, which production sizes
+     in style.css. The lab does not load style.css, so it sizes it here. */
+  .icon { width: 1em; height: 1em; display: block; }
+
+  /* A framed viewport for showing something at a width that is not this one. */
+  .lab-frame {
+    border: 1px dashed var(--k-border);
+    border-radius: var(--k-r-md);
+    padding: var(--k-3);
+    overflow: hidden;
+  }
+  .lab-frame > b { display: block; font-size: var(--k-caption); color: var(--k-text-3); margin-bottom: var(--k-3); }
+  /* Never wider than the column it sits in, or the demonstration of not
+     overflowing is itself an overflow. */
+  .lab-w320 { width: min(296px, 100%); }
+
+  /* The nav is full width on a real screen, so the demo has to be too, or
+     it measures six targets squeezed into a padded column and reports a
+     problem the product does not have. */
+  .lab-bleed { margin-inline: calc(var(--k-4) * -1); }
+
+  /* The sheet component is fixed to the bottom of the window by design. To
+     show it in a page of other things, it is pinned inside a box instead. */
+  .sheet-demo { position: relative; height: 320px; border-radius: var(--k-r-lg); overflow: hidden; border: 1px solid var(--k-hairline); }
+  .sheet-demo .k-scrim, .sheet-demo .k-sheet { position: absolute; }
+</style>
+</head>
+<body class="k k-atmosphere">
+
+<div class="lab-bar">
+  <b>Kawach design lab 2.0</b>
+  <span>not a production screen</span>
+</div>
+
+<div class="lab">
+
+<!-- 01 · BRAND / IDENTITY ------------------------------------------- -->
+<section class="lab-sec">
+  <h2>01 · Brand and identity</h2>
+  <p>Who the product is before it says anything. One mark, one voice, one promise.</p>
+
+  <div class="k-hero">
+    <div class="k-editorial">
+      <p class="k-editorial__lede">Your money, <span class="k-editorial__em">with clarity</span>.</p>
+      <div class="k-editorial__tail">The same data. A calmer way to see it.</div>
+    </div>
+  </div>
+
+  <div class="k-pane" style="margin-top:var(--k-4)">
+    <div class="rowy" style="gap:var(--k-4)">
+      <img src="../icons/kawach.svg" alt="" width="46" height="46" style="border-radius:var(--k-r-sm)">
+      <div class="k-metric">
+        <span class="k-metric__k">Name</span>
+        <span class="k-metric__v" style="font-size:var(--k-body)">Kawach &middot; shield</span>
+      </div>
+    </div>
+    <p class="lab-note">The app protects a person's future, so it is named for armour and it behaves like armour: quiet, always on, never asking to be admired.</p>
+  </div>
+</section>
+
+<!-- 02 · ATMOSPHERE ------------------------------------------------- -->
+<section class="lab-sec">
+  <h2>02 · Atmosphere</h2>
+  <p>Five coloured fields behind everything, at a strength you are not meant to notice.</p>
+  <p class="lab-q">The whole page is sitting on it right now. That is the test: if you had to be told, it is correct.</p>
+
+  <div class="k-pane--flat k-pane">
+    <div class="stack stack--tight">
+      <div class="k-share__row">
+        <span class="k-share__name">Cyan, upper left</span><span class="k-share__v">10%</span>
+        <div class="k-share__track"><div class="k-share__fill" style="--k-w:100%;--k-tint:var(--k-cyan)"></div></div>
+      </div>
+      <div class="k-share__row">
+        <span class="k-share__name">Violet, upper right</span><span class="k-share__v">9%</span>
+        <div class="k-share__track"><div class="k-share__fill" style="--k-w:90%;--k-tint:var(--k-violet)"></div></div>
+      </div>
+      <div class="k-share__row">
+        <span class="k-share__name">Magenta, mid edge</span><span class="k-share__v">6%</span>
+        <div class="k-share__track"><div class="k-share__fill" style="--k-w:60%;--k-tint:var(--k-magenta)"></div></div>
+      </div>
+      <div class="k-share__row">
+        <span class="k-share__name">Warm, lower right</span><span class="k-share__v">4%</span>
+        <div class="k-share__track"><div class="k-share__fill" style="--k-w:40%;--k-tint:var(--k-warning)"></div></div>
+      </div>
+    </div>
+    <p class="lab-note">The ceiling is measured, not chosen: above roughly a tenth of a wash at one pixel, the quietest text stops clearing 4.5:1 against its own background. The warm field is the weakest of the four and is kept to the lower right, well away from anything that warns, so a warning never has to compete with the wallpaper.</p>
+  </div>
+</section>
+
+<!-- 03 · MATERIAL HIERARCHY ----------------------------------------- -->
+<section class="lab-sec">
+  <h2>03 · Material hierarchy</h2>
+  <p>Depth says what matters. Five levels, each a real step in fill, blur, line and shadow.</p>
+  <p class="lab-q">Answers: which of these things is the app telling me to look at?</p>
+
+  <div class="stack stack--tight">
+    <div class="k-pane k-pane--flat" style="padding:var(--k-4)">
+      <b style="font-size:var(--k-label)">L0 &middot; flat</b>
+      <p class="lab-note" style="margin-top:4px">Solid, no blur. Structure and low-priority containers. Costs a mid-range phone nothing.</p>
+    </div>
+    <div class="k-pane k-pane--quiet" style="padding:var(--k-4)">
+      <b style="font-size:var(--k-label)">L1 &middot; quiet</b>
+      <p class="lab-note" style="margin-top:4px">10px blur. A list, a row group, supporting information.</p>
+    </div>
+    <div class="k-pane" style="padding:var(--k-4)">
+      <b style="font-size:var(--k-label)">L2 &middot; content</b>
+      <p class="lab-note" style="margin-top:4px">16px blur. A figure with something to say. The default.</p>
+    </div>
+    <div class="k-pane k-pane--focus" style="padding:var(--k-4)">
+      <b style="font-size:var(--k-label)">L3 &middot; focused</b>
+      <p class="lab-note" style="margin-top:4px">22px blur. What you opened, chose, or are being pointed at.</p>
+    </div>
+    <div class="k-hero" style="padding:var(--k-4)">
+      <b style="font-size:var(--k-label)">L4 &middot; hero</b>
+      <p class="lab-note" style="margin-top:4px">30px blur. One per screen. The answer.</p>
+    </div>
+  </div>
+  <p class="lab-note">Depth communicates hierarchy. That is not the same as everything being glass, which is why the bottom of the scale is not glass at all.</p>
+</section>
+
+<!-- 04 · EDITORIAL TYPOGRAPHY --------------------------------------- -->
+<section class="lab-sec">
+  <h2>04 · Editorial typography</h2>
+  <p>A figure on its own is a readout. A figure with a sentence around it is a statement.</p>
+
+  <div class="k-hero">
+    <div class="k-editorial">
+      <p class="k-editorial__lede">You are <span class="k-editorial__em">spending less</span>.</p>
+      <div class="k-editorial__figure k-editorial__figure--hero">&#8377;19,960</div>
+      <div class="k-editorial__tail">
+        <span>this month</span>
+        <span class="k-delta k-delta--good">&#8595; 12.4% vs August</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="k-pane" style="margin-top:var(--k-4)">
+    <div class="k-editorial">
+      <p class="k-editorial__lede">Groceries cost more than usual.</p>
+      <div class="k-editorial__figure">&#8377;6,480</div>
+      <div class="k-editorial__tail">
+        <span>on food and dining</span>
+        <span class="k-delta k-delta--bad">&#8593; &#8377;1,840</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="lab-note">Three rules keep this from turning ornamental. The sentence is short enough to read in one go. The figure stays the largest thing on the surface. The tail carries the comparison rather than repeating the figure. Down is not automatically good, so the direction is set by whoever knows what the number means, never guessed from its sign.</p>
+</section>
+
+<!-- 05 · METRICS / HERO COMPOSITION --------------------------------- -->
+<section class="lab-sec">
+  <h2>05 · Metrics and hero composition</h2>
+  <p>One hero holds four things: what it is, the figure, how it is going, and what is behind it.</p>
+
+  <div class="k-hero">
+    <div class="k-hero__label">Left to spend</div>
+    <div class="k-hero__figure">&#8377;8,240</div>
+    <div class="k-meter" style="margin:var(--k-4) 0 var(--k-3)">
+      <div class="k-meter__fill" style="width:70.8%"></div>
+    </div>
+    <div class="two">
+      <div class="k-metric"><span class="k-metric__k">Spent</span><span class="k-metric__v">&#8377;19,960</span></div>
+      <div class="k-metric"><span class="k-metric__k">Budget</span><span class="k-metric__v">&#8377;28,200</span></div>
+    </div>
+  </div>
+
+  <div class="two" style="margin-top:var(--k-4)">
+    <div class="k-pane" style="padding:var(--k-4)">
+      <div class="k-metric"><span class="k-metric__k">In this month</span><span class="k-metric__v k-metric__v--pos">&#8377;52,000</span></div>
+    </div>
+    <div class="k-pane" style="padding:var(--k-4)">
+      <div class="k-metric"><span class="k-metric__k">Out this month</span><span class="k-metric__v k-metric__v--neg">&#8377;43,760</span></div>
+    </div>
+  </div>
+  <p class="lab-note">The meter is spent against budget, so it fills as the month is used up: 19,960 of 28,200 is 70.8%. A label sits above its figure and never beside it, because two columns of small text is how a screen starts to look like a spreadsheet.</p>
+</section>
+
+<!-- 06 · CONTROLS ---------------------------------------------------- -->
+<section class="lab-sec">
+  <h2>06 · Controls</h2>
+  <p>One geometry, three voices, and a target no smaller than a fingertip whatever the glyph looks like.</p>
+
+  <div class="stack stack--tight">
+    <button class="k-btn k-btn--primary" style="width:100%">Save</button>
+    <div class="two">
+      <button class="k-btn k-btn--secondary">Secondary</button>
+      <button class="k-btn k-btn--ghost">Ghost</button>
+    </div>
+
+    <div class="k-seg" role="tablist" aria-label="Which way the money went">
+      <button class="k-seg__btn" role="tab" aria-selected="true">Spent</button>
+      <button class="k-seg__btn" role="tab" aria-selected="false">Received</button>
+    </div>
+
+    <div class="k-field">
+      <span class="k-label">Merchant</span>
+      <input class="k-input" type="text" placeholder="e.g. Swiggy, Netflix, Uber">
+    </div>
+
+    <div class="k-field">
+      <span class="k-label">Category</span>
+      <select class="k-select">
+        <option>Food &amp; Dining</option>
+        <option>Shopping</option>
+        <option>Transport</option>
+      </select>
+    </div>
+
+    <div class="k-switch-row">
+      <span class="k-switch-row__text" id="lab-sw">Repeats every month
+        <span class="k-switch-row__sub">Counts it in your plan, not just today</span>
+      </span>
+      <button class="k-toggle" role="switch" aria-checked="true" aria-labelledby="lab-sw" data-toggle></button>
+    </div>
+
+    <div class="rowy">
+      <button class="k-chip">All</button>
+      <button class="k-chip" aria-pressed="true">Food</button>
+      <button class="k-chip">Transport</button>
+    </div>
+  </div>
+  <p class="lab-note">The toggle is 52 by 30 to look right and 44 tall to be pressed: an invisible strip carries the extra height without changing the layout. Every control here takes the same focus ring, and the ring is the only thing in the system allowed to draw a hard outline.</p>
+</section>
+
+<!-- 07 · TRANSACTION ROWS -------------------------------------------- -->
+<section class="lab-sec">
+  <h2>07 · Transaction rows</h2>
+  <p>One line per payment. Everything else is behind a tap.</p>
+
+  <div class="k-pane k-pane--quiet" style="padding:var(--k-2) var(--k-4)">
+    <div class="k-rows" id="lab-rows"></div>
+  </div>
+  <p class="lab-note">The mark on the left is the brand system, so a person finds a payment by recognising it rather than by reading it. The amount is the only thing allowed to be a money colour.</p>
+</section>
+
+<!-- 08 · INSIGHTS AND CONTEXT ---------------------------------------- -->
+<section class="lab-sec">
+  <h2>08 · Insight and context</h2>
+  <p>The same fact, emphasised for the moment it is in. The arithmetic never changes; only the way it is said.</p>
+  <p class="lab-q">Answers: is this a normal day, or is something about to matter?</p>
+
+  <div class="stack stack--tight">
+    <div class="k-context k-context--calm">
+      <span class="k-context__mark" data-icon="check"></span>
+      <div class="k-context__body">
+        <div class="k-context__k">Everything looks steady</div>
+        <div class="k-context__v">&#8377;8,240 <span class="k-context__qual">available</span></div>
+        <p class="k-context__note">You are on track for this month.</p>
+      </div>
+    </div>
+
+    <div class="k-context k-context--attention">
+      <span class="k-context__mark" data-icon="clock"></span>
+      <div class="k-context__body">
+        <div class="k-context__k">Month end approaching</div>
+        <div class="k-context__v">&#8377;8,240 <span class="k-context__qual">left for 6 days</span></div>
+        <p class="k-context__note">That is &#8377;1,373 a day. You have used 71% of your budget.</p>
+      </div>
+    </div>
+
+    <div class="k-context k-context--alert">
+      <span class="k-context__mark" data-icon="alert"></span>
+      <div class="k-context__body">
+        <div class="k-context__k">Unusual spending</div>
+        <div class="k-context__v">&#8377;6,480 <span class="k-context__qual">on food and dining</span></div>
+        <p class="k-context__note">&#8377;1,840 above your usual month.</p>
+      </div>
+    </div>
+  </div>
+  <p class="lab-note">All three say &#8377;8,240 or a figure taken from the same month. Nothing was recalculated to change the tone: emphasis is presentation, and it never reaches back into the number. Tone is set from a state the app can actually know - days remaining, a share of budget used, a category outside its own usual range - never invented to make a screen livelier.</p>
+</section>
+
+<!-- 09 · CHARTS ------------------------------------------------------ -->
+<section class="lab-sec">
+  <h2>09 · Charts</h2>
+  <p>Four drawings. Each one is here because it answers a question, and the question is written above it.</p>
+
+  <!-- A · cash-flow river -->
+  <div class="k-pane">
+    <div class="k-metric" style="margin-bottom:var(--k-3)">
+      <span class="k-metric__k">Cash-flow river &middot; six months</span>
+    </div>
+    <p class="lab-q">Is more coming in than going out, and how has that changed?</p>
+    <svg class="k-chart" viewBox="0 0 300 132" role="img" aria-label="Money in holds near 52,000 a month, with 56,400 in July. Money out moves between 43,760 and 49,100. The gap stayed positive every month, narrowest in June and widest in July.">
+      <!-- The gap is the money kept. It is the only thing filled. -->
+      <path class="k-river__band" d="M15,45 L70,45 L125,45 L180,23 L235,45 L290,45 L290,86.2 L235,72.05 L180,79 L125,59.5 L70,70.25 L15,83 Z"/>
+      <path class="k-river__line" style="--k-tint:var(--k-positive)" d="M15,45 L70,45 L125,45 L180,23 L235,45 L290,45"/>
+      <path class="k-river__line" style="--k-tint:var(--k-negative)" d="M15,83 L70,70.25 L125,59.5 L180,79 L235,72.05 L290,86.2"/>
+      <circle class="k-river__cap" style="--k-tint:var(--k-positive)" cx="290" cy="45" r="3"/>
+      <circle class="k-river__cap" style="--k-tint:var(--k-negative)" cx="290" cy="86.2" r="3"/>
+      <text class="k-chart__tick" x="15" y="126">Apr</text>
+      <text class="k-chart__tick" x="273" y="126">Sep</text>
+    </svg>
+    <div class="k-legend">
+      <span class="k-legend__item"><i class="k-legend__dot" style="--k-tint:var(--k-positive)"></i>In &middot; &#8377;52,000</span>
+      <span class="k-legend__item"><i class="k-legend__dot" style="--k-tint:var(--k-negative)"></i>Out &middot; &#8377;43,760</span>
+      <span class="k-legend__item"><i class="k-legend__dot" style="width:16px;height:9px;border-radius:2px;background:color-mix(in oklch, var(--k-positive) 16%, transparent)"></i>The gap is what you kept</span>
+    </div>
+    <p class="lab-note">June is the month to look at: the lines almost touch, because &#8377;49,100 went out against &#8377;52,000 in. July is the widest gap, and it is the bonus. The scale is zoomed to the range the money actually moves in, so only the gap is filled - shading down to a baseline the axis does not start at is the lie this kind of chart usually tells.</p>
+  </div>
+
+  <!-- B · radial commitment meter -->
+  <div class="k-pane" style="margin-top:var(--k-4)">
+    <div class="k-metric" style="margin-bottom:var(--k-3)">
+      <span class="k-metric__k">Commitment meter</span>
+    </div>
+    <p class="lab-q">How much of the month is already spoken for before I decide anything?</p>
+    <div class="k-radial" style="max-width:180px;margin:0 auto">
+      <svg class="k-radial__svg" viewBox="0 0 140 140" role="img" aria-label="46 percent of income is committed.">
+        <defs>
+          <linearGradient id="kRing" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--k-cyan)"/>
+            <stop offset="100%" stop-color="var(--k-violet)"/>
+          </linearGradient>
+        </defs>
+        <circle class="k-chart__ring-track" cx="70" cy="70" r="52"/>
+        <circle class="k-chart__ring-fill k-fill-in" cx="70" cy="70" r="52"
+                stroke-dasharray="150.3 326.7" style="--k-len:326.7"/>
+      </svg>
+      <div class="k-radial__mid">
+        <span class="k-radial__v">46%</span>
+        <span class="k-radial__k">committed</span>
+      </div>
+    </div>
+    <div class="two" style="margin-top:var(--k-4)">
+      <div class="k-metric"><span class="k-metric__k">Committed</span><span class="k-metric__v">&#8377;23,800</span></div>
+      <div class="k-metric"><span class="k-metric__k">Left to plan</span><span class="k-metric__v">&#8377;28,200</span></div>
+    </div>
+    <p class="lab-note">&#8377;18,800 of fixed costs plus &#8377;5,000 saved, against &#8377;52,000 coming in. The remainder is the budget every other screen works from.</p>
+  </div>
+
+  <!-- C · spending pulse -->
+  <div class="k-pane" style="margin-top:var(--k-4)">
+    <div class="k-metric" style="margin-bottom:var(--k-3)">
+      <span class="k-metric__k">Spending pulse &middot; September</span>
+    </div>
+    <p class="lab-q">When in the month do I actually spend?</p>
+    <div class="k-pulse" id="lab-pulse" role="img" aria-label="Daily spending through September. The largest day is the 12th."></div>
+    <p class="k-chart__note">Biggest day: <strong>12 Sep, &#8377;3,180</strong>. Eleven days under &#8377;200.</p>
+    <p class="lab-note">A quiet day keeps a visible stub rather than vanishing, so nothing reads as missing data.</p>
+  </div>
+
+  <!-- D · share -->
+  <div class="k-pane" style="margin-top:var(--k-4)">
+    <div class="k-metric" style="margin-bottom:var(--k-3)">
+      <span class="k-metric__k">Where it went</span>
+    </div>
+    <p class="lab-q">Where did the &#8377;19,960 go, biggest first?</p>
+    <div class="k-share" id="lab-share"></div>
+    <p class="lab-note">This replaced the bubble constellation. A circle of circles is a handsome way to make a person squint at one small disc to work out whether it is bigger than another small disc; at 320px with fourteen categories it stops working entirely. A ranked bar answers the same question at a glance and keeps answering it as the list grows.</p>
+  </div>
+</section>
+
+<!-- 10 · COMMITMENT / PLANNING --------------------------------------- -->
+<section class="lab-sec">
+  <h2>10 · Commitment and planning</h2>
+  <p>What is already promised, and what is still yours to decide.</p>
+
+  <div class="k-pane k-pane--quiet" style="padding:var(--k-2) var(--k-4)">
+    <div class="k-rows">
+      <div class="k-row">
+        <span class="k-icon" style="--k-tint:var(--k-violet)" data-icon="home"></span>
+        <span class="k-row__body"><span class="k-row__title">Rent</span><span class="k-row__meta">Due 5th &middot; must be paid</span></span>
+        <span class="k-row__value">&#8377;12,000</span>
+      </div>
+      <div class="k-row">
+        <span class="k-icon" style="--k-tint:var(--k-cyan)" data-icon="bill"></span>
+        <span class="k-row__body"><span class="k-row__title">Electricity</span><span class="k-row__meta">Due 18th &middot; must be paid</span></span>
+        <span class="k-row__value">&#8377;2,400</span>
+      </div>
+      <div class="k-row">
+        <span class="k-icon" style="--k-tint:var(--k-positive)" data-icon="store"></span>
+        <span class="k-row__body"><span class="k-row__title">Groceries</span><span class="k-row__meta">Set aside &middot; &#8377;1,560 still unspent</span></span>
+        <span class="k-row__value">&#8377;4,400</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="k-context k-context--calm" style="margin-top:var(--k-4)">
+    <span class="k-context__mark" data-icon="wallet"></span>
+    <div class="k-context__body">
+      <div class="k-context__k">Still set aside</div>
+      <div class="k-context__v">&#8377;1,560 <span class="k-context__qual">of the grocery money</span></div>
+      <p class="k-context__note">It stays in the budget either way, so what is left to spend does not jump about.</p>
+    </div>
+  </div>
+  <p class="lab-note">12,000 + 2,400 + 4,400 is 18,800: the fixed commitments the budget takes out at the start of the month.</p>
+</section>
+
+<!-- 11 · BOTTOM SHEETS ----------------------------------------------- -->
+<section class="lab-sec">
+  <h2>11 · Bottom sheets</h2>
+  <p>A choice arrives from the bottom, covers what it must, and gives the screen back.</p>
+
+  <div class="sheet-demo">
+    <div class="k-scrim"></div>
+    <div class="k-sheet">
+      <div class="k-sheet__grip"></div>
+      <div class="k-sheet__head">
+        <span class="k-sheet__title">Category</span>
+        <button class="k-btn k-btn--ghost k-sheet__close">Done</button>
+      </div>
+      <div class="k-rows" id="lab-sheet-rows"></div>
+    </div>
+  </div>
+  <p class="lab-note">Pinned inside a box here; in the app it is fixed to the window. It rises in 420ms on the one spring the system has, with an overshoot small enough that it reads as weight rather than as bounce.</p>
+</section>
+
+<!-- 12 · STATES ------------------------------------------------------ -->
+<section class="lab-sec">
+  <h2>12 · States</h2>
+  <p>What the app says when it worked, when it did not, when there is nothing yet, and while it waits.</p>
+
+  <div class="stack stack--tight">
+    <div class="k-state">
+      <span class="k-state__mark" data-icon="check"></span>
+      <div>
+        <div class="k-state__title">Payment saved</div>
+        <div class="k-state__body">&#8377;450 added to History.</div>
+      </div>
+    </div>
+
+    <div class="k-state k-state--error">
+      <span class="k-state__mark" data-icon="alert"></span>
+      <div>
+        <div class="k-state__title">Could not save</div>
+        <div class="k-state__body">Nothing was lost. Try once more.</div>
+      </div>
+    </div>
+
+    <div class="k-pane k-pane--quiet">
+      <div class="k-empty">
+        <div class="k-empty__title">No payments yet</div>
+        <div>Add your first one, or paste a bank SMS.</div>
+      </div>
+    </div>
+
+    <div class="k-pane k-pane--quiet">
+      <div class="stack stack--tight">
+        <div class="k-skeleton" style="height:14px;width:45%"></div>
+        <div class="k-skeleton" style="height:14px;width:80%"></div>
+        <div class="k-skeleton" style="height:14px;width:62%"></div>
+      </div>
+    </div>
+
+    <div class="k-pane k-pane--quiet" style="padding:0">
+      <div class="k-refresh"><div class="k-refresh__ring"></div></div>
+    </div>
+  </div>
+  <p class="lab-note">Success and failure take one shape, because they are the same event with different news and a person should not have to learn two layouts to find out which one happened. An error says what survived before it says what broke.</p>
+</section>
+
+<!-- 13 · NAVIGATION -------------------------------------------------- -->
+<section class="lab-sec">
+  <h2>13 · Navigation</h2>
+  <p>Six places, always in the same order, with the current one lit rather than boxed.</p>
+
+  <nav class="k-nav lab-bleed" style="position:static;border-top:1px solid var(--k-hairline);border-bottom:1px solid var(--k-hairline)">
+    <button class="k-nav__item" aria-current="page"><span class="k-nav__dot" data-icon="summary"></span>Summary</button>
+    <button class="k-nav__item"><span class="k-nav__dot" data-icon="history"></span>History</button>
+    <button class="k-nav__item"><span class="k-nav__dot" data-icon="add"></span>Add</button>
+    <button class="k-nav__item"><span class="k-nav__dot" data-icon="plan"></span>Plan</button>
+    <button class="k-nav__item"><span class="k-nav__dot" data-icon="accounts"></span>Accounts</button>
+    <button class="k-nav__item"><span class="k-nav__dot" data-icon="coach"></span>Coach</button>
+  </nav>
+  <p class="lab-note">The active item is brighter, heavier and glowing slightly. It is not given a filled pill, because a pill in a bar of six makes the other five look disabled.</p>
+</section>
+
+<!-- 14 · MOTION ------------------------------------------------------ -->
+<section class="lab-sec">
+  <h2>14 · Motion</h2>
+  <p>Three durations for the whole product. Motion explains a change; it never performs.</p>
+
+  <div class="k-pane">
+    <div class="stack stack--tight">
+      <div class="k-share__row">
+        <span class="k-share__name">Fast &middot; a press, a toggle</span><span class="k-share__v">140ms</span>
+      </div>
+      <div class="k-share__row">
+        <span class="k-share__name">Standard &middot; a sheet, a transition</span><span class="k-share__v">240ms</span>
+      </div>
+      <div class="k-share__row">
+        <span class="k-share__name">Expressive &middot; arriving</span><span class="k-share__v">420ms</span>
+      </div>
+      <div class="k-share__row">
+        <span class="k-share__name">Expressive ceiling &middot; a chart</span><span class="k-share__v">600ms</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="k-pane" style="margin-top:var(--k-4)">
+    <div class="k-metric" style="margin-bottom:var(--k-3)">
+      <span class="k-metric__k">A figure changing</span>
+      <span class="k-metric__v" style="font-size:var(--k-display)"><span class="k-count" id="lab-count">&#8377;12,400</span></span>
+    </div>
+    <button class="k-btn k-btn--secondary" id="lab-count-btn">Change it</button>
+    <p class="lab-note">Two numbers of the same size in the same place swap without being noticed. The small settle is what tells you it changed.</p>
+  </div>
+
+  <div class="k-pane" style="margin-top:var(--k-4)">
+    <div class="k-metric" style="margin-bottom:var(--k-3)"><span class="k-metric__k">A payment arriving</span></div>
+    <div class="k-rows" id="lab-arrive"></div>
+    <button class="k-btn k-btn--secondary" id="lab-arrive-btn" style="margin-top:var(--k-3)">Add one</button>
+  </div>
+
+  <p class="lab-note">Anything that would need longer than 600ms is staggered out of several of these, never stretched into one slow one. When the phone asks for less movement, every animation in the system stops and the state simply changes.</p>
+</section>
+
+<!-- 15 · BRAND MARKS ------------------------------------------------- -->
+<section class="lab-sec">
+  <h2>15 · Brand marks</h2>
+  <p>Three steps, in order, so there is never a hole where a logo was not found.</p>
+
+  <div class="k-pane k-pane--quiet" style="padding:var(--k-2) var(--k-4)">
+    <div class="k-rows" id="lab-brand"></div>
+  </div>
+  <p class="lab-note">The resolver is the app's own <code>js/brand.js</code>, running here rather than being described. No trademarked logo is drawn, approximated or stood in for with an emoji: a real mark appears only where a properly licensed file has been put in <code>icons/brands/</code>, and none is bundled today. The monogram takes its hue from the name itself, so a shop is the same colour on every screen forever.</p>
+</section>
+
+<!-- 16 · RESPONSIVE -------------------------------------------------- -->
+<section class="lab-sec">
+  <h2>16 · Responsive</h2>
+  <p>A phone is the product. 320px is not an edge case, it is a person with an older handset.</p>
+
+  <div class="lab-frame">
+    <b>At 320px wide</b>
+    <div class="lab-w320">
+      <div class="k-hero" style="padding:var(--k-5)">
+        <div class="k-hero__label">Left to spend</div>
+        <div class="k-hero__figure">&#8377;8,240</div>
+        <div class="k-meter" style="margin-top:var(--k-3)"><div class="k-meter__fill" style="width:70.8%"></div></div>
+      </div>
+      <div class="k-context k-context--attention" style="margin-top:var(--k-3)">
+        <span class="k-context__mark" data-icon="clock"></span>
+        <div class="k-context__body">
+          <div class="k-context__k">Month end approaching</div>
+          <div class="k-context__v">&#8377;8,240 <span class="k-context__qual">left for 6 days</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="lab-note">The hero figure is set in <code>clamp()</code>, so it shrinks with the viewport instead of breaking out of it: 68px on a 390 screen, 50px on a 320. Labels wrap, figures do not, and nothing on a row is allowed to push a money figure off the edge.</p>
+  <p class="lab-note">Daylight follows the phone rather than a switch in here. Set the system to light and this whole page becomes the light system: more opaque surfaces, borders doing the work the sheen does in the dark, and glow all but gone, because a lit edge on white reads as a smudge.</p>
+</section>
+
+</div>
+
+<script type="module">
+  /* The lab uses the app's own modules so the icon set and the brand
+     resolver are the real ones. Nothing else from the app is loaded: no
+     database, no router, no network. */
+  import { fillIcons } from '../js/icons.js';
+  import { brandMark } from '../js/brand.js';
+
+  const money = (n) => '₹' + n.toLocaleString('en-IN');
+
+  /* --- transaction rows ------------------------------------------- */
+  const TXNS = [
+    { name: 'PAY*SWIGGY BENGALURU', cat: 'Food & Dining', when: '24 Sep', amt: -450 },
+    { name: 'Netflix', cat: 'Entertainment', when: '23 Sep', amt: -649 },
+    { name: 'Shree Balaji Provision Stores', cat: '', when: '22 Sep', amt: -1240 },
+    { name: 'Salary', cat: '', when: '01 Sep', amt: 52000 },
+  ];
+  const rowHtml = (t) => `
+    <div class="k-row">
+      ${brandMark(t.name, { category: t.cat, size: 'md' })}
+      <span class="k-row__body">
+        <span class="k-row__title">${t.name}</span>
+        <span class="k-row__meta">${t.cat || 'Uncategorized'} &middot; ${t.when}</span>
+      </span>
+      <span class="k-row__value ${t.amt > 0 ? 'k-row__valuealue--pos' : ''}">${t.amt > 0 ? '+' : '−'}${money(Math.abs(t.amt))}</span>
+    </div>`;
+  document.getElementById('lab-rows').innerHTML = TXNS.map(rowHtml).join('');
+
+  /* --- the spending pulse, one bar a day --------------------------- */
+  const DAYS = [3,8,5,12,6,4,18,9,7,5,11,46,14,8,6,22,9,5,13,7,4,28,11,6,9,15,7,5,12,8];
+  document.getElementById('lab-pulse').innerHTML = DAYS.map((v, i) => {
+    const cls = v === 46 ? ' k-pulse__bar--peak' : (v <= 5 ? ' k-pulse__bar--quiet' : '');
+    return `<i class="k-pulse__bar${cls}" style="--k-h:${Math.round(v / 46 * 100)}%"></i>`;
+  }).join('');
+
+  /* --- where it went. The six add up to 19,960 exactly. ------------ */
+  const SHARE = [
+    ['Food & Dining', 6480, 'var(--k-cyan)'],
+    ['Shopping', 4250, 'var(--k-violet)'],
+    ['Transport', 3120, 'var(--k-magenta)'],
+    ['Bills & Utilities', 2640, 'var(--k-positive)'],
+    ['Entertainment', 1830, 'var(--k-warning)'],
+    ['Others', 1640, 'var(--k-text-3)'],
+  ];
+  const TOTAL = SHARE.reduce((s, r) => s + r[1], 0); // 19,960
+  const TOP = SHARE[0][1];
+  document.getElementById('lab-share').innerHTML = SHARE.map(([name, v, tint]) => `
+    <div class="k-share__row">
+      <span class="k-share__name">${name}</span>
+      <span class="k-share__v">${money(v)} &middot; ${(v / TOTAL * 100).toFixed(1)}%</span>
+      <span class="k-share__track"><span class="k-share__fill" style="--k-w:${(v / TOP * 100).toFixed(1)}%;--k-tint:${tint}"></span></span>
+    </div>`).join('');
+
+  /* --- the sheet's rows -------------------------------------------- */
+  const CATS = ['Food & Dining', 'Shopping', 'Transport', 'Bills & Utilities'];
+  document.getElementById('lab-sheet-rows').innerHTML = CATS.map((c, i) => `
+    <button class="k-row${i === 0 ? ' active' : ''}" style="min-height:56px">
+      ${brandMark(c, { category: c, size: 'sm' })}
+      <span class="k-row__body"><span class="k-row__title">${c}</span></span>
+    </button>`).join('');
+
+  /* --- the three steps of the brand system ------------------------- */
+  const BRAND_DEMO = [
+    ['A licensed file in icons/brands/', `<span class="k-brand k-brand--md"><img src="../icons/kawach.svg" alt="" width="24" height="24"></span>`, 'Kawach’s own mark, standing in: no third-party logo is bundled.'],
+    ['The category’s own icon', brandMark('Big Bazaar', { category: 'Food & Dining', size: 'md' }), 'Used when the category is known but the merchant is not.'],
+    ['A monogram', brandMark('Shree Balaji Provision Stores', { size: 'md' }), 'The long tail: the kirana shop, the clinic, the tuition teacher.'],
+    ['Nothing known at all', brandMark('', { size: 'md' }), 'A quiet tile rather than a hole in the row.'],
+  ];
+  document.getElementById('lab-brand').innerHTML = BRAND_DEMO.map(([title, mark, sub]) => `
+    <div class="k-row">
+      ${mark}
+      <span class="k-row__body"><span class="k-row__title">${title}</span><span class="k-row__meta">${sub}</span></span>
+    </div>`).join('');
+
+  /* --- motion demonstrations --------------------------------------- */
+  const countEl = document.getElementById('lab-count');
+  const FIGURES = [12400, 13200, 8240, 28200];
+  let fi = 0;
+  document.getElementById('lab-count-btn').addEventListener('click', () => {
+    fi = (fi + 1) % FIGURES.length;
+    countEl.textContent = money(FIGURES[fi]);
+    countEl.classList.remove('k-count--tick');
+    void countEl.offsetWidth; // let the animation be restarted
+    countEl.classList.add('k-count--tick');
+  });
+
+  const arrive = document.getElementById('lab-arrive');
+  const ARRIVING = [
+    { name: 'Uber', cat: 'Transport', when: 'just now', amt: -218 },
+    { name: 'PAY*SWIGGY BENGALURU', cat: 'Food & Dining', when: 'just now', amt: -450 },
+    { name: 'Amazon', cat: 'Shopping', when: 'just now', amt: -1799 },
+  ];
+  let ai = 0;
+  arrive.innerHTML = rowHtml(TXNS[0]);
+  document.getElementById('lab-arrive-btn').addEventListener('click', () => {
+    const t = ARRIVING[ai++ % ARRIVING.length];
+    arrive.insertAdjacentHTML('afterbegin', rowHtml(t));
+    arrive.firstElementChild.classList.add('k-settle');
+    while (arrive.children.length > 4) arrive.lastElementChild.remove();
+  });
+
+  /* --- the toggle actually toggles --------------------------------- */
+  document.querySelectorAll('[data-toggle]').forEach((t) => {
+    t.addEventListener('click', () => {
+      t.setAttribute('aria-checked', t.getAttribute('aria-checked') === 'true' ? 'false' : 'true');
+    });
+  });
+
+  fillIcons(document);
+</script>
+</body>
+</html>

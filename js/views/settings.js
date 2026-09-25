@@ -105,7 +105,7 @@ export async function render(container, params = {}) {
     <h3>More</h3>
     <div class="button-stack">
       <button type="button" id="go-categories" class="btn-secondary btn-block">Manage categories</button>
-      <button type="button" id="watch-tour" class="btn-secondary btn-block">Watch the 1-minute tour</button>
+      <button type="button" id="watch-tour" class="btn-secondary btn-block">Watch the tour</button>
       <button type="button" id="run-setup" class="btn-secondary btn-block">Run setup again</button>
       <button type="button" id="whats-new-btn" class="btn-secondary btn-block">What's new</button>
       <button type="button" id="share-app-btn" class="btn-secondary btn-block">Share Kawach with a friend</button>

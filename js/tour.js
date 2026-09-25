@@ -1,4 +1,4 @@
-// The one-minute tour: a short video of setting up, played over the app.
+// The tour: a short film of what the app is for, played over the app.
 // It is served from the app's own address (media/), never a video site, so
 // watching it tells nobody anything. It isn't kept for offline use - a video
 // is too big to store on every phone for one viewing.
@@ -14,7 +14,7 @@ export function playTour() {
   backdrop.innerHTML = `
     <div class="tour-box" role="dialog" aria-modal="true" aria-label="How to set up Kawach">
       <button type="button" class="icon-btn tour-close" aria-label="Close">${icon('close')}</button>
-      <video class="tour-video" src="${TOUR_VIDEO}" poster="./media/kawach-tour.jpg" controls autoplay playsinline></video>
+      <video class="tour-video" src="${TOUR_VIDEO}" poster="./media/kawach-tour.jpg" controls playsinline preload="metadata"></video>
       <p class="muted-note tour-offline" hidden>The tour needs an internet connection.</p>
     </div>
   `;

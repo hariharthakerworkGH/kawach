@@ -1,14 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Kawach: a shield made of your money. The rupee cut out of a solid
-       shield, on the app's own background. The shield takes the colour the
-       app uses for everything you can act on. -->
+  <!-- Kawach: a shield made of your money, made of the same glass every
+       surface in the app is made of. A tinted, nearly transparent body lit
+       along its top edge, with the rupee drawn on it in light.
+
+       It has to survive being 16 pixels wide in a browser tab, so the edge
+       carries more weight than the glow does: below about 32px the glow is
+       gone and the silhouette plus the rupee are the whole logo. -->
+  <defs>
+    <linearGradient id="kBody" x1="0.1" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#47d0f8" stop-opacity="0.42"/>
+      <stop offset="0.5" stop-color="#2b7fb8" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#7c5cf0" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="kEdge" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#cdf5ff" stop-opacity="0.98"/>
+      <stop offset="0.4" stop-color="#47d0f8" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#47d0f8" stop-opacity="0.34"/>
+    </linearGradient>
+    <linearGradient id="kSheen" x1="0" y1="0" x2="0.2" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.3"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.03"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="kGlow" x="-45%" y="-45%" width="190%" height="190%">
+      <feGaussianBlur stdDeviation="3.2" result="b"/>
+      <feComponentTransfer in="b" result="g"><feFuncA type="linear" slope="0.52"/></feComponentTransfer>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <path id="kShield" d="M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z"/>
+    <clipPath id="kClip"><use href="#kShield"/></clipPath>
+  </defs>
   <rect width="100" height="100" rx="22" fill="#07090f"/>
-  <g transform="translate(50 50.5) scale(1.14) translate(-50 -50.5)">
-    <path d="M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z" fill="#47d0f8"/>
-    <g fill="none" stroke="#07090f" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M38 34h24"/>
-      <path d="M38 45h24"/>
-      <path d="M44 34c11 0 11 20 0 20h-5l17 17"/>
+  <g transform="translate(50 50.5) scale(1.1) translate(-50 -50.5)" filter="url(#kGlow)">
+    <use href="#kShield" fill="url(#kBody)"/>
+    <g clip-path="url(#kClip)"><ellipse cx="33" cy="24" rx="33" ry="25" fill="url(#kSheen)"/></g>
+    <use href="#kShield" fill="none" stroke="url(#kEdge)" stroke-width="2.9"/>
+    <g fill="none" stroke="#e8fbff" stroke-width="6.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M38 34h24"/><path d="M38 45h24"/><path d="M44 34c11 0 11 20 0 20h-5l17 17"/>
     </g>
   </g>
 </svg>
