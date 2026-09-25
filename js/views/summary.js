@@ -198,13 +198,25 @@ async function renderDashboard(container) {
     renderBankCard(fts),
     renderDueSoon(fts),
     '<div id="attention-section"></div>',
-    fold('Commitments', fts.tracker ? `${fts.tracker.length}` : '', commitments),
+    fold('Commitments', fts.tracker ? `${fts.tracker.length}` : '', commitments, false, 'commitments-fold'),
     fold('Loans and savings', '', renderLoansSavings(fts)),
     '<div id="upcoming-section"></div>',
     tax,
     // The invitation to install comes last: it is not part of the answer.
     install,
   ].join('');
+
+  // The set-aside figure opens the list that explains it, rather than being
+  // a number with nowhere to go.
+  const asideBtn = dashboardEl.querySelector('#set-aside-stat');
+  if (asideBtn) {
+    asideBtn.addEventListener('click', () => {
+      const f = dashboardEl.querySelector('#commitments-fold');
+      if (!f) return;
+      f.open = true;
+      f.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    });
+  }
 
   // Mark paid / Skip this month, and their Undo: a per-cycle choice stored on
   // the commitment. Only recent cycles are kept, so the record can't grow forever.
@@ -369,6 +381,7 @@ function renderCardsHero(f) {
     <div class="hero-under">
       <div class="stat"><span class="stat-k">Spent</span><span class="stat-v">${formatRupees(f.spentThisCycle)}</span></div>
       <div class="stat"><span class="stat-k">Budget</span><span class="stat-v">${formatRupees(f.limit)}</span></div>
+      ${stillSetAside(f)}
     </div>
       <details class="fts-breakdown hero-work">
         <summary>How it's worked out</summary>
@@ -407,12 +420,40 @@ function renderCardsHero(f) {
 // Everything past "what needs me" waits behind a tap. <details> needs no
 // wiring, and the buttons inside keep working because the markup is
 // unchanged - it is only closed.
-function fold(title, count, body, open = false) {
+function fold(title, count, body, open = false, id = '') {
   if (!body) return '';
-  return `<details class="disclose"${open ? ' open' : ''}>
+  return `<details class="disclose"${id ? ` id="${id}"` : ''}${open ? ' open' : ''}>
       <summary><span class="disclose-t">${title}</span>${count ? `<span class="disclose-c">${count}</span>` : ''}</summary>
       <div class="disclose-body">${body}</div>
     </details>`;
+}
+
+/* What is left of the money you set aside, said once.
+ *
+ * A set-aside is not a bill: ₹2,000 kept for Amazon Pay may be spent in
+ * full, in part, or not at all. The budget takes the whole amount out at the
+ * start of the month whatever happens, which keeps "Left to spend" a steady
+ * number you can trust all month - but it also meant the ₹800 you did not
+ * spend simply disappeared from the screen. It is still your money. This
+ * says so, beside the two figures it belongs with, and opens into the
+ * commitments where each amount is listed.
+ *
+ * The figure is `left` on the tracker row, which free-to-spend has always
+ * worked out. Nothing about the calculation changes.
+ */
+function stillSetAside(f) {
+  if (!f.tracker) return '';
+  // Only what Kawach can actually follow. An untracked set-aside has no
+  // payments matched to it, so claiming the whole amount is still there
+  // would be a guess dressed up as a figure. Same rows free-to-spend uses
+  // when it works out what is safe to keep spending.
+  const rows = f.tracker.filter((t) => t.setAside && !t.skipped && t.left > 0 && ['ok', 'heading-over', 'part'].includes(t.status));
+  const left = rows.reduce((s, t) => s + t.left, 0);
+  if (!left) return '';
+  return `<button type="button" class="stat stat-aside" id="set-aside-stat">
+      <span class="stat-k">Still set aside</span>
+      <span class="stat-v">${formatRupees(left)}</span>
+    </button>`;
 }
 
 // One thing, promoted, and only when it genuinely needs the person: a dated
@@ -423,7 +464,7 @@ function renderDueSoon(f) {
   const today = isoLocal(new Date());
   const soon = addDaysIso(today, 3);
   const items = f.tracker
-    .filter((t) => t.due && !t.skipped && ['due', 'late', 'part'].includes(t.status) && t.due <= soon)
+    .filter((t) => t.due && !t.setAside && !t.skipped && ['due', 'late', 'part'].includes(t.status) && t.due <= soon)
     .sort((a, b) => (a.due < b.due ? -1 : 1));
   if (!items.length) return '';
   const t = items[0];

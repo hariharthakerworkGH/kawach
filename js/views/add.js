@@ -29,17 +29,19 @@ export async function render(container, params = {}) {
 
   container.innerHTML = `
     <form id="add-form" class="add-form">
-      <label class="field amount-field">
-        <span>Amount</span>
-        <div class="amount-input-wrap">
-          <span class="amount-prefix">₹</span>
-          <input id="add-amount" class="amount-input" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="0" required>
+      <section class="hero amount-hero">
+        <label class="field amount-field">
+          <span class="hero-label">Amount</span>
+          <div class="amount-input-wrap">
+            <span class="amount-prefix">₹</span>
+            <input id="add-amount" class="amount-input" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="0" required>
+          </div>
+        </label>
+        <div class="direction-toggle">
+          <button type="button" class="dir-btn active" data-dir="debit">Spent</button>
+          <button type="button" class="dir-btn" data-dir="credit">Received</button>
         </div>
-      </label>
-      <div class="direction-toggle">
-        <button type="button" class="dir-btn active" data-dir="debit">Spent</button>
-        <button type="button" class="dir-btn" data-dir="credit">Received</button>
-      </div>
+      </section>
       <label class="field">
         <span>What</span>
         <input id="add-desc" type="text" placeholder="e.g. coffee" required>

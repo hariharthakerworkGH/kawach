@@ -104,6 +104,52 @@
   --font-body: var(--font-display);
   --tracking-display: -0.025em;
 
+  /* One scale for the whole app. Before this there were 38 different sizes
+     in the stylesheet and no two screens agreed, which is most of what made
+     Kawach read as six screens rather than one product. Nine steps, and a
+     figure is always bigger and tighter than the label that names it. */
+  --text-hero: clamp(3.4rem, 14vw, 4.2rem); /* the one answer on a screen */
+  --text-display: 1.55rem; /* the screen's own title */
+  --text-head: 1.25rem; /* a heading inside a screen */
+  --text-fig-xl: 2.1rem; /* the one figure a review screen is about */
+  --text-fig-lg: 1.45rem; /* the biggest figure inside a panel */
+  --text-fig: 1.15rem; /* an ordinary money figure */
+  --text-fig-sm: 1.05rem; /* a figure in a stat pair */
+  --text-body: 0.95rem; /* sentences */
+  --text-label: 0.86rem; /* the name of a thing */
+  --text-meta: 0.8rem; /* the line under it */
+  --text-micro: 0.72rem; /* the smallest label that still has to be read */
+
+  /* Weight says what something is, not how loud it is. A figure is always
+     650, a label always 500: the same meaning looks the same everywhere. */
+  --weight-fig: 650;
+  --weight-strong: 700;
+  --weight-label: 500;
+  --weight-body: 400;
+
+  /* Figures are tracked tighter as they grow, the way a set figure reads. */
+  --tracking-fig: -0.015em;
+  --tracking-hero: -0.052em;
+
+  /* ---- Controls: three heights, and one rule about touching them. ----
+     A phone needs 44px under a finger whatever the thing looks like. A small
+     pill may stay small; its hit area may not. */
+  --control-lg: 48px; /* a full-width button */
+  --control-md: 44px; /* a row, a select, a segmented control */
+  --control-sm: 36px; /* a chip or pill, inside a 44px tap area */
+  --tap: 44px;
+
+  /* ---- Icons: three sizes, so a glyph never sets its own scale. ---- */
+  --icon-lg: 1.5rem; /* the one icon a whole screen is about */
+  --icon-md: 1.3rem; /* navigation, and an icon standing alone */
+  --icon-sm: 1.15rem; /* an icon beside text */
+
+  /* ---- Drawings: one line weight family for every chart. ---- */
+  --chart-line: 2.25px; /* the line that carries the answer */
+  --chart-pace: 2px; /* the comparison it is measured against */
+  --chart-hair: 1px; /* a baseline or an axis */
+  --chart-ring: 6px; /* a ring's track and its fill */
+
   /* ---- Space: a 4-point scale. Nothing is spaced by a raw value. ---- */
   --space-4xs: 0.125rem; /*  2px: hairline gaps only */
   --space-3xs: 0.25rem; /*  4px */

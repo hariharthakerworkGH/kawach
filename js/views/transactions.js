@@ -91,17 +91,22 @@ export async function render(container, params = {}) {
   filters.shown = PAGE_SIZE;
 
   container.innerHTML = `
-    <div class="hist-top">
-      <input type="search" id="txn-search" class="hist-search" placeholder="Search all months" value="${escapeAttr(filters.search)}" aria-label="Search all months">
-      <button type="button" id="txn-select" class="btn-secondary hist-select-btn">Change many</button>
-    </div>
     <div class="hist-month" id="hist-month">
       <button type="button" class="icon-btn hist-step" id="month-prev" aria-label="Month before">${icon('back')}</button>
       <span class="hist-month-name" id="month-name"></span>
       <button type="button" class="icon-btn hist-step" id="month-next" aria-label="Month after">${icon('forward')}</button>
     </div>
-    <p class="hist-totals" id="txn-count"></p>
-    ${inOutBars({ months: lastSixMonths(transactions) })}
+    <section class="hero" id="hist-hero">
+      <div class="hero-top"><span class="hero-label">Kept this month</span><span class="hero-label" id="hist-period"></span></div>
+      <p class="hero-amount" id="hist-net">&nbsp;</p>
+      <p class="hero-status" id="txn-count"></p>
+      ${inOutBars({ months: lastSixMonths(transactions) })}
+    </section>
+    <div class="hero-under" id="hist-stats"></div>
+    <div class="hist-top">
+      <input type="search" id="txn-search" class="hist-search" placeholder="Search all months" value="${escapeAttr(filters.search)}" aria-label="Search all months">
+      <button type="button" id="txn-select" class="btn-secondary hist-select-btn">Change many</button>
+    </div>
     <div class="hist-chips">
       <select id="txn-account" class="hist-chip" aria-label="Account">
         <option value="">All accounts</option>
@@ -319,15 +324,36 @@ function renderList(container) {
   container.querySelector('#month-prev').disabled = across || !hasOlder;
   container.querySelector('#month-next').disabled = across || filters.month >= thisMonth();
 
+  // What the month came to. Net is the one answer: in minus out. A month
+  // that kept money reads in the ordinary ink, a month that ate into savings
+  // reads red, and zero is neither. In and out sit under it as
+  // the two figures that make it up, the same stacked pair Summary uses.
   const sum = totals(rows);
-  container.querySelector('#txn-count').innerHTML = rows.length
-    ? [
-        sum.out ? `<span class="out">−${formatRupees(sum.out)}</span> <span class="muted">out</span>` : '',
-        sum.in ? `<span class="in">+${formatRupees(sum.in)}</span> <span class="muted">in</span>` : '',
-        across ? `<span class="muted">${rows.length} found</span>` : '',
-      ]
-        .filter(Boolean)
-        .join(' · ') || `<span class="muted">${rows.length} moved between your accounts</span>`
+  const net = sum.in - sum.out;
+  const netEl = container.querySelector('#hist-net');
+  const statsEl = container.querySelector('#hist-stats');
+  const periodEl = container.querySelector('#hist-period');
+  const heroEl = container.querySelector('#hist-hero');
+  periodEl.textContent = across ? `${rows.length} found` : formatMonthYear(`${filters.month}-01`);
+  if (rows.length) {
+    netEl.textContent = `${net < 0 ? '−' : net > 0 ? '+' : ''}${formatRupees(Math.abs(net))}`;
+    netEl.className = `hero-amount${net < 0 ? ' negative' : ''}`;
+    heroEl.className = `hero${net < 0 ? ' level-over' : ''}`;
+    statsEl.innerHTML = `
+      <div class="stat"><span class="stat-k">Money in</span><span class="stat-v in">+${formatRupees(sum.in)}</span></div>
+      <div class="stat"><span class="stat-k">Money out</span><span class="stat-v out">−${formatRupees(sum.out)}</span></div>`;
+  } else {
+    netEl.textContent = '-';
+    netEl.className = 'hero-amount';
+    heroEl.className = 'hero';
+    statsEl.innerHTML = '';
+  }
+  container.querySelector('#txn-count').textContent = rows.length
+    ? net > 0
+      ? 'More came in than went out.'
+      : net < 0
+        ? 'More went out than came in.'
+        : 'In and out came to the same.'
     : filters.categoryId === 'uncategorized'
       ? 'Every payment has a category'
       : across
