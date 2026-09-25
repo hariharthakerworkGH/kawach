@@ -90,6 +90,7 @@ export async function render(container, params = {}) {
   }
   filters.shown = PAGE_SIZE;
 
+  container.classList.add('k');
   container.innerHTML = `
     <div class="hist-month" id="hist-month">
       <button type="button" class="icon-btn hist-step" id="month-prev" aria-label="Month before">${icon('back')}</button>
@@ -97,7 +98,7 @@ export async function render(container, params = {}) {
       <button type="button" class="icon-btn hist-step" id="month-next" aria-label="Month after">${icon('forward')}</button>
     </div>
     <section class="hero" id="hist-hero">
-      <div class="hero-top"><span class="hero-label">Kept this month</span><span class="hero-label" id="hist-period"></span></div>
+      <div class="hero-top"><span class="hero-label">Net this month</span><span class="hero-label" id="hist-period"></span></div>
       <p class="hero-amount" id="hist-net">&nbsp;</p>
       <p class="hero-status" id="txn-count"></p>
       ${inOutBars({ months: lastSixMonths(transactions) })}
@@ -334,14 +335,16 @@ function renderList(container) {
   const statsEl = container.querySelector('#hist-stats');
   const periodEl = container.querySelector('#hist-period');
   const heroEl = container.querySelector('#hist-hero');
-  periodEl.textContent = across ? `${rows.length} found` : formatMonthYear(`${filters.month}-01`);
+  periodEl.textContent = across
+    ? `${rows.length} found`
+    : `${rows.length} payment${rows.length === 1 ? '' : 's'}`;
   if (rows.length) {
     netEl.textContent = `${net < 0 ? '−' : net > 0 ? '+' : ''}${formatRupees(Math.abs(net))}`;
     netEl.className = `hero-amount${net < 0 ? ' negative' : ''}`;
     heroEl.className = `hero${net < 0 ? ' level-over' : ''}`;
     statsEl.innerHTML = `
-      <div class="stat"><span class="stat-k">Money in</span><span class="stat-v in">+${formatRupees(sum.in)}</span></div>
-      <div class="stat"><span class="stat-k">Money out</span><span class="stat-v out">−${formatRupees(sum.out)}</span></div>`;
+      <div class="stat"><span class="stat-k">In</span><span class="stat-v in">+${formatRupees(sum.in)}</span></div>
+      <div class="stat"><span class="stat-k">Out</span><span class="stat-v out">−${formatRupees(sum.out)}</span></div>`;
   } else {
     netEl.textContent = '-';
     netEl.className = 'hero-amount';

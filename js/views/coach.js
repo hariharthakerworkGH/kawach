@@ -24,6 +24,7 @@ export async function render(container) {
   // "Can I afford this?" spreads what's left over the days until the statement.
   const cash = { ...snapshot, daysLeft: snapshot.cycle.free != null ? snapshot.cycle.daysToClose : snapshot.daysLeft };
 
+  container.classList.add('k', 'k-coach');
   container.innerHTML = `
     ${heroTemplate(snapshot)}
 
@@ -101,7 +102,12 @@ function heroTemplate(snapshot) {
 }
 
 function questionBtn(id, icon, label) {
-  return `<button type="button" class="coach-q ${openQuestion === id ? 'active' : ''}" data-q="${id}"><span class="coach-q-icon">${icon}</span>${label}</button>`;
+  const open = openQuestion === id;
+  return `<button type="button" class="k-row coach-q ${open ? 'active' : ''}" data-q="${id}" aria-expanded="${open}">
+      <span class="k-icon coach-q-icon" style="--k-tint:var(--k-accent)">${icon}</span>
+      <span class="k-row__body"><span class="k-row__title">${label}</span></span>
+      <span class="coach-q__chev" aria-hidden="true"></span>
+    </button>`;
 }
 
 function panelTemplate(s) {
@@ -328,14 +334,21 @@ function cutList(cuts) {
     </div>`;
 }
 
+// The tone is the planner's own, not a judgement made here.
+function noteTone(tone) {
+  if (tone === 'warn') return 'k-context--attention';
+  if (tone === 'good') return 'k-context--calm';
+  return '';
+}
+
 function noteTemplate(n) {
   const mark = icon(n.tone === 'warn' ? 'alert' : n.tone === 'good' ? 'check' : 'info');
   return `
-    <div class="coach-note coach-note-${n.tone}">
-      <span class="coach-note-icon">${mark}</span>
-      <span>
-        <strong>${escapeHtml(n.title)}</strong>
-        <span class="muted-note">${escapeHtml(n.body)}</span>
+    <div class="k-context coach-note ${noteTone(n.tone)} coach-note-${n.tone}">
+      <span class="k-context__mark coach-note-icon">${mark}</span>
+      <span class="k-context__body">
+        <span class="k-context__k">${escapeHtml(n.title)}</span>
+        <p class="k-context__note">${escapeHtml(n.body)}</p>
       </span>
     </div>
   `;

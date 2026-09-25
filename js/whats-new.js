@@ -12,6 +12,38 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.0',
+    items: [
+      {
+        icon: 'summary',
+        title: 'One Kawach',
+        text: 'All six screens are built the same way now: the answer first, big, then the detail under it.',
+      },
+      {
+        icon: 'accounts',
+        title: 'Accounts is a list, not a pile of cards',
+        text: 'One line per account, with the bank beside it and the balance on the right.',
+        guide: [{ view: 'accounts', target: '.account-group, .k-hero', text: 'Everything you have, added up at the top. Tap any account for its latest payments.' }],
+      },
+      {
+        icon: 'plan',
+        title: 'Tap a commitment to change it',
+        text: 'The whole line opens it now, so there is no small pencil to aim at.',
+        guide: [{ view: 'plan', target: '.plan-row__main, .plan-sums', text: 'Tap the line to edit. Where the budget comes from is its own panel, under the figure.' }],
+      },
+      {
+        icon: 'coach',
+        title: 'Coach reads like the rest',
+        text: 'Same panes, same type. It still works everything out on this phone and sends nothing anywhere.',
+      },
+      {
+        icon: 'check',
+        title: 'Easier to tap, easier to read',
+        text: 'Small buttons have a bigger reach than they look, and everything was checked on a narrow phone and in daylight.',
+      },
+    ],
+  },
+  {
     version: '3.3.1',
     items: [
       {

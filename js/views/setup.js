@@ -90,7 +90,7 @@ function welcomeStep() {
     </ul>
     <p class="setup-note">A tracking tool, not financial advice.</p>
     <button type="button" class="btn-primary" data-go="next">Get started</button>
-    <button type="button" class="btn-secondary btn-block" id="setup-tour">Watch the 1-minute tour</button>
+    <button type="button" class="btn-secondary btn-block" id="setup-tour">Watch the tour</button>
     <button type="button" class="btn-tiny btn-block setup-skip" data-go="finish">Skip - I'll set it up myself</button>
   `;
 }

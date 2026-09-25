@@ -136,10 +136,11 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   (`statementDayFixes` corrects a saved day that disagrees).
 - No card with a statement day yet (every new user): the spending period is
   the calendar month, never the month the next salary pays for.
-- The one-minute tour (`media/kawach-tour.mp4`) is made from the real app with
+- The tour (`media/kawach-tour.mp4`, 82s) is drawn from the app's own tokens with
   made-up data, and plays from Setup, Settings (`js/tour.js`) and the welcome
-  page. The service worker never caches `media/`. Re-record it when the setup
-  screens change. A first visit in a browser (not installed, nothing set up)
+  page. It has no voice: nine scenes, micro-copy, a synthesised score and a
+  little UI sound, and it has to make sense with the sound off. The service
+  worker never caches `media/`. Re-render it when a screen it shows changes. A first visit in a browser (not installed, nothing set up)
   goes to `welcome.html` once. The scripts that record it are kept outside
   the repository, in `expense-tracker-versions/tools/tour`.
 - `sw.js` service worker: `CACHE_NAME` must match `APP_VERSION` in

@@ -107,6 +107,10 @@ export async function render(container) {
   const keep = Math.max(0, Number(keepInBank) || 0);
   const budget = disposable != null ? disposable + sideExtra + cashTotal - keep : null;
 
+  // `k-plan` scopes the rules for classes this screen shares with Summary,
+  // so styling a commitment row here cannot reach across and restyle one
+  // there.
+  container.classList.add('k', 'k-plan');
   container.innerHTML = `
     ${
       inBusiness
@@ -119,7 +123,15 @@ export async function render(container) {
             level: budget != null && budget < 0 ? 'over' : 'ok',
             negative: budget != null && budget < 0,
             chart: budget != null ? committedBar({ must: mustTotal, flex: flexTotal, free: budget, legend: false }) : '',
-            extra: `
+            // One sentence saying what the figure is, in the screen's own
+            // terms. Nothing here is calculated: it reads the same values.
+            status:
+              budget == null
+                ? 'Add what comes in each month to see your budget.'
+                : `After ${formatCurrency(fixedTotal)} of commitments and ${formatCurrency(keep)} saved.`,
+          }) +
+          `<section class="plan-sums k-pane k-pane--quiet">
+      <h3 class="plan-sums__head">Where it comes from</h3>
       <div class="totals-row"><span>${incomeLabel}</span><span class="in">${incomeValue != null ? formatCurrency(incomeValue) : '-'}</span></div>
       ${
         sidePlan
@@ -130,7 +142,7 @@ export async function render(container) {
       ${flexTotal ? `<div class="totals-row"><span><span class="seg-dot seg-flex"></span>Can flex</span><span class="out">−${formatCurrency(flexTotal)}</span></div>` : ''}
       <div class="totals-row"><span>Saved each month</span><span class="saved-row">−${formatCurrency(keep)}</span></div>
       ${cashTotal > 0 ? `<p class="muted-note">${formatCurrency(cashTotal)} paid in cash comes out of your ATM money.</p>` : ''}
-      <details class="fts-breakdown" ${income == null || (kind !== 'business' && !salaryDay) ? 'open' : ''}>
+      <details class="fts-breakdown plan-amounts" ${income == null || (kind !== 'business' && !salaryDay) ? 'open' : ''}>
         <summary>Change amounts</summary>
         <label class="field">
           <span>${kind === 'business' ? 'What the house needs a month' : words.label}</span>
@@ -148,8 +160,8 @@ export async function render(container) {
           <span>Save each month</span>
           <input type="number" id="plan-keep" inputmode="decimal" step="1" min="0" placeholder="10000" value="${(keep / 100).toFixed(0)}">
         </label>
-      </details>`,
-          })
+      </details>
+    </section>`
     }
 
     ${sectionHead(
@@ -193,10 +205,11 @@ export async function render(container) {
       inBusiness
         ? ''
         : `${sectionHead('Goals')}
+    ${goals.length ? '<div class="totals-card goals-list">' : ''}
     ${goals
       .map((g) => {
         const p = goalProgress(g, savedIn(g.accountIds), todayIso);
-        return `<div class="totals-card goal-card">
+        return `<div class="goal-card">
           ${goalRing({ saved: p.saved, target: g.target, monthly: p.monthly, by: formatMonthYear(`${g.by}-01`) })}
           <div class="goal-text">
             <span class="goal-name">${escapeHtml(g.name)}</span>
@@ -207,6 +220,7 @@ export async function render(container) {
         </div>`;
       })
       .join('')}
+    ${goals.length ? '</div>' : ''}
     ${
       addingGoal
         ? `<form class="totals-card" id="goal-form">
@@ -534,20 +548,21 @@ function budgetCard(b) {
   const { icon: mark, color } = categoryStyle(b.name);
   const width = Math.min(100, Math.round(b.pct * 100));
   return `
-    <div class="budget-card" style="--chip-color:${color}">
-      <div class="budget-head">
-        <span class="budget-name"><span class="cat-chip" style="--chip-color:${color}">${mark}</span>${escapeHtml(b.name)}</span>
-        <span class="budget-nums">${formatCurrency(b.spent)} <span class="muted">/ ${formatCurrency(b.limit)}</span></span>
+    <div class="budget-card">
+      <div class="k-row budget-row">
+        <span class="k-icon" style="--k-tint:${color}">${mark}</span>
+        <span class="k-row__body">
+          <span class="k-row__title">${escapeHtml(b.name)}</span>
+          <span class="k-row__meta">${
+            b.state === 'over' ? `Over by ${formatCurrency(-b.left)}` : `${formatCurrency(b.left)} left this month`
+          }</span>
+        </span>
+        <span class="k-row__value budget-nums">${formatCurrency(b.spent)}<span class="muted"> / ${formatCurrency(b.limit)}</span></span>
+        <span class="plan-row__actions">
+          <button type="button" class="icon-btn budget-remove" data-id="${b.categoryId}" aria-label="Remove the budget for ${escapeHtml(b.name)}">${icon('close')}</button>
+        </span>
       </div>
-      <div class="budget-meter"><div class="budget-fill ${b.state === 'ok' ? '' : b.state}" style="width:${width}%"></div></div>
-      <div class="budget-head">
-        <span class="budget-note">${
-          b.state === 'over'
-            ? `Over by ${formatCurrency(-b.left)}`
-            : `${formatCurrency(b.left)} left this month`
-        }</span>
-        <button type="button" class="icon-btn budget-remove" data-id="${b.categoryId}">Remove</button>
-      </div>
+      <div class="k-meter budget-meter"><div class="k-meter__fill budget-fill ${b.state === 'ok' ? '' : b.state}" style="width:${width}%"></div></div>
     </div>
   `;
 }
@@ -575,15 +590,15 @@ function budgetForm(categories) {
 // loan account itself, not here.
 function loanRow(item, paidFrom) {
   return `
-    <div class="attention-row">
-      <span class="breakdown-label">
-        <span class="cat-chip" style="--chip-color:var(--violet)">${icon('accounts')}</span>
-        <span>${escapeHtml(item.label)}<br><span class="muted-note">${ordinal(item.dayOfMonth)} · ${paidFrom ? escapeHtml(paidFrom) : 'bank'} · loan</span></span>
-      </span>
-      <span class="fixed-row-right">
-        <span class="out">${formatCurrency(item.amount)}</span>
-        <button type="button" class="icon-btn go-loan" aria-label="Edit on Cards">${icon('edit')}</button>
-      </span>
+    <div class="plan-row-wrap">
+      <button type="button" class="k-row plan-row plan-row__main go-loan" aria-label="Edit ${escapeHtml(item.label)} on Accounts">
+        <span class="k-icon" style="--k-tint:var(--k-violet)">${icon('accounts')}</span>
+        <span class="k-row__body">
+          <span class="k-row__title">${escapeHtml(item.label)}</span>
+          <span class="k-row__meta">${ordinal(item.dayOfMonth)} · ${paidFrom ? escapeHtml(paidFrom) : 'bank'} · loan</span>
+        </span>
+        <span class="k-row__value plan-row__amount out">${formatCurrency(item.amount)}</span>
+      </button>
     </div>`;
 }
 
@@ -606,22 +621,31 @@ function fixedRow(f, categories, paidFrom, index, count) {
   if (f.emi) parts.push(`EMI ${f.emi.current}/${f.emi.total}`);
   parts.push(f.accountId === 'cash' ? 'cash' : paidFrom ? escapeHtml(paidFrom) : 'bank');
 
+  const inner = `
+      <span class="k-icon" style="--k-tint:${color}">${mark}</span>
+      <span class="k-row__body">
+        <span class="k-row__title">${escapeHtml(f.label)}</span>
+        <span class="k-row__meta">${parts.join(' · ')}</span>
+      </span>
+      <span class="k-row__value plan-row__amount out">${formatCurrency(monthly)}${isMonthly ? '' : '<span class="muted freq-per-month">/mo</span>'}</span>`;
+
+  if (reordering) {
+    return `
+      <div class="k-row plan-row">
+        ${inner}
+        <span class="plan-row__actions">
+          <button type="button" class="icon-btn fixed-move" data-id="${f.id}" data-step="-1" aria-label="Move ${escapeHtml(f.label)} up" ${index === 0 ? 'disabled' : ''}>${icon('up')}</button>
+          <button type="button" class="icon-btn fixed-move" data-id="${f.id}" data-step="1" aria-label="Move ${escapeHtml(f.label)} down" ${index === count - 1 ? 'disabled' : ''}>${icon('arrow-down')}</button>
+        </span>
+      </div>`;
+  }
+
   return `
-    <div class="attention-row">
-      <span class="breakdown-label">
-        <span class="cat-chip" style="--chip-color:${color}">${mark}</span>
-        <span>${escapeHtml(f.label)}<br><span class="muted-note">${parts.join(' · ')}</span></span>
-      </span>
-      <span class="fixed-row-right">
-        <span class="out">${formatCurrency(monthly)}${isMonthly ? '' : '<span class="muted freq-per-month">/mo</span>'}</span>
-        ${
-          reordering
-            ? `<button type="button" class="icon-btn fixed-move" data-id="${f.id}" data-step="-1" aria-label="Move up" ${index === 0 ? 'disabled' : ''}>${icon('up')}</button>
-               <button type="button" class="icon-btn fixed-move" data-id="${f.id}" data-step="1" aria-label="Move down" ${index === count - 1 ? 'disabled' : ''}>${icon('arrow-down')}</button>`
-            : `<button type="button" class="icon-btn fixed-edit" data-id="${f.id}" aria-label="Edit">${icon('edit')}</button>
-               <button type="button" class="icon-btn fixed-delete" data-id="${f.id}" aria-label="Remove">${icon('close')}</button>`
-        }
-      </span>
+    <div class="plan-row-wrap">
+      <button type="button" class="k-row plan-row plan-row__main fixed-edit" data-id="${f.id}" aria-label="Edit ${escapeHtml(f.label)}">
+        ${inner}
+      </button>
+      <button type="button" class="icon-btn plan-row__remove fixed-delete" data-id="${f.id}" aria-label="Remove ${escapeHtml(f.label)}">${icon('close')}</button>
     </div>
   `;
 }

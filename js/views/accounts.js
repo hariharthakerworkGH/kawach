@@ -11,6 +11,7 @@ import { redraw } from '../redraw.js';
 import { ensureBusinessCategories, moneyProfile, activeSpace, accountInSpace } from '../business.js';
 import { detectTransfers } from '../transfers.js';
 import { icon } from '../icons.js';
+import { brandMark } from '../brand.js';
 import { displayName } from './transactions.js';
 import { escapeHtml, escapeAttr, emptyState, hero, moneyTone } from '../ui.js';
 
@@ -73,17 +74,15 @@ export async function render(container) {
   }
 
   const editingAccount = editing && editing !== 'new' ? accounts.find((a) => a.id === editing) : null;
+  // Nothing set up yet, and not in the middle of adding the first one.
+  const showEmpty = accounts.length === 0 && editing !== 'new';
 
+  container.classList.add('k');
   container.innerHTML = `
-    <div class="accounts-actions">
-      <button type="button" id="go-import-btn" class="btn-secondary">Import</button>
-      <button type="button" id="add-account-btn" class="btn-secondary">${editing === 'new' ? 'Cancel' : 'Add'}</button>
-      ${accounts.length > 1 ? `<button type="button" id="accounts-reorder" class="btn-secondary">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
-    </div>
-    ${editing === 'new' ? accountForm(null, transactions, accounts) : ''}
     ${accountsTotal(groups, transactions)}
+    ${editing === 'new' ? accountForm(null, transactions, accounts) : ''}
     ${
-      accounts.length === 0 && editing !== 'new'
+      showEmpty
         ? emptyState({
             what: 'No accounts yet.',
             why: 'Add the account your salary lands in first: balances, budgets and everything else follow from it.',
@@ -97,10 +96,28 @@ export async function render(container) {
     ${renderGroup('Loans', groups.loan, transactions, importBatches, editingAccount, accounts)}
     ${renderGroup('Savings and FDs', groups.savings, transactions, importBatches, editingAccount, accounts)}
     ${renderGroup('Provident fund', groups.pf, transactions, importBatches, editingAccount, accounts)}
+
+    <!-- The things you do here, after the money they act on. Adding an
+         account matters, but it never matters more than the balances. -->
+    <div class="accounts-actions">
+      ${
+        // The empty state is already asking. Two "Add an account" buttons a
+        // finger apart read as two different things to do.
+        showEmpty
+          ? ''
+          : `<button type="button" id="add-account-btn" class="k-btn k-btn--secondary">${editing === 'new' ? 'Cancel' : 'Add an account'}</button>`
+      }
+      <button type="button" id="go-import-btn" class="k-btn k-btn--ghost">Import a statement</button>
+      ${accounts.length > 1 ? `<button type="button" id="accounts-reorder" class="k-btn k-btn--ghost">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
+    </div>
   `;
 
+  const openAdd = () => {
+    editing = editing === 'new' ? null : 'new';
+    redraw(container, () => render(container));
+  };
   const emptyAdd = container.querySelector('#empty-add-account');
-  if (emptyAdd) emptyAdd.addEventListener('click', () => container.querySelector('#add-account-btn').click());
+  if (emptyAdd) emptyAdd.addEventListener('click', openAdd);
   container.querySelectorAll('#go-import-btn, .account-go-import').forEach((btn) =>
     btn.addEventListener('click', () => {
       container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'import' } }));
@@ -120,10 +137,10 @@ export async function render(container) {
     })
   );
 
-  container.querySelector('#add-account-btn').addEventListener('click', () => {
-    editing = editing === 'new' ? null : 'new';
-    redraw(container, () => render(container));
-  });
+  // Absent while the empty state is showing, which is the one time it would
+  // be saying the same thing twice.
+  const addBtn = container.querySelector('#add-account-btn');
+  if (addBtn) addBtn.addEventListener('click', openAdd);
 
   const reorderBtn = container.querySelector('#accounts-reorder');
   if (reorderBtn) {
@@ -517,20 +534,81 @@ function wireForm(form, container, accounts, transactions) {
 
 // One account per row, full width. Two side by side was tried and read as
 // cramped: at half a phone's width every name and figure had to shrink or wrap.
+// A group is a quiet label and a list of rows on one surface. It used to be
+// a heading and a box per account, which made five accounts read as five
+// separate things rather than as one list of where the money is.
 function renderGroup(title, accounts, transactions, importBatches, editingAccount, allAccounts) {
   if (!accounts || accounts.length === 0) return '';
   return `
-    <h3>${title}</h3>
-    <div class="account-group">
-    ${accounts
-      .map((a, i) =>
-        editingAccount && editingAccount.id === a.id
-          ? accountForm(a, transactions, allAccounts, importBatches)
-          : accountCard(a, transactions, importBatches, allAccounts.filter(isLoanAccount), { index: i, count: accounts.length })
-      )
-      .join('')}
-    </div>
+    <section class="account-group-sec">
+      <h3 class="account-group-label">${title}</h3>
+      <div class="account-group k-pane k-pane--quiet">
+      ${accounts
+        .map((a, i) =>
+          editingAccount && editingAccount.id === a.id
+            ? accountForm(a, transactions, allAccounts, importBatches)
+            : accountCard(a, transactions, importBatches, allAccounts.filter(isLoanAccount), { index: i, count: accounts.length })
+        )
+        .join('')}
+      </div>
+    </section>
   `;
+}
+
+/* One account, as one row.
+ *
+ * Whoever it is on the left, what it is underneath, what is in it on the
+ * right. The balance is the biggest thing in the row because it is the
+ * reason a person opened this screen.
+ *
+ * `openable` rows are a button: tapping opens the latest payments and the
+ * row's own actions. A row that is not openable carries its actions in the
+ * detail below it, which those types show anyway.
+ */
+function accountRow(account, { meta = '', value = '', tone = '', canOpen = false, place = {} }) {
+  const open = opened.has(account.id);
+  // The bank's own name if we know it, otherwise what the account is called.
+  // brandMark() is the resolver from phase 9C: a licensed file, a category
+  // icon, or a monogram. Nothing here draws a bank's logo.
+  const mark = brandMark(account.issuer || account.label, { size: 'md' });
+  const body = `
+      ${mark}
+      <span class="k-row__body">
+        <span class="k-row__title" title="${escapeAttr(account.label)}">${escapeHtml(account.label)}</span>
+        ${meta ? `<span class="k-row__meta">${meta}</span>` : ''}
+      </span>`;
+
+  // Rearranging: the arrows take the place of the balance, because a row
+  // cannot hold a button inside a button.
+  if (reordering) {
+    return `
+      <div class="k-row account-row account-row--move">
+        ${body}
+        <span class="account-move">
+          <button type="button" class="icon-btn account-shift" data-id="${account.id}" data-step="-1" aria-label="Move ${escapeAttr(account.label)} up" ${place.index === 0 ? 'disabled' : ''}>${icon('up')}</button>
+          <button type="button" class="icon-btn account-shift" data-id="${account.id}" data-step="1" aria-label="Move ${escapeAttr(account.label)} down" ${place.index === place.count - 1 ? 'disabled' : ''}>${icon('arrow-down')}</button>
+        </span>
+      </div>`;
+  }
+
+  const figure = `<span class="k-row__value account-balance ${tone}">${value}</span>`;
+  if (!canOpen) return `<div class="k-row account-row">${body}${figure}</div>`;
+  return `
+    <button type="button" class="k-row account-row account-open" data-id="${account.id}" aria-expanded="${open}">
+      ${body}${figure}
+      <span class="account-row__chev" aria-hidden="true"></span>
+    </button>`;
+}
+
+// What you can do to an account, kept out of the row so the row stays a
+// name and a figure. Quiet by design: these never compete with a balance.
+function rowActions(account, { spendable = false } = {}) {
+  if (reordering) return '';
+  return `
+    <div class="account-actions-inline">
+      ${spendable ? `<button type="button" class="k-btn k-btn--ghost account-add-expense" data-id="${account.id}" aria-label="Add a spend on ${escapeAttr(account.label)}">Add a spend</button>` : ''}
+      <button type="button" class="k-btn k-btn--ghost account-edit" data-id="${account.id}">Edit</button>
+    </div>`;
 }
 
 function accountCard(account, transactions, importBatches, allLoans = [], place = {}) {
@@ -539,31 +617,17 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
   // its own, which made every card a line taller for one small button. Not on
   // an account kept for savings: nothing leaving it is spending.
   const spendable = account.type === 'card' || account.type === 'cash' || (account.type === 'bank' && !isPutAway(account));
-  // The name is kept to one line, so a long one never pushes the balance
-  // below it down the card.
-  const head = `
-    <div class="account-card-head">
-      <span class="cat-name account-name" title="${escapeAttr(account.label)}">${escapeHtml(account.label)}</span>
-      ${
-        reordering
-          ? `<span class="account-move">
-              <button type="button" class="icon-btn account-shift" data-id="${account.id}" data-step="-1" aria-label="Move up" ${place.index === 0 ? 'disabled' : ''}>${icon('up')}</button>
-              <button type="button" class="icon-btn account-shift" data-id="${account.id}" data-step="1" aria-label="Move down" ${place.index === place.count - 1 ? 'disabled' : ''}>${icon('arrow-down')}</button>
-            </span>`
-          : `<span class="account-actions-inline">
-              ${spendable ? `<button type="button" class="icon-btn account-add-expense" data-id="${account.id}" aria-label="Add a spend on ${escapeAttr(account.label)}">+ Spend</button>` : ''}
-              <button type="button" class="icon-btn account-edit" data-id="${account.id}">Edit</button>
-            </span>`
-      }
-    </div>`;
 
   if (account.type === 'pf') {
     const pf = pfPosition(account, transactions);
     return `
-      <div class="totals-card account-card">
-        ${head}
-        <div class="account-headline in">${formatRupees(pf.balance)}</div>
-        <div class="muted-note">in the fund, same as your passbook${pf.assumedMonths ? ` · ${pf.assumedMonths} month${pf.assumedMonths === 1 ? '' : 's'} assumed` : ''}</div>
+      <div class="account-block">
+        ${accountRow(account, {
+          meta: `in the fund, same as your passbook${pf.assumedMonths ? ` · ${pf.assumedMonths} month${pf.assumedMonths === 1 ? '' : 's'} assumed` : ''}`,
+          value: formatRupees(pf.balance),
+          place,
+        })}
+        <div class="account-detail">
         ${
           pf.pendingInterest
             ? `<div class="totals-row"><span>Interest this year<br><span class="muted-note">at ${pf.ratePct}%, added on ${formatDateNice(pf.nextCredit)}</span></span><span class="in">+${formatRupees(pf.pendingInterest)}</span></div>`
@@ -587,6 +651,8 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
             : '<p class="muted-note">Import a passbook or a payslip, or add a month below.</p>'
         }
         ${pfMonthForm(account, transactions)}
+        ${rowActions(account)}
+        </div>
       </div>
     `;
   }
@@ -618,14 +684,19 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
       .filter(Boolean)
       .join(' · ');
     return `
-      <div class="totals-card account-card">
-        ${head}
+      <div class="account-block">
+        ${accountRow(account, {
+          // What is still owed, which is the question a loan raises.
+          meta: position.outstanding != null ? `${status}${account.loan?.inBudget === false ? ' · not in budget' : ''}` : 'Add the amount borrowed and the EMI',
+          value: position.outstanding != null ? formatRupees(position.outstanding) : '',
+          tone: position.outstanding != null ? moneyTone(position.outstanding) : '',
+          place,
+        })}
+        <div class="account-detail">
         ${
-          position.outstanding != null
-            ? `<div class="account-headline ${moneyTone(position.outstanding)}">${formatRupees(position.outstanding)}</div>
-               ${paidOff != null ? `<div class="budget-meter" style="margin-top:var(--space-2xs)"><div class="budget-fill" style="width:${Math.max(paidOff, 1)}%"></div></div>` : ''}
-               <div class="muted-note loan-status">${status}${account.loan?.inBudget === false ? ' <span class="tag">Not in budget</span>' : ''}</div>`
-            : '<p class="muted-note">Add the amount borrowed and the EMI to see what is left.</p>'
+          position.outstanding != null && paidOff != null
+            ? `<div class="k-meter account-meter"><div class="k-meter__fill" style="width:${Math.max(paidOff, 1)}%"></div></div>`
+            : ''
         }
         ${
           position.emi
@@ -644,6 +715,8 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
         }
         ${position.emi && position.outstanding != null ? loanPlanner(account, position) : ''}
         ${renderLoanHistory(account, transactions, position, allLoans, paidFrom)}
+        ${rowActions(account)}
+        </div>
       </div>
     `;
   }
@@ -658,21 +731,30 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
     const bill = cardBillDue(account);
 
     return `
-      <div class="totals-card account-card">
-        ${head}
-        ${openable(account, acctTxns, `<span class="account-headline ${moneyTone(cycleSpend)}">${formatRupees(cycleSpend)}</span>
-        <span class="muted-note">${
-          position
-            ? // The cycle opens the day after the last statement, the same
-              // dates the Summary shows for it.
-              `${formatDateNice(dayAfter(position.lastClose))} to ${formatDateNice(position.cycleClose)}`
-            : `since ${since ? formatDateNice(since) : 'the cycle began'}`
-        }${day ? ` · bills on the ${ordinal(day)}` : ' · import a statement to set its cycle'}</span>
-        ${
+      <div class="account-block">
+        ${openable(
+          account,
+          acctTxns,
+          accountRow(account, {
+            meta: `${
+              position
+                ? // The cycle opens the day after the last statement, the same
+                  // dates the Summary shows for it.
+                  `${formatDateNice(dayAfter(position.lastClose))} to ${formatDateNice(position.cycleClose)}`
+                : `since ${since ? formatDateNice(since) : 'the cycle began'}`
+            }${day ? ` · bills on the ${ordinal(day)}` : ' · import a statement to set its cycle'}`,
+            value: formatRupees(cycleSpend),
+            tone: moneyTone(cycleSpend),
+            canOpen: true,
+            place,
+          }),
+          // A real amount already billed that the app cannot see yet: a fact
+          // the card computes, not a remark invented about it.
           position && position.billedNotImported >= 1000
-            ? `<span class="muted-note">${formatRupees(position.billedNotImported)} billed ${formatDateNice(position.lastClose)}, statement not imported</span>`
-            : ''
-        }`)}
+            ? `${formatRupees(position.billedNotImported)} billed ${formatDateNice(position.lastClose)}, statement not imported`
+            : '',
+          { spendable: true }
+        )}
         ${renderBill(bill, account)}
       </div>
     `;
@@ -690,15 +772,20 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
     // there is nothing to show, so say where they come from.
     const fdHint = !deposits.length && isPutAway(account) && account.type === 'bank' && /\bsbi\b|state bank/i.test(account.issuer || account.label || '');
     return `
-      <div class="totals-card account-card">
-        ${head}
+      <div class="account-block">
         ${
           balance != null
             ? `${openable(
                 account.type === 'bank' ? account : null,
                 acctTxns,
-                `<span class="account-headline">${formatRupees(deposits.length ? total : balance)}</span>
-                 <span class="muted-note">${account.business ? 'business · ' : isPutAway(account) ? 'put away · ' : ''}statement ${formatDateNice(account.knownBalanceDate)}</span>`
+                accountRow(account, {
+                  meta: `${account.business ? 'business · ' : isPutAway(account) ? 'put away · ' : ''}statement ${formatDateNice(account.knownBalanceDate)}`,
+                  value: formatRupees(deposits.length ? total : balance),
+                  canOpen: account.type === 'bank',
+                  place,
+                }),
+                '',
+                { spendable }
               )}
                ${
                  deposits.length
@@ -711,8 +798,10 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
                    ? `<dl class="loan-lines">${fact('At maturity', `<span class="in">${formatRupees(account.deposit.atMaturity)}</span>`)}</dl>`
                    : ''
                }
-               ${fdHint ? `<button type="button" class="link-btn account-go-import">Import SBI's statement PDF to see your FDs ›</button>` : ''}`
-            : `<p class="muted-note">${account.business ? 'Business · i' : 'I'}mport a statement to see the balance.</p>`
+               ${fdHint ? `<div class="account-detail"><button type="button" class="k-btn k-btn--ghost account-go-import">Import SBI's statement PDF to see your FDs</button></div>` : ''}
+               ${account.type !== 'bank' ? `<div class="account-detail">${rowActions(account, { spendable })}</div>` : ''}`
+            : `${accountRow(account, { meta: `${account.business ? 'business · ' : ''}import a statement to see the balance`, value: '', place })}
+               <div class="account-detail">${rowActions(account, { spendable })}</div>`
         }
       </div>
     `;
@@ -725,44 +814,62 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
   const outAmt = thisMonth.filter((t) => t.direction === 'debit').reduce((s, t) => s + t.amount, 0);
 
   return `
-    <div class="totals-card account-card">
-      ${head}
+    <div class="account-block">
       ${openable(
         account,
         acctTxns,
-        `<span class="account-headline ${moneyTone(outAmt)}">${formatRupees(outAmt)}</span>
-         <span class="muted-note">spent this month${inAmt ? ` · <span class="in">+${formatRupees(inAmt)}</span> in` : ''}</span>`
+        accountRow(account, {
+          meta: `spent this month${inAmt ? ` · <span class="in">+${formatRupees(inAmt)}</span> in` : ''}`,
+          value: formatRupees(outAmt),
+          tone: moneyTone(outAmt),
+          canOpen: true,
+          place,
+        }),
+        '',
+        { spendable: true }
       )}
     </div>
   `;
 }
 
-// A card, bank or cash account's figures, as a button: tapping it opens the
-// five latest payments on the account, newest first, with the rest one tap
-// away in History. `account` null leaves the figures as they are (FDs).
-function openable(account, acctTxns, figures) {
-  if (!account) return figures;
+/* A card, bank or cash account: the row itself is the button. Tapping it
+ * opens the five latest payments on the account, newest first, with the rest
+ * one tap away in History, and the account's own actions underneath.
+ *
+ * `account` null leaves the row as it is (an FD, which you cannot open).
+ * `note` is an extra line the account already knows about itself; it is
+ * shown whether or not the row is open, because a bill you cannot see yet is
+ * not a detail.
+ */
+function openable(account, acctTxns, row, note = '', { spendable = false } = {}) {
+  if (!account) return row;
   const open = opened.has(account.id);
   const recent = open
     ? [...acctTxns].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)).slice(0, 5)
     : [];
   return `
-    <button type="button" class="account-open" data-id="${account.id}" aria-expanded="${open}">${figures}</button>
+    ${row}
+    ${note ? `<p class="account-note">${note}</p>` : ''}
     ${
       open
-        ? `<div class="account-recent">
+        ? `<div class="account-detail account-recent">
             ${
               recent.length
-                ? recent
+                ? `<div class="k-rows account-recent-rows">${recent
                     .map(
-                      (t) => `<div class="totals-row"><span>${escapeHtml(displayName(t.rawDescription))}<br><span class="muted-note">${formatDateNice(t.date)}${
-                        t.isTransfer ? ' · moved' : ''
-                      }</span></span><span class="${t.isTransfer ? 'muted' : t.direction === 'credit' ? 'in' : 'out'}">${t.direction === 'credit' ? '+' : '−'}${formatRupees(t.amount)}</span></div>`
+                      (t) => `<div class="k-row account-recent-row">
+                        <span class="k-row__body">
+                          <span class="k-row__title">${escapeHtml(displayName(t.rawDescription))}</span>
+                          <span class="k-row__meta">${formatDateNice(t.date)}${t.isTransfer ? ' · moved' : ''}</span>
+                        </span>
+                        <span class="k-row__value ${t.isTransfer ? 'muted' : t.direction === 'credit' ? 'in' : 'out'}">${t.direction === 'credit' ? '+' : '−'}${formatRupees(t.amount)}</span>
+                      </div>`
                     )
-                    .join('')
+                    .join('')}</div>`
                 : '<p class="muted-note">Nothing on this account yet.</p>'
             }
-            ${acctTxns.length > recent.length ? `<button type="button" class="link-btn account-see-all" data-id="${account.id}">All ${acctTxns.length} in History ›</button>` : ''}
+            ${acctTxns.length > recent.length ? `<button type="button" class="k-btn k-btn--ghost account-see-all" data-id="${account.id}">All ${acctTxns.length} in History</button>` : ''}
+            ${rowActions(account, { spendable })}
           </div>`
         : ''
     }`;
@@ -1016,11 +1123,15 @@ function accountsTotal(groups, transactions) {
   // named beside the total rather than folded into it - and named whenever
   // such an account exists, so the figure above is never read as everything.
   const putAway = [...known(groups.savings), ...known(groups.pf)];
+  // The supporting line counts the very accounts just added up, not every
+  // account on screen: an account whose balance is not known yet is not in
+  // the figure, and saying otherwise would make the total look wrong.
+  const across = `Counted from ${spendable.length} account${spendable.length === 1 ? '' : 's'} with a known balance`;
   return hero({
     label: 'In your accounts',
     amount: formatRupees(total),
     negative: total < 0,
     figures: putAway.length ? [{ label: 'Put away', value: formatRupees(putAway.reduce((s, v) => s + v, 0)) }] : [],
-    status: '',
+    status: across,
   });
 }

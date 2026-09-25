@@ -8,6 +8,7 @@ import { formatCurrency } from '../format.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
 import { isBusinessCategory, isBusinessAccount, activeSpace, accountInSpace } from '../business.js';
 import { escapeHtml } from '../ui.js';
+import { brandMark } from '../brand.js';
 
 export async function render(container, params = {}) {
   const [categories, allAccounts, recurring, space, transactions] = await Promise.all([
@@ -27,7 +28,23 @@ export async function render(container, params = {}) {
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const initialAccountId = params.accountId && accounts.some((a) => a.id === params.accountId) ? params.accountId : CASH_ACCOUNT_ID;
 
+  // The categories live in a sheet now rather than in a wall of twenty
+  // chips. The list itself is unchanged, and so is the order it arrives in.
+  const catList = byRecentUse(categories, transactions);
+
+  container.classList.add('k');
   container.innerHTML = `
+    <!-- The fastest way in, so it goes first. Pasting the bank's own message
+         fills in everything below, which beats typing any of it by hand. -->
+    <button type="button" class="k-insight k-add-sms" id="add-from-alert">
+      <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('inbox')}</span>
+      <span class="k-add-sms__body">
+        <span class="k-insight__title">Got a bank SMS?</span>
+        <span class="k-insight__body">Paste it and Kawach fills this in for you.</span>
+      </span>
+      <span class="k-add-sms__go" aria-hidden="true">→</span>
+    </button>
+
     <form id="add-form" class="add-form">
       <section class="hero amount-hero">
         <label class="field amount-field">
@@ -37,44 +54,58 @@ export async function render(container, params = {}) {
             <input id="add-amount" class="amount-input" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="0" required>
           </div>
         </label>
-        <div class="direction-toggle">
-          <button type="button" class="dir-btn active" data-dir="debit">Spent</button>
-          <button type="button" class="dir-btn" data-dir="credit">Received</button>
+        <div class="k-seg direction-toggle" role="tablist" aria-label="Which way the money went">
+          <button type="button" class="k-seg__btn dir-btn active" role="tab" aria-selected="true" data-dir="debit">Spent</button>
+          <button type="button" class="k-seg__btn dir-btn" role="tab" aria-selected="false" data-dir="credit">Received</button>
         </div>
       </section>
-      <label class="field">
-        <span>What</span>
-        <input id="add-desc" type="text" placeholder="e.g. coffee" required>
+
+      <label class="k-field field">
+        <span class="k-label">Merchant</span>
+        <input id="add-desc" class="k-input" type="text" placeholder="e.g. Swiggy, Netflix, Uber" required>
       </label>
-      <div class="chip-row" id="add-categories">
-        <button type="button" class="chip active" data-cat="">Uncategorized</button>
-        ${byRecentUse(categories, transactions)
-          .map((c) => `<button type="button" class="chip" data-cat="${c.id}" data-business="${isBusinessCategory(c) ? '1' : ''}">${categoryStyle(c.name).icon} ${escapeHtml(c.name)}</button>`)
-          .join('')}
+
+      <!-- One row saying what is chosen. The twenty were the whole problem. -->
+      <div class="k-field">
+        <span class="k-label" id="add-cat-label">Category</span>
+        <button type="button" class="k-picker" id="add-cat-open" aria-haspopup="dialog" aria-labelledby="add-cat-label add-cat-name">
+          <span class="k-picker__mark" id="add-cat-mark"></span>
+          <span class="k-picker__name" id="add-cat-name">Uncategorized</span>
+        </button>
       </div>
-      ${commitmentField(commitments)}
-      <label class="field">
-        <span>Account</span>
-        <select id="add-account">
-          ${accounts
-            // A loan or the provident fund is not somewhere you spend from.
-            .filter((a) => ['bank', 'card', 'cash', 'savings'].includes(a.type))
-            .map((a) => `<option value="${a.id}" ${a.id === initialAccountId ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
-            .join('')}
-        </select>
+
+      <label class="k-field field">
+        <span class="k-label">Account</span>
+        <div class="k-picker k-picker--select">
+          <span class="k-picker__mark" id="add-account-mark"></span>
+          <select id="add-account" class="k-select">
+            ${accounts
+              // A loan or the provident fund is not somewhere you spend from.
+              .filter((a) => ['bank', 'card', 'cash', 'savings'].includes(a.type))
+              .map((a) => `<option value="${a.id}" ${a.id === initialAccountId ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
+              .join('')}
+          </select>
+        </div>
       </label>
-      <label class="field field-date">
-        <span>Date</span>
-        <input id="add-date" type="date" value="${today}">
+
+      <label class="k-field field field-date">
+        <span class="k-label">Date</span>
+        <input id="add-date" class="k-input" type="date" value="${today}">
       </label>
-      <label class="checkbox-row">
-        <input type="checkbox" id="add-repeats">
-        <span>This repeats - count it in my monthly plan</span>
-      </label>
+
+      <div class="k-switch-row">
+        <span class="k-switch-row__text" id="add-repeats-label">Repeats every month
+          <span class="k-switch-row__sub">Counts it in your plan, not just today</span>
+        </span>
+        <input type="checkbox" id="add-repeats" class="k-vis-hidden">
+        <button type="button" class="k-toggle" id="add-repeats-toggle" role="switch"
+                aria-checked="false" aria-labelledby="add-repeats-label"></button>
+      </div>
+
       <div id="add-repeat-options" hidden>
-        <label class="field">
-          <span>How often</span>
-          <select id="add-frequency">
+        <label class="k-field field">
+          <span class="k-label">How often</span>
+          <select id="add-frequency" class="k-select">
             ${Object.entries(FREQUENCIES)
               .map(([key, f]) => `<option value="${key}" ${key === DEFAULT_FREQUENCY ? 'selected' : ''}>${f.label}</option>`)
               .join('')}
@@ -82,12 +113,45 @@ export async function render(container, params = {}) {
         </label>
         <p class="freq-preview" id="add-freq-preview" hidden></p>
       </div>
-      <button type="submit" class="btn-primary">Save</button>
+
+      <!-- Quiet, because the app works this out on its own nearly always. -->
+      <details class="k-disclose k-add-more">
+        <summary>More</summary>
+        <div class="k-add-more__body">${commitmentField(commitments)}</div>
+      </details>
+
+      <button type="submit" class="k-btn k-btn--primary btn-primary">Save</button>
     </form>
-    <button type="button" class="alert-shortcut" id="add-from-alert">
-      <span>${icon('inbox')} Have a bank SMS for this?</span>
-      <span class="alert-shortcut-go">Paste it instead →</span>
-    </button>
+
+    <!-- The category list, kept out of the way until it is asked for. -->
+    <div id="add-cat-sheet" hidden>
+      <div class="k-scrim" id="add-cat-scrim"></div>
+      <div class="k-sheet" role="dialog" aria-modal="true" aria-label="Choose a category">
+        <div class="k-sheet__grip"></div>
+        <div class="k-sheet__head">
+          <span class="k-sheet__title">Category</span>
+          <button type="button" class="k-btn k-btn--ghost k-sheet__close" id="add-cat-close">Done</button>
+        </div>
+        <div class="k-sheet__scroll">
+          <div class="k-rows" id="add-categories">
+            <button type="button" class="k-row k-cat-row chip active" data-cat="">
+              <span class="k-icon" style="--k-tint:var(--k-text-3)">${categoryStyle('Uncategorized').icon}</span>
+              <span class="k-row__body"><span class="k-row__title">Uncategorized</span></span>
+              <span class="k-cat-row__tick" aria-hidden="true"></span>
+            </button>
+            ${catList
+              .map(
+                (c) => `<button type="button" class="k-row k-cat-row chip" data-cat="${c.id}" data-business="${isBusinessCategory(c) ? '1' : ''}">
+                  <span class="k-icon" style="--k-tint:${categoryStyle(c.name).color}">${categoryStyle(c.name).icon}</span>
+                  <span class="k-row__body"><span class="k-row__title">${escapeHtml(c.name)}</span></span>
+                  <span class="k-cat-row__tick" aria-hidden="true"></span>
+                </button>`
+              )
+              .join('')}
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 
   container.querySelector('#add-from-alert').addEventListener('click', () => {
@@ -100,14 +164,60 @@ export async function render(container, params = {}) {
   container.querySelectorAll('.dir-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       direction = btn.dataset.dir;
-      container.querySelectorAll('.dir-btn').forEach((b) => b.classList.toggle('active', b === btn));
+      container.querySelectorAll('.dir-btn').forEach((b) => {
+        const on = b === btn;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', String(on));
+      });
     });
+  });
+
+  // The category is chosen in a sheet, so the screen behind it stays one
+  // row rather than twenty chips. Selection state is unchanged: the same
+  // `.chip` elements with the same `data-cat`, only laid out as rows, so
+  // everything that reads them still works.
+  const sheet = container.querySelector('#add-cat-sheet');
+  const catName = container.querySelector('#add-cat-name');
+  const catMark = container.querySelector('#add-cat-mark');
+  const openBtn = container.querySelector('#add-cat-open');
+
+  const paintCategory = () => {
+    const chosen = container.querySelector('#add-categories .chip.active');
+    const name = chosen ? chosen.querySelector('.k-row__title').textContent : 'Uncategorized';
+    catName.textContent = name;
+    catMark.innerHTML = brandMark(name, { category: name, size: 'sm' });
+  };
+
+  let lastFocus = null;
+  const openSheet = () => {
+    lastFocus = document.activeElement;
+    sheet.hidden = false;
+    const first = sheet.querySelector('.k-cat-row.active') || sheet.querySelector('.k-cat-row');
+    if (first) first.focus({ preventScroll: true });
+  };
+  const closeSheet = () => {
+    sheet.hidden = true;
+    const back = lastFocus && lastFocus !== document.body ? lastFocus : openBtn;
+    back.focus({ preventScroll: true });
+  };
+  openBtn.addEventListener('click', openSheet);
+  container.querySelector('#add-cat-close').addEventListener('click', closeSheet);
+  container.querySelector('#add-cat-scrim').addEventListener('click', closeSheet);
+  // Escape closes it, the way every other sheet on a phone does.
+  sheet.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.stopPropagation(); closeSheet(); }
   });
 
   container.querySelectorAll('.chip').forEach((chip) => {
     chip.addEventListener('click', () => {
       categoryId = chip.dataset.cat || null;
-      container.querySelectorAll('.chip').forEach((c) => c.classList.toggle('active', c === chip));
+      container.querySelectorAll('.chip').forEach((c) => {
+        const on = c === chip;
+        c.classList.toggle('active', on);
+        c.setAttribute('aria-pressed', String(on));
+      });
+      paintCategory();
+      closeSheet();
     });
   });
 
@@ -131,16 +241,36 @@ export async function render(container, params = {}) {
       if (chip.hidden && chip.dataset.cat === categoryId) {
         categoryId = null;
         container.querySelectorAll('#add-categories .chip').forEach((c) => c.classList.toggle('active', c.dataset.cat === ''));
+        paintCategory();
       }
     });
   };
+  // The mark beside the account name: a real logo if one has been dropped
+  // into icons/brands/, otherwise the monogram. Recognition, not decoration.
+  const accountMark = container.querySelector('#add-account-mark');
+  const paintAccount = () => {
+    const chosen = accountSelect.options[accountSelect.selectedIndex];
+    accountMark.innerHTML = brandMark(chosen ? chosen.textContent : '', { size: 'sm' });
+  };
+  accountSelect.addEventListener('change', paintAccount);
+  paintAccount();
+  paintCategory();
+
   accountSelect.addEventListener('change', fitCategories);
   fitCategories();
 
   // "This repeats" turns a one-off entry into a standing commitment as well,
   // so ₹120 of chai logged once becomes ₹3,650 a month in the plan without
   // you having to work that out or enter it twice.
+  // The switch is what you see; the checkbox behind it is what everything
+  // else reads, so nothing downstream had to change.
   const repeatsEl = container.querySelector('#add-repeats');
+  const repeatsToggle = container.querySelector('#add-repeats-toggle');
+  repeatsToggle.addEventListener('click', () => {
+    repeatsEl.checked = !repeatsEl.checked;
+    repeatsToggle.setAttribute('aria-checked', String(repeatsEl.checked));
+    repeatsEl.dispatchEvent(new Event('change'));
+  });
   const repeatOptions = container.querySelector('#add-repeat-options');
   const frequencyEl = container.querySelector('#add-frequency');
   const freqPreview = container.querySelector('#add-freq-preview');

@@ -602,13 +602,6 @@ input:disabled, select:disabled, textarea:disabled {
   font-size: var(--text-micro);
 }
 
-.chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2xs);
-  margin-bottom: var(--space-sm);
-}
-
 .chip {
   padding: var(--space-2xs) var(--space-sm);
   border-radius: var(--radius-pill);
@@ -1116,23 +1109,9 @@ h3 {
   box-shadow: inset 0 1px 0 0 var(--edge), var(--shadow-card);
 }
 
-.account-card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-2xs);
-}
-
 /* One line, always. A wrapping name pushed the balance below it out of step
    with the card beside it, which is most of what made the grid look busy.
    The full name is still there on a long press (title). */
-.account-name {
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .account-headline {
   font-size: var(--text-fig-sm);
   font-weight: 700;
@@ -1576,21 +1555,6 @@ h3 {
   margin-bottom: var(--space-xs);
 }
 
-.budget-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.budget-name {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-weight: 700;
-  font-size: var(--text-body);
-}
-
 .budget-nums {
   font-size: var(--text-label);
   font-weight: 700;
@@ -1617,12 +1581,6 @@ h3 {
 
 .budget-fill.over {
   background: var(--out);
-}
-
-.budget-note {
-  font-size: var(--text-meta);
-  color: var(--text-muted);
-  margin-top: var(--space-2xs);
 }
 
 /* ---------- Recap ---------- */
@@ -2023,29 +1981,6 @@ textarea {
   font-family: inherit;
   resize: vertical;
   width: 100%;
-}
-
-.alert-shortcut {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-xs);
-  margin-top: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
-  border: 1px dashed var(--border-hi);
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--text-muted);
-  font-family: inherit;
-  font-size: var(--text-label);
-  text-align: left;
-}
-
-.alert-shortcut-go {
-  color: var(--accent);
-  font-weight: 700;
-  white-space: nowrap;
 }
 
 /* ---------- Version / update ---------- */
@@ -2668,10 +2603,6 @@ textarea {
 }
 
 /* The loan card: one status line, the EMI line, the last payment as a bar. */
-.loan-status {
-  margin-top: var(--space-2xs);
-}
-
 .tag {
   display: inline-block;
   font-size: var(--text-micro);

@@ -5,7 +5,7 @@
 // counter, not the version people see). The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v79';
+const CACHE_NAME = 'expense-tracker-v80';
 
 const APP_SHELL = [
   './',
@@ -13,6 +13,7 @@ const APP_SHELL = [
   './manifest.webmanifest',
   './css/tokens.css',
   './css/style.css',
+  './css/dna.css',
   './fonts/Geist-Variable.woff2',
   './js/app.js',
   './js/db.js',
@@ -72,6 +73,7 @@ const APP_SHELL = [
   './js/parsers/any-bank.js',
   './js/tour.js',
   './js/business.js',
+  './js/brand.js',
   './js/calendar.js',
   './js/charts.js',
   './js/goals.js',
@@ -143,7 +145,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   // The tour video streams straight from the network in pieces, and is never
-  // kept: five megabytes on every phone for a one-minute watch.
+  // kept: eleven megabytes on every phone for a single watch.
   if (url.pathname.includes('/media/')) return;
 
   // Page loads can carry a query string (the app is reopened at ./?shared=1

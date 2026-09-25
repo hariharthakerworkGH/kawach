@@ -1,0 +1,2557 @@
+@font-face {
+  font-family: "Geist";
+  src: url("../fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Kawach Visual DNA
+ * =================
+ *
+ * The foundation for the redesign. This file is NOT loaded by the app: it is
+ * loaded only by /lab/, so the system can be judged in isolation before any
+ * of the six screens is touched. `css/tokens.css` and `css/style.css` are
+ * untouched and production still runs on them.
+ *
+ * Everything here has a measured value. Where a value looks arbitrary there
+ * is a comment saying what decided it - usually contrast, a fingertip, or
+ * the fact that a phone has to draw it sixty times a second.
+ *
+ * The one rule the whole system rests on: DEPTH INSTEAD OF BORDERS. A thing
+ * is separated from the thing behind it by being made of slightly different
+ * material and catching slightly different light, not by having a line drawn
+ * around it. Lines are for when material cannot do the job.
+ */
+
+:root {
+  /* ====================================================================
+     01 · COLOUR
+     A near-black navy ground, three accents that sit on one spectrum, and
+     four colours that mean something about money. Nothing decorative.
+     ==================================================================== */
+
+  /* Ground. Not #000: pure black kills the sense of a lit room, and on OLED
+     it makes every edge a hard cut. This is a very dark blue that still has
+     somewhere to fall to. */
+  --k-bg: oklch(12% 0.016 268);
+  --k-bg-elev: oklch(15.5% 0.018 268);
+
+  /* Surfaces, four steps up. Each is a real perceptual step (about 3.5% L),
+     which is the smallest difference that still reads as "in front of". */
+  --k-surface: oklch(19% 0.019 268);
+  --k-surface-elev: oklch(22.5% 0.021 268);
+  --k-surface-hero: oklch(26% 0.024 268);
+  --k-surface-press: oklch(24% 0.022 268);
+
+  /* Ink. Three levels and no more: a fourth is always someone hiding
+     something they should have deleted. */
+  --k-text: oklch(97% 0.004 260); /* 14.3:1 at worst */
+  --k-text-2: oklch(73% 0.014 262); /*  6.5:1 at worst */
+  --k-text-3: oklch(65% 0.016 262); /*  4.8:1 at worst, and that is the floor */
+
+  /* Lines. Expressed as white at an opacity so they work over any surface
+     level without being restated. */
+  --k-hairline: oklch(100% 0 0 / 0.06);
+  --k-border-subtle: oklch(100% 0 0 / 0.10);
+  --k-border: oklch(100% 0 0 / 0.14);
+  --k-border-emphasis: oklch(100% 0 0 / 0.22);
+
+  /* The spectrum. Cyan, violet and magenta are one continuous sweep of hue
+     (206 -> 292 -> 330), which is why a gradient between any two of them
+     never muddies. Cyan leads; magenta is the far end and is used sparingly,
+     mostly inside a drawing. */
+  --k-cyan: oklch(82% 0.13 206);
+  --k-cyan-deep: oklch(58% 0.14 216);
+  --k-violet: oklch(66% 0.17 292);
+  --k-magenta: oklch(72% 0.19 330);
+  --k-accent: var(--k-cyan); /* the one thing you can press */
+  --k-accent-2: var(--k-violet); /* the second voice in a comparison */
+  --k-accent-ink: oklch(17% 0.04 220); /* text on a filled accent */
+
+  /* Money. These four never decorate anything. */
+  --k-positive: oklch(80% 0.16 158);
+  --k-negative: oklch(70% 0.18 22);
+  --k-warning: oklch(83% 0.15 78);
+  --k-info: var(--k-cyan);
+
+  /* ====================================================================
+     02 · GLASS
+     Four levels. Each differs measurably in all five of fill, blur,
+     highlight, shadow and line, so they can be told apart at a glance and
+     nobody has to guess which one to reach for.
+     ==================================================================== */
+
+  /* L1 · quiet panel: supporting information, a list, a row group. */
+  --k-glass-1: color-mix(in oklch, var(--k-surface) 58%, transparent);
+  --k-blur-1: 10px;
+
+  /* L2 · data card: a figure with something to say. The default. */
+  --k-glass-2: color-mix(in oklch, var(--k-surface-elev) 64%, transparent);
+  --k-blur-2: 16px;
+
+  /* L3 · focused: what you have opened, chosen, or are being pointed at. */
+  --k-glass-3: color-mix(in oklch, var(--k-surface-elev) 74%, transparent);
+  --k-blur-3: 22px;
+
+  /* L4 · hero: one per screen. The answer. */
+  --k-glass-4: color-mix(in oklch, var(--k-surface-hero) 70%, transparent);
+  --k-blur-4: 30px;
+
+  /* A sheet sits over everything and must not let the page read through it. */
+  --k-glass-sheet: color-mix(in oklch, var(--k-bg-elev) 92%, transparent);
+  --k-blur-sheet: 40px;
+
+  /* The light along the top edge of a pane. This one gradient is what makes
+     a rectangle read as a physical surface rather than a swatch. */
+  --k-sheen: linear-gradient(
+    180deg,
+    oklch(100% 0 0 / 0.07) 0%,
+    oklch(100% 0 0 / 0.018) 34%,
+    transparent 64%
+  );
+  --k-sheen-hero: linear-gradient(
+    180deg,
+    oklch(100% 0 0 / 0.10) 0%,
+    oklch(100% 0 0 / 0.025) 30%,
+    transparent 60%
+  );
+  --k-inner-top: inset 0 1px 0 0 oklch(100% 0 0 / 0.09);
+  --k-inner-top-hero: inset 0 1px 0 0 oklch(100% 0 0 / 0.14);
+
+  /* ====================================================================
+     03 · SHADOW  ·  three depths, no more
+     ==================================================================== */
+  --k-shadow-soft: 0 1px 2px oklch(0% 0 0 / 0.3), 0 4px 14px oklch(0% 0 0 / 0.22);
+  --k-shadow-elev: 0 2px 6px oklch(0% 0 0 / 0.36), 0 12px 32px oklch(0% 0 0 / 0.3);
+  --k-shadow-hero: 0 3px 10px oklch(0% 0 0 / 0.4), 0 24px 60px oklch(0% 0 0 / 0.42);
+
+  /* ====================================================================
+     04 · GLOW
+     Light is the loudest thing in the system, so it is rationed: a screen
+     gets at most three glowing objects. Numbers are drop-shadow radii.
+     ==================================================================== */
+  --k-glow-cyan: 0 0 26px color-mix(in oklch, var(--k-cyan) 30%, transparent);
+  --k-glow-violet: 0 0 26px color-mix(in oklch, var(--k-violet) 28%, transparent);
+  --k-glow-magenta: 0 0 26px color-mix(in oklch, var(--k-magenta) 28%, transparent);
+  --k-glow-positive: 0 0 22px color-mix(in oklch, var(--k-positive) 26%, transparent);
+  --k-glow-negative: 0 0 22px color-mix(in oklch, var(--k-negative) 26%, transparent);
+  --k-glow-warning: 0 0 22px color-mix(in oklch, var(--k-warning) 24%, transparent);
+  /* Light thrown by a figure itself, not by a box behind it. */
+  --k-glow-text: 0 0 34px color-mix(in oklch, var(--k-cyan) 18%, transparent);
+
+  /* ====================================================================
+     05 · TYPOGRAPHY
+     One family. Figures are tracked tighter as they grow, because a large
+     number set at normal tracking reads as a scoreboard.
+     ==================================================================== */
+  --k-font: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  --k-hero: clamp(3.1rem, 13.5vw, 4.25rem); /* the one answer on a screen */
+  --k-display: 2.25rem; /* a figure a card is about */
+  --k-title: 1.5rem; /* the screen's name */
+  --k-heading: 1.125rem; /* a heading inside a screen */
+  --k-value: 1.25rem; /* an ordinary money figure */
+  --k-value-sm: 1rem; /* a figure in a row */
+  --k-body: 0.9375rem; /* sentences, names */
+  --k-label: 0.8125rem; /* the name of a thing */
+  --k-caption: 0.6875rem; /* the line under it */
+
+  /* Weight says what a thing is, not how loud it is. Four, and no others. */
+  --k-w-fig: 640;
+  --k-w-strong: 700;
+  --k-w-label: 500;
+  --k-w-body: 400;
+
+  --k-track-hero: -0.045em;
+  --k-track-display: -0.03em;
+  --k-track-title: -0.02em;
+  --k-track-caption: 0.04em; /* small caps-ish labels open up slightly */
+
+  --k-lh-tight: 0.95;
+  --k-lh-snug: 1.25;
+  --k-lh-body: 1.5;
+
+  /* ====================================================================
+     06 · SPACING  ·  a 4-point scale, named by size
+     ==================================================================== */
+  --k-1: 4px;
+  --k-2: 8px;
+  --k-3: 12px;
+  --k-4: 16px;
+  --k-5: 20px;
+  --k-6: 24px;
+  --k-8: 32px;
+  --k-10: 40px;
+  --k-12: 48px;
+  --k-16: 64px;
+
+  /* ====================================================================
+     07 · RADIUS  ·  nothing is ever rounder than its parent
+     ==================================================================== */
+  --k-r-xs: 8px; /* a tag, a swatch */
+  --k-r-sm: 12px; /* an icon tile, a small control */
+  --k-r-md: 16px; /* an input, a raised strip */
+  --k-r-lg: 22px; /* a data card */
+  --k-r-xl: 28px; /* a hero, a sheet */
+  --k-r-2xl: 36px; /* a full-bleed feature panel */
+  --k-r-pill: 999px;
+
+  /* ====================================================================
+     08 · CONTROLS  ·  three heights, one tap rule
+     ==================================================================== */
+  --k-ctl-lg: 52px; /* a full-width primary action */
+  --k-ctl-md: 44px; /* a row, a select, a segmented control */
+  --k-ctl-sm: 34px; /* a chip, inside a 44px tap area */
+  --k-tap: 44px; /* the floor, whatever the glyph looks like */
+  --k-icon-lg: 1.5rem;
+  --k-icon-md: 1.25rem;
+  --k-icon-sm: 1rem;
+
+  /* ====================================================================
+     09 · MOTION
+     Short, and always about cause and effect. Nothing loops, nothing
+     bounces, nothing moves that is not answering something.
+     ==================================================================== */
+  --k-t-instant: 0ms;
+  --k-t-fast: 140ms; /* a press */
+  --k-t-normal: 240ms; /* a state change */
+  --k-t-slow: 420ms; /* something arriving */
+  /* The expressive ceiling. 900ms was the old value and nothing ever used
+     it; 600ms is the top of the band a person still reads as one motion
+     rather than as waiting. A chart that needs longer is staggered out of
+     several of these, never stretched into one slow one. */
+  --k-t-draw: 600ms;
+  --k-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --k-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --k-ease-io: cubic-bezier(0.65, 0, 0.35, 1);
+  /* The one spring, for a sheet arriving. Overshoot is tiny on purpose. */
+  --k-spring: cubic-bezier(0.34, 1.26, 0.64, 1);
+
+  /* ====================================================================
+     10 · ATMOSPHERE
+     Strengths are capped by measurement, not taste: above roughly a tenth
+     of a wash at any one pixel, --k-text-3 stops clearing 4.5:1 against its
+     own background. That ceiling is the reason these numbers are small.
+     ==================================================================== */
+  --k-atm-cyan: 10%;
+  --k-atm-violet: 9%;
+  --k-atm-magenta: 6%;
+  --k-atm-warm: 4%;
+  --k-atm-warm-hue: oklch(74% 0.12 52);
+}
+
+/* Light is a different material, not an inversion. Glass on paper is nearly
+   opaque, the sheen becomes a shadow from above, and glow all but vanishes,
+   because a lit edge on white reads as a smudge. Hierarchy in daylight is
+   carried by weight and space, the way paper has always done it. */
+@media (prefers-color-scheme: light) {
+  :root {
+    --k-bg: oklch(97% 0.004 258);
+    --k-bg-elev: oklch(100% 0 0);
+    --k-surface: oklch(100% 0 0);
+    --k-surface-elev: oklch(98.5% 0.003 258);
+    --k-surface-hero: oklch(100% 0 0);
+    --k-surface-press: oklch(95.5% 0.005 258);
+
+    --k-text: oklch(19% 0.014 264);
+    --k-text-2: oklch(47% 0.016 262);
+    --k-text-3: oklch(52% 0.016 262);
+
+    --k-hairline: oklch(19% 0.014 264 / 0.07);
+    --k-border-subtle: oklch(19% 0.014 264 / 0.11);
+    --k-border: oklch(19% 0.014 264 / 0.15);
+    --k-border-emphasis: oklch(19% 0.014 264 / 0.26);
+
+    --k-cyan: oklch(54% 0.14 232);
+    --k-cyan-deep: oklch(44% 0.13 228);
+    --k-violet: oklch(50% 0.17 292);
+    --k-magenta: oklch(54% 0.19 330);
+    --k-accent-ink: oklch(100% 0 0);
+
+    --k-positive: oklch(52% 0.13 158);
+    --k-negative: oklch(55% 0.19 26);
+    --k-warning: oklch(54% 0.13 70);
+
+    --k-glass-1: color-mix(in oklch, var(--k-surface) 86%, transparent);
+    --k-glass-2: color-mix(in oklch, var(--k-surface) 92%, transparent);
+    --k-glass-3: color-mix(in oklch, var(--k-surface) 96%, transparent);
+    --k-glass-4: color-mix(in oklch, var(--k-surface) 96%, transparent);
+    --k-glass-sheet: color-mix(in oklch, var(--k-surface) 98%, transparent);
+
+    --k-sheen: linear-gradient(180deg, oklch(100% 0 0 / 0.9) 0%, oklch(100% 0 0 / 0.3) 40%, transparent 72%);
+    --k-sheen-hero: var(--k-sheen);
+    --k-inner-top: inset 0 1px 0 0 oklch(100% 0 0 / 0.8);
+    --k-inner-top-hero: var(--k-inner-top);
+
+    --k-shadow-soft: 0 1px 2px oklch(19% 0.014 264 / 0.05), 0 3px 12px oklch(19% 0.014 264 / 0.06);
+    --k-shadow-elev: 0 2px 6px oklch(19% 0.014 264 / 0.07), 0 10px 28px oklch(19% 0.014 264 / 0.09);
+    --k-shadow-hero: 0 3px 10px oklch(19% 0.014 264 / 0.08), 0 20px 48px oklch(19% 0.014 264 / 0.12);
+
+    --k-glow-cyan: 0 0 18px color-mix(in oklch, var(--k-cyan) 12%, transparent);
+    --k-glow-violet: 0 0 18px color-mix(in oklch, var(--k-violet) 11%, transparent);
+    --k-glow-magenta: 0 0 18px color-mix(in oklch, var(--k-magenta) 11%, transparent);
+    --k-glow-positive: 0 0 16px color-mix(in oklch, var(--k-positive) 10%, transparent);
+    --k-glow-negative: 0 0 16px color-mix(in oklch, var(--k-negative) 10%, transparent);
+    --k-glow-warning: 0 0 16px color-mix(in oklch, var(--k-warning) 10%, transparent);
+    --k-glow-text: none;
+
+    --k-atm-cyan: 7%;
+    --k-atm-violet: 6%;
+    --k-atm-magenta: 4%;
+    --k-atm-warm: 3%;
+  }
+}
+
+/* ======================================================================
+   COMPONENT GRAMMAR
+   Every rule below is an application of the tokens above. No component
+   invents a value of its own.
+   ====================================================================== */
+
+.k {
+  font-family: var(--k-font);
+  color: var(--k-text);
+  background: var(--k-bg);
+  font-size: var(--k-body);
+  line-height: var(--k-lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Atmosphere ------------------------------------------------------
+   Two fixed layers behind everything: the near field at the top, where the
+   light comes from, and the far field, which keeps the room lit all the way
+   down instead of stopping below the fold. Both are enormous and weak. */
+.k-atmosphere::before,
+.k-atmosphere::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.k-atmosphere::before {
+  inset: -12% -20% auto -20%;
+  height: 56vh;
+  background:
+    radial-gradient(62% 70% at 14% 0%, color-mix(in oklch, var(--k-cyan) var(--k-atm-cyan), transparent), transparent 72%),
+    radial-gradient(54% 66% at 92% 3%, color-mix(in oklch, var(--k-violet) var(--k-atm-violet), transparent), transparent 74%);
+}
+
+.k-atmosphere::after {
+  inset: 0;
+  background:
+    radial-gradient(84% 46% at -16% 34%, color-mix(in oklch, var(--k-cyan) var(--k-atm-magenta), transparent), transparent 74%),
+    radial-gradient(74% 44% at 118% 58%, color-mix(in oklch, var(--k-magenta) var(--k-atm-magenta), transparent), transparent 72%),
+    radial-gradient(80% 40% at 110% 100%, color-mix(in oklch, var(--k-atm-warm-hue) var(--k-atm-warm), transparent), transparent 70%);
+}
+
+.k-atmosphere > * { position: relative; z-index: 1; }
+
+/* --- The one reset -------------------------------------------------
+   The system sized everything as if padding were inside the box, but never
+   said so: it was borrowing the reset in style.css. That held while the DNA
+   was only ever loaded next to it, and broke the moment the lab loaded this
+   file on its own - a full-width input came out 34px wider than its field.
+   A design system that only works when another stylesheet is present is not
+   a design system, so it says so here. Scoped to .k, which is on every
+   migrated container and on the lab, so it changes nothing anywhere else.
+   --------------------------------------------------------------------- */
+.k,
+.k *,
+.k *::before,
+.k *::after { box-sizing: border-box; }
+
+/* --- Glass panel: the base every surface derives from ---------------- */
+.k-pane {
+  position: relative;
+  background-color: var(--k-glass-2);
+  background-image: var(--k-sheen);
+  -webkit-backdrop-filter: blur(var(--k-blur-2));
+  backdrop-filter: blur(var(--k-blur-2));
+  border: 1px solid var(--k-hairline);
+  border-radius: var(--k-r-lg);
+  box-shadow: var(--k-inner-top), var(--k-shadow-soft);
+  padding: var(--k-5);
+}
+
+.k-pane--quiet {
+  background-color: var(--k-glass-1);
+  -webkit-backdrop-filter: blur(var(--k-blur-1));
+  backdrop-filter: blur(var(--k-blur-1));
+  box-shadow: var(--k-inner-top);
+}
+
+.k-pane--focus {
+  background-color: var(--k-glass-3);
+  -webkit-backdrop-filter: blur(var(--k-blur-3));
+  backdrop-filter: blur(var(--k-blur-3));
+  border-color: var(--k-border-subtle);
+  box-shadow: var(--k-inner-top), var(--k-shadow-elev);
+}
+
+/* --- Hero: one per screen, and it holds four things ------------------ */
+.k-hero {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--k-glass-4);
+  background-image: var(--k-sheen-hero);
+  -webkit-backdrop-filter: blur(var(--k-blur-4));
+  backdrop-filter: blur(var(--k-blur-4));
+  border: 1px solid var(--k-border-subtle);
+  border-radius: var(--k-r-xl);
+  box-shadow: var(--k-inner-top-hero), var(--k-shadow-hero);
+  padding: var(--k-6);
+}
+
+/* The pool of light behind the figure. One per hero, never per card. */
+.k-hero::before {
+  content: "";
+  position: absolute;
+  inset: -50% 12% auto -28%;
+  height: 62%;
+  background: radial-gradient(58% 100% at 46% 0%, color-mix(in oklch, var(--k-cyan) 15%, transparent), transparent 70%);
+  pointer-events: none;
+}
+.k-hero > * { position: relative; }
+
+.k-hero__label,
+.k-label {
+  font-size: var(--k-label);
+  font-weight: var(--k-w-label);
+  color: var(--k-text-2);
+}
+
+.k-hero__figure {
+  font-size: var(--k-hero);
+  font-weight: var(--k-w-strong);
+  letter-spacing: var(--k-track-hero);
+  line-height: var(--k-lh-tight);
+  font-variant-numeric: tabular-nums;
+  margin: var(--k-2) 0 var(--k-1);
+  text-shadow: var(--k-glow-text);
+}
+
+.k-hero__figure--negative { color: var(--k-negative); text-shadow: var(--k-glow-negative); }
+.k-hero__figure--positive { color: var(--k-positive); text-shadow: var(--k-glow-positive); }
+
+/* --- Metric: a label above a figure, stacked, never side by side ----- */
+.k-metric { display: flex; flex-direction: column; gap: 2px; }
+.k-metric__k {
+  font-size: var(--k-caption);
+  font-weight: var(--k-w-label);
+  letter-spacing: var(--k-track-caption);
+  text-transform: uppercase;
+  color: var(--k-text-3);
+}
+.k-metric__v {
+  font-size: var(--k-value);
+  font-weight: var(--k-w-fig);
+  letter-spacing: var(--k-track-title);
+  font-variant-numeric: tabular-nums;
+}
+.k-metric__v--pos { color: var(--k-positive); }
+.k-metric__v--neg { color: var(--k-negative); }
+
+/* --- Buttons: one geometry, three voices ---------------------------- */
+.k-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--k-2);
+  min-height: var(--k-ctl-md);
+  padding: 0 var(--k-5);
+  border-radius: var(--k-r-pill);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: var(--k-body);
+  font-weight: var(--k-w-fig);
+  cursor: pointer;
+  transition: background var(--k-t-fast) var(--k-ease), transform var(--k-t-fast) var(--k-ease),
+    box-shadow var(--k-t-fast) var(--k-ease);
+}
+.k-btn:active { transform: translateY(1px); }
+
+.k-btn--primary {
+  min-height: var(--k-ctl-lg);
+  background: var(--k-accent);
+  color: var(--k-accent-ink);
+  font-weight: var(--k-w-strong);
+  box-shadow: inset 0 1px 0 0 oklch(100% 0 0 / 0.28), var(--k-glow-cyan);
+}
+.k-btn--primary:active { box-shadow: inset 0 1px 0 0 oklch(100% 0 0 / 0.2); }
+
+.k-btn--secondary {
+  background-color: var(--k-glass-2);
+  background-image: var(--k-sheen);
+  border-color: var(--k-border-subtle);
+  color: var(--k-text);
+}
+.k-btn--secondary:active { background-color: var(--k-surface-press); }
+
+.k-btn--ghost { background: none; color: var(--k-text-2); }
+.k-btn--ghost:active { background: var(--k-surface-press); }
+
+/* --- Chip and pill: small, and their target is not ------------------- */
+.k-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--k-2);
+  min-height: var(--k-ctl-sm);
+  padding: 0 var(--k-4);
+  border-radius: var(--k-r-pill);
+  border: 1px solid var(--k-hairline);
+  background: var(--k-glass-1);
+  color: var(--k-text-2);
+  font-family: inherit;
+  font-size: var(--k-label);
+  font-weight: var(--k-w-label);
+  cursor: pointer;
+  transition: background var(--k-t-fast) var(--k-ease), border-color var(--k-t-fast) var(--k-ease);
+}
+/* A glyph may be small. Its target may not. This strip is invisible, adds
+   nothing to the layout, and is the size of a fingertip. */
+.k-chip::before,
+.k-nav__item::before,
+.k-seg__btn::before,
+.k-toggle::before {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto 0;
+  height: var(--k-tap);
+  transform: translateY(-50%);
+}
+.k-chip[aria-pressed="true"],
+.k-chip.is-on {
+  background: color-mix(in oklch, var(--k-accent) 14%, transparent);
+  border-color: color-mix(in oklch, var(--k-accent) 42%, transparent);
+  color: var(--k-text);
+  box-shadow: var(--k-glow-cyan);
+}
+
+.k-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--k-2);
+  border-radius: var(--k-r-xs);
+  font-size: var(--k-caption);
+  font-weight: var(--k-w-fig);
+  letter-spacing: var(--k-track-caption);
+  text-transform: uppercase;
+}
+.k-tag--pos { background: color-mix(in oklch, var(--k-positive) 16%, transparent); color: var(--k-positive); }
+.k-tag--neg { background: color-mix(in oklch, var(--k-negative) 16%, transparent); color: var(--k-negative); }
+.k-tag--warn { background: color-mix(in oklch, var(--k-warning) 16%, transparent); color: var(--k-warning); }
+
+/* --- Segmented control: one track, one lit cell --------------------- */
+.k-seg {
+  display: inline-flex;
+  padding: var(--k-1);
+  gap: var(--k-1);
+  border-radius: var(--k-r-pill);
+  background: var(--k-glass-1);
+  border: 1px solid var(--k-hairline);
+}
+.k-seg__btn {
+  position: relative;
+  min-height: var(--k-ctl-sm);
+  padding: 0 var(--k-4);
+  border: 0;
+  border-radius: var(--k-r-pill);
+  background: none;
+  color: var(--k-text-2);
+  font: inherit;
+  font-size: var(--k-label);
+  font-weight: var(--k-w-label);
+  cursor: pointer;
+  transition: background var(--k-t-fast) var(--k-ease), color var(--k-t-fast) var(--k-ease);
+}
+.k-seg__btn[aria-selected="true"] {
+  background: color-mix(in oklch, var(--k-accent) 15%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--k-accent) 38%, transparent);
+  color: var(--k-text);
+  font-weight: var(--k-w-fig);
+}
+
+/* --- Input and select: the same pane as everything else ------------- */
+.k-field { display: flex; flex-direction: column; gap: var(--k-2); }
+.k-input,
+.k-select {
+  width: 100%;
+  min-height: var(--k-ctl-md);
+  padding: 0 var(--k-4);
+  border-radius: var(--k-r-md);
+  border: 1px solid var(--k-border-subtle);
+  background-color: var(--k-glass-1);
+  background-image: var(--k-sheen);
+  color: var(--k-text);
+  font-family: inherit;
+  /* 16px exactly: below that iOS zooms the page when the field takes focus. */
+  font-size: 16px;
+  transition: border-color var(--k-t-fast) var(--k-ease), box-shadow var(--k-t-fast) var(--k-ease);
+}
+.k-input::placeholder { color: var(--k-text-3); }
+.k-input:focus-visible,
+.k-select:focus-visible {
+  outline: none;
+  border-color: color-mix(in oklch, var(--k-accent) 60%, transparent);
+  box-shadow: var(--k-glow-cyan);
+}
+/* The browser's own arrow is the one control that never matches, so the
+   element keeps all its behaviour and only its skin changes. */
+.k-select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: calc(var(--k-5) + 0.7em);
+  background-image: var(--k-sheen),
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: 0 0, right calc(var(--k-4) + 0.3em) center, right var(--k-4) center;
+  background-size: auto, 0.32em 0.32em, 0.32em 0.32em;
+  background-repeat: no-repeat;
+  color: var(--k-text-2);
+}
+
+/* --- Toggle --------------------------------------------------------- */
+.k-toggle {
+  position: relative;
+  width: 52px;
+  height: 30px;
+  flex: none;
+  border: 0;
+  border-radius: var(--k-r-pill);
+  background: var(--k-surface-elev);
+  cursor: pointer;
+  transition: background var(--k-t-normal) var(--k-ease);
+}
+.k-toggle::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--k-text-2);
+  transition: transform var(--k-t-normal) var(--k-ease), background var(--k-t-normal) var(--k-ease);
+}
+.k-toggle[aria-checked="true"] { background: color-mix(in oklch, var(--k-accent) 40%, transparent); box-shadow: var(--k-glow-cyan); }
+.k-toggle[aria-checked="true"]::after { transform: translateX(22px); background: var(--k-accent); }
+
+/* --- Icon tile: a category's colour lives here, not in a filled block */
+.k-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: var(--k-r-sm);
+  background: color-mix(in oklch, var(--k-tint, var(--k-accent)) 13%, transparent);
+  border: 1px solid color-mix(in oklch, var(--k-tint, var(--k-accent)) 26%, transparent);
+  color: var(--k-tint, var(--k-accent));
+  font-size: var(--k-icon-md);
+}
+.k-icon--lg { width: 46px; height: 46px; border-radius: var(--k-r-md); font-size: var(--k-icon-lg); }
+
+/* --- Rows: content on a surface, not a box per item ----------------- */
+.k-rows { display: flex; flex-direction: column; }
+.k-row {
+  display: flex;
+  align-items: center;
+  gap: var(--k-3);
+  min-height: 58px;
+  padding: var(--k-3) 0;
+  text-align: left;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  cursor: pointer;
+}
+.k-row + .k-row { border-top: 1px solid var(--k-hairline); }
+.k-row:active { background: var(--k-surface-press); }
+.k-row__body { flex: 1; min-width: 0; }
+/* A row is a title with its detail under it, so both are blocks. They were
+   inline while only Add used them, which worked by accident: Add gives a
+   row a title and nothing else. */
+.k-row__title { display: block; font-size: var(--k-body); font-weight: var(--k-w-fig); }
+.k-row__meta { display: block; font-size: var(--k-label); color: var(--k-text-3); margin-top: 2px; }
+.k-row__value { font-size: var(--k-value-sm); font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; }
+.k-row__value--pos { color: var(--k-positive); }
+.k-row__value--neg { color: var(--k-negative); }
+
+/* --- Disclosure: one turning arrow in the whole product ------------- */
+.k-disclose > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--k-2);
+  min-height: var(--k-tap);
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--k-body);
+}
+.k-disclose > summary::-webkit-details-marker { display: none; }
+.k-disclose > summary::after {
+  content: "";
+  flex: none;
+  width: 0.42em;
+  height: 0.42em;
+  margin-left: auto;
+  border-right: 1.75px solid var(--k-text-2);
+  border-bottom: 1.75px solid var(--k-text-2);
+  transform: rotate(45deg) translate(-0.1em, -0.1em);
+  transition: transform var(--k-t-normal) var(--k-ease), border-color var(--k-t-normal) var(--k-ease);
+}
+.k-disclose[open] > summary::after {
+  border-color: var(--k-accent);
+  transform: rotate(-135deg) translate(-0.1em, -0.1em);
+}
+
+/* --- Insight: the app noticing something ---------------------------- */
+.k-insight {
+  display: flex;
+  gap: var(--k-3);
+  align-items: flex-start;
+  padding: var(--k-4);
+  border-radius: var(--k-r-lg);
+  background-color: var(--k-glass-2);
+  background-image: var(--k-sheen);
+  border: 1px solid var(--k-hairline);
+  box-shadow: var(--k-inner-top), var(--k-shadow-soft);
+}
+.k-insight--warn { border-color: color-mix(in oklch, var(--k-warning) 26%, transparent); }
+.k-insight__title { font-size: var(--k-body); font-weight: var(--k-w-strong); }
+.k-insight__body { font-size: var(--k-label); color: var(--k-text-2); line-height: var(--k-lh-body); }
+
+/* --- Charts ---------------------------------------------------------
+   One family of strokes, set here so no drawing can invent its own. Red is
+   not a chart colour: it is kept for money that has actually gone. */
+.k-chart { display: block; width: 100%; overflow: visible; }
+.k-chart__line {
+  fill: none;
+  stroke: var(--k-accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 6px color-mix(in oklch, var(--k-accent) 55%, transparent));
+}
+/* The thing a line is measured against is never lit. That is its job. */
+.k-chart__ref {
+  fill: none;
+  stroke: var(--k-text-3);
+  stroke-width: 2;
+  stroke-dasharray: 4 6;
+  opacity: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+.k-chart__area { stroke: none; }
+.k-chart__dot { fill: var(--k-accent); filter: drop-shadow(0 0 7px color-mix(in oklch, var(--k-accent) 70%, transparent)); }
+.k-chart__halo { fill: color-mix(in oklch, var(--k-accent) 20%, transparent); }
+.k-chart__track { fill: color-mix(in oklch, var(--k-surface-elev) 55%, transparent); }
+.k-chart__bar { filter: drop-shadow(0 0 5px color-mix(in oklch, var(--k-accent) 32%, transparent)); }
+.k-chart__tick { font-size: 10px; fill: var(--k-text-3); font-family: var(--k-font); }
+.k-chart__ring-track { fill: none; stroke: color-mix(in oklch, var(--k-surface-elev) 70%, transparent); stroke-width: 9; }
+.k-chart__ring-fill {
+  fill: none;
+  stroke: url(#kRing);
+  stroke-width: 9;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 8px color-mix(in oklch, var(--k-accent) 45%, transparent));
+}
+.k-chart__note { margin: var(--k-3) 0 0; font-size: var(--k-label); color: var(--k-text-2); }
+
+/* A meter is a chart with one value. */
+.k-meter { height: 10px; border-radius: var(--k-r-pill); background: color-mix(in oklch, var(--k-surface-elev) 60%, transparent); overflow: hidden; }
+.k-meter__fill {
+  height: 100%;
+  border-radius: var(--k-r-pill);
+  background: linear-gradient(90deg, var(--k-cyan), var(--k-violet));
+  box-shadow: 0 0 12px color-mix(in oklch, var(--k-cyan) 40%, transparent);
+  transition: width var(--k-t-slow) var(--k-ease);
+}
+
+/* --- Bottom navigation: part of the shell, not another card --------- */
+.k-nav {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--k-1);
+  padding: var(--k-2) var(--k-2) calc(var(--k-2) + env(safe-area-inset-bottom));
+  background: color-mix(in oklch, var(--k-bg-elev) 80%, transparent);
+  -webkit-backdrop-filter: blur(var(--k-blur-3));
+  backdrop-filter: blur(var(--k-blur-3));
+  border-top: 1px solid var(--k-hairline);
+}
+.k-nav__item {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: var(--k-2) 0;
+  border: 0;
+  background: none;
+  color: var(--k-text-3);
+  font: inherit;
+  font-size: var(--k-caption);
+  font-weight: var(--k-w-label);
+  cursor: pointer;
+  transition: color var(--k-t-fast) var(--k-ease);
+}
+.k-nav__item[aria-current="page"] { color: var(--k-text); font-weight: var(--k-w-fig); }
+.k-nav__dot { width: 20px; height: 20px; display: grid; place-items: center; }
+.k-nav__item[aria-current="page"] .k-nav__dot {
+  color: var(--k-accent);
+  filter: drop-shadow(0 0 9px color-mix(in oklch, var(--k-accent) 55%, transparent));
+}
+
+/* --- Sheet ---------------------------------------------------------- */
+.k-scrim { position: fixed; inset: 0; background: oklch(0% 0 0 / 0.55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.k-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--k-5) var(--k-5) calc(var(--k-6) + env(safe-area-inset-bottom));
+  border-radius: var(--k-r-xl) var(--k-r-xl) 0 0;
+  background-color: var(--k-glass-sheet);
+  background-image: var(--k-sheen-hero);
+  -webkit-backdrop-filter: blur(var(--k-blur-sheet));
+  backdrop-filter: blur(var(--k-blur-sheet));
+  border-top: 1px solid var(--k-border-subtle);
+  box-shadow: var(--k-shadow-hero);
+  animation: k-sheet-in var(--k-t-slow) var(--k-spring);
+}
+.k-sheet__grip { width: 40px; height: 4px; border-radius: var(--k-r-pill); background: var(--k-border-emphasis); margin: 0 auto var(--k-4); }
+
+/* --- Empty and loading ---------------------------------------------- */
+.k-empty { text-align: center; padding: var(--k-10) var(--k-5); color: var(--k-text-2); }
+.k-empty__title { font-size: var(--k-heading); font-weight: var(--k-w-strong); color: var(--k-text); margin-bottom: var(--k-2); }
+.k-skeleton {
+  border-radius: var(--k-r-sm);
+  background: linear-gradient(90deg,
+    color-mix(in oklch, var(--k-surface-elev) 50%, transparent) 0%,
+    color-mix(in oklch, var(--k-surface-elev) 80%, transparent) 50%,
+    color-mix(in oklch, var(--k-surface-elev) 50%, transparent) 100%);
+  background-size: 200% 100%;
+  animation: k-shimmer 1.4s linear infinite;
+}
+
+/* --- Focus: one ring, everywhere ------------------------------------ */
+.k :focus-visible,
+.k-btn:focus-visible,
+.k-chip:focus-visible,
+.k-row:focus-visible,
+.k-nav__item:focus-visible,
+.k-seg__btn:focus-visible {
+  outline: 2px solid var(--k-accent);
+  outline-offset: 2px;
+  border-radius: var(--k-r-sm);
+}
+
+/* --- Motion --------------------------------------------------------- */
+@keyframes k-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes k-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes k-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes k-draw { from { stroke-dashoffset: var(--k-len, 1000); } to { stroke-dashoffset: 0; } }
+@keyframes k-grow { from { transform: scaleX(0); } to { transform: none; } }
+
+.k-enter > * { animation: k-rise var(--k-t-slow) var(--k-ease) backwards; }
+.k-enter > :nth-child(1) { animation-delay: 0ms; }
+.k-enter > :nth-child(2) { animation-delay: 60ms; }
+.k-enter > :nth-child(3) { animation-delay: 120ms; }
+.k-enter > :nth-child(4) { animation-delay: 180ms; }
+.k-enter > :nth-child(5) { animation-delay: 240ms; }
+.k-enter > :nth-child(6) { animation-delay: 300ms; }
+
+/* Said once, for the whole system: when the phone asks for less movement,
+   nothing moves. The state still changes; it stops sliding into it. */
+@media (prefers-reduced-motion: reduce) {
+  .k *,
+  .k *::before,
+  .k *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ======================================================================
+   MIGRATION · screens still carrying the old class names
+   ======================================================================
+
+   A screen joins the new system by taking the `k` class. Everything below
+   maps the markup that screen already emits onto the grammar above, so a
+   screen can move over without its JavaScript being rewritten and without
+   the other screens seeing any of it.
+
+   This section should SHRINK to nothing. Each screen that migrates takes
+   its rules with it; when the last one has moved, the markup emits the
+   `k-` classes directly and this block is deleted. It is scaffolding, and
+   it is labelled as scaffolding so nobody mistakes it for the system.
+
+   Phase 9A: Summary only. `#dashboard` is rendered by Summary and by
+   nothing else, so `.k` on it cannot leak into another screen.
+   ====================================================================== */
+
+/* The room. style.css already paints an atmosphere for the whole app; on a
+   migrated screen the DNA's is used instead, so there are never two. */
+/* The shell follows whichever screens are on the system. It used to name
+   three of them by a marker each - #dashboard, #hist-hero, #add-form -
+   which meant every migration had to remember to add itself here, and
+   Accounts, Plan and Coach were left with the old header and nav after
+   their screens had moved. Every migrated view puts k on the container,
+   so that is the thing to ask about. */
+body:has(#view-container.k) {
+  background: var(--k-bg);
+  color: var(--k-text);
+  font-family: var(--k-font);
+}
+
+body:has(#view-container.k)::before,
+body:has(#view-container.k)::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body:has(#view-container.k)::before {
+  inset: -12% -20% auto -20%;
+  height: 56vh;
+  background:
+    radial-gradient(62% 70% at 14% 0%, color-mix(in oklch, var(--k-cyan) var(--k-atm-cyan), transparent), transparent 72%),
+    radial-gradient(54% 66% at 92% 3%, color-mix(in oklch, var(--k-violet) var(--k-atm-violet), transparent), transparent 74%);
+}
+
+body:has(#view-container.k)::after {
+  inset: 0;
+  background:
+    radial-gradient(84% 46% at -16% 34%, color-mix(in oklch, var(--k-cyan) var(--k-atm-magenta), transparent), transparent 74%),
+    radial-gradient(74% 44% at 118% 58%, color-mix(in oklch, var(--k-magenta) var(--k-atm-magenta), transparent), transparent 72%),
+    radial-gradient(80% 40% at 110% 100%, color-mix(in oklch, var(--k-atm-warm-hue) var(--k-atm-warm), transparent), transparent 70%);
+}
+
+/* --- the hero ------------------------------------------------------- */
+.k .hero {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--k-glass-4);
+  background-image: var(--k-sheen-hero);
+  -webkit-backdrop-filter: blur(var(--k-blur-4));
+  backdrop-filter: blur(var(--k-blur-4));
+  border: 1px solid var(--k-border-subtle);
+  border-radius: var(--k-r-xl);
+  padding: var(--k-6);
+  margin: var(--k-1) 0 var(--k-5);
+  box-shadow: var(--k-inner-top-hero), var(--k-shadow-hero);
+}
+
+.k .hero::before {
+  inset: -50% 12% auto -28%;
+  height: 62%;
+  background: radial-gradient(58% 100% at 46% 0%, color-mix(in oklch, var(--k-cyan) 15%, transparent), transparent 70%);
+}
+
+.k .hero-label {
+  font-size: var(--k-label);
+  font-weight: var(--k-w-label);
+  color: var(--k-text-2);
+}
+
+.k .hero-amount {
+  font-size: var(--k-hero);
+  font-weight: var(--k-w-strong);
+  letter-spacing: var(--k-track-hero);
+  line-height: var(--k-lh-tight);
+  margin: var(--k-2) 0 var(--k-1);
+  text-shadow: var(--k-glow-text);
+  /* A figure is one word. It may shrink, it may never break. */
+  white-space: nowrap;
+}
+
+/* On a narrow phone a seven-figure balance at the full hero size does not
+   fit the line, and nowrap alone would push it off the screen. The token
+   stays as it is; the hero simply sets a smaller size for itself here. */
+@media (max-width: 360px) {
+  .k .hero-amount { font-size: clamp(2.4rem, 12vw, 3.1rem); }
+}
+
+.k .hero.level-over .hero-amount,
+.k .hero-amount.negative {
+  color: var(--k-negative);
+  text-shadow: 0 0 34px color-mix(in oklch, var(--k-negative) 20%, transparent);
+}
+
+/* The sentence under the figure is a sentence, never a tinted strip. */
+.k .hero-status {
+  margin: var(--k-4) 0 0;
+  padding: 0;
+  background: none;
+  font-size: var(--k-label);
+  font-weight: var(--k-w-label);
+  color: var(--k-text-2);
+}
+
+.k .hero-status.level-warning { color: var(--k-warning); }
+.k .hero-status.level-critical,
+.k .hero-status.level-over { color: var(--k-negative); }
+
+/* Supporting figures under the hero: label over value, label quiet. */
+.k .hero-under { gap: var(--k-8); margin: var(--k-4) var(--k-4) 0; }
+
+.k .stat-k {
+  font-size: var(--k-caption);
+  font-weight: var(--k-w-label);
+  letter-spacing: var(--k-track-caption);
+  text-transform: uppercase;
+  color: var(--k-text-3);
+}
+
+.k .stat-v {
+  font-size: var(--k-value);
+  font-weight: var(--k-w-fig);
+  letter-spacing: var(--k-track-title);
+}
+
+/* --- panes ---------------------------------------------------------- */
+.k .totals-card,
+.k .breakdown-list,
+.k .cat-list,
+.k .empty-state {
+  position: relative;
+  background-color: var(--k-glass-2);
+  background-image: var(--k-sheen);
+  border: 1px solid var(--k-hairline);
+  border-radius: var(--k-r-lg);
+  box-shadow: var(--k-inner-top), var(--k-shadow-soft);
+}
+
+.k .bank-card { padding: var(--k-5); border-radius: var(--k-r-lg); }
+.k .bank-amount { font-size: var(--k-display); font-weight: var(--k-w-fig); letter-spacing: var(--k-track-display); }
+.k .bank-amount.small { font-size: var(--k-value); }
+
+/* A warning keeps a visible edge. That is the one thing an edge is for. */
+.k .warn-card,
+.k .due-soon {
+  border-color: color-mix(in oklch, var(--k-warning) 30%, transparent);
+}
+
+/* --- rows and disclosures ------------------------------------------- */
+.k .disclose > summary,
+.k .section-fold > summary {
+  min-height: var(--k-tap);
+  font-size: var(--k-body);
+}
+
+.k .disclose,
+.k .section-fold { border-color: var(--k-hairline); }
+.k .disclose > summary::after,
+.k .section-fold > summary::after { border-color: var(--k-text-2); }
+.k .disclose[open] > summary::after,
+.k .section-fold[open] > summary::after { border-color: var(--k-accent); }
+
+.k .breakdown-row + .breakdown-row,
+.k .commitment-row + .commitment-row,
+.k .todo-row + .todo-row { border-top-color: var(--k-hairline); }
+
+/* --- controls ------------------------------------------------------- */
+.k .btn-primary {
+  min-height: var(--k-ctl-lg);
+  border-radius: var(--k-r-pill);
+  background: var(--k-accent);
+  color: var(--k-accent-ink);
+  font-weight: var(--k-w-strong);
+  box-shadow: inset 0 1px 0 0 oklch(100% 0 0 / 0.28), var(--k-glow-cyan);
+}
+
+.k .btn-secondary,
+.k .btn-tiny {
+  background-color: var(--k-glass-2);
+  background-image: var(--k-sheen);
+  border-color: var(--k-border-subtle);
+  color: var(--k-text);
+  border-radius: var(--k-r-pill);
+}
+
+.k .chip,
+.k .seg-btn,
+.k .plan-chip {
+  border-radius: var(--k-r-pill);
+  font-size: var(--k-label);
+  font-weight: var(--k-w-label);
+}
+
+/* Chosen is a tint and a ring. A filled control means "this is the action",
+   and a screen has one of those. */
+.k .chip.active,
+.k .chip.selected,
+.k .seg-btn.active {
+  background: color-mix(in oklch, var(--k-accent) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--k-accent) 42%, transparent), var(--k-glow-cyan);
+  color: var(--k-text);
+  font-weight: var(--k-w-fig);
+}
+
+/* --- money ---------------------------------------------------------- */
+.k .in { color: var(--k-positive); }
+.k .out { color: var(--k-negative); }
+.k .muted { color: var(--k-text-2); }
+.k .muted-note { color: var(--k-text-3); font-size: var(--k-label); }
+
+/* --- charts --------------------------------------------------------- */
+.k .chart-line {
+  stroke: var(--k-accent);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 6px color-mix(in oklch, var(--k-accent) 55%, transparent));
+}
+
+.k .chart-pace { stroke: var(--k-text-3); stroke-width: 2; opacity: 0.7; }
+.k .chart-note { font-size: var(--k-label); color: var(--k-text-2); margin-top: var(--k-3); }
+.k .chart-dot { fill: var(--k-accent); filter: drop-shadow(0 0 7px color-mix(in oklch, var(--k-accent) 70%, transparent)); }
+.k .chart-dot-halo { fill: color-mix(in oklch, var(--k-accent) 20%, transparent); }
+.k .bar-in { fill: color-mix(in oklch, var(--k-positive) 70%, transparent); }
+.k .bar-out { fill: color-mix(in oklch, var(--k-negative) 66%, transparent); }
+.k .bar-track { fill: color-mix(in oklch, var(--k-surface-elev) 48%, transparent); }
+
+.k .hero-meter { background: color-mix(in oklch, var(--k-surface-elev) 55%, transparent); }
+.k .hero-meter-fill {
+  background: linear-gradient(90deg, var(--k-cyan), var(--k-violet));
+  box-shadow: 0 0 12px color-mix(in oklch, var(--k-cyan) 40%, transparent);
+}
+
+/* --- headings, and the air between sections ------------------------- */
+.k .section-head h3 {
+  font-size: var(--k-caption);
+  font-weight: var(--k-w-fig);
+  letter-spacing: var(--k-track-caption);
+  text-transform: uppercase;
+  color: var(--k-text-3);
+}
+
+.k .section-head { margin: var(--k-8) 0 var(--k-3); }
+
+/* --- the shell ------------------------------------------------------ */
+body:has(#view-container.k) .app-header {
+  background: linear-gradient(180deg, var(--k-bg) 0%, var(--k-bg) 62%, transparent 100%);
+}
+
+body:has(#view-container.k) .app-header h1 {
+  font-size: var(--k-title);
+  font-weight: var(--k-w-strong);
+  letter-spacing: var(--k-track-title);
+}
+
+body:has(#view-container.k) .bottom-nav {
+  background: color-mix(in oklch, var(--k-bg-elev) 80%, transparent);
+  border-top-color: var(--k-hairline);
+}
+
+/* Where you are is said with light, not with a bright pill behind it. */
+body:has(#view-container.k) .nav-btn { color: var(--k-text-3); }
+body:has(#view-container.k) .nav-btn.active { background: none; color: var(--k-text); }
+body:has(#view-container.k) .nav-btn.active .nav-icon {
+  color: var(--k-accent);
+  filter: drop-shadow(0 0 9px color-mix(in oklch, var(--k-accent) 55%, transparent));
+}
+
+/* ---------------------------------------------------------------------
+   MIGRATION · History  (phase 9B)
+   Scoped by `.k` on History's own container, exactly as Summary is.
+   --------------------------------------------------------------------- */
+
+/* --- the month stepper, above the hero ------------------------------ */
+.k .hist-month { margin: var(--k-1) 0 var(--k-3); }
+.k .hist-month-name {
+  font-size: var(--k-heading);
+  font-weight: var(--k-w-strong);
+  letter-spacing: var(--k-track-title);
+  color: var(--k-text);
+}
+.k .hist-step { color: var(--k-text-3); }
+.k .hist-step:disabled { color: var(--k-text-3); opacity: 0.35; }
+
+/* --- the hero ------------------------------------------------------- */
+/* The month leads and the figure answers it, so the two labels are not
+   competing: the period is ordinary ink, the description is quieter. */
+.k #hist-period { color: var(--k-text-2); font-weight: var(--k-w-fig); }
+
+.k .hero-under #hist-stats,
+.k #hist-stats { gap: var(--k-8); }
+
+/* The sentence under the figure sits between it and the drawing, so it
+   needs room on both sides rather than being wedged against either. */
+.k #txn-count { margin: var(--k-3) 0 var(--k-1); }
+
+/* --- the six-month chart -------------------------------------------- */
+/* It lives inside the hero, so it runs to the hero's own edges instead of
+   sitting in a box of its own with a second background behind it. */
+.k #hist-hero .chart-block {
+  margin: var(--k-4) 0 0;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+/* Green is money in and coral is money out, at well under full strength,
+   with only a breath of light on them. Fluorescent bars are what made this
+   screen read as a different application. */
+.k #hist-hero .bar-in {
+  filter: drop-shadow(0 0 4px color-mix(in oklch, var(--k-positive) 26%, transparent));
+}
+.k #hist-hero .bar-out {
+  filter: drop-shadow(0 0 4px color-mix(in oklch, var(--k-negative) 24%, transparent));
+}
+
+/* The month you are looking at is the one that matters; the five behind it
+   are there for comparison and step back. The last two bars in the drawing
+   are always the newest month, whichever months happen to have data. */
+.k #hist-hero .bar-in,
+.k #hist-hero .bar-out { opacity: 0.6; }
+.k #hist-hero .bar-in:nth-last-of-type(2),
+.k #hist-hero .bar-out:nth-last-of-type(1) { opacity: 1; }
+
+.k #hist-hero .bar-track { fill: color-mix(in oklch, var(--k-surface-elev) 34%, transparent); }
+.k #hist-hero .chart-tick { fill: var(--k-text-3); }
+
+/* The legend is a sentence, so it is set like one. */
+.k .in-out-legend {
+  font-size: var(--k-label);
+  color: var(--k-text-2);
+  gap: var(--k-3);
+}
+.k .key { border-radius: 2px; }
+.k .key-in { background: var(--k-positive); }
+.k .key-out { background: var(--k-negative); }
+
+/* --- search and filters, one family --------------------------------- */
+.k .hist-top { gap: var(--k-2); margin-bottom: var(--k-3); }
+
+.k .hist-search {
+  min-height: var(--k-ctl-md);
+  border-radius: var(--k-r-md);
+  border: 1px solid var(--k-border-subtle);
+  background-color: var(--k-glass-1);
+  background-image: var(--k-sheen);
+  color: var(--k-text);
+}
+.k .hist-search::placeholder { color: var(--k-text-3); }
+.k .hist-search:focus-visible {
+  outline: none;
+  border-color: color-mix(in oklch, var(--k-accent) 60%, transparent);
+  box-shadow: var(--k-glow-cyan);
+}
+
+.k .hist-select-btn {
+  min-height: var(--k-ctl-md);
+  border-radius: var(--k-r-pill);
+  font-size: var(--k-label);
+  font-weight: var(--k-w-fig);
+}
+
+.k .hist-chips { gap: var(--k-2); }
+
+/* A select keeps every bit of its native behaviour and only changes its
+   skin. The browser draws its own arrow, which is the one control in the
+   app that never matches, so it is replaced with the app's own. */
+.k select.hist-chip {
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: var(--k-ctl-md);
+  padding: 0 calc(var(--k-5) + 0.7em) 0 var(--k-4);
+  border-radius: var(--k-r-pill);
+  border: 1px solid var(--k-border-subtle);
+  background-color: var(--k-glass-1);
+  background-image: var(--k-sheen),
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: 0 0, right calc(var(--k-4) + 0.3em) center, right var(--k-4) center;
+  background-size: auto, 0.32em 0.32em, 0.32em 0.32em;
+  background-repeat: no-repeat;
+  color: var(--k-text-2);
+  font-size: var(--k-label);
+  font-weight: var(--k-w-label);
+}
+.k select.hist-chip:focus-visible {
+  outline: none;
+  border-color: color-mix(in oklch, var(--k-accent) 60%, transparent);
+  box-shadow: var(--k-glow-cyan);
+}
+
+/* The count of things needing a category is a warning, so it reads as one. */
+.k .hist-needs {
+  min-height: var(--k-ctl-sm);
+  border-radius: var(--k-r-pill);
+  background: color-mix(in oklch, var(--k-warning) 12%, transparent);
+  border: 1px solid color-mix(in oklch, var(--k-warning) 32%, transparent);
+  color: var(--k-warning);
+  font-size: var(--k-label);
+  font-weight: var(--k-w-label);
+}
+
+/* In daylight the warning colour on its own 12% wash lands at 4.05:1. The
+   lightness comes down and the hue and chroma stay, so it still reads as the
+   same amber - the same correction the delta pill needs, for the same
+   reason. */
+@media (prefers-color-scheme: light) {
+  .k .hist-needs {
+    color: color-mix(in oklch, var(--k-warning) 68%, oklch(0% 0 0));
+    color: oklch(from var(--k-warning) 38% c h);
+  }
+}
+
+/* --- the day list --------------------------------------------------- */
+/* A day is a heading and its rows. It was a bordered card, and a month is
+   twenty of them, so the screen read as a column of boxes with the actual
+   payments inside them. Nothing here is blurred: a scrolling list of
+   backdrop-filtered rows costs real frames on a mid-range phone. */
+.k .hist-day-card {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 var(--k-1);
+}
+
+.k .hist-day-head {
+  padding: var(--k-6) var(--k-1) var(--k-2);
+  font-size: var(--k-caption);
+  font-weight: var(--k-w-fig);
+  letter-spacing: var(--k-track-caption);
+  text-transform: uppercase;
+  color: var(--k-text-3);
+}
+
+/* The only line on the whole list, and it is the one doing work. */
+.k .hist-row + .hist-row { border-top: 1px solid var(--k-hairline); }
+.k .hist-row { padding: var(--k-3) 0; }
+.k .hist-row:active { background: var(--k-surface-press); }
+
+.k .hist-row.selected {
+  background: color-mix(in oklch, var(--k-accent) 10%, transparent);
+  border-radius: var(--k-r-sm);
+}
+
+/* Merchant strong, where it came from quiet, amount strong and coloured. */
+.k .hist-name { font-size: var(--k-body); font-weight: var(--k-w-fig); color: var(--k-text); }
+.k .hist-sub { font-size: var(--k-label); color: var(--k-text-3); }
+.k .txn-amount {
+  font-size: var(--k-value-sm);
+  font-weight: var(--k-w-fig);
+  font-variant-numeric: tabular-nums;
+}
+.k .txn-amount.in { color: var(--k-positive); }
+.k .txn-amount.out { color: var(--k-negative); }
+
+/* A category's colour belongs on its icon, not in a filled tile behind it. */
+.k .hist-cat {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--k-r-sm);
+  background: color-mix(in srgb, var(--chip-color, var(--k-accent)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chip-color, var(--k-accent)) 24%, transparent);
+}
+
+/* The day's own total, beside its date. */
+.k .hist-day-head .in { color: var(--k-positive); }
+.k .hist-day-head .out { color: var(--k-negative); }
+
+/* ---------------------------------------------------------------------
+   BRAND MARKS  ·  part of the system, not a migration
+   Three sizes, one geometry. A monogram is not a placeholder for a missing
+   logo: it is the answer for the shop that will never be in any icon set.
+   --------------------------------------------------------------------- */
+.k-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--k-r-sm);
+  overflow: hidden;
+  font-size: var(--k-icon-md);
+}
+/* brandMark() names every size it can emit, so every one has a rule here.
+   md is the base size and adds nothing; it exists so the API never writes
+   a class that does not resolve. */
+.k-brand--md { }
+.k-brand--sm { width: 30px; height: 30px; border-radius: 9px; font-size: var(--k-icon-sm); }
+.k-brand--lg { width: 46px; height: 46px; border-radius: var(--k-r-md); font-size: var(--k-icon-lg); }
+
+.k-brand img { width: 100%; height: 100%; object-fit: contain; }
+
+/* A category's own colour, at the same strength as everywhere else. */
+.k-brand--cat {
+  background: color-mix(in srgb, var(--k-tint, var(--k-accent)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--k-tint, var(--k-accent)) 24%, transparent);
+  color: var(--k-tint, var(--k-accent));
+}
+
+/* The monogram. Hue comes from the merchant's own name, so a shop is the
+   same colour on every screen forever; lightness and chroma are fixed, so no
+   tile outshouts another. The letters sit at the weight of a figure, not of
+   a label, which is what stops it reading as a fallback. */
+.k-brand--mono {
+  background: oklch(from oklch(70% 0.14 var(--k-hue, 206)) l c h / 0.14);
+  border: 1px solid oklch(from oklch(70% 0.14 var(--k-hue, 206)) l c h / 0.28);
+  color: oklch(80% 0.11 var(--k-hue, 206));
+}
+.k-brand__text {
+  font-size: 0.78em;
+  font-weight: var(--k-w-fig);
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+/* Nothing known at all: a quiet tile rather than a hole in the row. */
+.k-brand--none {
+  background: color-mix(in oklch, var(--k-surface-elev) 55%, transparent);
+  border: 1px solid var(--k-hairline);
+}
+
+/* Daylight. The monogram sets its own lightness from a hash rather than from
+   a token, so it is the one thing in the system that does not follow the
+   theme on its own. On paper its letters measured 1.57:1 - there, but not
+   readable. The hue still comes from the name, so a shop keeps its identity
+   in both themes; only the lightness changes, which is what a theme is. */
+@media (prefers-color-scheme: light) {
+  .k-brand--mono {
+    background: color-mix(in oklch, oklch(55% 0.14 var(--k-hue, 206)) 10%, transparent);
+    border-color: color-mix(in oklch, oklch(55% 0.14 var(--k-hue, 206)) 26%, transparent);
+    color: oklch(38% 0.12 var(--k-hue, 206));
+  }
+}
+
+@supports not (color: oklch(from red l c h)) {
+  /* Older engines without relative colour: the tint still varies by hue,
+     just without the alpha derivation. */
+  .k-brand--mono {
+    background: color-mix(in oklch, oklch(70% 0.14 var(--k-hue, 206)) 14%, transparent);
+    border-color: color-mix(in oklch, oklch(70% 0.14 var(--k-hue, 206)) 28%, transparent);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   MIGRATION · Add  (phase 9C)
+   --------------------------------------------------------------------- */
+
+/* --- the bank SMS shortcut, first thing on the screen ---------------- */
+.k .k-add-sms {
+  display: flex;
+  align-items: center;
+  gap: var(--k-3);
+  width: 100%;
+  margin: var(--k-1) 0 var(--k-5);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-color: color-mix(in oklch, var(--k-accent) 22%, transparent);
+}
+.k .k-add-sms:active { background-color: var(--k-surface-press); }
+.k .k-add-sms__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.k .k-add-sms__go { color: var(--k-accent); font-size: var(--k-value); flex: none; }
+
+/* --- the amount, still the answer this screen exists for ------------- */
+.k .amount-hero { margin-bottom: var(--k-5); }
+.k .amount-hero .field { margin: 0; position: relative; padding-bottom: var(--k-3); }
+.k .amount-hero .amount-input-wrap {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  gap: var(--k-1);
+  align-items: baseline;
+}
+/* The line that says where the caret is, since the box no longer does. */
+.k .amount-hero .amount-input-wrap::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--k-border);
+  transition: background var(--k-t-normal) var(--k-ease);
+}
+.k .amount-hero .amount-input-wrap:focus-within::after {
+  background: var(--k-accent);
+  box-shadow: 0 0 10px color-mix(in oklch, var(--k-accent) 45%, transparent);
+}
+.k .amount-hero .amount-prefix { font-size: var(--k-display); color: var(--k-text-2); font-weight: var(--k-w-fig); }
+.k .amount-hero .amount-input {
+  font-size: var(--k-hero);
+  font-weight: var(--k-w-strong);
+  line-height: var(--k-lh-tight);
+  letter-spacing: var(--k-track-hero);
+  padding: var(--k-2) 0 var(--k-1) !important;
+}
+.k .amount-hero .amount-input::placeholder { color: var(--k-text-3); opacity: 1; }
+
+/* Spent or received: one track, one lit cell. */
+.k .amount-hero .direction-toggle { margin: var(--k-4) 0 0; width: 100%; }
+.k .amount-hero .k-seg__btn { flex: 1; min-height: var(--k-ctl-md); border: 0; }
+
+/* --- fields ---------------------------------------------------------- */
+.k .k-field { margin-bottom: var(--k-4); }
+.k .k-field > .k-label { margin-bottom: var(--k-2); display: block; }
+
+/* One row that says what is chosen, and opens the rest. */
+.k .k-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--k-3);
+  width: 100%;
+  min-height: var(--k-ctl-lg);
+  padding: 0 var(--k-4);
+  border-radius: var(--k-r-md);
+  border: 1px solid var(--k-border-subtle);
+  background-color: var(--k-glass-1);
+  background-image: var(--k-sheen);
+  color: var(--k-text);
+  font: inherit;
+  font-size: var(--k-body);
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+}
+.k .k-picker:active { background-color: var(--k-surface-press); }
+.k .k-picker__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k .k-picker__mark { display: inline-flex; flex: none; }
+
+/* The chevron, the same one the whole app uses. */
+.k .k-picker::after {
+  content: "";
+  flex: none;
+  width: 0.42em;
+  height: 0.42em;
+  margin-left: auto;
+  border-right: 1.75px solid var(--k-text-2);
+  border-bottom: 1.75px solid var(--k-text-2);
+  transform: rotate(-45deg);
+}
+
+/* The account picker wraps a real select, so the select fills the row and
+   the mark sits on top of it. Every native behaviour is kept. */
+.k .k-picker--select { padding-right: 0; cursor: default; }
+.k .k-picker--select::after { margin-right: var(--k-4); }
+.k .k-picker--select .k-select {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--k-ctl-lg);
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--k-text);
+  font-size: var(--k-body);
+  cursor: pointer;
+}
+.k .k-picker--select .k-select:focus-visible { outline: none; box-shadow: none; }
+.k .k-picker--select:focus-within {
+  border-color: color-mix(in oklch, var(--k-accent) 60%, transparent);
+  box-shadow: var(--k-glow-cyan);
+}
+
+.k .field-date .k-input { min-height: var(--k-ctl-lg); }
+
+/* --- the repeat switch ------------------------------------------------ */
+.k .k-switch-row {
+  display: flex;
+  align-items: center;
+  gap: var(--k-4);
+  min-height: var(--k-tap);
+  padding: var(--k-2) 0 var(--k-4);
+}
+.k .k-switch-row__text { flex: 1; font-size: var(--k-body); }
+.k .k-switch-row__sub { display: block; font-size: var(--k-label); color: var(--k-text-3); margin-top: 2px; }
+.k-vis-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- the things the app usually works out on its own ------------------ */
+.k .k-add-more { border-top: 1px solid var(--k-hairline); margin-top: var(--k-2); }
+.k .k-add-more > summary { color: var(--k-text-2); font-size: var(--k-label); }
+.k .k-add-more__body { padding-bottom: var(--k-4); }
+.k .k-add-more .field { margin: 0; }
+.k .k-add-more .field > span { font-size: var(--k-label); color: var(--k-text-2); margin-bottom: var(--k-2); display: block; }
+.k .k-add-more select {
+  width: 100%;
+  min-height: var(--k-ctl-md);
+  border-radius: var(--k-r-md);
+  border: 1px solid var(--k-border-subtle);
+  background-color: var(--k-glass-1);
+  color: var(--k-text);
+}
+
+.k .add-form .btn-primary { width: 100%; margin-top: var(--k-4); }
+
+/* --- the category sheet ----------------------------------------------- */
+.k #add-cat-sheet .k-scrim { z-index: 40; }
+.k #add-cat-sheet .k-sheet { z-index: 41; max-height: 78vh; display: flex; flex-direction: column; }
+.k .k-sheet__head {
+  display: flex;
+  align-items: center;
+  gap: var(--k-3);
+  padding-bottom: var(--k-3);
+  border-bottom: 1px solid var(--k-hairline);
+}
+.k .k-sheet__title { font-size: var(--k-heading); font-weight: var(--k-w-strong); flex: 1; }
+.k .k-sheet__close { min-height: var(--k-tap); padding: 0 var(--k-3); color: var(--k-accent); font-weight: var(--k-w-fig); }
+.k .k-sheet__scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; margin: 0 calc(var(--k-5) * -1); padding: 0 var(--k-5); }
+
+/* A category is a row, not a chip: a name you read, at a size you can hit. */
+.k .k-cat-row { min-height: 56px; border-radius: 0; }
+.k .k-cat-row .k-row__title { font-weight: var(--k-w-label); }
+.k .k-cat-row.active .k-row__title { font-weight: var(--k-w-fig); color: var(--k-text); }
+.k .k-cat-row__tick { width: 18px; flex: none; }
+.k .k-cat-row.active .k-cat-row__tick {
+  border-right: 2px solid var(--k-accent);
+  border-bottom: 2px solid var(--k-accent);
+  width: 7px;
+  height: 12px;
+  margin-right: 6px;
+  transform: rotate(45deg);
+}
+/* ======================================================================
+   DESIGN LAB 2.0  ·  the evolution (phase 9D)
+
+   Everything below is an addition to the system, not a replacement. No token
+   above was renamed and no component above changed shape, because three
+   screens are already built on them.
+
+   What this section adds, and why each thing earns its place:
+
+     MATERIAL LEVEL 0   the honest answer to "this does not need glass"
+     EDITORIAL          a figure with a sentence around it, composed
+     CONTEXT            the same truth, emphasised for the moment it is in
+     CHARTS 2.0         four drawings, each answering one stated question
+     STATES             what the app says when something worked or did not
+     MOTION             the budget, expressed as usable classes
+
+   Nothing here is used by any production screen yet. It is class-based
+   throughout and introduces no element selectors, so loading this file
+   cannot change Accounts, Plan or Coach while they wait their turn.
+   ====================================================================== */
+
+/* --- Material level 0 -------------------------------------------------
+   The system has four glass levels. It needed a fifth thing: a surface that
+   is not glass at all.
+
+   Blur is the most expensive thing a phone does here, and a mid-range
+   Android pays for every layer of it on every frame. A container that holds
+   low-priority structure - a group of settings, a legend, a footnote - gains
+   nothing from sampling the atmosphere behind it. So it does not.
+
+   This is what stops "depth communicates hierarchy" from decaying into
+   "everything is glass": the bottom of the hierarchy is opaque, and the
+   difference is visible.
+
+     L0  .k-pane--flat   solid, no blur        structure
+     L1  .k-pane--quiet  10px blur             supporting containers
+     L2  .k-pane         16px blur             content, the default
+     L3  .k-pane--focus  22px blur             opened, chosen, pointed at
+     L4  .k-hero         30px blur             one per screen, the answer
+   --------------------------------------------------------------------- */
+.k-pane--flat {
+  background-color: var(--k-surface);
+  background-image: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-color: var(--k-hairline);
+  box-shadow: none;
+}
+
+/* --- Editorial composition -------------------------------------------
+   A figure on its own is a readout. A figure with a sentence built around
+   it is a statement, and a person remembers a statement.
+
+     You are spending less.
+     18,420
+     this month          -12.4% vs August
+
+   The rules that keep this from becoming ornament: the sentence is short
+   enough to read in one go, the figure stays the largest thing, and the
+   tail line carries the comparison rather than repeating the figure. The
+   lede is set at the heading size and a lighter weight than the figure, so
+   it introduces without competing.
+   --------------------------------------------------------------------- */
+.k-editorial { display: flex; flex-direction: column; }
+.k-editorial__lede {
+  font-size: var(--k-heading);
+  font-weight: var(--k-w-label);
+  line-height: var(--k-lh-snug);
+  letter-spacing: var(--k-track-title);
+  color: var(--k-text);
+  margin: 0 0 var(--k-3);
+  text-wrap: balance;
+}
+/* The emphasised clause in a lede. One per sentence, never two. */
+.k-editorial__em { color: var(--k-accent); font-weight: var(--k-w-fig); }
+.k-editorial__figure {
+  font-size: var(--k-display);
+  font-weight: var(--k-w-strong);
+  letter-spacing: var(--k-track-display);
+  line-height: var(--k-lh-tight);
+  font-variant-numeric: tabular-nums;
+}
+.k-editorial__figure--hero { font-size: var(--k-hero); letter-spacing: var(--k-track-hero); }
+/* The line under the figure: what period it covers, and what it is against.
+   Baseline-aligned so the two read as one line rather than two stacked. */
+.k-editorial__tail {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--k-2) var(--k-3);
+  margin-top: var(--k-2);
+  font-size: var(--k-label);
+  color: var(--k-text-2);
+}
+
+/* A change against a previous period. The arrow is part of the text, so it
+   survives being read aloud, and the colour is the money colour, never a
+   decorative one. Down is not automatically good: a fall in income is not a
+   win, so the direction class is set by the caller, never inferred here. */
+.k-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px var(--k-2);
+  border-radius: var(--k-r-pill);
+  font-size: var(--k-label);
+  font-weight: var(--k-w-fig);
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in oklch, var(--k-tint, var(--k-text-3)) 14%, transparent);
+  color: var(--k-tint, var(--k-text-2));
+}
+.k-delta--good { --k-tint: var(--k-positive); }
+.k-delta--bad { --k-tint: var(--k-negative); }
+.k-delta--flat { --k-tint: var(--k-text-3); }
+
+/* --- Context: the same truth, emphasised for the moment ---------------
+   "42,500 available" and "8,240 left for 6 days" are the same kind of fact.
+   The second one is said differently because the month is nearly over, not
+   because the arithmetic changed. That distinction is the whole component:
+   EMPHASIS IS PRESENTATION. It never reaches back into the figure.
+
+   Three tones, and they map to states the app can actually know:
+     calm       nothing needs attention
+     attention  a period is running out, or a limit is close
+     alert      something is outside its usual range
+
+   Tone sets one custom property and everything else follows, so no tone can
+   drift into having its own layout.
+   --------------------------------------------------------------------- */
+.k-context {
+  --k-tint: var(--k-accent);
+  display: flex;
+  gap: var(--k-3);
+  align-items: flex-start;
+  padding: var(--k-4);
+  border-radius: var(--k-r-lg);
+  background-color: var(--k-glass-2);
+  background-image: var(--k-sheen);
+  border: 1px solid color-mix(in oklch, var(--k-tint) 24%, transparent);
+  box-shadow: var(--k-inner-top), var(--k-shadow-soft);
+}
+.k-context--calm { --k-tint: var(--k-positive); }
+.k-context--attention { --k-tint: var(--k-warning); }
+.k-context--alert { --k-tint: var(--k-negative); }
+
+.k-context__mark {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--k-r-sm);
+  background: color-mix(in oklch, var(--k-tint) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--k-tint) 26%, transparent);
+  color: var(--k-tint);
+  font-size: var(--k-icon-md);
+}
+.k-context__body { flex: 1; min-width: 0; }
+.k-context__k {
+  font-size: var(--k-caption);
+  font-weight: var(--k-w-label);
+  letter-spacing: var(--k-track-caption);
+  text-transform: uppercase;
+  color: var(--k-tint);
+}
+/* The figure and the qualifier on one baseline: "8,240 left for 6 days".
+   Keeping the qualifier out of the figure is what stops a person reading
+   the number as something it is not. */
+.k-context__v {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--k-2);
+  margin-top: 3px;
+  font-size: var(--k-value);
+  font-weight: var(--k-w-fig);
+  font-variant-numeric: tabular-nums;
+  color: var(--k-text);
+}
+.k-context__qual { font-size: var(--k-label); font-weight: var(--k-w-body); color: var(--k-text-2); }
+.k-context__note { margin: var(--k-2) 0 0; font-size: var(--k-label); color: var(--k-text-2); line-height: var(--k-lh-body); }
+
+/* --- Charts 2.0 -------------------------------------------------------
+   Four drawings. Each one exists because it answers a question a person
+   actually asks, and the question is written next to it in the lab. A
+   drawing that cannot state its question is decoration and is not built.
+
+     RIVER    "is more coming in than going out, and how did that change?"
+     RADIAL   "how much of the month is already committed?"
+     PULSE    "when in the month do I spend?"
+     SHARE    "where did it go, biggest first?"
+
+   All four inherit the stroke family above: one weight, one cap, red kept
+   for money that has actually gone.
+   --------------------------------------------------------------------- */
+
+/* Cash-flow river. Two lines, and the space between them shaded.
+ *
+ * The first version of this drew inflow and outflow as areas from a zero
+ * baseline. It was wrong, and the lab showed it: a salary that never moves
+ * and an outflow that swings by five thousand both became near-full slabs,
+ * because the variation that matters is a tenth of the distance to zero.
+ * The chart was honest and told you nothing.
+ *
+ * Two lines on a scale zoomed to the data fix it. The gap between them IS
+ * the money kept, so the thing you are meant to read is the subject of the
+ * picture rather than a third line competing with two others. Only the gap
+ * is filled: filling down to a baseline the axis does not start at is the
+ * lie this kind of chart usually tells.
+ *
+ * The axis is zoomed, so the lines are labelled with their own values
+ * instead. On a phone, direct labels beat an axis nobody reads.
+ */
+.k-river__band { fill: color-mix(in oklch, var(--k-positive) 16%, transparent); stroke: none; }
+.k-river__line {
+  fill: none;
+  stroke: var(--k-tint, var(--k-accent));
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.k-river__cap { fill: var(--k-tint, var(--k-accent)); }
+
+/* Radial commitment meter. The figure sits in the hole, because the hole is
+   the only place a ring leaves room for it. */
+.k-radial { position: relative; display: grid; place-items: center; }
+.k-radial__svg { display: block; width: 100%; height: auto; transform: rotate(-90deg); }
+.k-radial__mid {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  text-align: center;
+  pointer-events: none;
+}
+.k-radial__v {
+  font-size: var(--k-display);
+  font-weight: var(--k-w-strong);
+  letter-spacing: var(--k-track-display);
+  line-height: var(--k-lh-tight);
+  font-variant-numeric: tabular-nums;
+}
+.k-radial__k { font-size: var(--k-caption); color: var(--k-text-3); }
+
+/* Spending pulse. One bar a day. Height is the amount; the lit bar is the
+   day being pointed at. Bars keep a minimum height so a quiet day reads as
+   "nearly nothing" rather than as missing data. */
+.k-pulse { display: flex; align-items: flex-end; gap: 2px; height: 92px; }
+.k-pulse__bar {
+  display: block;
+  flex: 1;
+  min-height: 3px;
+  height: var(--k-h, 10%);
+  border-radius: 2px 2px 1px 1px;
+  background: linear-gradient(180deg,
+    color-mix(in oklch, var(--k-accent) 70%, transparent),
+    color-mix(in oklch, var(--k-accent) 22%, transparent));
+  transition: height var(--k-t-draw) var(--k-ease);
+}
+.k-pulse__bar--peak {
+  background: linear-gradient(180deg, var(--k-accent), color-mix(in oklch, var(--k-violet) 55%, transparent));
+  box-shadow: 0 0 10px color-mix(in oklch, var(--k-accent) 40%, transparent);
+}
+.k-pulse__bar--quiet { background: color-mix(in oklch, var(--k-text-3) 22%, transparent); }
+
+/* Share. What replaced the bubble constellation: the same question, legible
+   at 320px, and it stays legible with fourteen categories instead of seven.
+   A bubble chart of category shares is a beautiful way to make a person
+   squint at a small circle to find out whether it is bigger than another
+   small circle. A ranked bar answers it at a glance. */
+.k-share { display: flex; flex-direction: column; gap: var(--k-3); }
+.k-share__row { display: grid; grid-template-columns: 1fr auto; gap: var(--k-1) var(--k-3); align-items: baseline; }
+.k-share__name { font-size: var(--k-label); color: var(--k-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-share__v { font-size: var(--k-label); font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; color: var(--k-text-2); }
+.k-share__track {
+  display: block;
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: var(--k-r-pill);
+  background: color-mix(in oklch, var(--k-surface-elev) 60%, transparent);
+  overflow: hidden;
+}
+.k-share__fill {
+  /* A bar has to be a block, whatever element the caller reached for. */
+  display: block;
+  height: 100%;
+  width: var(--k-w, 10%);
+  border-radius: var(--k-r-pill);
+  background: linear-gradient(90deg,
+    color-mix(in oklch, var(--k-tint, var(--k-accent)) 90%, transparent),
+    color-mix(in oklch, var(--k-tint, var(--k-accent)) 45%, transparent));
+  transition: width var(--k-t-draw) var(--k-ease);
+}
+
+/* A legend is a label, not a chart. Kept small and never lit. */
+.k-legend { display: flex; flex-wrap: wrap; gap: var(--k-2) var(--k-4); margin-top: var(--k-3); }
+.k-legend__item { display: inline-flex; align-items: center; gap: 6px; font-size: var(--k-caption); color: var(--k-text-2); }
+.k-legend__dot { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--k-tint, var(--k-accent)); flex: none; }
+
+/* --- States: what the app says when it worked, or did not -------------
+   One shape for both, because they are the same event with different news,
+   and a person should not have to learn two layouts to find out which.
+   --------------------------------------------------------------------- */
+.k-state {
+  --k-tint: var(--k-positive);
+  display: flex;
+  gap: var(--k-3);
+  align-items: flex-start;
+  padding: var(--k-3) var(--k-4);
+  border-radius: var(--k-r-md);
+  background-color: var(--k-glass-2);
+  border: 1px solid color-mix(in oklch, var(--k-tint) 30%, transparent);
+  box-shadow: var(--k-inner-top);
+}
+.k-state--error { --k-tint: var(--k-negative); }
+.k-state__mark { flex: none; color: var(--k-tint); font-size: var(--k-icon-md); line-height: 1.2; }
+.k-state__title { font-size: var(--k-body); font-weight: var(--k-w-fig); }
+.k-state__body { font-size: var(--k-label); color: var(--k-text-2); }
+
+/* Pull to refresh. The ring is the distance pulled, so it is feedback, not
+   a spinner pretending the app is busy. */
+.k-refresh { display: grid; place-items: center; height: 56px; }
+.k-refresh__ring {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2.5px solid var(--k-border);
+  border-top-color: var(--k-accent);
+  animation: k-spin 900ms linear infinite;
+}
+@keyframes k-spin { to { transform: rotate(360deg); } }
+
+/* --- Motion, as classes ----------------------------------------------
+   The budget, stated once so nobody has to guess which duration to reach
+   for. Every animation in the product is one of these three.
+
+     FAST        --k-t-fast     140ms   a press, a toggle, a hover
+     STANDARD    --k-t-normal   240ms   a sheet, a transition, a reveal
+     EXPRESSIVE  --k-t-slow     420ms   something arriving
+                 --k-t-draw     600ms   a chart, the ceiling
+
+   Anything that would need longer is staggered, not stretched.
+   --------------------------------------------------------------------- */
+
+/* A figure changing to another figure. It moves a little and settles: the
+   movement is what tells you it changed, since two numbers of the same size
+   in the same place otherwise just swap without being noticed. */
+.k-count { display: inline-block; font-variant-numeric: tabular-nums; transition: transform var(--k-t-fast) var(--k-ease); }
+.k-count--tick { animation: k-tick var(--k-t-slow) var(--k-ease); }
+@keyframes k-tick {
+  0% { transform: translateY(0.14em); opacity: 0.35; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* A row arriving in a list it was not in a moment ago. It comes from the
+   direction it came from - the top - and settles rather than bouncing. */
+.k-settle { animation: k-settle var(--k-t-slow) var(--k-ease) backwards; }
+@keyframes k-settle {
+  from { opacity: 0; transform: translateY(-10px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+
+/* A meter or a bar filling toward its target, used by the radial and the
+   share rows. Held here so a drawing cannot invent its own timing. */
+.k-fill-in { animation: k-fill var(--k-t-draw) var(--k-ease) backwards; }
+@keyframes k-fill { from { stroke-dashoffset: var(--k-len, 1000); } to { stroke-dashoffset: var(--k-off, 0); } }
+
+/* The delta pill has to be corrected for daylight after it is defined,
+   which is here rather than up with the other light-mode rules: a colour
+   set by the later rule wins whatever the media query says. */
+@media (prefers-color-scheme: light) {
+  .k-delta {
+    /* Darken the lightness and nothing else. Mixing toward the ink dragged
+       the hue with it - a green delta came out cyan at 202 - because oklch
+       interpolates hue as happily as lightness. Black has no hue to lend,
+       and the relative form below does not interpolate at all. */
+    color: color-mix(in oklch, var(--k-tint, var(--k-text-2)) 68%, oklch(0% 0 0));
+    color: oklch(from var(--k-tint, var(--k-text-2)) 38% c h);
+  }
+}
+/* ---------------------------------------------------------------------
+   MIGRATION · Accounts  (phase 9E)
+   Scoped by `.k` on the Accounts container, exactly as the others are.
+
+   The screen was a wall of boxes: a card per account, each with its own
+   border, its own padding and its own shadow, so five accounts read as five
+   separate objects rather than as one answer to "where is my money".
+
+   It is now a list. One quiet surface per group, one row per account, and
+   the balance is the biggest thing in the row.
+   --------------------------------------------------------------------- */
+
+/* --- the groups ------------------------------------------------------- */
+.k .account-group-sec { margin-top: var(--k-6); }
+
+/* A label, not a heading: it names the lane without competing with the
+   figures inside it. */
+.k .account-group-label {
+  margin: 0 0 var(--k-2);
+  padding: 0 var(--k-1);
+  font-size: var(--k-caption);
+  font-weight: var(--k-w-fig);
+  letter-spacing: var(--k-track-caption);
+  text-transform: uppercase;
+  color: var(--k-text-3);
+}
+
+/* One surface for the whole group. L1: a list is supporting structure, and
+   does not need the blur a figure with something to say earns. */
+.k .account-group { padding: 0 var(--k-4); }
+
+.k .account-block + .account-block { border-top: 1px solid var(--k-hairline); }
+
+/* --- the row ---------------------------------------------------------- */
+.k .account-row {
+  gap: var(--k-3);
+  min-height: 64px;
+  padding: var(--k-3) 0;
+  width: 100%;
+}
+.k button.account-row { cursor: pointer; }
+.k button.account-row:active { background: var(--k-surface-press); }
+
+/* A long name ellipses. It used to be cut off mid-word, which reads as a
+   different account rather than as a shortened one. */
+.k .account-row .k-row__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.k .account-row .k-row__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The balance: the reason the screen was opened, so it is the largest thing
+   in the row and it never wraps or shrinks to fit a name. */
+.k .account-balance {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--k-value);
+  font-weight: var(--k-w-fig);
+  letter-spacing: var(--k-track-title);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.k .account-balance.out { color: var(--k-negative); }
+.k .account-balance.in { color: var(--k-positive); }
+
+/* The one chevron the product uses, turned down when the row is open. */
+.k .account-row__chev {
+  flex: none;
+  width: 0.4em;
+  height: 0.4em;
+  margin-left: var(--k-1);
+  border-right: 1.75px solid var(--k-text-3);
+  border-bottom: 1.75px solid var(--k-text-3);
+  transform: rotate(45deg) translate(-0.08em, -0.08em);
+  transition: transform var(--k-t-normal) var(--k-ease), border-color var(--k-t-normal) var(--k-ease);
+}
+.k .account-open[aria-expanded="true"] .account-row__chev {
+  border-color: var(--k-accent);
+  transform: rotate(225deg) translate(-0.08em, -0.08em);
+}
+
+/* Rearranging: the arrows sit where the balance was. */
+.k .account-row--move .account-move { display: flex; gap: var(--k-1); margin-left: auto; flex: none; }
+.k .account-move .icon-btn {
+  min-width: var(--k-tap);
+  min-height: var(--k-tap);
+  display: grid;
+  place-items: center;
+  border-radius: var(--k-r-sm);
+  border: 1px solid var(--k-border-subtle);
+  background: var(--k-glass-1);
+  color: var(--k-text-2);
+}
+.k .account-move .icon-btn[disabled] { opacity: 0.35; }
+
+/* --- what an account says about itself -------------------------------- */
+/* A fact the account already knows, shown whether or not the row is open:
+   a bill that has been raised and cannot be seen yet is not a detail. */
+.k .account-note {
+  margin: 0 0 var(--k-3);
+  padding: var(--k-2) var(--k-3);
+  border-radius: var(--k-r-sm);
+  border: 1px solid color-mix(in oklch, var(--k-warning) 24%, transparent);
+  background: color-mix(in oklch, var(--k-warning) 8%, transparent);
+  font-size: var(--k-label);
+  color: var(--k-text-2);
+}
+
+.k .account-detail { padding: 0 0 var(--k-4); }
+.k .account-detail > :first-child { margin-top: 0; }
+
+.k .account-meter { margin: 0 0 var(--k-3); }
+
+/* The latest payments: rows again, one level in, with no surface of their
+   own. A list inside a list does not need a second box around it. */
+/* Indented to sit under the account name, so the payments read as belonging
+   to the row above rather than as more accounts. 50px is the brand mark plus
+   its gap, which is where the name starts. */
+.k .account-detail.account-recent { padding-left: 50px; }
+.k .account-recent-rows { margin-bottom: var(--k-2); }
+.k .account-recent-row .k-row__title { font-size: var(--k-label); }
+.k .account-recent-row { min-height: 52px; }
+.k .account-recent-row .k-row__title { font-weight: var(--k-w-label); }
+.k .account-recent-row .k-row__value { font-size: var(--k-value-sm); margin-left: auto; flex: none; white-space: nowrap; }
+
+/* --- the actions ------------------------------------------------------ */
+/* Quiet on purpose. Edit and Add a spend are things you do occasionally;
+   the balance is the thing you came for. */
+.k .account-actions-inline {
+  display: flex;
+  gap: var(--k-2);
+  flex-wrap: wrap;
+  margin-top: var(--k-2);
+}
+.k .account-actions-inline .k-btn { min-height: var(--k-tap); padding: 0 var(--k-3); }
+
+/* The screen's own actions, after the money rather than above it. */
+.k .accounts-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--k-2);
+  margin: var(--k-8) 0 var(--k-4);
+  padding-top: var(--k-5);
+  border-top: 1px solid var(--k-hairline);
+}
+.k .accounts-actions .k-btn { flex: 1 1 auto; min-height: var(--k-ctl-md); }
+.k .accounts-actions #add-account-btn { flex-basis: 100%; }
+
+/* --- the bits of the old screen that stay ----------------------------- */
+.k .account-block .loan-lines,
+.k .account-block .loan-line { font-size: var(--k-label); }
+.k .account-block .loan-line { display: flex; justify-content: space-between; gap: var(--k-3); padding: var(--k-2) 0; }
+.k .account-block .loan-line + .loan-line { border-top: 1px solid var(--k-hairline); }
+.k .account-block .loan-line dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.k .account-block .totals-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--k-3);
+  padding: var(--k-2) 0;
+  font-size: var(--k-label);
+}
+.k .account-block .totals-row + .totals-row { border-top: 1px solid var(--k-hairline); }
+
+.k .account-headline { font-size: var(--k-value); font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; }
+
+/* --- the account form ------------------------------------------------
+   Two things here were already wrong before this screen was migrated, and
+   both break a rule the system is meant to keep.
+
+   The six account-type buttons shared a 282px row, which cannot hold six
+   44px targets however they are divided. They wrap to a second line now
+   rather than each being shaved to 37px.
+
+   The delete button holds a whole sentence - "Delete this account and its
+   83 transactions" - and was set to never wrap, so the end of it was cut
+   off. A button that destroys data should be able to finish telling you
+   what it will destroy. */
+.k .af-type-group { flex-wrap: wrap; gap: var(--k-1); }
+.k .af-type {
+  flex: 1 0 auto;
+  min-width: var(--k-tap);
+  min-height: var(--k-tap);
+}
+
+.k .btn-tiny.danger {
+  white-space: normal;
+  height: auto;
+  min-height: var(--k-tap);
+  padding: var(--k-2) var(--k-3);
+  line-height: var(--k-lh-snug);
+}
+
+/* The empty screen: nothing set up yet, so it is one sentence and one way on. */
+.k .empty-state { text-align: center; padding: var(--k-10) var(--k-5); }
+.k .empty-state-what { font-size: var(--k-heading); font-weight: var(--k-w-strong); margin: 0 0 var(--k-2); }
+.k .empty-state-why { font-size: var(--k-label); color: var(--k-text-2); line-height: var(--k-lh-body); margin: 0 0 var(--k-5); }
+/* ---------------------------------------------------------------------
+   MIGRATION · Plan and Coach  (phase 9F)
+
+   These two screens share several class names with Summary - .cat-chip,
+   .breakdown-label, .fts-breakdown - so every rule that touches a shared
+   name is scoped to `.k-plan` or `.k-coach` rather than to `.k`. Summary's
+   composition is finished and must not move because Plan needed a row.
+
+   Names that belong only to these screens (.budget-card, .seg-dot,
+   .coach-q, .attention-row) are scoped to `.k` in the ordinary way.
+   --------------------------------------------------------------------- */
+
+/* --- shared: two figures side by side may stack ----------------------
+   Summary puts "In bank" and "After salary and bills" on one nowrap row.
+   At 320 the pair needs 273px in a 246px box, so the second amount was cut
+   off. A money figure that is only partly on screen is worse than one on a
+   line of its own, so at that width they stack. Nothing changes at 360 and
+   above, where the pair already fits. --------------------------------- */
+/* Only where it actually breaks. With nowrap the pair shrinks to fit down to
+   about 360; below that it cannot shrink any further and the second amount
+   is cut. Allowing the wrap at every width moved them onto two lines at 390
+   as well, which is a change to a screen that is finished. */
+@media (max-width: 340px) {
+  .k .bank-figures { flex-wrap: wrap; }
+}
+
+/* --- shared: small controls keep a fingertip-sized target -------------
+   Summary carries several controls that are 32 to 35px tall - dismiss an
+   anomaly, mark a commitment paid, skip it, untag a match. They are small
+   on purpose: they sit beside a figure and must not compete with it. Small
+   to look at is fine; small to hit is not.
+
+   The strip is invisible, adds nothing to the layout and changes nothing
+   about how any of them appear. It is the same technique the toggle and the
+   segmented control already use, said once for the rest of them.
+
+   Width is left alone: every one of these already clears 44px across. Only
+   the height was short. --------------------------------------------------- */
+.k .btn-tiny,
+.k .icon-btn {
+  position: relative;
+  /* The whole control lifts, not just the strip. A strip left on the parent
+     stacking level was painted over by whatever came after it in the row,
+     so the extra height existed but nothing could be tapped in it. */
+  z-index: 1;
+}
+
+.k .btn-tiny::before,
+.k .icon-btn::before {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto 0;
+  height: var(--k-tap);
+  transform: translateY(-50%);
+}
+
+/* --- shared: the figures under a hero --------------------------------- */
+.k .hero-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--k-2) var(--k-6);
+  margin-top: var(--k-4);
+  font-size: var(--k-label);
+  font-weight: var(--k-w-fig);
+  font-variant-numeric: tabular-nums;
+}
+.k .hero-figures .muted { font-weight: var(--k-w-body); color: var(--k-text-3); }
+
+/* --- shared: a row of something needing attention --------------------- */
+/* Used by Plan, Coach, Settings and Setup - never by Summary. */
+.k .attention-row {
+  display: flex;
+  align-items: center;
+  gap: var(--k-3);
+  min-height: 56px;
+  padding: var(--k-3) 0;
+  font-size: var(--k-body);
+}
+.k .attention-row + .attention-row { border-top: 1px solid var(--k-hairline); }
+.k .attention-row .muted-note { font-size: var(--k-label); color: var(--k-text-3); }
+.k .attention-actions { display: flex; gap: var(--k-2); margin-left: auto; flex: none; }
+
+/* ======================================================================
+   PLAN
+   ====================================================================== */
+
+/* --- where the budget comes from -------------------------------------- */
+/* The sums used to live inside the hero, which made the most important
+   thing on the screen also the longest thing on it. They are their own
+   section now, directly under the figure they explain. */
+.k-plan .plan-sums { margin: 0 0 var(--k-6); padding: var(--k-4) var(--k-5) var(--k-5); }
+.k-plan .plan-sums__head {
+  margin: 0 0 var(--k-1);
+  font-size: var(--k-caption);
+  font-weight: var(--k-w-fig);
+  letter-spacing: var(--k-track-caption);
+  text-transform: uppercase;
+  color: var(--k-text-3);
+}
+.k-plan .plan-sums .totals-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--k-3);
+  padding: var(--k-3) 0;
+  font-size: var(--k-body);
+}
+.k-plan .plan-sums .totals-row + .totals-row { border-top: 1px solid var(--k-hairline); }
+.k-plan .plan-sums .totals-row span:last-child {
+  font-weight: var(--k-w-fig);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.k-plan .plan-sums .in { color: var(--k-positive); }
+.k-plan .plan-sums .out { color: var(--k-negative); }
+.k-plan .saved-row { color: var(--k-text-2); }
+
+/* The dots that tie a line to its slice of the bar in the hero. */
+.k-plan .seg-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 7px;
+  vertical-align: middle;
+  background: var(--k-text-3);
+}
+.k-plan .seg-free { background: var(--k-positive); }
+.k-plan .seg-must { background: var(--k-accent); }
+.k-plan .seg-flex { background: var(--k-violet); }
+
+/* Changing the figures: a disclosure, not a form sitting open on a screen
+   that is meant to be read. */
+.k-plan .plan-amounts { margin-top: var(--k-2); border-top: 1px solid var(--k-hairline); }
+.k-plan .plan-amounts > summary { color: var(--k-text-2); font-size: var(--k-label); }
+.k-plan .plan-amounts .field { margin-top: var(--k-3); }
+
+/* A bare date or month input has no height of its own - the browser sizes it
+   to its text, which came out 21px. Every other field on this screen is a
+   control; this one has to be too. */
+.k-plan .ff-end,
+.k-plan input[type="month"],
+.k-plan input[type="date"] {
+  min-height: var(--k-ctl-md);
+  width: 100%;
+}
+
+/* --- a commitment ------------------------------------------------------ */
+.k-plan .plan-row { gap: var(--k-3); min-height: 62px; }
+/* The name never wraps: a two-line label pushed the amount into the middle
+   of the row and left it looking like part of the name. */
+.k-plan .plan-row .k-row__title,
+.k-plan .plan-row .k-row__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.k-plan .plan-row__amount {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--k-value-sm);
+  font-weight: var(--k-w-fig);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--k-negative);
+}
+.k-plan .plan-row__amount .freq-per-month { font-size: var(--k-caption); color: var(--k-text-3); font-weight: var(--k-w-body); }
+.k-plan .plan-row__actions { display: flex; gap: 2px; flex: none; }
+
+/* The row and its remove button sit side by side: a row cannot hold a button
+   inside a button, and removing something must never be a thing you do by
+   tapping the line it is on. */
+.k-plan .plan-row-wrap { display: flex; align-items: stretch; gap: var(--k-1); }
+.k-plan .plan-row-wrap + .plan-row-wrap,
+.k-plan .plan-row-wrap + .k-row,
+.k-plan .k-row + .plan-row-wrap { border-top: 1px solid var(--k-hairline); }
+.k-plan .plan-row__main { flex: 1; min-width: 0; cursor: pointer; }
+.k-plan .plan-row__main:active { background: var(--k-surface-press); }
+.k-plan .plan-row__remove {
+  position: relative;
+  flex: none;
+  align-self: center;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--k-text-3);
+  border-radius: var(--k-r-xs);
+}
+.k-plan .plan-row__remove::before {
+  content: "";
+  position: absolute;
+  inset: 50% 50% auto auto;
+  width: var(--k-tap);
+  height: var(--k-tap);
+  transform: translate(50%, -50%);
+}
+.k-plan .plan-row__remove:active { background: var(--k-surface-press); }
+
+/* A glyph may be small; its target may not. The strip is invisible and adds
+   nothing to the layout, exactly as the toggle's does. */
+.k-plan .plan-row__actions .icon-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--k-text-3);
+  border-radius: var(--k-r-xs);
+}
+.k-plan .plan-row__actions .icon-btn::before {
+  content: "";
+  position: absolute;
+  inset: 50% 50% auto auto;
+  width: var(--k-tap);
+  height: var(--k-tap);
+  transform: translate(50%, -50%);
+}
+.k-plan .plan-row__actions .icon-btn:active { background: var(--k-surface-press); }
+.k-plan .plan-row__actions .icon-btn[disabled] { opacity: 0.32; }
+
+/* --- a category budget -------------------------------------------------- */
+.k-plan .budget-card { padding: var(--k-2) 0 var(--k-4); }
+.k-plan .budget-card + .budget-card { border-top: 1px solid var(--k-hairline); }
+.k-plan .budget-row { min-height: 56px; }
+.k-plan .budget-nums { flex: none; margin-left: auto; font-size: var(--k-value-sm); font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.k-plan .budget-nums .muted { color: var(--k-text-3); font-weight: var(--k-w-body); }
+.k-plan .budget-meter { margin-top: var(--k-1); }
+/* Over budget is the one state that changes the bar's colour, because it is
+   the one state that is about money already gone. */
+.k-plan .budget-fill.over { background: var(--k-negative); box-shadow: none; }
+.k-plan .budget-fill.close { background: var(--k-warning); box-shadow: none; }
+
+/* --- goals -------------------------------------------------------------- */
+.k-plan .goal-card {
+  display: flex;
+  align-items: center;
+  gap: var(--k-4);
+  padding: var(--k-4) 0;
+}
+.k-plan .goal-card + .goal-card { border-top: 1px solid var(--k-hairline); }
+.k-plan .goal-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.k-plan .goal-name { font-size: var(--k-body); font-weight: var(--k-w-fig); }
+.k-plan .goal-text .muted-note { font-size: var(--k-label); color: var(--k-text-3); }
+
+/* --- the costs people usually have ------------------------------------- */
+.k-plan .common-costs { display: flex; flex-wrap: wrap; gap: var(--k-2); margin-top: var(--k-3); }
+
+/* ======================================================================
+   COACH
+   The calmest screen in the product. It was already composed well, so this
+   changes its material and its type and leaves its shape alone.
+   ====================================================================== */
+
+.k-coach .coach-questions { display: flex; flex-direction: column; gap: var(--k-2); margin-bottom: var(--k-4); }
+
+/* A question is a row with an answer behind it. */
+.k-coach .coach-q {
+  gap: var(--k-3);
+  min-height: var(--k-ctl-lg);
+  padding: var(--k-3) var(--k-4);
+  border: 1px solid var(--k-border-subtle);
+  border-radius: var(--k-r-md);
+  background-color: var(--k-glass-1);
+  background-image: var(--k-sheen);
+  color: var(--k-text);
+  text-align: left;
+  transition: border-color var(--k-t-fast) var(--k-ease), background-color var(--k-t-fast) var(--k-ease);
+}
+.k-coach .coach-q:active { background-color: var(--k-surface-press); }
+.k-coach .coach-q.active {
+  border-color: color-mix(in oklch, var(--k-accent) 55%, transparent);
+  background-color: var(--k-glass-3);
+}
+.k-coach .coach-q .k-row__title { font-weight: var(--k-w-label); }
+.k-coach .coach-q.active .k-row__title { font-weight: var(--k-w-fig); }
+
+.k-coach .coach-q__chev {
+  flex: none;
+  width: 0.4em;
+  height: 0.4em;
+  margin-left: auto;
+  border-right: 1.75px solid var(--k-text-3);
+  border-bottom: 1.75px solid var(--k-text-3);
+  transform: rotate(45deg) translate(-0.08em, -0.08em);
+  transition: transform var(--k-t-normal) var(--k-ease), border-color var(--k-t-normal) var(--k-ease);
+}
+.k-coach .coach-q.active .coach-q__chev {
+  border-color: var(--k-accent);
+  transform: rotate(225deg) translate(-0.08em, -0.08em);
+}
+
+/* The answer. One surface, one level up from the question that opened it. */
+.k-coach .coach-panel {
+  padding: var(--k-5);
+  margin-bottom: var(--k-5);
+  border-radius: var(--k-r-lg);
+  border: 1px solid var(--k-hairline);
+  background-color: var(--k-glass-2);
+  background-image: var(--k-sheen);
+  box-shadow: var(--k-inner-top);
+  animation: k-rise var(--k-t-normal) var(--k-ease);
+}
+.k-coach .coach-panel .field { margin-bottom: var(--k-4); }
+.k-coach .coach-panel .amount-input-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: var(--k-1);
+  padding: var(--k-2) var(--k-4);
+  border-radius: var(--k-r-md);
+  border: 1px solid var(--k-border-subtle);
+  background-color: var(--k-glass-1);
+}
+.k-coach .coach-panel .amount-input-wrap:focus-within {
+  border-color: color-mix(in oklch, var(--k-accent) 60%, transparent);
+  box-shadow: var(--k-glow-cyan);
+}
+.k-coach .coach-panel .amount-prefix { font-size: var(--k-value); color: var(--k-text-2); font-weight: var(--k-w-fig); }
+.k-coach .coach-panel .amount-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--k-text);
+  font-family: inherit;
+  font-size: var(--k-display);
+  font-weight: var(--k-w-strong);
+  letter-spacing: var(--k-track-display);
+  padding: var(--k-1) 0;
+}
+.k-coach .coach-panel .amount-input::placeholder { color: var(--k-text-3); opacity: 1; }
+
+/* What the app noticed. The tone is the planner's; the shape is the
+   system's context block, so a thing noticed here looks like a thing
+   noticed anywhere else. */
+.k-coach .coach-note { margin-bottom: var(--k-3); }
+.k-coach .coach-note .k-context__k { text-transform: none; letter-spacing: normal; font-size: var(--k-body); font-weight: var(--k-w-fig); color: var(--k-text); }
+.k-coach .coach-note-info { --k-tint: var(--k-accent); }
