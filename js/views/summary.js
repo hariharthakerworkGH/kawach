@@ -5,6 +5,7 @@ import { isoLocal, hasDueDate, frequencyOf } from '../frequency.js';
 import { formatCurrency, formatDateNice, formatRupees } from '../format.js';
 import { cardBillDue } from '../account-metrics.js';
 import { computeFreeToSpend } from '../free-to-spend.js';
+import { burnLine, runwayBar } from '../charts.js';
 import { detectRecurring, nextDueDate } from '../recurring.js';
 import { detectAnomalies } from '../anomalies.js';
 import { categoryStyle } from '../category-style.js';
@@ -21,8 +22,9 @@ import { askConfirm } from '../dialog.js';
 import { redraw } from '../redraw.js';
 import { installCard, wireInstallCard } from '../install.js';
 import { backupStatus } from '../drive.js';
-import { incomeWords, businesses, activeSpace, setCurrentSpace, accountInSpace, businessSpace } from '../business.js';
+import { incomeWords, businesses, activeSpace, setCurrentSpace, accountInSpace, businessSpace, businessRunway } from '../business.js';
 import { taxDates } from '../calendar.js';
+import { escapeHtml, escapeAttr, sectionHead, pill, hero, panel } from '../ui.js';
 
 let currentRange = 'this-month';
 
@@ -48,7 +50,7 @@ export async function render(container) {
       <label>To <input type="date" id="range-to"></label>
       <button type="button" id="range-apply" class="btn-secondary">Apply</button>
     </div>
-    <div id="summary-content">Loading…</div>`
+    <div id="summary-content"></div>`
     }
   `;
 
@@ -97,6 +99,9 @@ async function renderBusinessDashboard(container) {
   const [transactions, accounts, recurring, categories, list] = await Promise.all([getAll('transactions'), getAll('accounts'), getAll('recurring'), getAll('categories'), businesses()]);
   const today = isoLocal(new Date());
   const b = businessSpace(transactions, accounts, recurring, categories, space, today);
+  // A shop's income is uneven, so it gets the question a salary never asks:
+  // if nothing came in, how long would it last?
+  const runway = businessRunway(transactions, accounts, space, today);
   const line = breakdownLine;
   const month = new Date().toLocaleDateString('en-IN', { month: 'long' });
   const go = (view, extra = '') => `data-go="${view}" ${extra}`;
@@ -104,43 +109,46 @@ async function renderBusinessDashboard(container) {
   dashboardEl.innerHTML = `
     ${
       hasAccounts
-        ? `<div class="hero level-${b.left < 0 ? 'over' : 'ok'}">
-        <div class="hero-top">
-          <span class="hero-label">Left this month</span>
-          <span class="hero-label">${month}</span>
-        </div>
-        <p class="hero-amount ${b.left < 0 ? 'negative' : ''}">${formatRupees(b.left)}</p>
-        <div class="hero-figures">
-          <span><span class="muted">In</span> ${formatRupees(b.moneyIn)}</span>
-          <span><span class="muted">Out</span> ${formatRupees(b.moneyOut)}</span>
-        </div>
-        ${b.fixedDue ? `<p class="hero-status level-warning">${formatRupees(b.fixedDue)} of fixed costs still to pay</p>` : ''}
-        <details class="fts-breakdown">
-          <summary>How it's worked out</summary>
-          <div class="totals-card">
-            ${line('Money in', b.moneyIn, '+')}
-            ${line('Money out', b.moneyOut, '-')}
-            ${b.sentHome ? line('Sent home', b.sentHome, '-') : ''}
-            ${b.fixedDue ? line('Fixed costs still to pay', b.fixedDue, '-') : ''}
-            <div class="totals-row net"><span>Left this month</span><span>${formatRupees(b.left)}</span></div>
-          </div>
-        </details>
-      </div>`
-        : `<div class="totals-card"><p class="muted-note">Add ${escapeHtml(list.find((x) => x.id === space)?.name || 'the business')}'s bank account to see its month.</p><button type="button" class="btn-primary" ${go('accounts')}>Add its account</button></div>`
+        ? hero({
+            label: 'Left this month',
+            period: month,
+            amount: formatRupees(b.left),
+            negative: b.left < 0,
+            level: b.left < 0 ? 'over' : 'ok',
+            figures: [
+              { label: 'In', value: formatRupees(b.moneyIn) },
+              { label: 'Out', value: formatRupees(b.moneyOut) },
+            ],
+            // The one drawing this screen gets: how long the shop would last.
+            chart: runway ? runwayBar(runway) : '',
+            status: b.fixedDue ? `${formatRupees(b.fixedDue)} of fixed costs still to pay` : '',
+            extra: `<details class="fts-breakdown">
+              <summary>How it's worked out</summary>
+              ${panel(`
+                ${line('Money in', b.moneyIn, '+')}
+                ${line('Money out', b.moneyOut, '-')}
+                ${b.sentHome ? line('Sent home', b.sentHome, '-') : ''}
+                ${b.fixedDue ? line('Fixed costs still to pay', b.fixedDue, '-') : ''}
+                <div class="totals-row net"><span>Left this month</span><span>${formatRupees(b.left)}</span></div>`)}
+            </details>`,
+          })
+        : panel(
+            `<p class="muted-note">Add ${escapeHtml(list.find((x) => x.id === space)?.name || 'the business')}'s bank account to see its month.</p><button type="button" class="btn-primary" ${go('accounts')}>Add its account</button>`
+          )
     }
-    <div class="section-head"><h3>Fixed costs</h3></div>
+    ${sectionHead('Fixed costs')}
     ${
       b.fixed.length
         ? `<div class="totals-card">${b.fixed
             .map(
-              (f) => `<div class="totals-row"><span>${escapeHtml(f.label)}</span><span class="biz-fixed">${formatRupees(f.paid)} / ${formatRupees(f.amount)} <span class="pill ${f.due ? 'warn' : 'ok'}">${f.due ? 'Due' : 'Paid'}</span></span></div>`
+              (f) => `<div class="totals-row"><span>${escapeHtml(f.label)}</span><span class="biz-fixed">${formatRupees(f.paid)} / ${formatRupees(f.amount)} ${pill(f.due ? 'Due' : 'Paid', f.due ? 'warn' : 'ok')}</span></div>`
             )
             .join('')}</div>`
         : `<div class="totals-card"><p class="muted-note">Shop rent, staff wages and other costs each month.</p><button type="button" class="btn-secondary btn-block" ${go('plan')}>Add fixed costs</button></div>`
     }
     ${
       b.top.length
-        ? `<div class="section-head"><h3>Where it went</h3></div><div class="totals-card">${b.top
+        ? `${sectionHead('Where it went')}<div class="totals-card">${b.top
             .map((c) => `<div class="totals-row"><span>${escapeHtml(c.name)}</span><span class="out">${formatRupees(c.amount)}</span></div>`)
             .join('')}</div>`
         : ''
@@ -163,7 +171,7 @@ async function renderBusinessDashboard(container) {
 function taxCard(dates) {
   const soon = dates.filter((d) => d.date <= addDaysIso(isoLocal(new Date()), 45)).slice(0, 3);
   if (!soon.length) return '';
-  return `<div class="section-head"><h3>Coming up</h3></div>
+  return `${sectionHead('Coming up')}
     <div class="totals-card">${soon
       .map((d) => `<div class="totals-row"><span>${escapeHtml(d.label)}<br><span class="muted-note">${escapeHtml(d.note)}</span></span><span>${formatDateNice(d.date)}</span></div>`)
       .join('')}</div>`;
@@ -181,9 +189,22 @@ async function renderDashboard(container) {
   // Anyone with business income has tax dates to keep.
   const tax = taxCard(taxDates(isoLocal(new Date()), { business: list.length > 0 || fts.incomeKind === 'business' }));
 
-  dashboardEl.innerHTML = [install, renderSpendingLimit(fts), renderCommitmentTracker(fts), renderLoansSavings(fts), '<div id="attention-section"></div>', '<div id="upcoming-section"></div>', tax].join('');
-
-
+  // In the order the questions are asked: where do I stand, how much of the
+  // month is spoken for, what have I actually got, what needs me - and only
+  // then the detail (design.md section 15).
+  const commitments = renderCommitmentTracker(fts);
+  dashboardEl.innerHTML = [
+    renderSpendingLimit(fts),
+    renderBankCard(fts),
+    renderDueSoon(fts),
+    '<div id="attention-section"></div>',
+    fold('Commitments', fts.tracker ? `${fts.tracker.length}` : '', commitments),
+    fold('Loans and savings', '', renderLoansSavings(fts)),
+    '<div id="upcoming-section"></div>',
+    tax,
+    // The invitation to install comes last: it is not part of the answer.
+    install,
+  ].join('');
 
   // Mark paid / Skip this month, and their Undo: a per-cycle choice stored on
   // the commitment. Only recent cycles are kept, so the record can't grow forever.
@@ -284,16 +305,16 @@ const breakdownLine = (label, amount, sign, note = '') =>
 function renderSpendingLimit(f) {
   if (!f.monthlyIncome || !f.salary.setUp) {
     const ask = f.incomeKind === 'business' ? 'what the house needs a month' : `your ${incomeWords(f.incomeKind).noun} and the day it arrives`;
-    return `<div class="totals-card"><p class="muted-note">Add ${ask} on Plan to see what you can spend.</p></div>${renderBankCard(f)}`;
+    return `<div class="totals-card"><p class="muted-note">Add ${ask} on Plan to see what you can spend.</p></div>`;
   }
   if (f.noCommitments) {
     return `<div class="hero level-warning">
         <p class="hero-label">Left to spend</p>
         <p class="hero-amount">-</p>
         <p class="hero-sub">Add your fixed commitments on Plan first - without them your whole income looks free.</p>
-      </div>${renderBankCard(f)}`;
+      </div>`;
   }
-  return renderCardsHero(f) + renderBankCard(f);
+  return renderCardsHero(f);
 }
 
 // One short line under the headline number.
@@ -329,20 +350,27 @@ function renderCardsHero(f) {
           .join('')}`
       : '';
 
-  return `
-    <div class="hero level-${f.level}">
-      <div class="hero-top">
-        <span class="hero-label">Left to spend</span>
-        <span class="hero-label">${formatDateNice(f.cycleStart)} to ${until}</span>
-      </div>
-      <p class="hero-amount ${f.free < 0 ? 'negative' : ''}">${formatRupees(f.free)}</p>
-      <div class="hero-meter"><div class="hero-meter-fill ${f.level === 'ok' ? '' : f.level === 'warning' ? 'warn' : 'over'}" style="width:${pct}%"></div></div>
-      <div class="hero-figures">
-        <span><span class="muted">Spent</span> ${formatRupees(f.spentThisCycle)}</span>
-        <span><span class="muted">Budget</span> ${formatRupees(f.limit)}</span>
-      </div>
-      <p class="hero-status level-${f.level}">${escapeHtml(spendingStatus(f))}</p>
-      <details class="fts-breakdown">
+  // The pace picture. When it can draw, it says everything the meter said and
+  // more, so the meter goes: the same fact three ways is noise (design.md
+  // section 9). Too early in the month, or nothing spent yet, and the meter
+  // is the picture instead.
+  const burn = burnLine({ totals: f.spendDays, budget: f.limit, days: f.daysIntoCycle + f.daysToClose - 1 });
+  const meter = burn || !(f.spentThisCycle > 0) ? null : { pct, tone: f.level === 'ok' ? '' : f.level === 'warning' ? 'warn' : 'over' };
+  return hero({
+    label: 'Left to spend',
+    period: `${formatDateNice(f.cycleStart)} to ${until}`,
+    amount: formatRupees(f.free),
+    negative: f.free < 0,
+    level: f.level,
+    meter,
+    chart: burn,
+    status: escapeHtml(spendingStatus(f)),
+  }) + `
+    <div class="hero-under">
+      <div class="stat"><span class="stat-k">Spent</span><span class="stat-v">${formatRupees(f.spentThisCycle)}</span></div>
+      <div class="stat"><span class="stat-k">Budget</span><span class="stat-v">${formatRupees(f.limit)}</span></div>
+    </div>
+      <details class="fts-breakdown hero-work">
         <summary>How it's worked out</summary>
         <div class="totals-card">
           ${line(incomeLine(f), f.monthlyIncome, '+')}
@@ -369,10 +397,61 @@ function renderCardsHero(f) {
           <div class="totals-row net"><span>Left to spend</span><span>${formatRupees(f.free)}</span></div>
         </div>
         ${f.notes.map((n) => `<p class="muted-note">${escapeHtml(n)}</p>`).join('')}
-      </details>
-    </div>
-  `;
+      </details>`;
 }
+
+// How much of the month is already spoken for: the one question the hero
+// cannot answer, so it gets its own picture rather than a line in a list
+// (design.md block 04). The figures are the ones Plan is built from; nothing
+// is worked out again here.
+// Everything past "what needs me" waits behind a tap. <details> needs no
+// wiring, and the buttons inside keep working because the markup is
+// unchanged - it is only closed.
+function fold(title, count, body, open = false) {
+  if (!body) return '';
+  return `<details class="disclose"${open ? ' open' : ''}>
+      <summary><span class="disclose-t">${title}</span>${count ? `<span class="disclose-c">${count}</span>` : ''}</summary>
+      <div class="disclose-body">${body}</div>
+    </details>`;
+}
+
+// One thing, promoted, and only when it genuinely needs the person: a dated
+// commitment that is late or lands within three days. Everything settled
+// stays in the list below (design.md block 23).
+function renderDueSoon(f) {
+  if (!f.tracker) return '';
+  const today = isoLocal(new Date());
+  const soon = addDaysIso(today, 3);
+  const items = f.tracker
+    .filter((t) => t.due && !t.skipped && ['due', 'late', 'part'].includes(t.status) && t.due <= soon)
+    .sort((a, b) => (a.due < b.due ? -1 : 1));
+  if (!items.length) return '';
+  const t = items[0];
+  const days = daysBetween(today, t.due);
+  const when = t.due < today ? 'overdue' : days === 0 ? 'due today' : days === 1 ? 'due tomorrow' : `due in ${days} days`;
+  const owed = t.left > 0 ? t.left : t.amount;
+  // One thing needing you is a warning. Three or four is just the month, and
+  // dressing it up in red teaches you to ignore red (design.md block 23), so
+  // it is said plainly and the list below has the rest.
+  if (items.length > 2) {
+    const total = items.reduce((s, x) => s + (x.left > 0 ? x.left : x.amount), 0);
+    return `<div class="totals-card due-soon">
+      <div class="totals-row">
+        <span><strong>${items.length} commitments</strong> due in the next few days<br><span class="muted-note">${escapeHtml(t.label)} first, ${when}</span></span>
+        <span>${formatRupees(total)}</span>
+      </div>
+    </div>`;
+  }
+  const more = items.length > 1 ? `<span class="muted-note">and one more soon</span>` : '';
+  return `<div class="totals-card warn-card due-soon">
+      <div class="totals-row">
+        <span><strong>${escapeHtml(t.label)}</strong> ${when}${more ? `<br>${more}` : ''}</span>
+        <span class="out">${formatRupees(owed)}</span>
+      </div>
+    </div>`;
+}
+
+const daysBetween = (from, to) => Math.round((new Date(to) - new Date(from)) / 86400000);
 
 // The handful of payments that make up most of the bank spending. A single
 // total invites "that can't be right" with nothing to check it against; four
@@ -452,9 +531,9 @@ function renderBankCard(f) {
         <div><span class="hero-label">In bank</span><p class="bank-amount">${formatRupees(f.bank)}</p></div>
         <div class="bank-after"><span class="hero-label">${incomeWords(f.incomeKind).afterBank}</span><p class="bank-amount small ${tone}">${formatRupees(f.bankAfterBills)}</p></div>
       </div>
-      ${perAccount}
       <details class="fts-breakdown">
         <summary>How it's worked out</summary>
+        ${perAccount}
         <div class="totals-card">
           ${f.bankLines.map((l) => line(escapeHtml(l.account.label), l.balance, '+', `as of ${formatDateNice(l.asOf)}${l.entriesSince ? ` + ${l.entriesSince} since` : ''}`)).join('')}
           ${f.bankLines.length > 1 ? `<div class="totals-row net"><span>In bank now</span><span>${formatRupees(f.bank)}</span></div>` : ''}
@@ -575,10 +654,10 @@ function commitmentPill(t) {
 }
 
 function commitmentRow(t) {
-  const pill = commitmentPill(t);
+  const state = commitmentPill(t);
   const shown = t.marked ? Math.max(t.used, t.amount) : t.used;
   const pct = t.amount > 0 ? Math.min(100, Math.round((shown / t.amount) * 100)) : 0;
-  const barTone = pill.tone === 'over' ? 'over' : pill.tone === 'warn' ? 'warn' : '';
+  const barTone = state.tone === 'over' ? 'over' : state.tone === 'warn' ? 'warn' : '';
   const unpaid = !['paid', 'over', 'skipped'].includes(t.status) && t.kind !== 'loan';
   const buttons = t.skipped
     ? `<button type="button" class="btn-tiny commitment-unskip" data-id="${t.id}" data-key="${t.cycleKey}">Undo skip</button>`
@@ -604,8 +683,8 @@ function commitmentRow(t) {
         <span class="commitment-name">${escapeHtml(t.label)}</span>
         <span class="commitment-side">
           <span class="commitment-amount">${t.used && !t.skipped ? `${formatRupees(t.used)} / ` : ''}${formatRupees(t.amount)}</span>
-          ${t.kind === 'loan' ? '<span class="pill">Loan</span>' : ''}
-          <span class="pill ${pill.tone}">${pill.text}</span>
+          ${t.kind === 'loan' ? pill('Loan') : ''}
+          ${pill(state.text, state.tone)}
         </span>
         ${t.skipped ? '' : `<span class="commitment-bar"><span class="${barTone}" style="width:${pct}%"></span></span>`}
       </summary>
@@ -747,7 +826,7 @@ async function renderAttention(container, transactions, fts = null) {
   }
 
   el.innerHTML = `
-    <h3>To do</h3>
+    ${sectionHead('To do')}
     <div class="totals-card todo-list">
       ${rows.join('')}
       ${
@@ -1202,10 +1281,3 @@ function renderAccountBreakdown(byAccount, accounts, transactions) {
     .join('');
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
-}
-
-function escapeAttr(str) {
-  return escapeHtml(str);
-}

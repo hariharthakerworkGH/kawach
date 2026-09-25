@@ -3,9 +3,11 @@ import { formatCurrency } from '../format.js';
 import { categoryStyle } from '../category-style.js';
 import { extractMerchantKey } from '../merchant-rules.js';
 import { categorySlices } from '../splits.js';
+import { categoryBars } from '../charts.js';
 import { spendingMonthOf, accountMap } from '../spending-month.js';
 import { cycleAwareEnabled } from '../budgets.js';
 import { redraw } from '../redraw.js';
+import { escapeHtml, emptyState } from '../ui.js';
 
 // A month's spending told as a handful of single-idea cards you step through,
 // instead of a wall of figures. Everything is computed on the device from
@@ -34,7 +36,14 @@ export async function render(container, params = {}) {
 
   const months = [...new Set(spendable.map((t) => t.month))].sort().reverse();
   if (months.length === 0) {
-    container.innerHTML = '<p class="empty">Nothing to recap yet. Import a statement or add a few expenses first.</p>';
+    container.innerHTML = emptyState({
+      what: 'Nothing to look back on yet.',
+      why: 'A month of spending is enough for Kawach to show where the money went and how the month compared.',
+      action: { label: 'Import a statement', go: 'import' },
+    });
+    container.querySelectorAll('[data-go]').forEach((btn) =>
+      btn.addEventListener('click', () => container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: btn.dataset.go } })))
+    );
     return;
   }
 
@@ -52,8 +61,9 @@ export async function render(container, params = {}) {
     <div class="recap-deck" id="recap-deck">${cards[cardIndex]}</div>
     <div class="recap-nav">
       <button type="button" class="btn-tiny" id="recap-prev" ${cardIndex === 0 ? 'disabled' : ''}>Back</button>
-      <div class="recap-dots">
-        ${cards.map((_, i) => `<button type="button" class="recap-dot ${i === cardIndex ? 'active' : ''}" data-i="${i}" aria-label="Card ${i + 1}"></button>`).join('')}
+      <div class="recap-dots" role="group" aria-label="${cards.length} things noticed">
+        ${cards.map((_, i) => `<button type="button" class="recap-dot ${i === cardIndex ? 'active' : ''}" data-i="${i}" aria-label="Insight ${i + 1} of ${cards.length}"></button>`).join('')}
+        <span class="recap-count">${cardIndex + 1}/${cards.length}</span>
       </div>
       <button type="button" class="btn-tiny primary" id="recap-next" ${cardIndex === cards.length - 1 ? 'disabled' : ''}>Next</button>
     </div>
@@ -128,15 +138,15 @@ function buildCards(transactions, categories, month, prevMonth) {
           : `That's ${formatCurrency(Math.abs(diff))} ${diff > 0 ? 'more' : 'less'} than ${against} - ${Math.abs(pct)}% ${diff > 0 ? 'up' : 'down'}.`;
     }
   }
-  cards.push(
-    card(
-      'The damage',
-      formatCurrency(spent),
-      `${debits.length} transactions${isCurrentMonth ? ` so far in ${monthLabel(month)}` : ` across ${monthLabel(month)}`}. ${comparison}`
-    )
-  );
+  const damage = {
+    kicker: 'The damage',
+    value: formatCurrency(spent),
+    line: `${debits.length} transactions${isCurrentMonth ? ` so far in ${monthLabel(month)}` : ` across ${monthLabel(month)}`}. ${comparison}`,
+  };
+  cards.push('');
 
   // 2. Where it went
+  let ranking = '';
   const byCategory = new Map();
   for (const t of debits) {
     for (const slice of categorySlices(t)) {
@@ -148,6 +158,13 @@ function buildCards(transactions, categories, month, prevMonth) {
   if (topCat) {
     const name = topCat[0] === 'uncategorized' ? 'Uncategorized' : categories.find((c) => c.id === topCat[0])?.name || 'Uncategorized';
     const share = spent > 0 ? Math.round((topCat[1] / spent) * 100) : 0;
+    // The figure first, then where the rest of the month went: top five,
+    // longest first (design.md section 9). Never a pie.
+    const ranked = [...byCategory.entries()].map(([id, amount]) => {
+      const catName = id === 'uncategorized' ? 'Uncategorized' : categories.find((c) => c.id === id)?.name || 'Uncategorized';
+      return { name: catName, amount, colour: categoryStyle(catName).color };
+    });
+    ranking = categoryBars({ items: ranked });
     cards.push(
       card(
         'Biggest category',
@@ -218,6 +235,8 @@ function buildCards(transactions, categories, month, prevMonth) {
     )
   );
 
+  // The first card, now that the ranking beneath it is known.
+  cards[0] = card(damage.kicker, damage.value, damage.line, false, ranking);
   return cards;
 }
 
@@ -231,12 +250,13 @@ function coveredDays(rows) {
   return Math.round((last - first) / 86400000) + 1;
 }
 
-function card(kicker, value, line, small = false) {
+function card(kicker, value, line, small = false, extra = '') {
   return `
     <div class="recap-card">
       <p class="recap-kicker">${kicker}</p>
       <p class="recap-stat-value ${small ? 'small' : ''}">${value}</p>
       <p class="recap-line">${line}</p>
+      ${extra}
     </div>
   `;
 }
@@ -251,6 +271,3 @@ function shorten(desc) {
   return clean.length > 42 ? `${clean.slice(0, 42)}…` : clean;
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
-}

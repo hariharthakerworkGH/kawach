@@ -17,6 +17,7 @@ import { enhancePasswords, checkPair, MIN_PASSPHRASE } from '../password-field.j
 import { moneyProfile, addBusiness, renameBusiness, removeBusiness, setBusinessGst, setCurrentSpace } from '../business.js';
 import { notesFor, openNotes } from '../whats-new.js';
 import { backupStatus, backupPassphrase, setBackupPassphrase, markFileBackup, signIn, hasGooglePass, backUpToDrive, listBackups, openDriveBackup } from '../drive.js';
+import { escapeHtml } from '../ui.js';
 
 // Kept while this screen is open, so a redraw doesn't lose them: the Drive
 // backups found for a restore, whether Restore is open, and whether the
@@ -820,6 +821,3 @@ function showStatus(el, message, isError) {
   el.classList.toggle('in', !isError);
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
-}

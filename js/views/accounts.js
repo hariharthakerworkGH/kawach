@@ -12,6 +12,7 @@ import { ensureBusinessCategories, moneyProfile, activeSpace, accountInSpace } f
 import { detectTransfers } from '../transfers.js';
 import { icon } from '../icons.js';
 import { displayName } from './transactions.js';
+import { escapeHtml, escapeAttr, emptyState, hero, moneyTone } from '../ui.js';
 
 // null = form closed, 'new' = adding, otherwise the id being edited
 let editing = null;
@@ -80,6 +81,16 @@ export async function render(container) {
       ${accounts.length > 1 ? `<button type="button" id="accounts-reorder" class="btn-secondary">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
     </div>
     ${editing === 'new' ? accountForm(null, transactions, accounts) : ''}
+    ${accountsTotal(groups, transactions)}
+    ${
+      accounts.length === 0 && editing !== 'new'
+        ? emptyState({
+            what: 'No accounts yet.',
+            why: 'Add the account your salary lands in first: balances, budgets and everything else follow from it.',
+            action: { label: 'Add an account', id: 'empty-add-account' },
+          })
+        : ''
+    }
     ${renderGroup('Cards', groups.card, transactions, importBatches, editingAccount, accounts)}
     ${renderGroup('Cash', groups.cash, transactions, importBatches, editingAccount, accounts)}
     ${renderGroup('Bank', groups.bank, transactions, importBatches, editingAccount, accounts)}
@@ -88,6 +99,8 @@ export async function render(container) {
     ${renderGroup('Provident fund', groups.pf, transactions, importBatches, editingAccount, accounts)}
   `;
 
+  const emptyAdd = container.querySelector('#empty-add-account');
+  if (emptyAdd) emptyAdd.addEventListener('click', () => container.querySelector('#add-account-btn').click());
   container.querySelectorAll('#go-import-btn, .account-go-import').forEach((btn) =>
     btn.addEventListener('click', () => {
       container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'import' } }));
@@ -609,7 +622,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
         ${head}
         ${
           position.outstanding != null
-            ? `<div class="account-headline out">${formatRupees(position.outstanding)}</div>
+            ? `<div class="account-headline ${moneyTone(position.outstanding)}">${formatRupees(position.outstanding)}</div>
                ${paidOff != null ? `<div class="budget-meter" style="margin-top:var(--space-2xs)"><div class="budget-fill" style="width:${Math.max(paidOff, 1)}%"></div></div>` : ''}
                <div class="muted-note loan-status">${status}${account.loan?.inBudget === false ? ' <span class="tag">Not in budget</span>' : ''}</div>`
             : '<p class="muted-note">Add the amount borrowed and the EMI to see what is left.</p>'
@@ -647,7 +660,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
     return `
       <div class="totals-card account-card">
         ${head}
-        ${openable(account, acctTxns, `<span class="account-headline out">${formatRupees(cycleSpend)}</span>
+        ${openable(account, acctTxns, `<span class="account-headline ${moneyTone(cycleSpend)}">${formatRupees(cycleSpend)}</span>
         <span class="muted-note">${
           position
             ? // The cycle opens the day after the last statement, the same
@@ -717,7 +730,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
       ${openable(
         account,
         acctTxns,
-        `<span class="account-headline out">${formatRupees(outAmt)}</span>
+        `<span class="account-headline ${moneyTone(outAmt)}">${formatRupees(outAmt)}</span>
          <span class="muted-note">spent this month${inAmt ? ` · <span class="in">+${formatRupees(inAmt)}</span> in` : ''}</span>`
       )}
     </div>
@@ -990,10 +1003,24 @@ function readLoanFields(form) {
   };
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
-}
-
-function escapeAttr(str) {
-  return escapeHtml(str);
+// The question this screen answers first: where does my money sit? Only
+// balances a statement has proved are counted - Kawach never asks for one to
+// be typed in - and money put away (savings, FDs) is named beside the total
+// rather than folded into it, because it is not money to spend.
+function accountsTotal(groups, transactions) {
+  const known = (list) => (list || []).map((a) => bankBalance(a, transactions)).filter((v) => v != null);
+  const spendable = [...known(groups.bank), ...known(groups.cash)];
+  if (!spendable.length) return '';
+  const total = spendable.reduce((s, v) => s + v, 0);
+  // Savings and the provident fund are yours but not spendable, so they are
+  // named beside the total rather than folded into it - and named whenever
+  // such an account exists, so the figure above is never read as everything.
+  const putAway = [...known(groups.savings), ...known(groups.pf)];
+  return hero({
+    label: 'In your accounts',
+    amount: formatRupees(total),
+    negative: total < 0,
+    figures: putAway.length ? [{ label: 'Put away', value: formatRupees(putAway.reduce((s, v) => s + v, 0)) }] : [],
+    status: '',
+  });
 }

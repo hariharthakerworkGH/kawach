@@ -1,4 +1,5 @@
 import { categoryIcon } from './category-icons.js';
+import { escapeHtml } from './ui.js';
 
 // Every category gets an icon and a colour so a list of spending reads as
 // shapes and colour before you've read a single word. Matching is by name, not
@@ -178,6 +179,3 @@ function fallbackColor(name) {
   return FALLBACK[hash % FALLBACK.length];
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
-}

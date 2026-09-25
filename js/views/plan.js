@@ -12,8 +12,10 @@ import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
 import { COMMON_COSTS } from '../calendar.js';
 import { getGoals, saveGoals, goalProgress, GOAL_IDEAS } from '../goals.js';
+import { committedBar, goalRing } from '../charts.js';
 import { bankBalance } from '../account-metrics.js';
 import { incomeType, incomeWords, businessPlan, isBusinessCategory, businesses, activeSpace, commitmentInSpace, accountInSpace } from '../business.js';
+import { escapeHtml, emptyState, sectionHead, hero } from '../ui.js';
 
 let adding = false;
 let editingId = null;
@@ -109,17 +111,24 @@ export async function render(container) {
     ${
       inBusiness
         ? ''
-        : `<div class="totals-card">
+        : // Plan is a stat-led screen: the budget each month is what it
+          // answers, and the sums behind it sit under it, not above it.
+          hero({
+            label: '<span class="seg-dot seg-free"></span>Budget each month',
+            amount: budget != null ? formatCurrency(budget) : '-',
+            level: budget != null && budget < 0 ? 'over' : 'ok',
+            negative: budget != null && budget < 0,
+            chart: budget != null ? committedBar({ must: mustTotal, flex: flexTotal, free: budget, legend: false }) : '',
+            extra: `
       <div class="totals-row"><span>${incomeLabel}</span><span class="in">${incomeValue != null ? formatCurrency(incomeValue) : '-'}</span></div>
       ${
         sidePlan
           ? `<div class="totals-row"><span>From the business${sideExtra ? `, lowest month (${formatMonthYear(sidePlan.lowestMonth).split(' ')[0]})` : '<br><span class="muted-note">counted after 3 months</span>'}</span><span class="in">${sideExtra ? formatCurrency(sideExtra) : '-'}</span></div>`
           : ''
       }
-      <div class="totals-row"><span>Must go out</span><span class="out">−${formatCurrency(mustTotal)}</span></div>
-      ${flexTotal ? `<div class="totals-row"><span>Can flex</span><span class="out">−${formatCurrency(flexTotal)}</span></div>` : ''}
-      <div class="totals-row"><span>Saved each month</span><span class="out">−${formatCurrency(keep)}</span></div>
-      <div class="totals-row net"><span>Budget each month</span><span>${budget != null ? formatCurrency(budget) : '-'}</span></div>
+      <div class="totals-row"><span><span class="seg-dot seg-must"></span>Must go out</span><span class="out">−${formatCurrency(mustTotal)}</span></div>
+      ${flexTotal ? `<div class="totals-row"><span><span class="seg-dot seg-flex"></span>Can flex</span><span class="out">−${formatCurrency(flexTotal)}</span></div>` : ''}
+      <div class="totals-row"><span>Saved each month</span><span class="saved-row">−${formatCurrency(keep)}</span></div>
       ${cashTotal > 0 ? `<p class="muted-note">${formatCurrency(cashTotal)} paid in cash comes out of your ATM money.</p>` : ''}
       <details class="fts-breakdown" ${income == null || (kind !== 'business' && !salaryDay) ? 'open' : ''}>
         <summary>Change amounts</summary>
@@ -139,14 +148,14 @@ export async function render(container) {
           <span>Save each month</span>
           <input type="number" id="plan-keep" inputmode="decimal" step="1" min="0" placeholder="10000" value="${(keep / 100).toFixed(0)}">
         </label>
-      </details>
-    </div>`
+      </details>`,
+          })
     }
 
-    <div class="section-head">
-      <h3>${inBusiness ? 'Fixed costs' : 'Commitments'}</h3>
-      ${fixed.length > 1 ? `<button type="button" class="icon-btn" id="plan-reorder">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
-    </div>
+    ${sectionHead(
+      inBusiness ? 'Fixed costs' : 'Commitments',
+      fixed.length > 1 ? `<button type="button" class="icon-btn" id="plan-reorder">${reordering ? 'Done' : 'Reorder'}</button>` : ''
+    )}
     ${
       fixed.length
         ? `<div class="totals-card ${reordering ? 'reordering' : ''}">${fixed
@@ -154,7 +163,14 @@ export async function render(container) {
             .join('')}${loanItems.map((l) => loanRow(l, accountName(l.accountId))).join('')}</div>`
         : loanItems.length
           ? `<div class="totals-card">${loanItems.map((l) => loanRow(l, accountName(l.accountId))).join('')}</div>`
-          : `<p class="empty">${inBusiness ? 'Shop rent, staff wages, electricity: what the business pays each month.' : 'EMIs, rent, money home, ATM cash, subscriptions - add what goes out every month.'}</p>`
+          : // The "Add a commitment" button is right underneath, so this says
+            // what and why and leaves the doing to it: one action, never two.
+            emptyState({
+              what: 'Nothing fixed yet.',
+              why: inBusiness
+                ? 'Shop rent, staff wages and electricity come out whatever the month brings.'
+                : 'Without rent, EMIs and bills, your whole income looks free to spend.',
+            })
     }
     ${
       adding
@@ -176,17 +192,18 @@ export async function render(container) {
     ${
       inBusiness
         ? ''
-        : `<h3>Goals</h3>
+        : `${sectionHead('Goals')}
     ${goals
       .map((g) => {
         const p = goalProgress(g, savedIn(g.accountIds), todayIso);
-        return `<div class="totals-card">
-          <div class="attention-row">
-            <span>${escapeHtml(g.name)}<br><span class="muted-note">${formatRupees(p.saved)} of ${formatRupees(g.target)} · by ${formatMonthYear(`${g.by}-01`)}</span></span>
-            <button type="button" class="icon-btn goal-delete" data-id="${g.id}" aria-label="Remove">${icon('close')}</button>
+        return `<div class="totals-card goal-card">
+          ${goalRing({ saved: p.saved, target: g.target, monthly: p.monthly, by: formatMonthYear(`${g.by}-01`) })}
+          <div class="goal-text">
+            <span class="goal-name">${escapeHtml(g.name)}</span>
+            <span class="muted-note">${formatRupees(p.saved)} of ${formatRupees(g.target)} · by ${formatMonthYear(`${g.by}-01`)}</span>
+            <span class="muted-note">${p.done ? 'There already.' : `${formatRupees(p.monthly)} a month gets you there.`}</span>
           </div>
-          <div class="hero-meter"><div class="hero-meter-fill" style="width:${Math.min(100, Math.round((p.saved / g.target) * 100))}%"></div></div>
-          <p class="muted-note">${p.done ? 'There already.' : `${formatRupees(p.monthly)} a month gets you there.`}</p>
+          <button type="button" class="icon-btn goal-delete" data-id="${g.id}" aria-label="Remove">${icon('close')}</button>
         </div>`;
       })
       .join('')}
@@ -219,7 +236,7 @@ export async function render(container) {
         : '<button type="button" id="goal-add-btn" class="btn-secondary btn-block">Add a goal</button>'
     }
 
-    <h3>Category budgets</h3>
+    ${sectionHead('Category budgets')}
     ${budgetRows.length ? budgetRows.map((b) => budgetCard(b)).join('') : '<p class="empty">No budgets set.</p>'}
     ${
       addingBudget
@@ -231,7 +248,7 @@ export async function render(container) {
 
     ${
       detected.length
-        ? `<h3>Looks recurring</h3>
+        ? `${sectionHead('Looks recurring')}
            <div class="totals-card">
              ${detected
                .map(
@@ -697,6 +714,3 @@ function suggestIncome(transactions, categories) {
   return Math.round(credits.reduce((s, t) => s + t.amount, 0) / months);
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
-}

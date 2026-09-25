@@ -150,11 +150,11 @@ export async function rememberGoogleAccount() {
 
 async function call(path, options = {}) {
   const token = currentPass();
-  if (!token) throw Object.assign(new Error('Sign in to Google again.'), { needsSignIn: true });
+  if (!token) throw Object.assign(new Error('The Google sign-in pass lasts an hour and has run out. Nothing was lost - sign in again to carry on.'), { needsSignIn: true });
   const res = await fetch(`${API}${path}`, { ...options, headers: { Authorization: `Bearer ${token}`, ...(options.headers || {}) } });
   if (res.status === 401) {
     dropPass();
-    throw Object.assign(new Error('Sign in to Google again.'), { needsSignIn: true });
+    throw Object.assign(new Error('The Google sign-in pass lasts an hour and has run out. Nothing was lost - sign in again to carry on.'), { needsSignIn: true });
   }
   if (!res.ok) throw new Error(`Google Drive answered ${res.status}. Try again in a moment.`);
   return res;

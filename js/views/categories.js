@@ -10,6 +10,8 @@ import { formatRupees, formatDateNice } from '../format.js';
 import { showToast } from '../toast.js';
 import { displayName } from './transactions.js';
 import { isBusinessCategory, isBusinessAccount, moneyProfile } from '../business.js';
+import { categorySlices } from '../splits.js';
+import { escapeHtml, escapeAttr } from '../ui.js';
 
 // Your categories: rename them, pick their icon, and say which sits under
 // which. Everything happens on this screen rather than in browser prompt
@@ -39,7 +41,9 @@ export function onBack() {
 
 export async function render(container) {
   shownIn = container;
-  const [categories, accounts, profile] = await Promise.all([getAll('categories'), getAll('accounts'), moneyProfile()]);
+  const [categories, accounts, profile, transactions] = await Promise.all([getAll('categories'), getAll('accounts'), moneyProfile(), getAll('transactions')]);
+  monthSpend = spendThisMonth(transactions, accounts, scope);
+  biggestSpend = Math.max(0, ...monthSpend.values());
   setCustomStyles(categories);
   // The Business tab is there for those with a business, and only them.
   const hasBusiness = profile.business;
@@ -297,6 +301,9 @@ async function shrinkPicture(file) {
 }
 function renderCatRow(cat, children, editingCat, topLevel) {
   const { icon: mark, color } = categoryStyle(cat.name);
+  // What this category took this month, as a quiet bar behind the figure:
+  // the list stays the point, the bar only ranks it (design.md section 9).
+  const spent = monthSpend.get(cat.id) || 0;
   return `
     <li class="cat-row">
       <div class="cat-row-main">
@@ -306,6 +313,11 @@ function renderCatRow(cat, children, editingCat, topLevel) {
           <button type="button" class="icon-btn cat-delete" data-id="${cat.id}">Delete</button>
         </span>
       </div>
+      ${
+        spent > 0
+          ? `<div class="cat-share"><span class="cat-share-track"><i style="width:${Math.max(3, Math.round((spent / (biggestSpend || 1)) * 100))}%;background:${color}"></i></span><span class="cat-share-value">${formatRupees(spent)}</span></div>`
+          : ''
+      }
       ${
         children.length
           ? `<ul class="cat-children">${children
@@ -455,10 +467,24 @@ function wireReview(container) {
   }
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
-}
+// This month's spending per category, for the bars on the list. A business
+// category is only ever fed by business accounts, and a home one by the
+// house's, so the two lanes never mix.
+let monthSpend = new Map();
+let biggestSpend = 0;
 
-function escapeAttr(str) {
-  return escapeHtml(str);
+function spendThisMonth(transactions, accounts, lane) {
+  const business = new Set(accounts.filter(isBusinessAccount).map((a) => a.id));
+  const month = new Date();
+  const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
+  const totals = new Map();
+  for (const t of transactions) {
+    if (t.direction !== 'debit' || t.isTransfer || t.date.slice(0, 7) !== key) continue;
+    if (business.has(t.accountId) !== (lane === 'business')) continue;
+    for (const slice of categorySlices(t)) {
+      if (!slice.categoryId) continue;
+      totals.set(slice.categoryId, (totals.get(slice.categoryId) || 0) + slice.amount);
+    }
+  }
+  return totals;
 }

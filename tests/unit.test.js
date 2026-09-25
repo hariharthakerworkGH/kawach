@@ -20,6 +20,9 @@ import { displayName } from '../js/views/transactions.js';
 import { assignStyles } from '../js/category-style.js';
 import { searchWords, findCandidates } from '../js/category-match.js';
 import { acceptSignIn, hasGooglePass } from '../js/drive.js';
+import { businessRunway } from '../js/business.js';
+import { burnLine, inOutBars, categoryBars, runwayBar } from '../js/charts.js';
+import { shapeLike, moneyTone } from '../js/ui.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -872,4 +875,72 @@ test("a loan's own payment history never moves the balance its statement states"
   const after = [...history, txn({ accountId: 'loan1', date: '2026-09-05', amount: 23000, direction: 'credit', isTransfer: true })];
   const moved = loanPosition(account, after, '2026-09-24').outstanding;
   ok(moved < rupees(3100000) && moved > rupees(3050000), `one EMI off the balance, got ${moved}`);
+});
+
+test("a shop's runway is what it holds against a usual month, never the quiet ones", () => {
+  const accounts = [
+    { id: 'cur', type: 'bank', business: true, space: 'b1', knownBalance: 0, knownBalanceDate: '2026-06-01' },
+    { id: 'home', type: 'bank', space: 'home', knownBalance: 0, knownBalanceDate: '2026-06-01' },
+  ];
+  const rows = [
+    txn({ accountId: 'cur', date: '2026-06-02', amount: 500000, direction: 'credit' }),
+    // Three months of costs: 80,000, 80,000 and 80,000.
+    ...['2026-06-10', '2026-07-10', '2026-08-10'].map((date) => txn({ accountId: 'cur', date, amount: 80000, direction: 'debit' })),
+    // Money moved home is not a cost of running the shop.
+    txn({ accountId: 'cur', date: '2026-08-20', amount: 100000, direction: 'debit', isTransfer: true }),
+    // The house's own spending never counts towards the shop.
+    txn({ accountId: 'home', date: '2026-07-11', amount: 300000, direction: 'debit' }),
+  ];
+  const r = businessRunway(rows, accounts, 'b1', '2026-09-24');
+  paise(r.needPerMonth, rupees(80000));
+  // 500,000 in, 240,000 of costs and 100,000 sent home leaves 160,000: two months.
+  paise(r.have, rupees(160000));
+  equal(Math.round(r.covered * 10) / 10, 2, `two months covered, got ${r.covered}`);
+  // One month of history is not a trend.
+  const thin = businessRunway(rows.filter((t) => t.date < '2026-07-01'), accounts, 'b1', '2026-09-24');
+  equal(thin, null, 'no runway from a single month');
+  // No statement, so no balance is known, so nothing is claimed about it.
+  const noBalance = businessRunway(rows, [{ id: 'cur', type: 'bank', business: true, space: 'b1' }], 'b1', '2026-09-24');
+  equal(noBalance, null, 'no runway without a balance from a statement');
+});
+
+test('a drawing refuses thin data rather than saying nothing with a picture', () => {
+  // Fewer than three days, nothing spent, or a budget of nothing: no drawing.
+  equal(burnLine({ totals: [rupees(100), rupees(200)], budget: rupees(27000), days: 30 }), '');
+  equal(burnLine({ totals: [0, 0, 0, 0], budget: rupees(27000), days: 30 }), '');
+  equal(burnLine({ totals: [rupees(100), rupees(200), rupees(300)], budget: 0, days: 30 }), '');
+  ok(burnLine({ totals: [rupees(100), rupees(200), rupees(300)], budget: rupees(27000), days: 30 }).includes('<svg'), 'three days and real spending is drawn');
+  // Two months is not a trend either.
+  equal(inOutBars({ months: [{ label: 'Aug', in: rupees(1000), out: rupees(900) }, { label: 'Sep', in: rupees(1000), out: rupees(900) }] }), '');
+  equal(categoryBars({ items: [] }), '');
+  equal(runwayBar({ covered: 0, needPerMonth: 0, have: 0 }), '');
+});
+
+test('the burn line says which side of an even pace you are on, in rupees', () => {
+  // Ten days into a thirty-day month: an even pace would be a third of 27,000.
+  const ten = Array.from({ length: 10 }, (_, i) => rupees(1040) * (i + 1));
+  const drawn = burnLine({ totals: ten, budget: rupees(27000), days: 30 });
+  // An even pace by day ten of thirty is 9,000; 10,400 spent is 1,400 past it.
+  ok(drawn.includes('₹1,400 over'), `expected 1,400 over, got: ${drawn.slice(drawn.indexOf('chart-note'), drawn.indexOf('chart-note') + 90)}`);
+  // Spending slower than the month allows reads the other way.
+  const slow = Array.from({ length: 10 }, (_, i) => rupees(500) * (i + 1));
+  ok(burnLine({ totals: slow, budget: rupees(27000), days: 30 }).includes('₹4,000 under'), 'a slow month says under');
+});
+
+test('a hero figure keeps its rupee sign, its minus and its grouping while it counts', () => {
+  // Part way through the count, the shape of the final figure is kept.
+  equal(shapeLike('₹16,600', 9200), '₹9,200');
+  equal(shapeLike('₹1,50,000', 75000), '₹75,000');
+  // Indian grouping, not thousands: 2,15,000 and never 215,000.
+  equal(shapeLike('−₹2,15,000', 215000), '−₹2,15,000');
+  equal(shapeLike('−₹2,15,000', 100000), '−₹1,00,000');
+  // The start of the count is still a figure, not an empty box.
+  equal(shapeLike('₹16,600', 0), '₹0');
+});
+
+test('a nought is neither money in nor money out', () => {
+  // A loan paid off, a card not used yet, a month with nothing spent.
+  equal(moneyTone(0), '');
+  equal(moneyTone(rupees(23000)), 'out');
+  equal(moneyTone(-rupees(500)), 'in');
 });
