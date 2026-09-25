@@ -324,14 +324,25 @@ code {
      and Coach now read as the same product. */
   position: relative;
   overflow: hidden;
-  background: color-mix(in oklch, var(--surface) 82%, transparent);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-  border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--glass-edge);
   border-radius: var(--radius-xl);
   padding: var(--space-lg) var(--space-md) var(--space-md);
   margin: var(--space-2xs) 0 var(--space-md);
-  box-shadow: inset 0 1px 0 0 var(--edge-lum), var(--shadow);
+  box-shadow: inset 0 1px 0 0 var(--edge-lum), var(--shadow), var(--glow-blue);
+}
+
+/* The sheen: the pane is lit from above like everything else in the room.
+   It sits under the content and over the fill, and it is the difference
+   between a piece of glass and a grey rectangle. */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--glass-sheen);
+  pointer-events: none;
 }
 
 
@@ -4589,14 +4600,6 @@ summary {
   fill: var(--text-dim);
 }
 
-.bar-in {
-  fill: var(--in);
-}
-
-.bar-out {
-  fill: var(--out);
-}
-
 /* ---------- One control family ----------
    PART H. Five geometries had grown up: a filled pill, an outlined pill, a
    chip, a segmented button and Add's half-width pair. They keep their
@@ -4667,35 +4670,163 @@ select.chip {
   min-height: var(--control-md);
 }
 
+
+/* ---------- The rest of the room ----------
+
+   Everything below follows from the three things above it: the room is lit,
+   a surface is a pane, and light marks what leads. These are the places
+   where a screen still had its own idea about one of them. */
+
+/* A button is a pane too. The outlined one was a rectangle of border on
+   black; it is glass now, like everything else you can put a finger on. */
+.btn-secondary,
+.hist-search,
+.field input,
+.field select,
+.field textarea {
+  background-color: var(--glass-hi);
+  background-image: var(--glass-sheen);
+  border-color: var(--glass-edge);
+}
+
+/* The main action keeps its filled cyan and gains the light that goes with
+   being the one thing on the screen you are meant to press. */
+.btn-primary {
+  box-shadow: inset 0 1px 0 0 oklch(100% 0 0 / 0.22), var(--glow-cyan);
+}
+
+/* PART 18. A category's colour belongs on its icon, not in a filled tile
+   behind it. The tile was a saturated block at every size, which is a lot of
+   colour for a thing whose job is to be recognised at a glance in a list. */
+.cat-chip {
+  background: color-mix(in srgb, var(--chip-color, var(--accent)) 11%, transparent);
+  border-color: color-mix(in srgb, var(--chip-color, var(--accent)) 26%, transparent);
+}
+
+/* PART 12. A payment is content on the surface. The day is the group, the
+   hairline is the only line, and nothing is boxed. */
+.hist-row + .hist-row {
+  border-top-color: var(--glass-edge);
+}
+
+/* PART 14. Plan's commitments are one composed list rather than a column of
+   separate objects: they already share a pane, so the rows inside it only
+   need the hairline between them. */
+.commitment-list > * + *,
+.attention-row + .attention-row {
+  border-top-color: var(--glass-edge);
+}
+
+/* A raised strip inside a pane (a meter track, a bar's ground) is part of
+   the pane, so it is a tint of it rather than a second opaque surface. */
+.hero-meter,
+.budget-meter,
+.committed-bar,
+.cat-bar-track,
+.cat-share-track,
+.runway-bar {
+  background: color-mix(in oklch, var(--surface-hi) 55%, transparent);
+}
+
+/* The filled part of any bar is lit, the same way a chart line is. One rule
+   for every meter in the app. */
+.hero-meter-fill,
+.budget-fill,
+.committed-must,
+.cat-bar-track > i,
+.cat-share-track > i,
+.runway-part {
+  box-shadow: 0 0 8px color-mix(in oklch, var(--accent) 30%, transparent);
+}
+
+.committed-flex {
+  box-shadow: 0 0 8px color-mix(in oklch, var(--violet) 30%, transparent);
+}
+
+.committed-free {
+  box-shadow: 0 0 8px color-mix(in oklch, var(--emerald) 30%, transparent);
+}
+
+/* The bar at the bottom is the one piece of glass that sits over moving
+   content, so it is the one place the blur is worth its cost. */
+.bottom-nav {
+  background: color-mix(in oklch, var(--bg-elevated) 78%, transparent);
+  border-top-color: var(--glass-edge);
+}
+
+/* The header sits on the room rather than covering it, so it fades the
+   content out beneath itself instead of drawing a line under it. */
+.app-header {
+  background: linear-gradient(
+    180deg,
+    var(--bg) 0%,
+    var(--bg) 62%,
+    color-mix(in oklch, var(--bg) 0%, transparent) 100%
+  );
+}
+
+/* ---------- Light on the few things that lead ----------
+   The figure throws light rather than sitting in a lit box: it is the thing
+   being pointed at, so the light comes off the digits. Over budget the light
+   turns with the figure, because a warning that glows cyan is a warning
+   nobody reads. */
+.hero-amount {
+  text-shadow: var(--glow-text);
+}
+
+.hero-amount.negative,
+.hero.level-over .hero-amount {
+  text-shadow: 0 0 30px color-mix(in oklch, var(--out) 20%, transparent);
+}
+
+/* Where you are, and what you have chosen. Two places, and they are the two
+   places a glow earns its keep. */
+.nav-btn.active .nav-icon {
+  filter: drop-shadow(0 0 10px color-mix(in oklch, var(--accent) 45%, transparent));
+}
+
+.chip.active,
+.chip.selected,
+.plan-chip.active,
+.plan-chip.selected,
+.cat-chip.selected,
+.dir-btn.active,
+.seg-btn.active {
+  box-shadow: inset 0 0 0 1px var(--accent-line), var(--glow-blue);
+}
+
 /* ---------- One family of lines ----------
    Every drawing in Kawach is made of the same four strokes, set here rather
    than in the markup so they cannot drift apart: the line that carries the
    answer, the quieter line it is measured against, a hairline for a
    baseline, and a ring. Cyan is information. Red is kept for money that has
    actually gone, so a chart never reaches for it to look lively. */
+/* A line that carries an answer is lit, the way a line on a dark screen is
+   lit when it matters: thin, and throwing a little of its own colour into
+   the surface around it. The glow is on the stroke, not on a box behind it,
+   so the drawing stays part of the pane it sits in. */
 .chart-line {
   fill: none;
   stroke: var(--accent);
   stroke-width: var(--chart-line);
   vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 5px color-mix(in oklch, var(--accent) 55%, transparent));
 }
 
+/* The thing it is measured against is not lit. That is the whole point of
+   it: one line glows, the other is a reference. */
 .chart-pace {
   fill: none;
   stroke: var(--text-dim);
   stroke-width: var(--chart-pace);
   vector-effect: non-scaling-stroke;
+  opacity: 0.75;
 }
 
-.chart-axis {
-  stroke: var(--border);
-  stroke-width: var(--chart-hair);
-  vector-effect: non-scaling-stroke;
-}
 
 .chart-ring-track {
   fill: none;
-  stroke: var(--surface-hi);
+  stroke: color-mix(in oklch, var(--surface-hi) 70%, transparent);
   stroke-width: var(--chart-ring);
 }
 
@@ -4703,6 +4834,40 @@ select.chip {
   fill: none;
   stroke: var(--accent);
   stroke-width: var(--chart-ring);
+  filter: drop-shadow(0 0 6px color-mix(in oklch, var(--accent) 45%, transparent));
+}
+
+/* Bars are light standing up. Money in and money out keep their meanings,
+   softened to the strength the rest of the app uses for a filled bar, each
+   standing in a track so the empty part of a month is still legible. */
+.bar-track {
+  fill: color-mix(in oklch, var(--surface-hi) 45%, transparent);
+}
+
+.bar-in {
+  fill: color-mix(in oklch, var(--in) 72%, transparent);
+  filter: drop-shadow(0 0 5px color-mix(in oklch, var(--in) 40%, transparent));
+}
+
+.bar-out {
+  fill: color-mix(in oklch, var(--out) 68%, transparent);
+  filter: drop-shadow(0 0 5px color-mix(in oklch, var(--out) 36%, transparent));
+}
+
+/* Today, on the line. A lit point and the halo around it: the one marker
+   in the app, and it marks the one moment that matters. */
+.chart-dot {
+  fill: var(--accent);
+  filter: drop-shadow(0 0 6px color-mix(in oklch, var(--accent) 70%, transparent));
+}
+
+.chart-dot-halo {
+  fill: color-mix(in oklch, var(--accent) 22%, transparent);
+}
+
+/* A drawing that is part of its pane, not a widget pasted onto it. */
+.hero .chart {
+  overflow: visible;
 }
 
 /* A drawing explains the figure above it, so it gets room on both sides and
@@ -4740,14 +4905,19 @@ select.chip {
 .breakdown-list,
 .cat-list,
 .import-row-list,
-.hist-day-card,
 .empty-state {
-  background: var(--surface);
-  /* A surface a tone above the paper, one pixel of light on its top edge and
-     a soft shadow are three ways of saying "this is a group". A full outline
-     is a fourth, and with all four a screen reads as a stack of boxes. The
-     line stays, faint enough to be felt rather than seen. */
-  border: 1px solid color-mix(in oklch, var(--border) 38%, transparent);
+  position: relative;
+  /* A pane, not a grey rectangle: a fill the room shows through, a sheen
+     across the top because the light comes from up there, an edge that
+     catches it, and a soft shadow underneath. The outline is almost gone -
+     with a lit edge and a shadow already saying "this is a group", a fourth
+     way of saying it is what turned every screen into a stack of boxes.
+     These do not blur what is behind them. A dozen blurred panes in a
+     scrolling list costs frames on the phones this app is for, and the
+     translucent fill alone carries the light through. */
+  background-color: var(--glass);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-edge);
   border-radius: var(--radius-lg);
   box-shadow: inset 0 1px 0 0 var(--edge-lum), var(--shadow-card);
 }
@@ -4903,14 +5073,21 @@ select.chip {
 /* One light source, at the top of the app, behind everything. It is what
    makes a dark screen read as a lit room rather than a black rectangle -
    and it is the only ambient light in the app. */
+/* Four lights in one room, fixed to the viewport so they stay put while the
+   page moves past them: cyan high on the left, violet high on the right,
+   a deeper blue through the middle, and a warm field low and to the right.
+   Each is enormous and weak, which is what makes it read as a lit room
+   rather than as a picture painted behind the app. Measured against the
+   darkest text on the app: every one of them lands under two per cent of
+   the way to the foreground, so nothing here can be read as a shape. */
 body::before {
   content: "";
   position: fixed;
   inset: -10% -20% auto -20%;
-  height: 46vh;
+  height: 52vh;
   background:
-    radial-gradient(58% 66% at 16% 0%, color-mix(in oklch, var(--accent) 24%, transparent), transparent 70%),
-    radial-gradient(50% 62% at 94% 4%, color-mix(in oklch, var(--violet) 19%, transparent), transparent 72%);
+    radial-gradient(66% 72% at 12% 0%, color-mix(in oklch, var(--accent) 10%, transparent), transparent 72%),
+    radial-gradient(58% 68% at 98% 2%, color-mix(in oklch, var(--violet) 9%, transparent), transparent 74%);
   pointer-events: none;
   z-index: 0;
 }
@@ -4929,8 +5106,9 @@ body::after {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(70% 55% at -10% 38%, color-mix(in oklch, var(--accent) 7%, transparent), transparent 72%),
-    radial-gradient(64% 50% at 110% 72%, color-mix(in oklch, var(--violet) 6%, transparent), transparent 70%);
+    radial-gradient(82% 46% at -18% 30%, color-mix(in oklch, var(--accent) 8%, transparent), transparent 74%),
+    radial-gradient(74% 42% at 120% 58%, color-mix(in oklch, var(--violet) 8%, transparent), transparent 72%),
+    radial-gradient(78% 40% at 112% 100%, color-mix(in oklch, var(--amb-warm) 5%, transparent), transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
