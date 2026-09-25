@@ -8,6 +8,7 @@ import { commitmentField, cardPaymentField } from './add.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
 import { looksLikeCardPayment } from '../transfers.js';
 import { redraw } from '../redraw.js';
+import { escapeHtml, escapeAttr, sectionHead } from '../ui.js';
 
 // Bank alerts you've shared or pasted, each shown as a draft to check and
 // save. Nothing here counts towards any total until you tap Save.
@@ -84,7 +85,7 @@ export async function render(container) {
         : `<p class="import-intro">No alerts waiting. Nothing counts until you tap Save.</p>`
     }
 
-    <h3>Paste an alert</h3>
+    ${sectionHead('Paste an alert')}
     <div class="totals-card">
       <button type="button" class="btn-secondary btn-block" id="inbox-paste">Paste from clipboard</button>
       <label class="field" style="margin-top:var(--space-sm)">
@@ -395,10 +396,3 @@ function billPaymentLike(parsed) {
   return Boolean(parsed.billPayment) || looksLikeCardPayment({ direction: 'debit', rawDescription: `${parsed.description || ''} ${parsed.party || ''}` }, 'bank');
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
-}
-
-function escapeAttr(str) {
-  return escapeHtml(str);
-}

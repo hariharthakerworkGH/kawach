@@ -4,6 +4,7 @@ import { isoLocal } from '../frequency.js';
 import { categoryStyle } from '../category-style.js';
 import { financialSnapshot, affordability, savingsPlan, whereToCut, observations } from '../planner.js';
 import { redraw } from '../redraw.js';
+import { escapeHtml, hero, sectionHead, emptyState } from '../ui.js';
 
 // The planning screen: you pick a question, it answers with your own numbers.
 //
@@ -26,7 +27,7 @@ export async function render(container) {
   container.innerHTML = `
     ${heroTemplate(snapshot)}
 
-    <h3>Ask about your money</h3>
+    ${sectionHead('Ask about your money')}
     <div class="coach-questions">
       ${questionBtn('afford', icon('wallet'), 'Can I afford this?')}
       ${questionBtn('goal', icon('flag'), 'Help me save for something')}
@@ -36,12 +37,26 @@ export async function render(container) {
 
     ${
       notes.length
-        ? `<h3>Noticed</h3>
-           ${notes.map((n) => noteTemplate(n)).join('')}`
+        ? `${sectionHead('Noticed')}
+           ${noteTemplate(notes[0])}
+           ${
+             notes.length > 1
+               ? `<details class="section-fold"><summary>More noticed <span class="muted">${notes.length - 1}</span></summary>${notes
+                   .slice(1)
+                   .map((n) => noteTemplate(n))
+                   .join('')}</details>`
+               : ''
+           }`
         : ''
     }
 
   `;
+
+  container.querySelectorAll('[data-go]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: btn.dataset.go } }));
+    });
+  });
 
   container.querySelectorAll('.coach-q').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -59,12 +74,11 @@ export async function render(container) {
 function heroTemplate(snapshot) {
   const c = snapshot.cycle;
   if (c.free == null || !c.salary.setUp) {
-    return `
-      <div class="hero">
-        <p class="hero-label">Left to spend</p>
-        <p class="hero-amount">-</p>
-        <p class="hero-sub">Add your income and commitments on Plan first.</p>
-      </div>`;
+    return emptyState({
+      what: 'Nothing to work from yet.',
+      why: 'With your income and what goes out each month, Kawach can tell you whether this month fits.',
+      action: { label: 'Set it up on Plan', go: 'plan' },
+    });
   }
 
   const pace = c.pace;
@@ -72,20 +86,18 @@ function heroTemplate(snapshot) {
   const leftAtEnd = c.free - projected;
   const over = leftAtEnd < 0;
   const pct = c.free > 0 ? Math.min(100, Math.round((projected / c.free) * 100)) : 100;
-  return `
-    <div class="hero level-${over ? 'over' : 'ok'}">
-      <div class="hero-top">
-        <span class="hero-label">Left at this pace</span>
-        <span class="hero-label">by ${formatDateNice(c.cycleClose || c.windowEnd)}</span>
-      </div>
-      <p class="hero-amount ${over ? 'negative' : ''}">${pace === 0 ? '-' : formatRupees(leftAtEnd)}</p>
-      <div class="hero-meter"><div class="hero-meter-fill ${over ? 'over' : ''}" style="width:${pct}%"></div></div>
-      <div class="hero-figures">
-        <span><span class="muted">Pace</span> ${formatRupees(pace)}/day</span>
-        <span><span class="muted">Safe</span> ${formatRupees(Math.max(0, c.perDay))}/day</span>
-      </div>
-    </div>
-  `;
+  return hero({
+    label: 'Left at this pace',
+    period: `by ${formatDateNice(c.cycleClose || c.windowEnd)}`,
+    amount: pace === 0 ? '-' : formatRupees(leftAtEnd),
+    negative: over,
+    level: over ? 'over' : 'ok',
+    meter: { pct, tone: over ? 'over' : '' },
+    figures: [
+      { label: 'Pace', value: `${formatRupees(pace)}/day` },
+      { label: 'Safe', value: `${formatRupees(Math.max(0, c.perDay))}/day` },
+    ],
+  });
 }
 
 function questionBtn(id, icon, label) {
@@ -329,6 +341,3 @@ function noteTemplate(n) {
   `;
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
-}

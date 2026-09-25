@@ -12,6 +12,46 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '3.2',
+    items: [
+      {
+        icon: 'summary',
+        title: 'A new look, all through',
+        text: 'One big figure answers the screen, and everything else waits behind a tap.',
+      },
+      {
+        icon: 'summary',
+        title: 'Summary draws how the month has gone',
+        text: 'The solid line is your spending day by day; the dotted one is an even pace.',
+        guide: [{ view: 'summary', target: '.hero .chart-block', text: 'Above the dotted line means you are ahead of an even pace for today.' }],
+      },
+      {
+        icon: 'plan',
+        title: 'Your month as one bar',
+        text: 'What must go out, what can flex, and what is left, in the colours the rows use.',
+        guide: [{ view: 'plan', target: '.committed-bar', text: 'Blue must go out, purple can flex, green is your budget.' }],
+      },
+      {
+        icon: 'history',
+        title: 'Six months, in against out',
+        text: 'History opens with the last six months, so a heavy one stands out.',
+        guide: [{ view: 'transactions', target: '.chart-block', text: 'Money in and money out, month by month.' }],
+      },
+      {
+        icon: 'flag',
+        title: 'Month in review ranks where it went',
+        text: 'The biggest fact first, with the categories underneath it in order.',
+      },
+      {
+        icon: 'store',
+        title: 'How long the money lasts',
+        text: 'For a business, Summary shows what the accounts hold against a usual month.',
+        for: (p) => p.business,
+        guide: [{ view: 'summary', target: '.runway-bar', text: 'What is in the business accounts, measured in months of its own spending.' }],
+      },
+    ],
+  },
+  {
     version: '3.1',
     items: [
       {

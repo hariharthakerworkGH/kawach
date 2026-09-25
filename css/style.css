@@ -143,7 +143,7 @@ button:active {
 }
 
 .setup-help summary {
-  color: var(--accent);
+  color: var(--text-muted);
   font-size: 0.86rem;
   font-weight: 600;
   cursor: pointer;
@@ -228,8 +228,8 @@ code {
   color: var(--text-muted);
   font-size: 1rem;
   line-height: 1;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-pill);
   flex-shrink: 0;
 }
@@ -313,28 +313,32 @@ code {
 
 .hero {
   background: var(--surface);
-  border: 1px solid var(--border-hi);
+  border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: var(--space-lg);
+  padding: var(--space-lg) var(--space-md) var(--space-md);
   margin: var(--space-2xs) 0 var(--space-md);
-  box-shadow: var(--shadow);
+  /* The card sits, catches a little light along its top edge, and casts a
+     soft shadow. Three things, no glow. */
+  box-shadow: inset 0 1px 0 0 var(--edge), var(--shadow);
 }
 
 /* Labels are quiet sentence-case text, not tracked capitals: an uppercase
    label above every section is the most recognisable generated-UI tell. */
 .hero-label {
-  font-size: 0.86rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.005em;
   color: var(--text-muted);
-  margin: 0 0 var(--space-2xs);
+  margin: 0 0 var(--space-3xs);
 }
 
 .hero-amount {
   font-size: 2.65rem;
   font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
-  margin: 0;
+  letter-spacing: -0.042em;
+  line-height: 1;
+  /* The figure is the object on this card: nothing sits tight against it. */
+  margin: var(--space-3xs) 0 var(--space-2xs);
   overflow-wrap: anywhere;
 }
 
@@ -349,11 +353,11 @@ code {
 }
 
 .hero-meter {
-  height: 10px;
+  height: 8px;
   border-radius: var(--radius-pill);
   background: var(--surface-hi);
   overflow: hidden;
-  margin: var(--space-sm) 0 var(--space-xs);
+  margin: var(--space-sm) 0 var(--space-sm);
   display: flex;
 }
 
@@ -401,14 +405,26 @@ input[type="number"],
 input[type="date"],
 input[type="password"],
 input[type="file"],
-select {
+input[type="search"],
+select,
+textarea {
   font-size: 1rem;
   padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--border-hi);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
   color: var(--text);
   font-family: inherit;
+  /* Inset, so a field reads as a place to put something into rather than
+     another card sitting on the screen. */
+  box-shadow: inset 0 1px 2px oklch(0% 0 0 / 0.12);
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-color: var(--accent);
 }
 
 /* A passphrase box with its show button (js/password-field.js). */
@@ -593,6 +609,13 @@ input:disabled, select:disabled, textarea:disabled {
   font-family: inherit;
   letter-spacing: -0.01em;
   white-space: nowrap;
+  /* A highlight along the top edge and a shadow under it: the button reads
+     as a raised thing rather than a coloured rectangle. */
+  box-shadow: inset 0 1px 0 0 oklch(100% 0 0 / 0.22), 0 1px 2px oklch(0% 0 0 / 0.3), 0 6px 18px oklch(0% 0 0 / 0.16);
+}
+
+.btn-primary:active {
+  box-shadow: inset 0 1px 0 0 oklch(100% 0 0 / 0.12), 0 1px 1px oklch(0% 0 0 / 0.3);
 }
 
 .btn-secondary {
@@ -603,9 +626,18 @@ input:disabled, select:disabled, textarea:disabled {
   background: var(--surface);
   color: var(--text);
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 650;
   font-family: inherit;
   white-space: nowrap;
+  box-shadow: inset 0 1px 0 0 var(--edge);
+}
+
+.btn-secondary:active,
+.btn-tiny:active,
+.chip:active,
+.hist-chip:active,
+.plan-chip:active {
+  background: var(--surface-press);
 }
 
 @media (hover: hover) {
@@ -745,12 +777,21 @@ input:disabled, select:disabled, textarea:disabled {
   font-weight: 600;
 }
 
+/* The whole line is the label, so the tick box itself need not be big - but
+   the line it sits on is as tall as a fingertip. */
 .checkbox-row {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
   margin-top: var(--space-xs);
+  min-height: 44px;
   font-size: 0.88rem;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .checkbox-row input {
@@ -768,6 +809,7 @@ input:disabled, select:disabled, textarea:disabled {
   border-radius: var(--radius-lg);
   padding: var(--space-sm) var(--space-md);
   margin-bottom: var(--space-md);
+  box-shadow: inset 0 1px 0 0 var(--edge), var(--shadow-card);
 }
 
 .totals-row {
@@ -775,8 +817,9 @@ input:disabled, select:disabled, textarea:disabled {
   justify-content: space-between;
   align-items: baseline;
   gap: var(--space-xs);
-  padding: var(--space-2xs) 0;
+  padding: var(--space-xs) 0;
   font-size: 0.92rem;
+  line-height: 1.45;
 }
 
 /* The payments making up the line above: indented, quiet, not a line of the
@@ -1042,6 +1085,7 @@ h3 {
   border-radius: var(--radius-lg);
   padding: var(--space-sm) var(--space-md);
   margin-bottom: var(--space-sm);
+  box-shadow: inset 0 1px 0 0 var(--edge), var(--shadow-card);
 }
 
 .account-card-head {
@@ -1098,11 +1142,21 @@ h3 {
   line-height: 1.55;
 }
 
+/* The check table is a row group, not a stack of cards: the list is the card,
+   its rows divided by hairlines (design.md section 6). Denser, so more of the
+   statement is on screen at once, and the workflow is untouched. */
 .import-row-list {
   margin: var(--space-sm) 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.import-row-list:empty {
+  display: none;
 }
 
 /* Choose, Check, Done: where you are, always visible at the top. */
@@ -1197,7 +1251,7 @@ h3 {
 .import-all > summary,
 .import-more > summary {
   cursor: pointer;
-  color: var(--accent);
+  color: var(--text-muted);
   font-weight: 600;
   font-size: 0.92rem;
   padding: var(--space-xs) 0 var(--space-3xs);
@@ -1253,16 +1307,20 @@ h3 {
 }
 
 .import-row {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: var(--space-xs);
+  padding: var(--space-2xs) var(--space-sm);
+  border-top: 1px solid var(--border);
   position: relative;
 }
 
+.import-row-list > .import-row:first-child {
+  border-top: 0;
+}
+
+/* A row the app matched to a commitment: tinted, and marked by a left edge
+   now that the rows no longer have borders of their own. */
 .import-row-matched {
-  border-color: var(--accent-line);
   background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent-line);
 }
 
 .import-row-duplicate {
@@ -1279,15 +1337,26 @@ h3 {
 
 .import-row-top {
   display: flex;
-  gap: var(--space-2xs);
+  gap: var(--space-3xs);
   align-items: center;
-  margin-bottom: var(--space-2xs);
+  margin-bottom: var(--space-3xs);
 }
 
 .import-row-top .ir-date {
-  flex: 0 0 128px;
+  flex: 0 0 116px;
   font-size: 0.8rem;
-  padding: var(--space-2xs);
+  padding: var(--space-3xs) var(--space-2xs);
+}
+
+/* The check table is the one screen where forty rows have to be read in a
+   sitting, so its fields are sized for scanning rather than for typing into
+   comfortably: the full-size field treatment belongs on a form, not on a
+   list you are checking. */
+.import-row .ir-field {
+  font-size: 0.86rem;
+  padding: var(--space-3xs) var(--space-2xs);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
 }
 
 .import-row-top .ir-desc {
@@ -1299,7 +1368,7 @@ h3 {
 
 .import-row-bottom {
   display: flex;
-  gap: var(--space-2xs);
+  gap: var(--space-3xs);
   align-items: center;
   flex-wrap: wrap;
 }
@@ -1319,10 +1388,6 @@ h3 {
 
 /* ---------- Transactions ---------- */
 
-
-
-
-
 .txn-summary-row {
   display: flex;
   justify-content: space-between;
@@ -1333,10 +1398,6 @@ h3 {
   color: var(--text-muted);
   font-weight: 600;
 }
-
-
-
-
 
 .txn-check {
   width: 20px;
@@ -1359,8 +1420,6 @@ h3 {
   font-family: inherit;
   color: var(--text);
 }
-
-
 
 .txn-amount {
   font-weight: 800;
@@ -1546,14 +1605,21 @@ h3 {
 
 .recap-card {
   background: var(--surface);
-  border: 1px solid var(--border-hi);
+  border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: var(--space-lg) var(--space-lg);
-  min-height: 320px;
+  padding: var(--space-lg) var(--space-md);
+  /* Tall enough that the strongest insight owns the screen rather than
+     floating in it: the deck is the content, not a widget on a page. */
+  min-height: min(56vh, 420px);
   display: flex;
   flex-direction: column;
   justify-content: center;
+  box-shadow: inset 0 1px 0 0 var(--edge), var(--shadow);
   animation: recap-in var(--dur-slow) var(--ease-out);
+}
+
+.recap-card .cat-bars {
+  margin-top: var(--space-sm);
 }
 
 @keyframes recap-in {
@@ -1568,10 +1634,11 @@ h3 {
 }
 
 .recap-kicker {
-  font-size: 0.9rem;
-  font-weight: 650;
-  color: var(--accent);
-  margin: 0 0 var(--space-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-2xs);
 }
 
 .recap-stat-value {
@@ -1610,10 +1677,12 @@ h3 {
 .recap-dot {
   width: 7px;
   height: 7px;
+  box-sizing: content-box;
   border-radius: var(--radius-pill);
   background: var(--surface-hi);
+  background-clip: content-box;
   border: none;
-  padding: 0;
+  padding: 0 var(--space-3xs);
 }
 
 .recap-dot.active {
@@ -1621,6 +1690,21 @@ h3 {
   width: 20px;
 }
 
+/* A row of dots says "there is more" only if you already knew that, so the
+   count says it in words as well. */
+.recap-count {
+  margin-left: var(--space-2xs);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.recap-dots {
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+}
 
 .fixed-row-right {
   display: flex;
@@ -1771,8 +1855,8 @@ h3 {
 .fts-breakdown summary {
   cursor: pointer;
   font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--accent);
+  font-weight: 600;
+  color: var(--text-muted);
   padding: var(--space-3xs) 0;
 }
 
@@ -2029,8 +2113,9 @@ textarea {
   display: flex;
   justify-content: space-between;
   gap: var(--space-xs);
-  font-size: 0.95rem;
-  font-weight: 600;
+  margin-top: var(--space-xs);
+  font-size: 0.88rem;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2039,12 +2124,18 @@ textarea {
   margin-right: var(--space-3xs);
 }
 
+/* Money put aside leaves the budget but is not money gone. */
+.saved-row {
+  font-variant-numeric: tabular-nums;
+}
+
 .hero-status {
-  margin: var(--space-xs) 0 0;
+  margin: var(--space-sm) 0 0;
   padding: var(--space-2xs) var(--space-xs);
   border-radius: var(--radius-sm);
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.4;
   background: var(--surface-hi);
   color: var(--text);
 }
@@ -2117,7 +2208,14 @@ textarea {
 }
 
 .bank-amount.small {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.bank-amount.small.out,
+.bank-amount.small.warn {
+  font-weight: 800;
 }
 
 .bank-amount.out {
@@ -2372,7 +2470,8 @@ textarea {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
-  font-weight: 700;
+  box-shadow: inset 0 1px 0 0 var(--edge), var(--shadow-card);
+  font-weight: 650;
   font-size: 0.92rem;
 }
 
@@ -2416,6 +2515,7 @@ textarea {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .loan-detail summary {
@@ -2702,11 +2802,24 @@ textarea {
    leftover transform would pin the fixed bars (bulk actions, Save) to the
    card instead of the screen. */
 @media (prefers-reduced-motion: no-preference) {
-  /* Bars fill from empty when a screen arrives. */
+  /* Bars fill from empty when a screen arrives - the drawings included, so
+     every bar in the app moves the same way and stops the same way. They
+     start after the hero figure has counted (600ms in js/ui.js): two things
+     moving at once reads as fidgeting, one after the other reads as arriving. */
   .view-enter .hero-meter-fill,
+  .view-enter .committed-bar i,
+  .view-enter .cat-bar-track i,
+  .view-enter .cat-share-track i,
+  .view-enter .runway-bar i,
   .view-enter .budget-fill {
     transform-origin: left center;
-    animation: fill-in var(--dur-slow) var(--ease-out) backwards;
+    animation: fill-in var(--dur-slow) var(--ease-out) 600ms backwards;
+  }
+
+  /* The pace line draws itself in over the same beat. */
+  .view-enter .chart path[stroke],
+  .view-enter .goal-ring circle:last-of-type {
+    animation: draw-in var(--dur-slow) var(--ease-out) 600ms backwards;
   }
 
   /* Import: each step fades in as it's reached. */
@@ -2755,6 +2868,14 @@ textarea {
   }
 }
 
+/* A line or a ring arriving: it fades in rather than drawing end to end,
+   because a dash-offset animation on a path this small reads as a flicker. */
+@keyframes draw-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -2797,8 +2918,9 @@ textarea {
   margin: 0;
 }
 
-/* Every "tap to open" link inside a card looks and behaves the same: lime,
-   one size, and the same small arrow as the folded sections, after the words. */
+/* Every "tap to open" link inside a card looks and behaves the same: quiet,
+   one size, and the same small arrow as the folded sections, after the words.
+   A way in is not an action, and lime is for actions (design.md section 3). */
 .fts-breakdown > summary,
 .loan-detail > summary,
 .setup-help > summary,
@@ -2807,9 +2929,9 @@ textarea {
 .alert-original > summary {
   list-style: none;
   cursor: pointer;
-  color: var(--accent);
+  color: var(--text-muted);
   font-size: 0.86rem;
-  font-weight: 650;
+  font-weight: 600;
   padding: var(--space-2xs) 0;
 }
 
@@ -2972,7 +3094,8 @@ textarea {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 0 var(--space-xs);
+  padding: 0 var(--space-sm);
+  box-shadow: inset 0 1px 0 0 var(--edge), var(--shadow-card);
 }
 
 .hist-row + .hist-row {
@@ -3702,6 +3825,20 @@ textarea {
   }
 }
 
+/* One place that says it for the whole app: when the phone asks for less
+   motion, nothing eases anywhere - fields, tabs, folds and all (design.md
+   section 10). The state still changes; it simply stops sliding into it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ---------- Home and each business (js/business.js, spaces) ---------- */
 
 .space-toggle {
@@ -3826,4 +3963,719 @@ textarea {
   gap: var(--space-3xs);
   font-size: 0.8rem;
   color: var(--text-muted);
+}
+
+/* ---------- Shared blocks and drawings ----------
+   The parts every screen is built from (design.md sections 6, 9, 11 and 12):
+   the three cards, the six drawings, and the empty state. A screen assembles
+   these rather than writing a layout of its own. */
+
+/* Every drawing fills the width it is given and keeps its proportions. */
+.chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart-block {
+  margin-top: var(--space-xs);
+}
+
+/* The sentence that does a legend's job (design.md section 9). */
+.chart-note {
+  margin: var(--space-2xs) 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.chart-note b {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.key {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: var(--space-3xs);
+}
+
+.key-must {
+  background: var(--accent);
+}
+
+.key-flex {
+  background: var(--violet);
+}
+
+.key-free {
+  background: var(--emerald);
+}
+
+.key-in {
+  background: var(--in);
+}
+
+.key-out {
+  background: var(--out);
+}
+
+/* 04 Committed bar: must go out, can flex, free - always in that order. */
+.committed-bar {
+  display: flex;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--surface-hi);
+}
+
+.committed-bar i {
+  display: block;
+  height: 100%;
+}
+
+.committed-must {
+  background: var(--accent);
+}
+
+.committed-flex {
+  background: var(--violet);
+}
+
+.committed-free {
+  background: var(--emerald);
+}
+
+.committed-legend,
+.in-out-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs) var(--space-xs);
+  align-items: center;
+}
+
+/* 06 Where it went: name, bar, figure. Longest first, never a pie. */
+.cat-bar-row {
+  display: grid;
+  grid-template-columns: minmax(64px, 104px) 1fr auto;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-4xs) 0;
+  font-size: 0.86rem;
+}
+
+.cat-bar-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.cat-bar-track {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-hi);
+  overflow: hidden;
+}
+
+.cat-bar-track i {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+}
+
+.cat-bar-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+/* On Categories the bar only ranks the row: the list stays the point. */
+.cat-share {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin-top: var(--space-4xs);
+  padding-left: calc(var(--space-sm) + var(--space-2xs));
+}
+
+.cat-share-track {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-hi);
+  overflow: hidden;
+  max-width: 140px;
+}
+
+.cat-share-track i {
+  display: block;
+  height: 100%;
+  opacity: 0.75;
+}
+
+.cat-share-value {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 11 Goal progress: the only ring in the app. */
+.goal-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.goal-ring {
+  flex-shrink: 0;
+}
+
+.goal-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4xs);
+  min-width: 0;
+  flex: 1;
+}
+
+.goal-name {
+  font-weight: 650;
+}
+
+/* 12 Runway: one segment per month covered, fading out. */
+.runway-bar {
+  display: flex;
+  gap: var(--space-4xs);
+  height: 12px;
+}
+
+.runway-bar i {
+  display: block;
+  flex: 1;
+  background: var(--emerald);
+  border-radius: var(--radius-sm);
+}
+
+/* 20 Empty state: what happened, why it matters, what to do. One action. */
+.empty-state {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.empty-state-what {
+  margin: 0;
+  font-weight: 650;
+}
+
+.empty-state-why {
+  margin: var(--space-3xs) 0 0;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.empty-state-btn {
+  margin-top: var(--space-xs);
+}
+
+/* ---------- Touch targets ----------
+   Anything you tap is at least 44px high to the finger (design.md section 13).
+   The visible control keeps its size: an invisible strip centred on it does
+   the catching, so the screens stay as dense as they were. Only the height is
+   stretched, never the width, so two controls side by side can never end up
+   claiming each other's taps. */
+/* A fold's summary is tapped like a button and was never measured like one:
+   every one of them is a fingertip tall. */
+summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.icon-btn,
+.btn-tiny,
+.chip,
+.hist-chip,
+.plan-chip,
+.link-btn,
+.seg-btn,
+.cat-scope,
+.space-btn,
+.empty-state-btn {
+  position: relative;
+  touch-action: manipulation;
+}
+
+.recap-dot::after,
+.icon-btn::after,
+.btn-tiny::after,
+.chip::after,
+.hist-chip::after,
+.plan-chip::after,
+.link-btn::after,
+.seg-btn::after,
+.cat-scope::after,
+.space-btn::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 44px;
+  transform: translateY(-50%);
+}
+
+/* An icon on its own has no text to widen it, so it gets real padding until
+   it is as wide as a fingertip. */
+.icon-btn {
+  min-width: 44px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3xs);
+  padding: var(--space-3xs) var(--space-2xs);
+}
+
+/* Two of them in a row keep clear of each other. */
+.cat-actions,
+.account-actions-inline,
+.attention-actions {
+  gap: var(--space-2xs);
+}
+
+/* ---------- List rhythm ----------
+   A row group's last row has nothing below it to divide, so it keeps no
+   line; and a row you press answers you (design.md section 7). */
+.commitment-list > .commitment-row:last-child,
+.cat-list > .cat-row:last-child,
+.todo-list > .todo-row:last-child,
+.commitment-done > .commitment-row:last-child {
+  border-bottom: 0;
+}
+
+.import-row:active,
+.hist-row:active,
+.account-card:active {
+  background: var(--surface-press);
+}
+
+/* The bottom bar is the one piece of glass in the app: it sits over the
+   content it is scrolling past, so it needs to be seen through (its rule is
+   in Chrome, above). Everything else stays an opaque surface. */
+
+/* ---------- Summary: the composed screen ----------
+   Three levels of surface, not one repeated nine times (design.md section 6).
+   Most information lies flush on the background; a subtle surface groups only
+   what genuinely reads better grouped; the hero alone is a primary object.
+   Scoped to #dashboard so the other screens keep their own shape until each
+   is taken in turn. */
+
+/* PRIMARY OBJECT. The only translucent thing on the screen, with one pixel of
+   light along its top edge and a single soft pool of light behind the figure.
+   Not a glow: a light source. */
+#dashboard .hero {
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-lg) var(--space-md) var(--space-md);
+  background: color-mix(in oklch, var(--surface) 82%, transparent);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow: inset 0 1px 0 0 var(--edge-lum), var(--shadow);
+}
+
+#dashboard .hero::before {
+  content: "";
+  position: absolute;
+  inset: -45% 15% auto -25%;
+  height: 170px;
+  background: radial-gradient(60% 100% at 50% 0%, color-mix(in oklch, var(--accent) 16%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+#dashboard .hero > * {
+  position: relative;
+}
+
+/* The answer, at a size nothing else on the screen comes near. */
+#dashboard .hero-amount {
+  font-size: clamp(3.4rem, 14vw, 4.2rem);
+  line-height: 0.94;
+  letter-spacing: -0.052em;
+  margin: var(--space-2xs) 0 var(--space-3xs);
+}
+
+/* Supporting figures sit under a hairline and stay support. */
+#dashboard .hero-figures {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+#dashboard .hero-status {
+  background: none;
+  padding: 0;
+  margin-top: var(--space-2xs);
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+#dashboard .hero.level-over .hero-status,
+#dashboard .hero.level-critical .hero-status {
+  color: var(--out);
+}
+
+/* The burn line belongs to the figure above it, so it runs to both edges of
+   the card instead of sitting in a box of its own. */
+#dashboard .hero .chart-block {
+  margin: var(--space-2xs) calc(var(--space-md) * -1) 0;
+  width: calc(100% + var(--space-md) * 2);
+}
+
+#dashboard .hero .chart-note {
+  padding: 0 var(--space-md);
+}
+
+/* SUBTLE SURFACE. The bank position and what needs you: grouped because the
+   grouping means something, but flatter than the hero. */
+#dashboard .bank-card,
+#dashboard .due-soon,
+#dashboard .install-card,
+#dashboard .totals-card {
+  box-shadow: none;
+  background: var(--surface-alt);
+  border-color: transparent;
+}
+
+#dashboard .due-soon {
+  border-color: color-mix(in oklch, var(--warn) 34%, transparent);
+}
+
+/* DISCLOSURE. Detail waits behind a row that looks like a row, not a card. */
+.disclose {
+  margin: 0 var(--space-3xs);
+  border-bottom: 1px solid var(--border);
+}
+
+.disclose:first-of-type {
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-xl);
+}
+
+.disclose > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: 52px;
+  padding: var(--space-2xs) 0;
+  font-size: 0.95rem;
+}
+
+.disclose > summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclose > summary::after {
+  content: "";
+  width: 0.42em;
+  height: 0.42em;
+  margin-left: auto;
+  border-right: 1.75px solid var(--text-muted);
+  border-bottom: 1.75px solid var(--text-muted);
+  transform: rotate(-45deg);
+  transition: transform var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out);
+}
+
+/* Pressing a row answers, so the tap is felt as well as seen. */
+.disclose > summary:active,
+#dashboard .section-fold > summary:active {
+  background: var(--surface-press);
+  border-radius: var(--radius-md);
+}
+
+.disclose[open] > summary::after {
+  transform: rotate(45deg);
+  border-color: var(--accent);
+}
+
+.disclose-t {
+  flex: 1;
+}
+
+.disclose-c {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.disclose-body {
+  padding-bottom: var(--space-2xs);
+}
+
+/* Inside a disclosure the section heading is redundant - the summary said it. */
+.disclose-body > .section-head {
+  display: none;
+}
+
+.disclose-body > .totals-card:last-child {
+  margin-bottom: var(--space-2xs);
+}
+
+/* Upcoming and the older folds speak the same language as the new rows:
+   one disclosure pattern on the screen, not two. */
+#dashboard .section-fold {
+  margin: 0 var(--space-3xs);
+  border-bottom: 1px solid var(--border);
+}
+
+#dashboard .section-fold > summary {
+  min-height: 52px;
+  padding: var(--space-2xs) 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font-size: 0.95rem;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+#dashboard .section-fold > summary .muted,
+#dashboard .section-fold > summary .summary-sub {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  margin: 0 0 0 auto;
+}
+
+#dashboard .section-fold > summary::after {
+  float: none;
+  margin: 0 0 0 var(--space-2xs);
+  transform: rotate(-45deg);
+}
+
+#dashboard .section-fold[open] > summary::after {
+  margin: 0 0 0 var(--space-2xs);
+  transform: rotate(45deg);
+  border-color: var(--accent);
+}
+
+
+/* ---------- Summary: calibration against the references ----------
+   What the references get right that the first pass did not: one ambient
+   light source for the whole screen rather than per-card glow, labels far
+   quieter than their values, and air around a drawing instead of a line
+   jammed against the figure above it. */
+
+/* One light source, at the top of the app, behind everything. It is what
+   makes a dark screen read as a lit room rather than a black rectangle -
+   and it is the only ambient light in the app. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -10% -20% auto -20%;
+  height: 46vh;
+  background:
+    radial-gradient(58% 66% at 16% 0%, color-mix(in oklch, var(--accent) 24%, transparent), transparent 70%),
+    radial-gradient(50% 62% at 94% 4%, color-mix(in oklch, var(--violet) 19%, transparent), transparent 72%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.view-container,
+.app-header,
+.bottom-nav {
+  position: relative;
+  z-index: 1;
+}
+
+/* A label is metadata. It should never carry the same weight as the figure
+   beside it - that is most of what makes a screen look cheap. */
+#dashboard .hero-figures {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+#dashboard .hero-figures .muted {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+#dashboard .hero-figures span > span + * ,
+#dashboard .hero-figures span {
+  font-variant-numeric: tabular-nums;
+}
+
+#dashboard .hero-figures span {
+  color: var(--text);
+  font-weight: 650;
+}
+
+#dashboard .hero-figures .muted {
+  font-weight: 400;
+}
+
+/* Air around the drawing: it explains the figure above it and needs room to
+   be read as a line rather than as texture behind the words. */
+#dashboard .hero .chart-block {
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-2xs);
+}
+
+#dashboard .hero .chart-note {
+  margin-top: var(--space-xs);
+  font-size: 0.86rem;
+}
+
+/* The subtle surfaces get the proportions the references use: more inner
+   room, a slightly softer corner, and nothing fighting for attention. */
+#dashboard .bank-card,
+#dashboard .due-soon,
+#dashboard .install-card {
+  padding: var(--space-md);
+  border-radius: var(--radius-xl);
+}
+
+#dashboard .bank-amount {
+  font-size: 1.25rem;
+}
+
+#dashboard .bank-amount.small {
+  font-size: 1rem;
+}
+
+#dashboard .bank-figures .hero-label {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
+
+/* ---------- Summary: the hero holds four things ----------
+   Label, figure, the picture that explains it, one sentence. Everything else
+   true about the month sits underneath, flush on the background. Seven rows
+   inside one card is what stopped the figure reading as the answer. */
+
+/* Stacked label over value, the way the references pair a stat: the label is
+   metadata and looks like it, the value carries the weight. Side by side on
+   one baseline they argue; stacked they read in one glance. */
+.hero-under {
+  display: flex;
+  gap: var(--space-xl);
+  margin: var(--space-sm) var(--space-md) 0;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.stat-k {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.stat-v {
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-work {
+  margin: var(--space-2xs) var(--space-md) 0;
+}
+
+/* Depth carries the hero, not an outline. Over budget the figure and the
+   sentence go red - the warning is in the words and the number, where it
+   belongs, not drawn as a box around everything. */
+#dashboard .hero {
+  border-color: color-mix(in oklch, var(--border) 70%, transparent);
+}
+
+#dashboard .hero.level-warning,
+#dashboard .hero.level-critical {
+  border-color: color-mix(in oklch, var(--warn) 22%, transparent);
+}
+
+#dashboard .hero.level-over {
+  border-color: color-mix(in oklch, var(--out) 26%, transparent);
+}
+
+/* Room under the figure before the picture starts, and room after it before
+   the sentence: a drawing needs air on both sides to read as a line. */
+#dashboard .hero .chart-block {
+  margin-top: var(--space-md);
+  margin-bottom: var(--space-2xs);
+}
+
+#dashboard .hero-status {
+  margin-top: var(--space-sm);
+}
+
+/* ---------- Plan: the rows explain the bar ----------
+   One dot per row, the same three colours the bar uses. The bar shows the
+   proportion, the row names it and gives the figure: said once each. */
+.seg-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  margin-right: var(--space-2xs);
+  vertical-align: 0.08em;
+}
+
+.seg-must {
+  background: var(--accent);
+}
+
+.seg-flex {
+  background: var(--violet);
+}
+
+.seg-free {
+  background: var(--emerald);
+}
+
+/* A commitment's name and its second line each take one line. "Demo home loan
+   EMI / 7th · Demo Salary Account" was wrapping to four, which turned a list
+   into a wall. The figure and the buttons keep their room. */
+.attention-row .breakdown-label > span:last-child {
+  min-width: 0;
+}
+
+/* The name may take a second line if it needs one - it is the point of the
+   row. Only the metadata under it is held to one line, and that alone was
+   what turned these rows into four. */
+.attention-row .breakdown-label .muted-note {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Recap: the content is louder than the chrome ----------
+   The month picker and Next were filled cyan - the two brightest objects on a
+   screen whose job is to show one insight. Cyan still marks where you are,
+   as a quiet tint rather than a beacon. */
+#view .recap-months .seg-btn.active,
+.segmented .seg-btn.active {
+  background: var(--surface-hi);
+  color: var(--text);
+  font-weight: 650;
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.recap-nav .btn-tiny.primary {
+  background: var(--surface-hi);
+  border-color: var(--accent-line);
+  color: var(--text);
 }

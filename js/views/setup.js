@@ -8,6 +8,7 @@ import { redraw } from '../redraw.js';
 import { BANKS as INDIAN_BANKS } from '../parsers/any-bank.js';
 import { playTour } from '../tour.js';
 import { incomeType, businesses, addBusiness } from '../business.js';
+import { escapeHtml } from '../ui.js';
 
 // First-run setup: a few short steps so a new user isn't left facing empty
 // screens. Everything it saves is the same data the Plan and Cards screens
@@ -370,6 +371,3 @@ async function saveIncome(container) {
   }
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
-}

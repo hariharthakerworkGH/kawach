@@ -3,13 +3,20 @@ import { icon } from '../icons.js';
 import { CASH_ACCOUNT_ID } from '../config.js';
 import { categoryStyle } from '../category-style.js';
 import { showToast } from '../toast.js';
-import { FREQUENCIES, DEFAULT_FREQUENCY, toMonthly, toYearly } from '../frequency.js';
+import { FREQUENCIES, DEFAULT_FREQUENCY, toMonthly, toYearly, isoLocal } from '../frequency.js';
 import { formatCurrency } from '../format.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
 import { isBusinessCategory, isBusinessAccount, activeSpace, accountInSpace } from '../business.js';
+import { escapeHtml } from '../ui.js';
 
 export async function render(container, params = {}) {
-  const [categories, allAccounts, recurring, space] = await Promise.all([getAll('categories'), getAll('accounts'), getAll('recurring'), activeSpace()]);
+  const [categories, allAccounts, recurring, space, transactions] = await Promise.all([
+    getAll('categories'),
+    getAll('accounts'),
+    getAll('recurring'),
+    activeSpace(),
+    getAll('transactions'),
+  ]);
   // The accounts of the lane on screen: Home's, or one business's.
   const accounts = allAccounts.filter(accountInSpace(space));
   const commitments = recurring.filter((r) => isLiveCommitment(r)).sort(byYourOrder);
@@ -21,10 +28,6 @@ export async function render(container, params = {}) {
   const initialAccountId = params.accountId && accounts.some((a) => a.id === params.accountId) ? params.accountId : CASH_ACCOUNT_ID;
 
   container.innerHTML = `
-    <button type="button" class="alert-shortcut" id="add-from-alert">
-      <span>${icon('inbox')} Have a bank SMS for this?</span>
-      <span class="alert-shortcut-go">Paste it instead →</span>
-    </button>
     <form id="add-form" class="add-form">
       <label class="field amount-field">
         <span>Amount</span>
@@ -43,7 +46,9 @@ export async function render(container, params = {}) {
       </label>
       <div class="chip-row" id="add-categories">
         <button type="button" class="chip active" data-cat="">Uncategorized</button>
-        ${categories.map((c) => `<button type="button" class="chip" data-cat="${c.id}" data-business="${isBusinessCategory(c) ? '1' : ''}">${categoryStyle(c.name).icon} ${escapeHtml(c.name)}</button>`).join('')}
+        ${byRecentUse(categories, transactions)
+          .map((c) => `<button type="button" class="chip" data-cat="${c.id}" data-business="${isBusinessCategory(c) ? '1' : ''}">${categoryStyle(c.name).icon} ${escapeHtml(c.name)}</button>`)
+          .join('')}
       </div>
       ${commitmentField(commitments)}
       <label class="field">
@@ -77,6 +82,10 @@ export async function render(container, params = {}) {
       </div>
       <button type="submit" class="btn-primary">Save</button>
     </form>
+    <button type="button" class="alert-shortcut" id="add-from-alert">
+      <span>${icon('inbox')} Have a bank SMS for this?</span>
+      <span class="alert-shortcut-go">Paste it instead →</span>
+    </button>
   `;
 
   container.querySelector('#add-from-alert').addEventListener('click', () => {
@@ -233,6 +242,15 @@ export function cardPaymentField(cards, selected = null, id = 'add-pays-card', a
   </label>`;
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+// The categories you have actually used lately come first, so the usual spend
+// is one tap away and the rest still follow in their own order.
+function byRecentUse(categories, transactions) {
+  const since = isoLocal(new Date(Date.now() - 90 * 86400000));
+  const counts = new Map();
+  for (const t of transactions) {
+    if (!t.categoryId || t.date < since) continue;
+    counts.set(t.categoryId, (counts.get(t.categoryId) || 0) + 1);
+  }
+  if (!counts.size) return categories;
+  return [...categories].sort((a, b) => (counts.get(b.id) || 0) - (counts.get(a.id) || 0));
 }

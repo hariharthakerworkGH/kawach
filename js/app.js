@@ -26,6 +26,7 @@ import * as inboxView from './views/inbox.js';
 import * as setupView from './views/setup.js';
 import { collectSharedAlerts } from './alert-inbox.js';
 import { refreshSchedule, runDueReminders } from './reminders.js';
+import { countUpHeroes } from './ui.js';
 
 const SEED_CATEGORIES = [
   { id: 'cat-food', name: 'Food & Dining', parentId: null },
@@ -123,10 +124,12 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0) {
   window.scrollTo(0, scrollY);
 
   // Bars fill to their value as a screen arrives (css "Motion"); the class
-  // comes off again so a screen redrawing itself doesn't replay them.
+  // comes off again so a screen redrawing itself doesn't replay them. The
+  // figure counts first and the bars fill under it (design.md section 10).
   next.classList.add('view-enter');
+  countUpHeroes(next);
   clearTimeout(enterTimer);
-  enterTimer = setTimeout(() => next.classList.remove('view-enter'), 700);
+  enterTimer = setTimeout(() => next.classList.remove('view-enter'), 1400);
 }
 
 // Something folded away opens with a short unfold, but only when you tap it:

@@ -10,8 +10,10 @@ export class PdfPasswordError extends Error {
 }
 
 export class PdfNoTextError extends Error {
+  // The plain cause and the way out, in the person's words: this message is
+  // shown on Import as it is (design.md section 12). No jargon, no code.
   constructor() {
-    super('This PDF has no extractable text layer (it is likely a scanned image).');
+    super('There is no text in this PDF, so it is probably a scan or a photo. Download the statement from your bank as a spreadsheet (CSV) and choose that instead.');
   }
 }
 

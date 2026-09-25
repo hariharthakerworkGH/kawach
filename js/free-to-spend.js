@@ -596,6 +596,29 @@ export async function computeFreeToSpend(now = new Date()) {
   const bankSpent = bankSpends.reduce((s, t) => s + t.amount, 0) + bankBeyondPlan;
   const cardSpent = owedCards - sum(cardCommitmentCharges);
   const spentThisCycle = cardSpent + bankSpent;
+  // The same spending, laid out by day, for the burn drawing on Summary
+  // (js/charts.js). Every step is a real dated payment; whatever has no date
+  // of its own - a bill billed but not imported yet, a card payment made in
+  // advance - is money already gone, so it sits at the start of the period
+  // rather than today. The line then ends exactly on the figure the hero
+  // shows, and no day claims spending that did not happen on it.
+  const datedSpends = [
+    ...bankSpends.map((t) => ({ date: t.date, amount: t.direction === 'debit' ? t.amount : -t.amount })),
+    ...cards.flatMap((c) =>
+      transactions
+        .filter((t) => t.accountId === c.account.id && !t.isTransfer && !claimed.has(t.id) && (!c.cycleStart || t.date > c.cycleStart) && t.date <= today)
+        .map((t) => ({ date: t.date, amount: t.direction === 'debit' ? t.amount : -t.amount }))
+    ),
+  ].filter((e) => e.date >= windowStart && e.date <= today);
+  const perDay = new Map();
+  for (const e of datedSpends) perDay.set(e.date, (perDay.get(e.date) || 0) + e.amount);
+  const undated = spentThisCycle - datedSpends.reduce((s, e) => s + e.amount, 0);
+  const spendDays = [];
+  let running = undated;
+  for (let i = 0; i < daysBetweenInclusive(windowStart, today); i += 1) {
+    running += perDay.get(addDays(windowStart, i)) || 0;
+    spendDays.push(running);
+  }
   const free = limit == null || noCommitments ? null : limit - spentThisCycle;
   if (monthlyIncome && noCommitments) notes.push('Add your fixed commitments on Plan - without them your whole income looks free.');
 
@@ -816,6 +839,8 @@ export async function computeFreeToSpend(now = new Date()) {
     bankBeyondPlan,
     bankCommitmentPayments,
     spentThisCycle,
+    // Cumulative spending, one figure per day gone by. See above.
+    spendDays,
     tracker,
     cutBack,
     flexible,

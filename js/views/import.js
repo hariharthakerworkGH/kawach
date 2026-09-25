@@ -17,6 +17,7 @@ import { readerFor, BANKS } from '../parsers/any-bank.js';
 import { enhancePasswords } from '../password-field.js';
 import { categoriesFor, moneyProfile } from '../business.js';
 import { isPfAccount, pfContribution, pfPosition, DEFAULT_PF_RATE } from '../pf.js';
+import { escapeHtml, escapeAttr, sectionHead } from '../ui.js';
 
 // Two kinds of import share this screen:
 //   - statements (PDF): a closed, billed period. Authoritative.
@@ -926,7 +927,7 @@ function renderResults(resultsEl) {
     ${renderEmis(state.emis)}
     ${
       attention.length
-        ? `<h3>Pick a category · ${attention.length}</h3>
+        ? `${sectionHead(`Pick a category · ${attention.length}`)}
            <div id="import-row-attention" class="import-row-list"></div>`
         : ''
     }
@@ -1548,10 +1549,3 @@ function showStatus(el, message, isError) {
   el.classList.toggle('in', !isError);
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
-}
-
-function escapeAttr(str) {
-  return escapeHtml(str);
-}

@@ -1,6 +1,7 @@
 import { getAll, getSetting, setSetting, put } from './db.js';
 import { isoLocal, monthlyAmountOf } from './frequency.js';
 import { isLiveCommitment, commitmentMatcher } from './commitments.js';
+import { bankBalance } from './account-metrics.js';
 
 // Everyone who doesn't live on a salary.
 //
@@ -300,4 +301,41 @@ export function businessSpace(transactions, accounts, recurring, categories, spa
     needsCategory: spends.filter((t) => !t.categoryId).length,
     accountIds: [...own],
   };
+}
+
+/* How long the business would last if nothing else came in: what its accounts
+ * hold, against what a month usually costs it. The three months just gone are
+ * the measure, because one quiet month is not a trend, and the month running
+ * now is only part of a month. Money moved home is not a cost of running the
+ * shop, so it is left out.
+ *
+ * This is the question a salary never asks, which is why Summary only draws
+ * it for a business (design.md section 9, Runway).
+ */
+export function businessRunway(transactions, accounts, spaceId, today) {
+  const own = accounts.filter(accountInSpace(spaceId));
+  const ids = new Set(own.map((a) => a.id));
+  // Only accounts whose balance is known from a statement count: treating an
+  // unknown balance as zero would say the shop is closer to empty than it is.
+  const balances = own
+    .filter((a) => a.type === 'bank' || a.type === 'cash')
+    .map((a) => bankBalance(a, transactions))
+    .filter((v) => v != null);
+  if (!balances.length) return null;
+  const have = balances.reduce((s, v) => s + v, 0);
+  const months = [];
+  const [y, m] = today.split('-').map(Number);
+  for (let back = 1; back <= 3; back += 1) {
+    const d = new Date(y, m - 1 - back, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  const spent = months.map((key) =>
+    transactions
+      .filter((t) => ids.has(t.accountId) && t.direction === 'debit' && !t.isTransfer && monthOf(t.date) === key)
+      .reduce((s, t) => s + t.amount, 0)
+  );
+  const active = spent.filter((v) => v > 0);
+  if (active.length < 2 || have <= 0) return null;
+  const needPerMonth = Math.round(active.reduce((s, v) => s + v, 0) / active.length);
+  return { have, needPerMonth, covered: have / needPerMonth };
 }

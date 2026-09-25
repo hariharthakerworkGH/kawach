@@ -11,6 +11,7 @@ import { setBackupPassphrase, backUpToDrive, listBackups, SYNC_FILE } from '../j
 import { encryptPayload, decryptPayload, exportEncrypted, decryptBackup, restoreBackup } from '../js/backup.js';
 import { takenHome, categoriesFor } from '../js/business.js';
 import { notesFor } from '../js/whats-new.js';
+import { APP_VERSION } from '../js/version.js';
 
 // Salary ₹1,00,000; commitments: EMI ₹40,000 (bank), rent ₹20,000 (bank),
 // ATM ₹10,000 (bank), Netflix ₹649 (card), Metro ₹1,000 (cash); ₹5,000 saved.
@@ -778,6 +779,7 @@ test("What's new shows only the notes that fit, from versions not yet seen", () 
   const shopkeeper = { main: 'business', business: true, side: false };
   ok(!titles(pensioner, '1.10').includes('Business categories'), 'no business news for a pensioner');
   ok(titles(shopkeeper, '1.10').includes('Business categories'), 'business news for a shopkeeper');
-  // Nothing new since the version they last saw.
-  equal(titles(pensioner, '3.1'), []);
+  // Nothing new since the version they last saw. Read from APP_VERSION so a
+  // release bump doesn't fail a test that is about the filtering, not the number.
+  equal(titles(pensioner, APP_VERSION), []);
 });

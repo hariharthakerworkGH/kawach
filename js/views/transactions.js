@@ -12,6 +12,8 @@ import { looksLikeCardPayment } from '../transfers.js';
 import { isoLocal } from '../frequency.js';
 import { icon } from '../icons.js';
 import { categoriesFor, activeSpace, accountInSpace } from '../business.js';
+import { inOutBars } from '../charts.js';
+import { escapeHtml, escapeAttr, emptyState } from '../ui.js';
 
 // History: one month at a time, newest first, grouped by day, one line per
 // payment. It used to be every transaction ever in one list, with a category
@@ -99,6 +101,7 @@ export async function render(container, params = {}) {
       <button type="button" class="icon-btn hist-step" id="month-next" aria-label="Month after">${icon('forward')}</button>
     </div>
     <p class="hist-totals" id="txn-count"></p>
+    ${inOutBars({ months: lastSixMonths(transactions) })}
     <div class="hist-chips">
       <select id="txn-account" class="hist-chip" aria-label="Account">
         <option value="">All accounts</option>
@@ -227,6 +230,11 @@ export async function render(container, params = {}) {
   });
 
   const listEl = container.querySelector('#txn-list');
+  // The empty state's one button is the only thing on this screen that leaves it.
+  listEl.addEventListener('click', (e) => {
+    const go = e.target.closest('[data-go]');
+    if (go) container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: go.dataset.go } }));
+  });
   listEl.addEventListener('click', (e) => handleClick(e, container));
   listEl.addEventListener('change', (e) => handleChange(e, container));
   listEl.addEventListener('input', (e) => handleChange(e, container));
@@ -339,7 +347,13 @@ function renderList(container) {
   container.querySelector('#select-note').textContent = selected.size ? `${selected.size} ticked` : 'Tick payments to categorise or delete together';
   container.querySelector('#txn-select-all').textContent = selected.size === rows.length && rows.length ? 'Clear' : `Select all ${rows.length}`;
 
-  container.querySelector('#txn-list').innerHTML = groupTemplate(visible, across);
+  container.querySelector('#txn-list').innerHTML = cache.transactions.length
+    ? groupTemplate(visible, across)
+    : emptyState({
+        what: 'No payments yet.',
+        why: 'Kawach is empty until it sees your spending. Import a statement and the budget, the categories and the months all fill in.',
+        action: { label: 'Import a statement', go: 'import' },
+      });
 
   const moreBtn = container.querySelector('#txn-more');
   moreBtn.hidden = rows.length <= visible.length;
@@ -791,10 +805,21 @@ function formatFull(iso) {
   return `${d} ${MONTHS[m - 1]} ${y}`;
 }
 
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
-}
-
-function escapeAttr(str) {
-  return escapeHtml(str);
+// Six months of money in and out, for the drawing above the list: is this
+// month normal for me? Transfers between your own accounts are money moved,
+// never money in or out.
+function lastSixMonths(transactions) {
+  const now = new Date();
+  const months = [];
+  for (let back = 5; back >= 0; back -= 1) {
+    const d = new Date(now.getFullYear(), now.getMonth() - back, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const rows = transactions.filter((t) => !t.isTransfer && t.date.slice(0, 7) === key);
+    months.push({
+      label: d.toLocaleDateString('en-IN', { month: 'short' }),
+      in: rows.filter((t) => t.direction === 'credit').reduce((s, t) => s + t.amount, 0),
+      out: rows.filter((t) => t.direction === 'debit').reduce((s, t) => s + t.amount, 0),
+    });
+  }
+  return months;
 }
