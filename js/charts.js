@@ -64,14 +64,14 @@ export function burnLine({ totals = [], budget = 0, days = 0 }) {
       : `You are <b>${formatRupees(-diff)} over</b> the even pace for today.`;
   const drawing = frame(
     `<defs><linearGradient id="burn-fade" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="var(--accent)" stop-opacity="0.2"/>
+        <stop offset="0" stop-color="var(--accent)" stop-opacity="0.26"/>
         <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/>
       </linearGradient></defs>
       <line x1="0" y1="${H - pad}" x2="${W}" y2="${y(budget).toFixed(1)}" class="chart-pace" stroke-dasharray="4 5" vector-effect="non-scaling-stroke"/>
       <path d="${area}" fill="url(#burn-fade)"/>
       <path d="${path}" fill="none" class="chart-line" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
-      <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="5.5" fill="var(--accent)" opacity="0.18" vector-effect="non-scaling-stroke"/>
-      <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="3" fill="var(--accent)" vector-effect="non-scaling-stroke"/>`,
+      <circle class="chart-dot-halo" cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="6" vector-effect="non-scaling-stroke"/>
+      <circle class="chart-dot" cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="2.6" vector-effect="non-scaling-stroke"/>`,
     {
       label: `Spending so far is ${formatRupees(spent)} of a ${formatRupees(budget)} budget, ${diff >= 0 ? 'under' : 'over'} an even pace by ${formatRupees(Math.abs(diff))}.`,
     }
@@ -178,8 +178,13 @@ export function inOutBars({ months = [] }) {
       const inH = h(m.in);
       const outH = h(m.out);
       const gap = barW * 0.62;
-      return `<rect class="bar-in" x="${(cx - barW - gap).toFixed(1)}" y="${(base - inH).toFixed(1)}" width="${barW.toFixed(1)}" height="${inH.toFixed(1)}" rx="${(barW / 2).toFixed(1)}"/>
-        <rect class="bar-out" x="${(cx + gap).toFixed(1)}" y="${(base - outH).toFixed(1)}" width="${barW.toFixed(1)}" height="${outH.toFixed(1)}" rx="${(barW / 2).toFixed(1)}"/>
+      const full = base - 6;
+      const track = (x) => `<rect class="bar-track" x="${x}" y="${(base - full).toFixed(1)}" width="${barW.toFixed(1)}" height="${full.toFixed(1)}" rx="${(barW / 2).toFixed(1)}"/>`;
+      const xi = (cx - barW - gap).toFixed(1);
+      const xo = (cx + gap).toFixed(1);
+      return `${track(xi)}${track(xo)}
+        <rect class="bar-in" x="${xi}" y="${(base - inH).toFixed(1)}" width="${barW.toFixed(1)}" height="${inH.toFixed(1)}" rx="${(barW / 2).toFixed(1)}"/>
+        <rect class="bar-out" x="${xo}" y="${(base - outH).toFixed(1)}" width="${barW.toFixed(1)}" height="${outH.toFixed(1)}" rx="${(barW / 2).toFixed(1)}"/>
         <text class="chart-tick" x="${cx.toFixed(1)}" y="${H - 2}" text-anchor="middle">${esc(m.label)}</text>`;
     })
     .join('');
@@ -191,7 +196,6 @@ export function inOutBars({ months = [] }) {
   const label = `Money in and out over ${real.length} months. ${real.map((m) => `${m.label}: in ${formatRupees(m.in)}, out ${formatRupees(m.out)}`).join('. ')}.`;
   const drawing = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
       ${bars}
-      <line x1="0" y1="${base}" x2="${W}" y2="${base}" class="chart-axis" vector-effect="non-scaling-stroke"/>
     </svg>`;
   return `<div class="chart-block">${drawing}
       <p class="chart-note in-out-legend"><span><i class="key key-in"></i>in</span><span><i class="key key-out"></i>out</span><span>${sentence}</span></p>

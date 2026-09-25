@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '3.3.1',
+    items: [
+      {
+        icon: 'summary',
+        title: 'A lit room, not a black screen',
+        text: 'Every surface is a pane with a little light behind it, and the charts are drawn in light.',
+      },
+    ],
+  },
+  {
     version: '3.3',
     items: [
       {

@@ -27,7 +27,7 @@
   --surface-hi: oklch(27.2% 0.019 265);
   --text: oklch(96.6% 0.004 255);
   --text-muted: oklch(68% 0.016 258);
-  --text-dim: oklch(61% 0.018 258);
+  --text-dim: oklch(65% 0.018 258);
   /* A divider has to be visible in both themes, not only in the light one:
      at 27.6% it measured 1.20 against a card, which reads as no line at all
      on a phone in daylight. */
@@ -90,6 +90,41 @@
 
   --chip-bg: var(--surface-alt);
   --scrim: oklch(0% 0 0 / 0.55);
+
+  /* ---- Glass ----
+     A surface is not a grey rectangle on black. It is a translucent pane
+     with the room's light behind it: a fill you can see a little through, a
+     gradient across it so it is lit from the top like everything else, and
+     an edge that catches that light. Only the heroes blur what is behind
+     them - a blurred pane costs real frames on a mid-range phone, and a long
+     list of them would stutter while it scrolls. */
+  --glass: color-mix(in oklch, var(--surface) 76%, transparent);
+  --glass-hi: color-mix(in oklch, var(--surface-alt) 72%, transparent);
+  --glass-sheen: linear-gradient(
+    180deg,
+    oklch(100% 0 0 / 0.035) 0%,
+    oklch(100% 0 0 / 0.008) 38%,
+    transparent 72%
+  );
+  --glass-edge: color-mix(in oklch, var(--border) 34%, transparent);
+  --blur: 18px;
+
+  /* ---- Glow ----
+     Light around the few things that lead a screen: the figure that answers
+     it, the line that explains the figure, the control you have chosen.
+     Never a rim around every card - the moment everything glows, nothing
+     is being pointed at. */
+  --glow-cyan: 0 0 24px color-mix(in oklch, var(--accent) 26%, transparent);
+  --glow-blue: 0 0 22px color-mix(in oklch, var(--accent) 18%, transparent);
+  --glow-violet: 0 0 24px color-mix(in oklch, var(--violet) 22%, transparent);
+  --glow-warm: 0 0 24px color-mix(in oklch, var(--warn) 20%, transparent);
+  /* For a figure: light thrown by the text itself, not a box behind it. */
+  --glow-text: 0 0 30px color-mix(in oklch, var(--accent) 16%, transparent);
+
+  /* The warm field in the room. It is not the amber that means "this needs
+     you": that one is a colour on a figure or a word, this one is light on
+     the far wall, three per cent strong and nowhere near any text. */
+  --amb-warm: oklch(72% 0.13 55);
 
   /* Depth, in three steps and nothing more: a card sits, a hero lifts, a
      sheet floats. Each is a soft shadow plus a one-pixel edge catching the
@@ -240,6 +275,29 @@
     --cat-6: oklch(57.4% 0.215 16);
     --cat-7: oklch(52.2% 0.123 183);
     --cat-8: oklch(57.6% 0.233 304);
+
+    /* On paper the pane is still a pane, but light passes the other way:
+       the fill is nearly opaque white and the sheen is a faint shadow from
+       above rather than a highlight. Glow is almost nothing - a lit edge on
+       white reads as a smudge - so hierarchy in daylight is carried by
+       weight and space, which is how paper has always done it. */
+    --glass: color-mix(in oklch, var(--surface) 92%, transparent);
+    --glass-hi: color-mix(in oklch, var(--surface-alt) 90%, transparent);
+    --glass-sheen: linear-gradient(
+      180deg,
+      oklch(100% 0 0 / 0.9) 0%,
+      oklch(100% 0 0 / 0.35) 40%,
+      transparent 75%
+    );
+    --glass-edge: color-mix(in oklch, var(--border) 62%, transparent);
+
+    --glow-cyan: 0 0 18px color-mix(in oklch, var(--accent) 12%, transparent);
+    --glow-blue: 0 0 16px color-mix(in oklch, var(--accent) 9%, transparent);
+    --glow-violet: 0 0 18px color-mix(in oklch, var(--violet) 10%, transparent);
+    --glow-warm: 0 0 18px color-mix(in oklch, var(--warn) 10%, transparent);
+    --glow-text: none;
+
+    --amb-warm: oklch(72% 0.13 55);
 
     --scrim: oklch(16.8% 0.007 258 / 0.45);
     /* On paper the light comes from above too, but a white card cannot catch
