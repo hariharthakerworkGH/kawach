@@ -40,7 +40,7 @@ function frame(inner, { label, viewBox = '0 0 300 84', className = '' }) {
  *   days     how many days the period has
  * The dashed line is an even pace; the solid line is you.
  */
-export function burnLine({ totals = [], budget = 0, days = 0 }) {
+export function burnLine({ totals = [], budget = 0, days = 0, shortfall = 0 }) {
   // Not in the first three days of a period, and not when nothing has been
   // spent: a flat line along the bottom answers nothing the figure hasn't.
   if (totals.length < MIN_POINTS || !budget || days < MIN_POINTS) return '';
@@ -58,10 +58,17 @@ export function burnLine({ totals = [], budget = 0, days = 0 }) {
   // Where an even pace would have you by today, and by how much you are off.
   const evenSoFar = Math.round((budget * totals.length) / days);
   const diff = evenSoFar - spent;
-  const sentence =
+  // The pace is the pace: being under it is true and the line says so. But a
+  // cycle can be comfortably under pace while the bank still cannot cover
+  // what is already owed, and a drawing that stops at the happy half of that
+  // is the screen contradicting its own headline. The figure is handed in,
+  // never worked out here - free-to-spend.js is the only place that decides
+  // what is owed.
+  const pace =
     diff >= 0
       ? `You are <b>${formatRupees(diff)} under</b> the even pace for today.`
       : `You are <b>${formatRupees(-diff)} over</b> the even pace for today.`;
+  const sentence = shortfall > 0 ? `${pace} Even so, <b>${formatRupees(shortfall)}</b> of what you owe is not covered.` : pace;
   const drawing = frame(
     `<defs><linearGradient id="burn-fade" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stop-color="var(--accent)" stop-opacity="0.26"/>
@@ -73,7 +80,9 @@ export function burnLine({ totals = [], budget = 0, days = 0 }) {
       <circle class="chart-dot-halo" cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="6" vector-effect="non-scaling-stroke"/>
       <circle class="chart-dot" cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="2.6" vector-effect="non-scaling-stroke"/>`,
     {
-      label: `Spending so far is ${formatRupees(spent)} of a ${formatRupees(budget)} budget, ${diff >= 0 ? 'under' : 'over'} an even pace by ${formatRupees(Math.abs(diff))}.`,
+      label: `Spending so far is ${formatRupees(spent)} of a ${formatRupees(budget)} budget, ${diff >= 0 ? 'under' : 'over'} an even pace by ${formatRupees(Math.abs(diff))}.${
+        shortfall > 0 ? ` ${formatRupees(shortfall)} of what is owed is not covered.` : ''
+      }`,
     }
   );
   return `<div class="chart-block">${drawing}${note(sentence)}</div>`;

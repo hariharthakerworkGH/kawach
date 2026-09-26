@@ -221,8 +221,18 @@ export function commitmentDueInWindow(item, { today, windowEnd, bankEntries, who
       const days = Math.round((dateOf(to) - dateOf(cursor)) / 86400000) + 1;
       let part;
       if (cursor === today && matcher) {
+        // What is left of this month's money, and no more of it than the days
+        // still to come can use.
+        //
+        // This used to take the whole remainder however little of the month
+        // was left, while the branch below - the same month, for a commitment
+        // whose payments cannot be spotted - took only the days' share. On 30
+        // September that charged September's full 30,000 against one
+        // remaining day and then added 29/31 of October on top: 58,065 of a
+        // 30,000 commitment inside one pay period. One month, one rule.
         const spent = bankEntries.filter((t) => t.date >= monthStart && t.date <= today && matcher(t)).reduce((s, t) => s + t.amount, 0);
-        part = Math.max(0, item.amount - spent);
+        const share = Math.round(item.amount * (days / daysInMonth));
+        part = Math.max(0, Math.min(item.amount - spent, share));
         parts.push(spent > 0 ? `${formatShort(part)} left this month` : `${formatShort(part)} this month`);
       } else if (cursor === today) {
         // This month is under way and there's no way to see what has already

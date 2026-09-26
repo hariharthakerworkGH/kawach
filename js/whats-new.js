@@ -12,6 +12,38 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.0.2',
+    items: [
+      {
+        icon: 'wallet',
+        title: 'Money arrives when it arrives',
+        text: 'Anything dated ahead - a salary, a payment you logged for next week - no longer counts in your bank balance until the day comes.',
+        guide: [{ view: 'summary', target: '.bank-card, .hero-under', text: 'In bank is what is there today. Money still to come is counted separately, after salary and bills.' }],
+      },
+      {
+        icon: 'summary',
+        title: 'The drawing says what the figure says',
+        text: 'If your spending is under pace but the bank still cannot cover what is owed, the note under the chart now says so too.',
+      },
+    ],
+  },
+  {
+    version: '4.0.1',
+    items: [
+      {
+        icon: 'alert',
+        title: 'It tells you when the money is not really there',
+        text: 'A new month gives you a fresh budget, but if the bank cannot cover what is still owed, the top of Summary now says so instead of offering you a daily amount.',
+        guide: [{ view: 'summary', target: '.hero-status, .bank-card', text: 'The line under the figure and the box below it now agree. If one says you are short, so does the other.' }],
+      },
+      {
+        icon: 'clock',
+        title: 'The bank check looks one payday ahead, always',
+        text: 'It used to quietly look two months ahead once your card statement cut, which made things look better than they were.',
+      },
+    ],
+  },
+  {
     version: '4.0',
     items: [
       {

@@ -222,6 +222,120 @@ test('bank check: after the next salary, bills and next month\'s commitments', a
   paise(f.bankAfterBills, rupees(50000 + 100000 - 70000 - 3000));
 });
 
+// --- a month's worth per month ------------------------------------------
+
+test('a monthly set-aside never costs more than a month inside one pay period', async () => {
+  await seedBasics({ income: 236000, keep: 12000, bankBalance: 56474, balanceDate: '2026-09-16' });
+  await put('settings', { id: 'salaryDay', value: 30 });
+  await putAll('recurring', [
+    commitment({ label: 'Cash Withdrawal', amount: 30000, spread: true }),
+    commitment({ label: 'House Rent', amount: 40000, dayOfMonth: 1 }),
+  ]);
+  // The salary really lands on the 30th, so from that day the next pay period
+  // runs 30 Sep to 29 Oct - thirty days, one month, one month's cash.
+  await putAll('transactions', [txn({ accountId: 'bank', date: '2026-09-30', amount: 236000, direction: 'credit', rawDescription: 'NEFT CR SALARY' })]);
+  const find = (f, label) => (f.bankBeforeSalary.find((i) => i.label === label) || { amount: 0 }).amount;
+
+  const onSalaryDay = await computeFreeToSpend(day('2026-09-30'));
+  const dayAfter = await computeFreeToSpend(day('2026-10-01'));
+  const midOctober = await computeFreeToSpend(day('2026-10-10'));
+
+  // 1 of September's 30 days left (1,000) + 29 of October's 31 (28,065).
+  paise(find(onSalaryDay, 'Cash Withdrawal'), 100000 + 2806452, 'one month across the boundary, not 1.94');
+  paise(find(dayAfter, 'Cash Withdrawal'), 2806452, '29 of October 31 days');
+  paise(find(midOctober, 'Cash Withdrawal'), 1935484, '20 days of October still to come');
+  // The invariant that matters, whatever the rounding: a month costs a month.
+  for (const f of [onSalaryDay, dayAfter, midOctober]) ok(find(f, 'Cash Withdrawal') <= rupees(30000), 'never more than one month');
+});
+
+test('what has already gone on a set-aside comes off it', async () => {
+  await seedBasics({ income: 236000, keep: 12000, bankBalance: 56474, balanceDate: '2026-09-16' });
+  await put('settings', { id: 'salaryDay', value: 30 });
+  await putAll('recurring', [commitment({ label: 'Cash Withdrawal', amount: 30000, spread: true, matchText: 'ATW' })]);
+  await putAll('transactions', [txn({ accountId: 'bank', date: '2026-10-05', amount: 18000, rawDescription: 'ATW-400000XXXXXX1111-S1AWMI30' })]);
+  const f = await computeFreeToSpend(day('2026-10-10'));
+  const left = (f.bankBeforeSalary.find((i) => i.label === 'Cash Withdrawal') || { amount: 0 }).amount;
+  paise(left, rupees(12000), 'what is left of the month, not the days share, because it is smaller');
+});
+
+// --- a balance is what is there today -----------------------------------
+
+test('money dated ahead is not in the bank yet', async () => {
+  await seedMonth();
+  // The salary really does land on the 30th. On the 24th it has not.
+  await putAll('transactions', [txn({ accountId: 'bank', date: '2026-09-30', amount: 100000, direction: 'credit', rawDescription: 'NEFT CR SALARY' })]);
+  const before = await computeFreeToSpend(day('2026-09-24'));
+  const after = await computeFreeToSpend(day('2026-10-01'));
+  paise(before.bank, rupees(50000), 'the balance on the 24th does not include it');
+  paise(after.bank, rupees(150000), 'by October it does');
+});
+
+test('a balance counts what has happened, whatever date was typed in', async () => {
+  await seedMonth();
+  // Somebody logs a payment for next week. It is not out of the account yet.
+  await putAll('transactions', [txn({ accountId: 'bank', date: '2026-09-30', amount: 9000, rawDescription: 'UPI-FUTURE-1' })]);
+  const f = await computeFreeToSpend(day('2026-09-20'));
+  paise(f.bank, rupees(50000), 'the future payment has not left the account');
+});
+
+// --- the same story, on every day ---------------------------------------
+
+test('crossing the statement day does not move the money that is owed', async () => {
+  await seedMonth();
+  await putAll('transactions', [txn({ accountId: 'card', date: '2026-09-12', amount: 30000, rawDescription: 'BEFORE STATEMENT' })]);
+  const before = await computeFreeToSpend(day('2026-09-25'));
+  const after = await computeFreeToSpend(day('2026-09-26'));
+  // It stops being this cycle's spending and becomes a bill. It does not stop
+  // being owed, and the two must add up to the same money.
+  paise(before.totals.owedCards, rupees(30000), 'owed on the 25th');
+  paise(after.totals.unpaidBills, rupees(30000), 'billed on the 26th');
+  paise(before.bank, after.bank, 'and the bank balance has not moved');
+});
+
+test('the budget does not change just because a cycle rolled over', async () => {
+  await seedMonth();
+  const days = ['2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27', '2026-10-01'];
+  const limits = [];
+  for (const d of days) limits.push((await computeFreeToSpend(day(d))).limit);
+  for (const l of limits) paise(l, limits[0], 'the same budget on every day');
+});
+
+// --- the statement day is not a financial reset -------------------------
+// Crossing it closes a card cycle. It must not change how far ahead the
+// plan looks, and it must not let the screen go quiet about money already
+// owed. Both of these were wrong: the horizon doubled on the 26th, and the
+// headline never consulted the bank check under it.
+
+test('the plan looks one payday ahead, on both sides of the statement day', async () => {
+  await seedMonth();
+  const before = await computeFreeToSpend(day('2026-09-25'));
+  const after = await computeFreeToSpend(day('2026-09-26'));
+  equal(before.salary.dates.length, 1, 'one salary on the 25th');
+  equal(after.salary.dates.length, 1, 'one salary on the 26th');
+  equal(after.salary.amount, before.salary.amount, 'the same salary, not two');
+  equal(after.windowEnd, before.windowEnd, 'the horizon does not move');
+  equal(after.fundedMonths.length, 1, 'one month of commitments, not two');
+});
+
+test('a new cycle does not go quiet about money the bank cannot cover', async () => {
+  await seedMonth();
+  // A card bill big enough that the salary will not clear it. It is billed on
+  // the 25th, so on the 26th the cycle is fresh and the budget looks healthy.
+  await putAll('transactions', [txn({ accountId: 'card', date: '2026-09-10', amount: 120000, rawDescription: 'BIG SPEND' })]);
+  const f = await computeFreeToSpend(day('2026-09-26'));
+  ok(f.free > 0, 'the new cycle does start with a budget again');
+  ok(f.bankAfterBills < 0, 'but the bank cannot cover what is owed');
+  ok(f.bankShortfall > 0, 'the shortfall is reported as a figure');
+  ok(f.level !== 'ok', 'so the headline does not read as calm');
+});
+
+test('a healthy month is still allowed to look healthy', async () => {
+  await seedMonth();
+  const f = await computeFreeToSpend(day('2026-09-26'));
+  equal(f.bankShortfall, 0, 'nothing owed beyond the plan');
+  equal(f.level, 'ok', 'and the headline says so');
+});
+
 test('an early salary is not counted twice', async () => {
   await seedMonth();
   await putAll('transactions', [txn({ accountId: 'bank', date: '2026-09-28', amount: 100000, direction: 'credit', rawDescription: 'NEFT CR SALARY' })]);

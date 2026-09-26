@@ -14,11 +14,21 @@ export const isPutAway = (a) => a.type === 'savings' || (a.type === 'bank' && a.
 // A bank account's balance is a snapshot (from the last imported statement)
 // adjusted forward by anything dated after it - transfers included, since
 // they're real money movement even though they're excluded from spend totals.
-export function bankBalance(account, transactions) {
+// What is in the account, as of a day - today unless asked otherwise.
+//
+// A date that has not happened yet is not money. Nothing stopped a payment
+// being dated ahead: Add lets you pick any date, and a provident fund month
+// is written on the last day of its month, which is in the future for most
+// of that month. Those rows were being added to the balance the moment they
+// were saved, so "In bank" could show a salary six days before it landed -
+// money the screen then let you plan around. A balance counts what has
+// happened.
+export function bankBalance(account, transactions, asOf = isoLocal(new Date())) {
   if (account.knownBalance == null || !account.knownBalanceDate) return null;
   let balance = account.knownBalance;
   for (const t of transactions) {
     if (t.accountId !== account.id || !afterKnownBalance(account, t)) continue;
+    if (asOf && t.date > asOf) continue;
     balance += t.direction === 'credit' ? t.amount : -t.amount;
   }
   return balance;

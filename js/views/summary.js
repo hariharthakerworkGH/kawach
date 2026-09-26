@@ -337,6 +337,15 @@ function renderSpendingLimit(f) {
 // One short line under the headline number.
 function spendingStatus(f) {
   const until = formatDateNice(f.cycleKey);
+  // A shortfall in the bank outranks a healthy-looking cycle: the budget can
+  // be untouched and the money still not be there, which is exactly what a
+  // new cycle after an expensive one looks like.
+  if (f.bankShortfall) {
+    const short = formatRupees(f.bankShortfall);
+    return f.free < 0
+      ? `Over budget, and ${short} short after salary and bills`
+      : `${short} short after salary and bills - what is owed is not paid yet`;
+  }
   if (f.level === 'over') return `Over budget - stop spending until ${until}`;
   if (f.level === 'critical') return f.crossesOn ? `Critical - runs out ${formatDateNice(f.crossesOn)} at this pace` : 'Critical - almost all used';
   if (f.level === 'warning') return f.crossesOn ? `Careful - runs out ${formatDateNice(f.crossesOn)} at this pace` : `Careful - ${Math.round(f.used * 100)}% used`;
@@ -371,7 +380,7 @@ function renderCardsHero(f) {
   // more, so the meter goes: the same fact three ways is noise (design.md
   // section 9). Too early in the month, or nothing spent yet, and the meter
   // is the picture instead.
-  const burn = burnLine({ totals: f.spendDays, budget: f.limit, days: f.daysIntoCycle + f.daysToClose - 1 });
+  const burn = burnLine({ totals: f.spendDays, budget: f.limit, days: f.daysIntoCycle + f.daysToClose - 1, shortfall: f.bankShortfall });
   const meter = burn || !(f.spentThisCycle > 0) ? null : { pct, tone: f.level === 'ok' ? '' : f.level === 'warning' ? 'warn' : 'over' };
   return hero({
     label: 'Left to spend',
