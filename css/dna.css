@@ -1117,6 +1117,8 @@ body:has(#view-container.k)::after {
 .k .chart-note { font-size: var(--k-label); color: var(--k-text-2); margin-top: var(--k-3); }
 .k .chart-dot { fill: var(--k-accent); filter: drop-shadow(0 0 7px color-mix(in oklch, var(--k-accent) 70%, transparent)); }
 .k .chart-dot-halo { fill: color-mix(in oklch, var(--k-accent) 20%, transparent); }
+.k .chart-projection { stroke: var(--k-text-2); stroke-width: 2; opacity: 0.7; }
+.k .chart-dot--projection { fill: var(--k-text-2); opacity: 0.9; }
 .k .chart-ring-track {
   fill: none;
   stroke: color-mix(in oklch, var(--k-surface-elev) 72%, transparent);
