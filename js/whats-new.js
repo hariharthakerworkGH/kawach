@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.7.3',
+    items: [
+      {
+        icon: 'sync',
+        title: 'Updates arrive without the flicker',
+        text: 'Taking a new version could load the app several times over before it settled. It takes it once now.',
+      },
+    ],
+  },
+  {
     version: '4.7.2',
     items: [
       {
