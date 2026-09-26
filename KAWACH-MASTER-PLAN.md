@@ -2,9 +2,9 @@
 ## Single Source of Truth for Product Improvement
 
 **Last updated:** 2026-09-26  
-**Current production:** 4.0.12 / BUILD 92  
-**Current cache:** expense-tracker-v92  
-**Latest production commit:** b35f32655eaed73e986af7bf29144f14c77677aa  
+**Current production:** 4.0.13 / BUILD 93  
+**Current cache:** expense-tracker-v93  
+**Latest production commit:** 0835f2dd5712ce14febece2c74557660012a6682  
 **Architecture:** vanilla JS, static/offline-first, SVG/CSS, no build framework
 
 > This document is the authoritative roadmap for Kawach improvement work.
@@ -221,6 +221,40 @@ Do not repeat audits that have already been verified unless a new change touches
 - The Stage 4 rule is to move only components already marked `APPROVED`. No component currently meets that condition, so no production component can be selected or released yet.
 - Next: choose one testing component for an explicit readiness review, or provide an already-approved component. Do not bypass the catalogue status.
 
+### Stage 4 approval panel - 26 September 2026
+The gate could not be opened because there was no way to approve anything.
+The Design Lab now opens with "Waiting for your decision": the components
+still marked TESTING, each with the question it answers, where it would go,
+what it must never do, the real choice it presents, a preview that redraws as
+the choice changes, and Confirm / Change. Choices are kept in the browser they
+are made in; confirming records a decision for implementation and does not
+change the app, which the panel states on screen.
+
+Components already LIVE are deliberately not offered as options. Swapping one
+is a redesign, not a pick, and maintaining parallel designs of a screen would
+mean making every future change several times.
+
+Also closed the two deferred Design Lab items: the sample navigation now
+matches the running app's order, and the section numbering no longer has a
+"00" or a missing 18.
+
+### Caching defect found while publishing that panel - fixed in 4.0.13
+The Lab published correctly and a phone that had opened it before still showed
+the old page. Cause: the service worker cached every same-origin file it saw,
+not only the ones the version ships, and served them without rechecking. The
+welcome page, the privacy policy and the Lab were therefore frozen at whatever
+copy a person first loaded, and could not be updated without a new app
+version. Only APP_SHELL paths are cached or served from the cache now.
+
+Verified on a fresh install: the cache holds exactly its 91 shell entries where
+it held 94, visiting the Lab no longer adds to it, and with the server stopped
+the shell is still served and the app reports its version, so offline is
+intact. Released as 4.0.13 / BUILD 93 / cache v93, commit `0835f2dd57`, snapshot
+`expense-tracker-versions/4.0.13`, verified live.
+
+Note for future releases: a change to any page outside APP_SHELL could not
+reach existing users before this fix. It can now.
+
 Move only approved Design Lab components into production screens.
 
 Process:
@@ -357,10 +391,10 @@ Every release must follow:
 **CODE → TESTS → VERSION → BUILD → SERVICE-WORKER CACHE → WHAT'S NEW → SNAPSHOT → GITHUB → LIVE VERIFICATION**
 
 Current:
-- 4.0.12
-- BUILD 92
-- cache v92
-- snapshot expense-tracker-versions/4.0.12
+- 4.0.13
+- BUILD 93
+- cache v93
+- snapshot expense-tracker-versions/4.0.13
 
 Never declare a release complete until the installed PWA can actually detect it.
 
@@ -379,6 +413,7 @@ Existing snapshots must never be overwritten:
 - expense-tracker-versions/4.0.10
 - expense-tracker-versions/4.0.11
 - expense-tracker-versions/4.0.12
+- expense-tracker-versions/4.0.13
 
 Every meaningful phase/release gets a new snapshot.
 
