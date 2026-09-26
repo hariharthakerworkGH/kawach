@@ -1117,6 +1117,24 @@ body:has(#view-container.k)::after {
 .k .chart-note { font-size: var(--k-label); color: var(--k-text-2); margin-top: var(--k-3); }
 .k .chart-dot { fill: var(--k-accent); filter: drop-shadow(0 0 7px color-mix(in oklch, var(--k-accent) 70%, transparent)); }
 .k .chart-dot-halo { fill: color-mix(in oklch, var(--k-accent) 20%, transparent); }
+.k .chart-ring-track {
+  fill: none;
+  stroke: color-mix(in oklch, var(--k-surface-elev) 72%, transparent);
+  stroke-width: 11;
+  vector-effect: non-scaling-stroke;
+}
+.k .chart-ring-fill {
+  fill: none;
+  stroke: var(--k-accent);
+  stroke-width: 11;
+  filter: drop-shadow(0 0 6px color-mix(in oklch, var(--k-accent) 42%, transparent));
+  vector-effect: non-scaling-stroke;
+}
+.k .goal-ring,
+.k .alloc-ring,
+.k .radial-meter { display: block; width: 100%; max-width: 120px; height: auto; overflow: visible; }
+.k .chart-block { width: 100%; min-width: 0; }
+.k .chart-block > svg { max-width: 100%; }
 .k .bar-in { fill: color-mix(in oklch, var(--k-positive) 70%, transparent); }
 .k .bar-out { fill: color-mix(in oklch, var(--k-negative) 66%, transparent); }
 .k .bar-track { fill: color-mix(in oklch, var(--k-surface-elev) 48%, transparent); }
@@ -1417,10 +1435,17 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
   color: oklch(80% 0.11 var(--k-hue, 206));
 }
 .k-brand__text {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
   font-size: 0.78em;
   font-weight: var(--k-w-fig);
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   line-height: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  transform: translateY(-0.02em);
 }
 
 /* Nothing known at all: a quiet tile rather than a hole in the row. */
