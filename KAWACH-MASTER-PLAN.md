@@ -278,7 +278,7 @@ Existing snapshots must never be overwritten:
 - versions/0.0.4
 - versions/0.0.5
 - versions/0.0.6
-- versions/0.0.7
+- versions/0.0.7`r`n- expense-tracker-versions/4.0.10
 
 Every meaningful phase/release gets a new snapshot.
 
@@ -330,3 +330,4 @@ At the end of a meaningful work session, update this document with:
 **Finish live responsive, light/dark and Budget Burn QA for Summary 4.0.10, then proceed to Stage 2 — Brand Library.**
 
 Do not begin another broad redesign before this checkpoint is closed.
+
