@@ -3,6 +3,7 @@
 import { test, equal, ok, paise } from './harness.js';
 import { seedBasics, putAll, txn, commitment, rupees, day } from './fixtures.js';
 import { computeFreeToSpend } from '../js/free-to-spend.js';
+import { buildDiagnosticReport } from '../js/diagnostics.js';
 import { getAll, put } from '../js/db.js';
 import { detectRecurring } from '../js/recurring.js';
 import { detectTransfers } from '../js/transfers.js';
@@ -549,6 +550,30 @@ test('the same payments in two downloads worded too differently to match are cou
   const f = await computeFreeToSpend(day('2026-09-17'));
   equal(f.duplicates.length, 3);
   equal(f.tracker.find((t) => t.label === 'Tiffin Bill').used, rupees(900));
+});
+
+// The report exists to explain a problem. Failing to build is the one way it
+// can be no use at all, and it had been failing for every user since before
+// 4.0.11: it read figures.stale, which free-to-spend stopped returning. A
+// report that cannot be produced hides exactly the situation it is for.
+test('the diagnostic report builds from a real month, and carries the figures', async () => {
+  await seedMonth();
+  await putAll('transactions', [
+    txn({ accountId: 'card', date: '2026-09-10', amount: 3000, rawDescription: 'SHOES' }),
+    txn({ accountId: 'bank', date: '2026-09-12', amount: 900, rawDescription: 'UPI-CAFE-111111111111' }),
+  ]);
+  const report = await buildDiagnosticReport(day('2026-09-16'));
+  ok(report && report.figures, 'a report with figures comes back');
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  paise(report.figures.budget, f.limit, 'the budget is the one the app shows');
+  paise(report.figures.spent, f.spentThisCycle, 'and so is the spending');
+  paise(report.figures.left, f.free);
+  ok(Array.isArray(report.figures.tracker), 'the commitment tracker is a list');
+  ok(typeof report.figures.duplicates === 'number', 'duplicates is a count');
+  // Nothing a person would recognise as theirs.
+  const text = JSON.stringify(report);
+  ok(!text.includes('SHOES'), 'a merchant name is redacted');
+  ok(!text.includes('111111111111'), 'a bank reference is redacted');
 });
 
 test('a card\'s statement day comes from its imported statements, whatever was typed in', async () => {

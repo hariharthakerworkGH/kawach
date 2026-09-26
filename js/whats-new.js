@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.7.2',
+    items: [
+      {
+        icon: 'file',
+        title: 'Saving a diagnostic report works again',
+        text: 'Settings, "Save diagnostic report" was failing with an error instead of saving the file. It works now.',
+      },
+    ],
+  },
+  {
     version: '4.7',
     items: [
       {

@@ -181,9 +181,8 @@ export async function buildDiagnosticReport(now = new Date()) {
       bankAfterBills: figures.bankAfterBills,
       level: figures.level,
       bankLevel: figures.bankLevel,
-      duplicates: figures.duplicates.length,
-      stale: figures.stale.map((s) => ({ account: accountNames.get(s.account.id), lastDate: s.lastDate, days: s.days })),
-      tracker: figures.tracker.map((t) => ({ label: redact(t.label), status: t.status, amount: t.amount, used: t.used, matches: t.matches.length, notThis: (t.notThis || []).length })),
+      duplicates: (figures.duplicates || []).length,
+      tracker: (figures.tracker || []).map((t) => ({ label: redact(t.label), status: t.status, amount: t.amount, used: t.used, matches: t.matches.length, notThis: (t.notThis || []).length })),
     },
   };
 }
