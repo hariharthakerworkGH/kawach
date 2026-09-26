@@ -2,9 +2,9 @@
 ## Single Source of Truth for Product Improvement
 
 **Last updated:** 2026-09-26  
-**Current production:** 4.0.11 / BUILD 91  
-**Current cache:** expense-tracker-v91  
-**Latest production commit:** d8d2994c9fc2e8670aa2db012087389d1f779ff4  
+**Current production:** 4.0.12 / BUILD 92  
+**Current cache:** expense-tracker-v92  
+**Latest production commit:** b35f32655eaed73e986af7bf29144f14c77677aa  
 **Architecture:** vanilla JS, static/offline-first, SVG/CSS, no build framework
 
 > This document is the authoritative roadmap for Kawach improvement work.
@@ -295,8 +295,10 @@ Not yet done, and still required before credit-card capacity work:
 7. Decide the credit-limit field. Confirmed absent from the data model: no
    `creditLimit` or equivalent appears anywhere in `js/`.
 
-Not released. Version, build and cache are untouched at 4.0.11 / BUILD 91 /
-v91, and nothing has been pushed.
+Released as 4.0.12 / BUILD 92 / cache v92, commit `b35f32655e`.
+Snapshot `expense-tracker-versions/4.0.12` taken and verified file by file.
+Verified live: getkawach.com reports 4.0.12, serves the clamped boundary, and
+all 91 app-shell files fetch cleanly with no corrupted stylesheet.
 
 Before further credit-card visualisation:
 1. Test against real-world credit-card statement examples.
@@ -355,10 +357,10 @@ Every release must follow:
 **CODE → TESTS → VERSION → BUILD → SERVICE-WORKER CACHE → WHAT'S NEW → SNAPSHOT → GITHUB → LIVE VERIFICATION**
 
 Current:
-- 4.0.11
-- BUILD 91
-- cache v91
-- snapshot expense-tracker-versions/4.0.11
+- 4.0.12
+- BUILD 92
+- cache v92
+- snapshot expense-tracker-versions/4.0.12
 
 Never declare a release complete until the installed PWA can actually detect it.
 
@@ -376,6 +378,7 @@ Existing snapshots must never be overwritten:
 - versions/0.0.7
 - expense-tracker-versions/4.0.10
 - expense-tracker-versions/4.0.11
+- expense-tracker-versions/4.0.12
 
 Every meaningful phase/release gets a new snapshot.
 
