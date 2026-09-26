@@ -120,6 +120,24 @@
   .art-cell { display: flex; flex-direction: column; align-items: center; gap: var(--k-2); color: var(--k-accent); }
   .art-cell__art { width: 62px; height: 62px; display: block; background: currentColor; -webkit-mask: var(--k-art) center / contain no-repeat; mask: var(--k-art) center / contain no-repeat; }
   .art-cell span { font-size: 10px; color: var(--k-text-3); }
+  /* --- decisions waiting on the owner -------------------------------- */
+  .ap-sec { border: 1px solid var(--k-accent); border-radius: var(--k-r-lg); padding: var(--k-5); margin-top: var(--k-6); background: color-mix(in oklch, var(--k-accent) 5%, transparent); }
+  .ap-card { border-top: 1px solid var(--k-hairline); margin-top: var(--k-5); padding-top: var(--k-5); }
+  .ap-card:first-child { border-top: 0; margin-top: var(--k-4); padding-top: 0; }
+  .ap-q { font-size: var(--k-body); color: var(--k-text); font-weight: 600; margin: var(--k-2) 0; }
+  .ap-meta { font-size: var(--k-label); color: var(--k-text-3); margin: 0 0 var(--k-4); line-height: var(--k-lh-body); }
+  .ap-never { color: var(--k-warning); }
+  .ap-stage { border: 1px dashed var(--k-hairline); border-radius: var(--k-r-md); padding: var(--k-5); margin: var(--k-4) 0; display: grid; place-items: center; min-height: 96px; }
+  .ap-toast { display: inline-block; background: var(--k-accent); color: var(--k-accent-ink); padding: var(--k-2) var(--k-5); border-radius: var(--k-r-pill); font-size: var(--k-label); font-weight: 600; }
+  .ap-why { font-size: var(--k-label); color: var(--k-text-2); margin: 0 0 var(--k-4); line-height: var(--k-lh-body); }
+  .ap-row { display: flex; flex-wrap: wrap; gap: var(--k-3); align-items: center; }
+  .ap-row select { font: inherit; font-size: var(--k-label); color: var(--k-text); background: var(--k-surface-elev); border: 1px solid var(--k-hairline); border-radius: var(--k-r-sm); min-height: var(--k-tap); padding: 0 var(--k-3); flex: 1 1 240px; min-width: 0; }
+  .ap-btn { font: inherit; font-size: var(--k-label); font-weight: 600; min-height: var(--k-tap); padding: 0 var(--k-5); border: 0; border-radius: var(--k-r-sm); background: var(--k-accent); color: var(--k-accent-ink); cursor: pointer; }
+  .ap-btn--quiet { background: transparent; color: var(--k-text-2); border: 1px solid var(--k-hairline); }
+  .ap-lock { font-size: var(--k-label); font-weight: 600; color: var(--k-positive); }
+  .ap-sum { margin-top: var(--k-6); padding-top: var(--k-4); border-top: 1px solid var(--k-hairline); font-size: var(--k-label); color: var(--k-text-2); line-height: var(--k-lh-body); }
+  .ap-sum ul { margin: var(--k-2) 0 0; padding-left: 18px; }
+  .ap-sum code { font-family: ui-monospace, Consolas, monospace; font-size: 11px; }
 </style>
 </head>
 <body class="k k-atmosphere">
@@ -130,6 +148,14 @@
 </div>
 
 <div class="lab">
+
+<!-- WAITING FOR YOUR DECISION -------------------------------------- -->
+<section class="lab-sec ap-sec" id="approvals">
+  <h2>Waiting for your decision</h2>
+  <p>Three pieces are built and tested but are not in the app, because nothing has decided how each should behave. Choose, look at it, then press Confirm to lock it.</p>
+  <div id="ap-list"></div>
+  <div class="ap-sum" id="ap-sum"></div>
+</section>
 
 <!-- 01 · BRAND / IDENTITY ------------------------------------------- -->
 <section class="lab-sec">
@@ -555,10 +581,10 @@
 
   <nav class="k-nav lab-bleed" style="position:static;border-top:1px solid var(--k-hairline);border-bottom:1px solid var(--k-hairline)">
     <button class="k-nav__item" aria-current="page"><span class="k-nav__dot" data-icon="summary"></span>Summary</button>
-    <button class="k-nav__item"><span class="k-nav__dot" data-icon="history"></span>History</button>
     <button class="k-nav__item"><span class="k-nav__dot" data-icon="add"></span>Add</button>
-    <button class="k-nav__item"><span class="k-nav__dot" data-icon="plan"></span>Plan</button>
     <button class="k-nav__item"><span class="k-nav__dot" data-icon="accounts"></span>Accounts</button>
+    <button class="k-nav__item"><span class="k-nav__dot" data-icon="plan"></span>Plan</button>
+    <button class="k-nav__item"><span class="k-nav__dot" data-icon="history"></span>History</button>
     <button class="k-nav__item"><span class="k-nav__dot" data-icon="coach"></span>Coach</button>
   </nav>
   <p class="lab-note">The active item is brighter, heavier and glowing slightly. It is not given a filled pill, because a pill in a bar of six makes the other five look disabled.</p>
@@ -645,7 +671,7 @@
 
 <!-- 00 · THE CATALOGUE ------------------------------------------------ -->
 <section class="lab-sec" id="catalogue">
-  <h2>00 &middot; Component catalogue</h2>
+  <h2>17 &middot; Component catalogue</h2>
   <p>Every approved component, by name. Say the name and there is one thing it can mean.</p>
   <div class="cat-count" id="cat-count"></div>
   <div class="cat-grid" id="cat-grid"></div>
@@ -654,7 +680,7 @@
 
 <!-- 17b · BRAND LIBRARY ----------------------------------------------- -->
 <section class="lab-sec">
-  <h2>17 &middot; Brand library</h2>
+  <h2>18 &middot; Brand library</h2>
   <p>Who Kawach would like a mark for, and what it currently has.</p>
   <div id="brand-summary" class="cat-count"></div>
   <div id="brand-groups"></div>
@@ -862,6 +888,133 @@
   document.getElementById('art-grid').innerHTML = ARTWORK.map(
     (a) => `<span class="art-cell"><span class="art-cell__art" style="--k-art:url("../icons/art/${a.file}")" role="img" aria-label="${a.file}"></span><span>${a.file}</span></span>`
   ).join('');
+
+  /* --- what is waiting on you ---------------------------------------- */
+  // Real either/or choices, not invented ones. The app already says "saved"
+  // and "could not save" with a floating toast; these components are the
+  // in-page form of the same message. So the question is which form each
+  // message should take, which is a judgement about how the app should feel
+  // and therefore yours, not mine.
+  //
+  // Only components still marked TESTING appear here. The 23 already LIVE are
+  // in use, and swapping one is a redesign rather than a choice, so they are
+  // deliberately not offered as options.
+  const PENDING = {
+    'KAWACH-STATE-SUCCESS-V1': {
+      where: 'Anywhere a save finishes: Add, Plan, or after an import.',
+      options: [
+        { v: 'toast', label: 'Keep the floating message (what the app does now)',
+          why: 'Floats over the screen and fades after two seconds. Nothing to dismiss. Easy to miss if you looked away.',
+          demo: () => `<span class="ap-toast">Payment saved</span>` },
+        { v: 'panel', label: 'Use a panel inside the screen that stays',
+          why: 'Stays until the screen changes, so it cannot be missed. Takes room, and for a small save it can feel heavy.',
+          demo: () => DEMOS['KAWACH-STATE-SUCCESS-V1']() },
+        { v: 'defer', label: 'Not yet - leave it as it is',
+          why: 'Stays in the catalogue, tested but unused. Nothing changes in the app.', demo: null },
+      ],
+    },
+    'KAWACH-STATE-ERROR-V1': {
+      where: 'Where something failed and you need to know what survived: a statement that would not open, a save that did not go through.',
+      options: [
+        { v: 'panel', label: 'Use a panel inside the screen that stays (my suggestion)',
+          why: 'A failure is something you have to act on, and a message that fades takes the explanation with it. This one waits, and says what survived before what broke.',
+          demo: () => DEMOS['KAWACH-STATE-ERROR-V1']() },
+        { v: 'toast', label: 'Keep the floating message (what the app does now)',
+          why: 'Consistent with every other message, but it fades in two seconds, so a wrong password or an unreadable statement can go unnoticed.',
+          demo: () => `<span class="ap-toast">Could not save</span>` },
+        { v: 'defer', label: 'Not yet - leave it as it is',
+          why: 'Stays in the catalogue, tested but unused. Nothing changes in the app.', demo: null },
+      ],
+    },
+    'KAWACH-STATE-LOADING-V1': {
+      where: 'Only where a wait is long enough to notice: reading a statement PDF.',
+      options: [
+        { v: 'none', label: 'Leave it out (my suggestion)',
+          why: 'Screens are drawn after their data arrives, so there is usually nothing to wait through. A flash of grey bars for a tenth of a second looks like a fault.',
+          demo: null },
+        { v: 'import', label: 'Show it while a statement is being read',
+          why: 'Reading a PDF is the one wait that is genuinely slow. The bars show the shape of what is coming.',
+          demo: () => DEMOS['KAWACH-STATE-LOADING-V1']() },
+        { v: 'defer', label: 'Not yet - decide later',
+          why: 'Stays in the catalogue, tested but unused.', demo: null },
+      ],
+    },
+  };
+
+  const AP_KEY = 'kawach-lab-decisions';
+  const apRead = () => { try { return JSON.parse(localStorage.getItem(AP_KEY)) || {}; } catch { return {}; } };
+  const apWrite = (d) => { try { localStorage.setItem(AP_KEY, JSON.stringify(d)); } catch { /* private window */ } };
+  const apDay = (iso) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
+  const apList = document.getElementById('ap-list');
+  const apSum = document.getElementById('ap-sum');
+  const apPending = CATALOGUE.filter((c) => PENDING[c.id]);
+
+  function apRender() {
+    const saved = apRead();
+    apList.innerHTML = apPending.map((c) => {
+      const spec = PENDING[c.id];
+      const lock = saved[c.id];
+      const chosen = lock ? lock.choice : spec.options[0].v;
+      const opt = spec.options.find((o) => o.v === chosen) || spec.options[0];
+      return `<div class="ap-card" data-id="${c.id}">
+        <div class="cat-top"><span class="cat-id">${c.id}</span>
+          <span class="cat-badge cat-${lock ? 'LIVE' : c.status}">${lock ? 'DECIDED' : c.status}</span></div>
+        <p class="ap-q">${c.answers}</p>
+        <p class="ap-meta">${c.purpose}<br><b>Where:</b> ${spec.where}
+          ${c.dont ? `<br><span class="ap-never">Never: ${c.dont}</span>` : ''}</p>
+        <div class="ap-row">
+          <select data-sel="${c.id}" ${lock ? 'disabled' : ''}>
+            ${spec.options.map((o) => `<option value="${o.v}"${o.v === chosen ? ' selected' : ''}>${o.label}</option>`).join('')}
+          </select>
+          ${lock
+            ? `<span class="ap-lock">Locked &middot; ${apDay(lock.at)}</span>
+               <button class="ap-btn ap-btn--quiet" data-undo="${c.id}">Change</button>`
+            : `<button class="ap-btn" data-ok="${c.id}">Confirm</button>`}
+        </div>
+        <div class="ap-stage" data-stage="${c.id}">${opt.demo ? opt.demo() : '<span class="ap-meta" style="margin:0">Nothing is shown. The app behaves as it does today.</span>'}</div>
+        <p class="ap-why" data-why="${c.id}">${opt.why}</p>
+      </div>`;
+    }).join('');
+
+    const locked = apPending.filter((c) => saved[c.id]);
+    apSum.innerHTML = locked.length
+      ? `<b>${locked.length} of ${apPending.length} decided.</b> Confirming records your choice here; it does not change the app by itself. I read these and build them.
+         <ul>${locked.map((c) => {
+             const o = PENDING[c.id].options.find((x) => x.v === saved[c.id].choice);
+             return `<li><code>${c.id}</code> &rarr; ${o ? o.label : saved[c.id].choice}</li>`;
+           }).join('')}</ul>`
+      : `Nothing decided yet. Confirming records your choice here; it does not change the app by itself. I read these and build them.`;
+    fillIcons(apList);
+  }
+
+  apList.addEventListener('change', (e) => {
+    const id = e.target.dataset.sel;
+    if (!id) return;
+    const spec = PENDING[id];
+    const opt = spec.options.find((o) => o.v === e.target.value);
+    const stage = apList.querySelector(`[data-stage="${id}"]`);
+    stage.innerHTML = opt.demo ? opt.demo() : '<span class="ap-meta" style="margin:0">Nothing is shown. The app behaves as it does today.</span>';
+    apList.querySelector(`[data-why="${id}"]`).textContent = opt.why;
+    fillIcons(stage);
+  });
+
+  apList.addEventListener('click', (e) => {
+    const ok = e.target.dataset.ok;
+    const undo = e.target.dataset.undo;
+    const saved = apRead();
+    if (ok) {
+      saved[ok] = { choice: apList.querySelector(`[data-sel="${ok}"]`).value, at: new Date().toISOString() };
+      apWrite(saved);
+      apRender();
+    } else if (undo) {
+      delete saved[undo];
+      apWrite(saved);
+      apRender();
+    }
+  });
+
+  apRender();
 
   fillIcons(document);
 </script>
