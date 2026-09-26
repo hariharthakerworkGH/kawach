@@ -54,6 +54,12 @@ export function burnLine({ totals = [], budget = 0, days = 0, shortfall = 0 }) {
   const y = (v) => H - pad - (v / top) * (H - pad * 2);
   const path = smoothPath(totals.map((t, i) => [x(i), y(t)]));
   const last = { x: x(totals.length - 1), y: y(spent) };
+  const elapsed = Math.max(1, totals.length);
+  const totalDays = Math.max(elapsed, days);
+  const avgPerDay = spent / elapsed;
+  const projected = Math.round(avgPerDay * totalDays);
+  const projectedPoint = { x: W, y: y(projected) };
+  const projectionPath = `M${last.x.toFixed(1)} ${last.y.toFixed(1)} L${projectedPoint.x.toFixed(1)} ${projectedPoint.y.toFixed(1)}`;
   const area = `${path} L${last.x.toFixed(1)} ${H} L0 ${H} Z`;
   // Where an even pace would have you by today, and by how much you are off.
   const evenSoFar = Math.round((budget * totals.length) / days);
@@ -68,7 +74,10 @@ export function burnLine({ totals = [], budget = 0, days = 0, shortfall = 0 }) {
     diff >= 0
       ? `You are <b>${formatRupees(diff)} under</b> the even pace for today.`
       : `You are <b>${formatRupees(-diff)} over</b> the even pace for today.`;
-  const sentence = shortfall > 0 ? `${pace} Even so, <b>${formatRupees(shortfall)}</b> of what you owe is not covered.` : pace;
+  const projectionSentence = projected <= budget
+    ? `At this pace, about <b>${formatRupees(projected)}</b> will be spent by the end of the cycle.`
+    : `At this pace, about <b>${formatRupees(projected)}</b> will be spent by the end - <b>${formatRupees(projected - budget)}</b> over budget.`;
+  const sentence = shortfall > 0 ? `${projectionSentence} Even so, <b>${formatRupees(shortfall)}</b> of what you owe is not covered.` : `${projectionSentence} ${pace}`;
   const drawing = frame(
     `<defs><linearGradient id="burn-fade" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stop-color="var(--k-accent)" stop-opacity="0.26"/>
@@ -77,8 +86,10 @@ export function burnLine({ totals = [], budget = 0, days = 0, shortfall = 0 }) {
       <line x1="0" y1="${H - pad}" x2="${W}" y2="${y(budget).toFixed(1)}" class="chart-pace" stroke-dasharray="4 5" vector-effect="non-scaling-stroke"/>
       <path d="${area}" fill="url(#burn-fade)"/>
       <path d="${path}" fill="none" class="chart-line" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      <path d="${projectionPath}" fill="none" class="chart-projection" stroke-dasharray="3 4" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
       <circle class="chart-dot-halo" cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="6" vector-effect="non-scaling-stroke"/>
-      <circle class="chart-dot" cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="2.6" vector-effect="non-scaling-stroke"/>`,
+      <circle class="chart-dot" cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="2.6" vector-effect="non-scaling-stroke"/>
+      <circle class="chart-dot chart-dot--projection" cx="${projectedPoint.x.toFixed(1)}" cy="${projectedPoint.y.toFixed(1)}" r="3" vector-effect="non-scaling-stroke"/>`,
     {
       label: `Spending so far is ${formatRupees(spent)} of a ${formatRupees(budget)} budget, ${diff >= 0 ? 'under' : 'over'} an even pace by ${formatRupees(Math.abs(diff))}.${
         shortfall > 0 ? ` ${formatRupees(shortfall)} of what is owed is not covered.` : ''
