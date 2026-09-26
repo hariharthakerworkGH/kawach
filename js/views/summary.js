@@ -494,14 +494,28 @@ function renderCardsHero(f) {
 
   return spendingHero(f, appearance('summary')) + `
     <div class="hero-under">
-      <div class="stat"><span class="stat-k">Spent</span><span class="stat-v">${formatRupees(f.spentThisCycle)}</span></div>
-      <div class="stat"><span class="stat-k">Budget</span><span class="stat-v">${formatRupees(f.limit)}</span></div>
+      <div class="stat stat-wide">
+        <span class="stat-v">${formatRupees(f.spentThisCycle)} <span class="stat-of">of</span> ${formatRupees(f.limit)}</span>
+        <span class="stat-k">spent</span>
+      </div>
       ${stillSetAside(f)}
     </div>
-    <div class="summary-spending-split" aria-label="Spending by where it was paid from">
-      <span>On cards <strong>${formatRupees(f.cardSpent || 0)}</strong></span>
-      <span>From the bank <strong>${formatRupees(f.bankSpent || 0)}</strong></span>
-    </div>
+    ${(() => {
+      const card = Math.max(0, f.cardSpent || 0);
+      const bank = Math.max(0, f.bankSpent || 0);
+      const total = card + bank;
+      // Nothing spent yet: a bar of nothing is a shape with no meaning.
+      const bar = total > 0
+        ? `<div class="split-bar" role="img" aria-label="${formatRupees(card)} on cards, ${formatRupees(bank)} from the bank">
+             <span class="split-bar__card" style="width:${((card / total) * 100).toFixed(1)}%"></span>
+           </div>`
+        : '';
+      return `<div class="summary-spending-split" aria-label="Spending by where it was paid from">
+        ${bar}
+        <span class="split-k"><span class="split-dot split-dot--card"></span>On cards <strong>${formatRupees(card)}</strong></span>
+        <span class="split-k"><span class="split-dot split-dot--bank"></span>From the bank <strong>${formatRupees(bank)}</strong></span>
+      </div>`;
+    })()}
     ${insightCard(f)}
     ${moneyShape(f)}
       <details class="fts-breakdown hero-work">
@@ -572,8 +586,8 @@ function stillSetAside(f) {
   const left = rows.reduce((s, t) => s + t.left, 0);
   if (!left) return '';
   return `<button type="button" class="stat stat-aside" id="set-aside-stat">
-      <span class="stat-k">Still set aside</span>
       <span class="stat-v">${formatRupees(left)}</span>
+      <span class="stat-k">kept back</span>
     </button>`;
 }
 

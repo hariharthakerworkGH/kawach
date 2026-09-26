@@ -72,12 +72,12 @@ export function burnLine({ totals = [], budget = 0, days = 0, shortfall = 0 }) {
   // what is owed.
   const pace =
     diff >= 0
-      ? `You are <b>${formatRupees(diff)} under</b> the even pace for today.`
-      : `You are <b>${formatRupees(-diff)} over</b> the even pace for today.`;
+      ? `<b>${formatRupees(diff)} under</b> today's pace.`
+      : `<b>${formatRupees(-diff)} over</b> today's pace.`;
   const projectionSentence = projected <= budget
-    ? `At this pace, about <b>${formatRupees(projected)}</b> will be spent by the end of the cycle.`
-    : `At this pace, about <b>${formatRupees(projected)}</b> will be spent by the end - <b>${formatRupees(projected - budget)}</b> over budget.`;
-  const sentence = shortfall > 0 ? `${projectionSentence} Even so, <b>${formatRupees(shortfall)}</b> of what you owe is not covered.` : `${projectionSentence} ${pace}`;
+    ? `Heading for <b>${formatRupees(projected)}</b>.`
+    : `Heading for <b>${formatRupees(projected)}</b> &middot; <b>${formatRupees(projected - budget)}</b> over budget.`;
+  const sentence = shortfall > 0 ? `${projectionSentence} <b>${formatRupees(shortfall)}</b> of what you owe is not covered.` : `${projectionSentence} ${pace}`;
   const drawing = frame(
     `<defs><linearGradient id="burn-fade" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stop-color="var(--k-accent)" stop-opacity="0.26"/>

@@ -2874,3 +2874,18 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
   --k-12: 36px;
   --k-16: 48px;
 }
+
+/* Where this month's spending was paid from, as one strip rather than two
+   drawings. It is deliberately thin and unlabelled: the burn line above
+   answers "am I ahead or behind", and a second chart with an axis would
+   argue with it. */
+.k .split-bar { flex: 1 0 100%; display: flex; height: 6px; border-radius: var(--k-r-pill); overflow: hidden; background: color-mix(in oklch, var(--k-text-3) 26%, transparent); margin-bottom: var(--k-1); }
+.k .split-bar__card { background: var(--k-accent); }
+.k .split-k { display: inline-flex; align-items: center; gap: var(--k-1); }
+.k .split-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.k .split-dot--card { background: var(--k-accent); }
+.k .split-dot--bank { background: color-mix(in oklch, var(--k-text-3) 46%, transparent); }
+/* One figure and its total on a line, with the word under it like every
+   other stat on this screen. */
+.k .stat-wide { align-items: flex-start; }
+.k .stat-of { color: var(--k-text-3); font-weight: 400; }
