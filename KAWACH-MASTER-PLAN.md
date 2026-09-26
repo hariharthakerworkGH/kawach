@@ -116,6 +116,12 @@ Next work:
 7. Fix only issues found by QA.
 8. Release with the normal version/update process.
 
+### Production CSS regression — inserted before closing Stage 1
+- Root cause confirmed from GitHub: production `css/dna.css` is corrupted encoded data, while the 4.0.10 local snapshot has valid CSS. Summary and Accounts therefore lose DNA card, spacing and chart styling.
+- Repair the published stylesheet from the verified local release source, then compare all production CSS/assets against that source.
+- Recheck Summary and Accounts against Design Lab 2.1 at phone widths and verify the ring/chart visibility before Stage 1 can close.
+- Do not change financial calculations or user data.
+
 ### Active Summary follow-up from 4.0.9 screenshots
 - Complete: card-cycle and bank-month spending now share a compact line; the unpaid-card warning explains the liability once; the duplicate headline warning was removed.
 - Complete: breakdown rows have clear internal padding, a consistent label/amount gap and safe label wrapping.
@@ -328,7 +334,7 @@ At the end of a meaningful work session, update this document with:
 
 # 15. CURRENT NEXT ACTION
 
-**Finish live responsive, light/dark and Budget Burn QA for Summary 4.0.10, then proceed to Stage 2 — Brand Library.**
+**Repair the corrupted production DNA stylesheet, verify the production assets match the 4.0.10 source, then finish Stage 1 responsive/theme/Budget Burn QA before Stage 2 — Brand Library.**
 
 Do not begin another broad redesign before this checkpoint is closed.
 
