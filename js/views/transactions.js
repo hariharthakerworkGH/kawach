@@ -102,20 +102,7 @@ export async function render(container, params = {}) {
       <div class="hero-top"><span class="hero-label">Net this month</span><span class="hero-label" id="hist-period"></span></div>
       <p class="hero-amount" id="hist-net">&nbsp;</p>
       <p class="hero-status" id="txn-count"></p>
-      ${(() => {
-        // Both drawings answer a question about the same six months; which of
-        // them is worth the room is the person's choice (js/appearance.js).
-        const look = appearance('history');
-        const months = lastSixMonths(transactions);
-        const bars = look === 'river' ? '' : inOutBars({ months });
-        const river = look === 'bars' ? '' : cashRiver({ months });
-        if (!river) return bars;
-        // On its own the river stands open; under the bars it stays folded, so
-        // the bars remain the first thing and the two never compete.
-        return bars
-          ? `${bars}<details class="section-fold river-fold"><summary>What you kept, month by month</summary>${river}</details>`
-          : river;
-      })()}
+      ${sixMonthCharts(lastSixMonths(transactions), appearance('history'))}
     </section>
     <div class="hero-under" id="hist-stats"></div>
     <div class="hist-top">
@@ -851,7 +838,25 @@ function formatFull(iso) {
 // Six months of money in and out, for the drawing above the list: is this
 // month normal for me? Transfers between your own accounts are money moved,
 // never money in or out.
-function lastSixMonths(transactions) {
+/* The six-month drawings, so that "How it looks" can show the real ones.
+ * Exported for js/views/appearance.js, which passes the same months this
+ * screen passes and a look to try.
+ *
+ * Both answer a question about the same six months; which of them is worth
+ * the room is the person's choice.
+ */
+export function sixMonthCharts(months, look = 'both') {
+  const bars = look === 'river' ? '' : inOutBars({ months });
+  const river = look === 'bars' ? '' : cashRiver({ months });
+  if (!river) return bars;
+  // On its own the river stands open; under the bars it stays folded, so the
+  // bars remain the first thing and the two never compete.
+  return bars
+    ? `${bars}<details class="section-fold river-fold"><summary>What you kept, month by month</summary>${river}</details>`
+    : river;
+}
+
+export function lastSixMonths(transactions) {
   const now = new Date();
   const months = [];
   for (let back = 5; back >= 0; back -= 1) {

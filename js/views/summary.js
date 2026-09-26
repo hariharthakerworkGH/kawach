@@ -318,6 +318,37 @@ export function bankWarning(f) {
 const breakdownLine = (label, amount, sign, note = '') =>
   `<div class="totals-row"><span>${label}${note ? `<br><span class="muted-note">${note}</span>` : ''}</span><span class="${sign === '+' ? 'in' : 'out'}">${sign === '+' ? '+' : '−'}${formatRupees(Math.abs(amount))}</span></div>`;
 
+/* The headline itself, so that "How it looks" can show the real thing rather
+ * than a drawing of it. Exported for js/views/appearance.js, which hands it
+ * the same figures this screen uses and a look to try; nothing about the money
+ * is worked out here.
+ *
+ * Which parts appear is the person's choice. The figures below the hero, the
+ * warnings and the breakdown are never part of that choice: those are how the
+ * money is explained, not decoration, and a quieter screen must not be a less
+ * honest one.
+ */
+export function spendingHero(f, look = 'full') {
+  const until = formatDateNice(f.cycleKey);
+  const pct = f.limit > 0 ? Math.min(100, Math.round(f.used * 100)) : 100;
+  // The pace picture. When it can draw, it says everything the meter said and
+  // more, so the meter goes: the same fact three ways is noise (design.md
+  // section 9). Too early in the month, or nothing spent yet, and the meter
+  // is the picture instead.
+  const burn = burnLine({ totals: f.spendDays, budget: f.limit, days: f.daysIntoCycle + f.daysToClose - 1, shortfall: f.bankShortfall });
+  const meter = burn || !(f.spentThisCycle > 0) ? null : { pct, tone: f.level === 'ok' ? '' : f.level === 'warning' ? 'warn' : 'over' };
+  return hero({
+    label: 'Left to spend',
+    period: `${formatDateNice(f.cycleStart)} to ${until}`,
+    amount: formatRupees(f.free),
+    negative: f.free < 0,
+    level: f.level,
+    meter: look === 'full' ? meter : null,
+    chart: look === 'full' ? burn : '',
+    status: look === 'plain' ? '' : escapeHtml(spendingStatus(f)),
+  });
+}
+
 // The headline: what's left to spend, then the bank. Numbers first; the sums
 // behind them are one tap away.
 function renderSpendingLimit(f) {
@@ -449,8 +480,6 @@ function incomeLine(f) {
 const monthShort = (month) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(month.slice(5, 7)) - 1];
 
 function renderCardsHero(f) {
-  const until = formatDateNice(f.cycleKey);
-  const pct = f.limit > 0 ? Math.min(100, Math.round(f.used * 100)) : 100;
   const line = breakdownLine;
   // What must go out (rent, EMIs) and what can move (food, fun): the wiggle
   // room in the month, marked on each commitment on Plan.
@@ -463,27 +492,7 @@ function renderCardsHero(f) {
           .join('')}`
       : '';
 
-  // The pace picture. When it can draw, it says everything the meter said and
-  // more, so the meter goes: the same fact three ways is noise (design.md
-  // section 9). Too early in the month, or nothing spent yet, and the meter
-  // is the picture instead.
-  const burn = burnLine({ totals: f.spendDays, budget: f.limit, days: f.daysIntoCycle + f.daysToClose - 1, shortfall: f.bankShortfall });
-  const meter = burn || !(f.spentThisCycle > 0) ? null : { pct, tone: f.level === 'ok' ? '' : f.level === 'warning' ? 'warn' : 'over' };
-  // How much goes under the number is the person's choice (js/appearance.js).
-  // The figures below the hero, the warnings and the breakdown are not part of
-  // it: those are how the money is explained, not decoration, and a quieter
-  // screen must never be a less honest one.
-  const look = appearance('summary');
-  return hero({
-    label: 'Left to spend',
-    period: `${formatDateNice(f.cycleStart)} to ${until}`,
-    amount: formatRupees(f.free),
-    negative: f.free < 0,
-    level: f.level,
-    meter: look === 'full' ? meter : null,
-    chart: look === 'full' ? burn : '',
-    status: look === 'plain' ? '' : escapeHtml(spendingStatus(f)),
-  }) + `
+  return spendingHero(f, appearance('summary')) + `
     <div class="hero-under">
       <div class="stat"><span class="stat-k">Spent</span><span class="stat-v">${formatRupees(f.spentThisCycle)}</span></div>
       <div class="stat"><span class="stat-k">Budget</span><span class="stat-v">${formatRupees(f.limit)}</span></div>
