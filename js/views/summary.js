@@ -328,6 +328,22 @@ const breakdownLine = (label, amount, sign, note = '') =>
  * money is explained, not decoration, and a quieter screen must not be a less
  * honest one.
  */
+/* The two figures under the headline: what has gone, and what it is measured
+ * against.
+ *
+ * "A of B" says A is part of B. That stops being true the moment the spending
+ * passes the budget, and it read as nonsense on the one screen a person is
+ * most likely to be staring at. Past the budget it says "against" instead,
+ * which stays true however far past it goes.
+ */
+export function spentLine(spent, limit) {
+  const over = spent > limit;
+  return `<div class="stat stat-wide">
+        <span class="stat-v">${formatRupees(spent)}${over ? '' : ` <span class="stat-of">of</span> ${formatRupees(limit)}`}</span>
+        <span class="stat-k">${over ? `spent against ${formatRupees(limit)}` : 'spent'}</span>
+      </div>`;
+}
+
 export function spendingHero(f, look = 'full') {
   const until = formatDateNice(f.cycleKey);
   const pct = f.limit > 0 ? Math.min(100, Math.round(f.used * 100)) : 100;
@@ -494,10 +510,7 @@ function renderCardsHero(f) {
 
   return spendingHero(f, appearance('summary')) + `
     <div class="hero-under">
-      <div class="stat stat-wide">
-        <span class="stat-v">${formatRupees(f.spentThisCycle)} <span class="stat-of">of</span> ${formatRupees(f.limit)}</span>
-        <span class="stat-k">spent</span>
-      </div>
+      ${spentLine(f.spentThisCycle, f.limit)}
       ${stillSetAside(f)}
     </div>
     ${(() => {

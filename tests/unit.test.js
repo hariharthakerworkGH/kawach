@@ -26,6 +26,7 @@ import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, spendingPulse, cashRiver } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
+import { spentLine } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -422,6 +423,18 @@ test('every look offers options, a fallback among them, and no repeats', () => {
     ok(values.includes(spec.fallback), `${name} falls back to something it does not offer`);
     for (const o of spec.options) ok(Boolean(o.label && o.note), `${name}/${o.value} needs words`);
   }
+});
+
+// The figures under the headline. "A of B" claims A is part of B, which
+// stops being true the moment the spending passes the budget - and that is
+// the screen a person is most likely to be staring at.
+test('spent and budget never read as "of" once the spending is past the budget', () => {
+  const within = spentLine(rupees(5889), rupees(9000));
+  ok(within.includes('of'), 'inside the budget the two figures read as a part of a whole');
+  const past = spentLine(rupees(44234), rupees(9000));
+  ok(!past.includes('>of<') && !/of/.test(past.replace(/<[^>]*>/g, '')), 'past it, nothing claims to be part of anything');
+  ok(past.includes('against'), 'it says what the spending is measured against instead');
+  ok(past.includes('₹44,234') && past.includes('₹9,000'), 'both figures are still shown');
 });
 
 // --- Parsers ----------------------------------------------------------------
