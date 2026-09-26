@@ -127,15 +127,15 @@ export const CATALOGUE = [
   {
     id: 'KAWACH-CHART-CASH-RIVER-V1',
     section: 'chart',
-    status: 'TESTING',
+    status: 'LIVE',
     since: '2026-09-26',
     purpose: 'Money in and out as two lines, the gap between them shaded.',
     answers: 'Is more coming in than going out, and how has that changed?',
-    screens: [],
+    screens: ['History'],
     deps: ['js/charts.js cashRiver()'],
     contract: '{ months: [{label, in, out}] }',
-    notes: 'Built and tested. Not placed: History already answers this with IN-OUT-V1.',
-    dont: 'Do not shade to a baseline the axis does not start at.',
+    notes: 'Now placed in History below IN-OUT-V1 using the same six-month input. Keep both only while the comparison remains clearer than either alone.',
+    dont: 'Do not shade to a baseline the axis does not start at. Do not duplicate it elsewhere without a clear question it answers.'
   },
   {
     id: 'KAWACH-CHART-IN-OUT-V1',
