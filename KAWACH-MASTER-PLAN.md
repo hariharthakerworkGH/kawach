@@ -2,9 +2,9 @@
 ## Single Source of Truth for Product Improvement
 
 **Last updated:** 2026-09-26  
-**Current production:** 4.2 / BUILD 95  
-**Current cache:** expense-tracker-v95  
-**Latest production commit:** 25e3413c762308b524c9a880da3d15fbbebb3bec  
+**Current production:** 4.4 / BUILD 97  
+**Current cache:** expense-tracker-v97  
+**Latest production commit:** 7777a3a6b5c7834b8b126e0f519c49739ce3e82d  
 **Architecture:** vanilla JS, static/offline-first, SVG/CSS, no build framework
 
 > This document is the authoritative roadmap for Kawach improvement work.
@@ -311,6 +311,18 @@ preview that could drift from the screen would be worse than none.
   their phone on a bus should be able to keep the numbers off the glass.
 - Opening screen: Summary today for everyone; some people want Add.
 
+**Phase 2 - done (4.3).** Accounts (the ring, the list alone, or balances
+covered until Show is tapped) and the screen Kawach opens on. Also fixed the
+manifest being served from the cache: it is read by the operating system, not
+the app, so a stale copy kept telling Android about icons that had been
+replaced. That was a real cause of home screens keeping the old mark.
+
+**Phase 3 - done (4.4).** Plan can keep the arranged order or sort by due day
+or by size, with Reorder shown only where it means something. Add can fold the
+date, account and repeats behind one tap; they are folded, never removed, so
+every input still exists for the code that finds them by id. Verified by
+saving a real entry on the short form.
+
 **Phase 3.** Plan and Add.
 - Plan: commitments grouped as must and flex, one list by day, or by size.
 - Add: the full form, or a quick one with amount and category and the rest
@@ -463,10 +475,10 @@ Every release must follow:
 **CODE → TESTS → VERSION → BUILD → SERVICE-WORKER CACHE → WHAT'S NEW → SNAPSHOT → GITHUB → LIVE VERIFICATION**
 
 Current:
-- 4.2
-- BUILD 95
-- cache v95
-- snapshot expense-tracker-versions/4.2
+- 4.4
+- BUILD 97
+- cache v97
+- snapshot expense-tracker-versions/4.4
 
 Never declare a release complete until the installed PWA can actually detect it.
 
@@ -488,6 +500,8 @@ Existing snapshots must never be overwritten:
 - expense-tracker-versions/4.0.13
 - expense-tracker-versions/4.1
 - expense-tracker-versions/4.2
+- expense-tracker-versions/4.3
+- expense-tracker-versions/4.4
 
 Every meaningful phase/release gets a new snapshot.
 
