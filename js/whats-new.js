@@ -12,6 +12,12 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.0.7',
+    items: [
+      { icon: 'summary', title: 'See where your spending is heading', text: 'The Summary now projects your current spending pace through the end of the cycle, alongside the even-pace reference.' },
+    ],
+  },
+  {
     version: '4.0.6',
     items: [
       { icon: 'accounts', title: 'Account marks align', text: 'Merchant initials now use consistent letter cells so marks sit evenly across the app.' },
