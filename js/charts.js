@@ -71,8 +71,8 @@ export function burnLine({ totals = [], budget = 0, days = 0, shortfall = 0 }) {
   const sentence = shortfall > 0 ? `${pace} Even so, <b>${formatRupees(shortfall)}</b> of what you owe is not covered.` : pace;
   const drawing = frame(
     `<defs><linearGradient id="burn-fade" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="var(--accent)" stop-opacity="0.26"/>
-        <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/>
+        <stop offset="0" stop-color="var(--k-accent)" stop-opacity="0.26"/>
+        <stop offset="1" stop-color="var(--k-accent)" stop-opacity="0"/>
       </linearGradient></defs>
       <line x1="0" y1="${H - pad}" x2="${W}" y2="${y(budget).toFixed(1)}" class="chart-pace" stroke-dasharray="4 5" vector-effect="non-scaling-stroke"/>
       <path d="${area}" fill="url(#burn-fade)"/>
@@ -119,7 +119,7 @@ export function committedBar({ must = 0, flex = 0, free = 0, legend = true }) {
 /* --- 06 Where it went -------------------------------------------------
  * Answers: which categories took the money?
  * Top five, longest first, then everything else. Never a pie.
- *   items  [{ name, amount, colour }] colour being a token, e.g. var(--cat-food)
+ *   items  [{ name, amount, colour }] colour being a token, e.g. var(--k-cyan)
  *   compact  true on a list screen, where the bar supports the row and
  *            never overpowers it (design.md section 9, Categories).
  */
@@ -129,7 +129,7 @@ export function categoryBars({ items = [], compact = false, top = 5 }) {
   const shown = real.slice(0, top);
   const rest = real.slice(top);
   const restTotal = rest.reduce((s, i) => s + i.amount, 0);
-  const rows = [...shown, ...(restTotal ? [{ name: 'Everything else', amount: restTotal, colour: 'var(--text-dim)' }] : [])];
+  const rows = [...shown, ...(restTotal ? [{ name: 'Everything else', amount: restTotal, colour: 'var(--k-text-3)' }] : [])];
   const biggest = rows[0].amount || 1;
   const total = real.reduce((s, i) => s + i.amount, 0);
   const label = `Spending by category. ${rows.map((r) => `${r.name} ${formatRupees(r.amount)}`).join(', ')}.`;
@@ -138,7 +138,7 @@ export function categoryBars({ items = [], compact = false, top = 5 }) {
         .map(
           (r) => `<div class="cat-bar-row">
           <span class="cat-bar-name">${esc(r.name)}</span>
-          <span class="cat-bar-track"><i style="width:${((r.amount / biggest) * 100).toFixed(1)}%;background:${r.colour || 'var(--emerald)'}"></i></span>
+          <span class="cat-bar-track"><i style="width:${((r.amount / biggest) * 100).toFixed(1)}%;background:${r.colour || 'var(--k-positive)'}"></i></span>
           <span class="cat-bar-value">${formatRupees(r.amount)}</span>
         </div>`
         )
@@ -161,7 +161,7 @@ export function goalRing({ saved = 0, target = 0, size = 76, monthly = null, by 
       <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" class="chart-ring-track"/>
       <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" class="chart-ring-fill" stroke-linecap="round"
         stroke-dasharray="${(circumference * share).toFixed(1)} ${circumference.toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>
-      <text x="${size / 2}" y="${size / 2 + 5}" text-anchor="middle" fill="var(--text)" font-size="${Math.round(size / 4.6)}" font-weight="700">${Math.round(share * 100)}%</text>
+      <text x="${size / 2}" y="${size / 2 + 5}" text-anchor="middle" fill="var(--k-text)" font-size="${Math.round(size / 4.6)}" font-weight="700">${Math.round(share * 100)}%</text>
       ${monthly ? `<title>${esc(`${formatRupees(monthly)} a month gets there`)}</title>` : ''}
     </svg>`;
 }
