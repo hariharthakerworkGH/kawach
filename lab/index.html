@@ -693,7 +693,7 @@
         <span class="k-row__title">${t.name}</span>
         <span class="k-row__meta">${t.cat || 'Uncategorized'} &middot; ${t.when}</span>
       </span>
-      <span class="k-row__value ${t.amt > 0 ? 'k-row__valuealue--pos' : ''}">${t.amt > 0 ? '+' : '−'}${money(Math.abs(t.amt))}</span>
+      <span class="k-row__value ${t.amt > 0 ? 'k-row__value--pos' : ''}">${t.amt > 0 ? '+' : '−'}${money(Math.abs(t.amt))}</span>
     </div>`;
   document.getElementById('lab-rows').innerHTML = TXNS.map(rowHtml).join('');
 
@@ -784,6 +784,10 @@
 
   // A live rendering for the components that can show one in a small space.
   const DEMOS = {
+    'KAWACH-HERO-MONEY-V1': () => `<div class="k-hero"><div class="k-hero__label">Left to spend</div><div class="k-hero__figure">₹8,240</div><p class="lab-note">Until 25 Oct · the single answer.</p></div>`,
+    'KAWACH-HERO-METRICS-V1': () => `<div class="k-hero"><div class="k-hero__label">Left to spend</div><div class="k-hero__figure">₹8,240</div><div class="two" style="margin-top:var(--k-4)"><div class="k-metric"><span class="k-metric__k">Budget</span><span class="k-metric__v">₹28,200</span></div><div class="k-metric"><span class="k-metric__k">Spent</span><span class="k-metric__v">₹19,960</span></div></div></div>`,
+    'KAWACH-HERO-LEFT-TO-SPEND-V1': () => `<div class="k-hero"><div class="k-hero__label">Left to spend · 1–30 Sep</div><div class="k-hero__figure">₹8,240</div><div class="k-meter" style="margin-top:var(--k-3)"><div class="k-meter__fill" style="width:70.8%"></div></div><p class="lab-note">71% of the safe budget is used. Bank check: covered.</p></div>`,
+    'KAWACH-CHART-BUDGET-BURN-V1': () => ch.burnLine({ totals: [120000,280000,460000,720000,980000], budget: 2820000, days: 30 }),
     'KAWACH-CHART-COMMITMENT-METER-V1': () => ch.radialMeter({ committed: 8220000, income: 9600000 }),
     'KAWACH-CHART-ALLOCATION-RING-V1': () => ch.allocationRing({ slices: [
       { label: 'Salary account', amount: 11884000 }, { label: 'Cash', amount: 1500000 }] }),
@@ -804,6 +808,12 @@
     'KAWACH-STATE-SUCCESS-V1': () => `<div class="k-state"><span class="k-state__mark">${icon('check')}</span><div><div class="k-state__title">Payment saved</div><div class="k-state__body">\u20b9450 added to History.</div></div></div>`,
     'KAWACH-STATE-ERROR-V1': () => `<div class="k-state k-state--error"><span class="k-state__mark">${icon('alert')}</span><div><div class="k-state__title">Could not save</div><div class="k-state__body">Nothing was lost. Try once more.</div></div></div>`,
     'KAWACH-STATE-LOADING-V1': () => `<div class="stack stack--tight"><div class="k-skeleton" style="height:14px;width:45%"></div><div class="k-skeleton" style="height:14px;width:80%"></div></div>`,
+    'KAWACH-ACCOUNT-BALANCE-V1': () => `<div class="k-row"><span class="k-brand k-brand--md k-brand--mono" style="--k-hue:206"><span class="k-brand__text">SB</span></span><span class="k-row__body"><span class="k-row__title">Salary account</span><span class="k-row__meta">Primary · HDFC Bank</span></span><span class="k-row__value">₹1,18,840</span></div>`,
+    'KAWACH-ACCOUNT-ALLOCATION-V1': () => ch.allocationRing({ slices: [{ label: 'Salary account', amount: 11884000 }, { label: 'Cash', amount: 1500000 }] }),
+    'KAWACH-ROW-TRANSACTION-V1': () => rowHtml(TXNS[1]),
+    'KAWACH-PLAN-COMMITMENT-V1': () => `<div class="k-row"><span class="k-row__body"><span class="k-row__title">House rent</span><span class="k-row__meta">Every month · 5th · Salary account</span></span><span class="k-row__value">₹32,000</span></div>`,
+    'KAWACH-PLAN-GOAL-V1': () => ch.goalRing({ saved: 34000000, target: 30000000, monthly: 500000, by: 'Jun 2027' }),
+
   };
 
   const ch = await import('../js/charts.js');
