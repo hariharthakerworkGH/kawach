@@ -132,14 +132,14 @@ Next work:
 - Complete: checked the restored production styles against Design Lab 2.1 and completed the responsive, theme and Budget Burn checks above.
 - Do not change financial calculations or user data.
 
-Stage 1 is closed. Proceed to Stage 2.
+Stage 1 is closed. Stage 2 is complete; Stage 3 is now active.
 
 ---
 
 # 5. STAGE 2 — BRAND LIBRARY
-**Status: ACTIVE**
+**Status: COMPLETE**
 
-Build the reusable brand architecture and curated legitimate SVG assets for:
+The reusable brand architecture and shortlist are in place. The implementation covers:
 - food / delivery
 - groceries
 - shopping
@@ -157,12 +157,21 @@ Rules:
 - fallback remains real SVG → category icon → monogram
 - brand resolver stays reusable and centralized
 
-The Design Lab should include representative brand-row examples and document fallback behaviour.
+The Design Lab includes representative brand-row examples and documents the fallback behaviour.
+
+Completion evidence:
+- `js/brand.js` provides the centralized resolver and deterministic fallback.
+- `icons/brands/manifest.js` lists the 40-brand shortlist across all eight categories; all entries correctly remain `asset: false`.
+- `icons/brands/SOURCES.md` records the individual Simple Icons metadata review at pinned commit `d0b3c2d7153794b912913746fc0498a5d3211727`: zero candidates meet the explicit `CC0-1.0` inclusion rule.
+- No third-party SVGs were added. Category icons and monograms remain the honest fallback until a specific mark’s metadata explicitly qualifies.
+- `lab/index.html` renders the shortlist with the actual resolver and explains the live fallback state.
+
+Stage 2 is complete under the stated license rule; its intended outcome is a working, traceable brand library without bundling marks that do not qualify. Proceed to Stage 3.
 
 ---
 
 # 6. STAGE 3 — PONYTAIL AUDIT
-**Status: AFTER BRAND LIBRARY**
+**Status: ACTIVE**
 
 Ponytail is **audit-only first**.
 
@@ -198,7 +207,7 @@ Do not repeat audits that have already been verified unless a new change touches
 ---
 
 # 7. STAGE 4 — APPROVED COMPONENTS → PRODUCTION
-**Status: AFTER PONYTAIL**
+**Status: AFTER STAGE 3**
 
 Move only approved Design Lab components into production screens.
 
@@ -341,7 +350,7 @@ At the end of a meaningful work session, update this document with:
 
 # 15. CURRENT NEXT ACTION
 
-**Stage 1 is closed; complete the CC0-verified Simple Icons asset inventory and wire eligible local SVG marks into the Stage 2 brand library.**
+**Stage 2 is complete: audit-only Ponytail review of visual consistency, dead CSS, layout, accessibility, duplication and performance, while preserving the brand system and financial logic.**
 
 Do not begin another broad redesign before this checkpoint is closed.
 
