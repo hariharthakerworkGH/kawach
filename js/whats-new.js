@@ -12,9 +12,15 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.0.10',
+    items: [
+      { icon: 'summary', title: 'Summary is easier to scan', text: 'Card-cycle and bank-month spending sit in one short line, card bills are explained once, and breakdown amounts have room beside their labels.', guide: [{ view: 'summary', target: '.summary-spending-split', text: 'Card spending follows the statement cycle; bank spending follows the calendar month.' }] },
+    ],
+  },
+  {
     version: '4.0.9',
     items: [
-      { icon: 'summary', title: 'See both spending periods', text: 'Summary separates card-cycle spending from bank spending this month, and shows an unpaid card bill while salary is still due.', guide: [{ view: 'summary', target: '.summary-periods', text: 'Card spending follows the statement cycle; bank spending follows the month. Billed card dues stay visible until paid.' }] },
+      { icon: 'summary', title: 'See both spending periods', text: 'Summary separates card-cycle spending from bank spending this month, and calls out a card bill that is still unpaid.', guide: [{ view: 'summary', target: '.summary-spending-split', text: 'Card spending follows the statement cycle; bank spending follows the month.' }] },
     ],
   },
   {

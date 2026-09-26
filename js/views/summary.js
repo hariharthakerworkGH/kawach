@@ -341,14 +341,27 @@ function renderSpendingLimit(f) {
  */
 function insightCard(f) {
   const days = f.daysToClose;
+  const billed = (f.totals && f.totals.unpaidBills) || 0;
+  const payday = f.salary && (f.salary.dates[0] || f.salary.nextUnreceived);
+  const salaryPending = Boolean(
+    payday &&
+      !f.salary.alreadyIn &&
+      (f.salary.late || payday >= f.today)
+  );
   let tone = '';
   let title = '';
   let body = '';
 
   if (f.bankShortfall > 0) {
     tone = 'k-context--alert';
-    title = 'Money is owed that the bank cannot cover';
-    body = `After your salary and the bills already raised, you are ${formatRupees(f.bankShortfall)} short. The budget below is this cycle's; it does not pay last cycle's card bills.`;
+    title = billed > 0 ? 'Card bill is still unpaid' : 'Money owed is more than the bank can cover';
+    body = billed > 0
+      ? `${formatRupees(billed)} is still unpaid on cards. ${salaryPending ? `After salary on ${formatDateNice(payday)}` : 'After salary'} and other bills, your bank is projected ${formatRupees(f.bankShortfall)} short.`
+      : `${salaryPending ? `After salary on ${formatDateNice(payday)}` : 'After salary'} and other bills, your bank is projected ${formatRupees(f.bankShortfall)} short.`;
+  } else if (salaryPending && billed > 0) {
+    tone = 'k-context--attention';
+    title = 'Card bill is still unpaid';
+    body = `${formatRupees(billed)} is billed and unpaid. Salary is expected ${formatDateNice(payday)}.`;
   } else if (f.free != null && f.free < 0) {
     tone = 'k-context--alert';
     title = 'Over budget for this cycle';
@@ -417,15 +430,8 @@ function moneyShape(f) {
 
 function spendingStatus(f) {
   const until = formatDateNice(f.cycleKey);
-  // A shortfall in the bank outranks a healthy-looking cycle: the budget can
-  // be untouched and the money still not be there, which is exactly what a
-  // new cycle after an expensive one looks like.
-  if (f.bankShortfall) {
-    const short = formatRupees(f.bankShortfall);
-    return f.free < 0
-      ? `Over budget, and ${short} short after salary and bills`
-      : `${short} short after salary and bills - what is owed is not paid yet`;
-  }
+  // The insight below names any bank shortfall and unpaid card bill. Repeating
+  // it under the headline made two warnings compete for the same attention.
   if (f.level === 'over') return `Over budget - stop spending until ${until}`;
   if (f.level === 'critical') return f.crossesOn ? `Critical - runs out ${formatDateNice(f.crossesOn)} at this pace` : 'Critical - almost all used';
   if (f.level === 'warning') return f.crossesOn ? `Careful - runs out ${formatDateNice(f.crossesOn)} at this pace` : `Careful - ${Math.round(f.used * 100)}% used`;
@@ -477,11 +483,14 @@ function renderCardsHero(f) {
       <div class="stat"><span class="stat-k">Budget</span><span class="stat-v">${formatRupees(f.limit)}</span></div>
       ${stillSetAside(f)}
     </div>
-    ${spendingPeriods(f)}
+    <div class="summary-spending-split" aria-label="Spending by period">
+      <span>Card cycle <strong>${formatRupees(f.cardSpent || 0)}</strong></span>
+      <span>Bank this month <strong>${formatRupees(f.bankSpent || 0)}</strong></span>
+    </div>
     ${insightCard(f)}
     ${moneyShape(f)}
       <details class="fts-breakdown hero-work">
-        <summary>How it's worked out</summary>
+        <summary>Budget breakdown</summary>
         <div class="totals-card">
           ${line(incomeLine(f), f.monthlyIncome, '+')}
           ${f.sideBusiness && f.businessExtra ? line(`From the business, lowest month (${monthShort(f.plan.lowestMonth)})`, f.businessExtra, '+') : ''}
@@ -508,25 +517,6 @@ function renderCardsHero(f) {
         </div>
         ${f.notes.map((n) => `<p class="muted-note">${escapeHtml(n)}</p>`).join('')}
       </details>`;
-}
-
-// Card purchases follow the statement cycle; bank and cash purchases follow
-// the calendar month. Show both windows beside the combined spending figure
-// so crossing the statement day cannot make one period look like the other.
-function spendingPeriods(f) {
-  const card = f.cardSpent || 0;
-  const month = f.bankSpent || 0;
-  const pendingPayday = f.salary && f.salary.setUp && !f.salary.alreadyIn &&
-    (f.salary.late || (f.salary.dates[0] && f.salary.dates[0] >= f.today));
-  const billed = f.totals && f.totals.unpaidBills || 0;
-  const liability = pendingPayday && billed > 0
-    ? `<div class="totals-row net"><span>Card bill still owed · salary ${formatDateNice(f.salary.dates[0] || f.salary.nextUnreceived)}</span><span class="out">${formatRupees(billed)}</span></div>`
-    : '';
-  return `<div class="totals-card summary-periods">
-      <div class="totals-row"><span>Card cycle · ${formatDateNice(f.cycleStart)} to ${formatDateNice(f.cycleClose || f.cycleKey)}</span><span>${formatRupees(card)}</span></div>
-      <div class="totals-row"><span>Bank this month · ${formatDateNice(f.bankMonthStart)} to ${formatDateNice(f.bankMonthEnd)}</span><span>${formatRupees(month)}</span></div>
-      ${liability}
-    </div>`;
 }
 
 // How much of the month is already spoken for: the one question the hero
@@ -689,7 +679,7 @@ function renderBankCard(f) {
         <div class="bank-after"><span class="hero-label">${incomeWords(f.incomeKind).afterBank}</span><p class="bank-amount small ${tone}">${formatRupees(f.bankAfterBills)}</p></div>
       </div>
       <details class="fts-breakdown">
-        <summary>How it's worked out</summary>
+        <summary>Bank breakdown</summary>
         ${perAccount}
         <div class="totals-card">
           ${f.bankLines.map((l) => line(escapeHtml(l.account.label), l.balance, '+', `as of ${formatDateNice(l.asOf)}${l.entriesSince ? ` + ${l.entriesSince} since` : ''}`)).join('')}
