@@ -12,6 +12,12 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.0.8',
+    items: [
+      { icon: 'summary', title: 'Summary catches up when you return', text: 'Come back to the app and Summary rereads the latest entries saved on this phone.' },
+    ],
+  },
+  {
     version: '4.0.7',
     items: [
       { icon: 'summary', title: 'See where your spending is heading', text: 'The Summary now projects your current spending pace through the end of the cycle, alongside the even-pace reference.' },
@@ -401,3 +407,4 @@ export function openNotes(notes, { title }) {
   document.body.appendChild(backdrop);
   backdrop.querySelector('.notes-close').focus();
 }
+
