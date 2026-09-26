@@ -7,6 +7,7 @@ import { passwordErrorKind } from '../js/pdf-text.js';
 import { sameTransaction, findDuplicates } from '../js/duplicates.js';
 import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher } from '../js/commitments.js';
 import { cardPosition, bankBalance, statementDayFixes } from '../js/account-metrics.js';
+import { currentCycleStart } from '../js/billing-cycle.js';
 import { looksLikeCardPayment } from '../js/transfers.js';
 import { spendingMonthOf } from '../js/spending-month.js';
 import { parseAlert, splitAlerts } from '../js/alerts.js';
@@ -315,6 +316,64 @@ test('card bill payments are recognised on both sides; a refund is not', () => {
   ok(looksLikeCardPayment({ direction: 'credit', rawDescription: 'BBPS Payment received' }, 'card'));
   ok(looksLikeCardPayment({ direction: 'debit', rawDescription: 'UPI-CRED Club-cred.club@axisb' }, 'bank'));
   ok(!looksLikeCardPayment({ direction: 'credit', rawDescription: 'PEPE JEANS REFUND' }, 'card'));
+});
+
+// Stage 5: the cycle a card's spending is filed in, checked at the awkward
+// statement days. Two places work out where the open cycle begins -
+// currentCycleStart() for cards with no statement yet, and cardPosition()'s
+// own closeOnOrBefore() once there is one. They have to agree, or a spend
+// falls between the two and is counted in neither cycle.
+test('the open cycle begins on the same day however it is worked out, at every statement day', () => {
+  const dates = ['2026-01-15', '2026-02-28', '2026-03-01', '2026-03-02', '2026-04-30', '2026-05-01', '2026-07-01', '2026-10-01'];
+  for (const day of [25, 28, 29, 30, 31]) {
+    const card = { id: 'c', type: 'card', billingCycleDay: day };
+    for (const iso of dates) {
+      const [y, m, d] = iso.split('-').map(Number);
+      const boundary = currentCycleStart(card, [], new Date(y, m - 1, d, 12, 0));
+      equal(boundary, cardPosition(card, [], [], iso).lastClose, `day ${day} on ${iso}`);
+      // A boundary in the future would hide the whole open cycle.
+      ok(boundary < iso, `day ${day} on ${iso}: boundary ${boundary} is not before today`);
+    }
+  }
+});
+
+test('a card billing on the 31st closes on the 30th in a 30-day month, not the 1st of the next', () => {
+  const card = { id: 'c', type: 'card', billingCycleDay: 31 };
+  equal(currentCycleStart(card, [], new Date(2026, 4, 1, 12, 0)), '2026-04-30');
+  equal(currentCycleStart(card, [], new Date(2026, 2, 1, 12, 0)), '2026-02-28');
+  // The spend that used to fall through the gap: dated in the open cycle, and
+  // now actually inside it.
+  ok('2026-05-01' > currentCycleStart(card, [], new Date(2026, 4, 1, 12, 0)));
+});
+
+test('card: paying more than the bill takes the extra off this cycle, not off nothing', () => {
+  const card = { id: 'c', type: 'card', billingCycleDay: 25 };
+  const billed = txn({ accountId: 'c', date: '2026-09-10', amount: 5000, rawDescription: 'Swiggy' });
+  const paid = txn({ accountId: 'c', date: '2026-09-28', amount: 8000, direction: 'credit', isTransfer: true });
+  const now = txn({ accountId: 'c', date: '2026-09-29', amount: 4000, rawDescription: 'Amazon' });
+  const p = cardPosition(card, [billed, paid, now], [], '2026-09-30');
+  paise(p.billedNotImported, 0);
+  paise(p.owed, rupees(1000));
+});
+
+test('card: a payment with no bill in the app never reduces spending this cycle', () => {
+  const card = { id: 'c', type: 'card', billingCycleDay: 25 };
+  // Paid a statement from before the data starts: there is nothing here for it
+  // to settle, so it must not buy headroom this cycle.
+  const orphan = txn({ accountId: 'c', date: '2026-09-28', amount: 20000, direction: 'credit', isTransfer: true });
+  const now = txn({ accountId: 'c', date: '2026-09-29', amount: 4000, rawDescription: 'Amazon' });
+  paise(cardPosition(card, [orphan, now], [], '2026-09-30').owed, rupees(4000));
+});
+
+test('a statement row dated before the statement is billed on the statement it was printed on', () => {
+  const card = { id: 'c', type: 'card', billingCycleDay: 25 };
+  const batch = { id: 'b1', accountId: 'c', provisional: false, periodEnd: '2026-09-25' };
+  // Dated 28 Aug, but it appears on the 25 Sep statement, so that is the bill
+  // it comes off - the statement's period wins over the row's own date.
+  const row = txn({ accountId: 'c', date: '2026-08-28', amount: 3000, importBatchId: 'b1', rawDescription: 'Flight' });
+  const p = cardPosition(card, [row], [batch], '2026-09-20');
+  equal(p.cycleClose, '2026-09-25');
+  paise(p.owed, rupees(3000));
 });
 
 // --- Parsers ----------------------------------------------------------------

@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.0.12',
+    items: [
+      {
+        icon: 'card',
+        title: 'Cards that bill at the end of the month',
+        text: 'If your card bills on the 29th, 30th or 31st, its spending is now placed in the right cycle, and the spending graph puts each payment on the day it happened.',
+      },
+    ],
+  },
+  {
     version: '4.0.11',
     items: [
       { icon: 'summary', title: 'The app’s full design is back', text: 'Summary and Accounts cards, charts and spacing now display correctly again.' },

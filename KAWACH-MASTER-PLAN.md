@@ -238,7 +238,65 @@ Do not add visual components merely because they look attractive. Every visualiz
 ---
 
 # 8. STAGE 5 — REAL CREDIT-CARD VALIDATION
-**Status: DEFERRED / HIGH PRIORITY FINANCIAL VALIDATION**
+**Status: ACTIVE - validation under way**
+
+### Validation run - 26 September 2026 (made-up data only)
+Worked from a clean copy of GitHub `main` at `50a44b03`, hash-verified file by
+file (131 of 131 identical). Baseline suite re-run before any change: 133 of 133
+pass.
+
+Validated against the real modules with invented figures:
+- Statement date vs transaction date: a row dated 28 Aug printed on the 25 Sep
+  statement is billed on the 25 Sep statement. The statement period wins over
+  the row date. Correct.
+- Unmatched manual expense: a hand-logged card spend inside a cycle that has
+  closed with no statement imported becomes `billedNotImported` and raises
+  `statementMissing`. Correct.
+- Payments: a partial payment leaves the remainder billed; paying more than the
+  bill moves the excess onto the open cycle; a payment with no bill in the app
+  to settle is ignored rather than reducing this cycle. Correct, and the last of
+  those is the guard that stops large card spends reading far too low.
+- Reconciliation: a statement row two days from a logged entry of the same
+  amount pairs with it and keeps the category chosen by hand. Correct.
+- Rollover and bank shortfall: covered by the existing suite and re-verified in
+  the 133-test baseline. No change.
+
+**Defect found and fixed.** Two places worked out where a card's open cycle
+begins, and they disagreed for cards billing on the 28th to the 31st.
+`computeCycleBoundary()` in `js/billing-cycle.js` built the statement day with
+`new Date(y, m, day)`, which rolls into the next month when the month is
+shorter, so a card billing on the 31st produced a boundary of 1 May instead of
+30 Apr, and after a short February could produce a boundary later than today.
+Spending was then filed in neither the closed cycle nor the open one.
+`closeOnOrBefore()` in `js/account-metrics.js` already clamped correctly; the
+two now agree and a test pins them together at every awkward statement day.
+
+Scope of that defect, checked before fixing: no money figure was wrong. The
+headline budget, spent and left come through `cardPosition()`, which was always
+correct. The stale boundary reached only the per-day series behind the Summary
+Budget Burn drawing, where the affected spending fell into the undated opening
+block instead of stepping on its own day; the line still ended on the right
+total. It was a chart-fidelity fault with a latent financial trap, not a
+miscalculation. The owner's own cards all bill on the 25th and were never
+affected.
+
+Changed: `js/billing-cycle.js` only. No protected module touched.
+`currentCycleStart()` gained an optional third argument so a boundary can be
+checked at a given date; existing callers pass two arguments and are unchanged.
+
+Tests: 138 pass, 5 added. The two boundary tests were mutation-checked by
+restoring the old maths, and both failed with the expected values before the fix
+was put back.
+
+Not yet done, and still required before credit-card capacity work:
+1. Drive real credit-card statements through the import UI end to end. Static
+   checks do not catch this class of fault; the 4.0.3 import regression proved
+   that. This needs the owner, on his own device, with his own files.
+7. Decide the credit-limit field. Confirmed absent from the data model: no
+   `creditLimit` or equivalent appears anywhere in `js/`.
+
+Not released. Version, build and cache are untouched at 4.0.11 / BUILD 91 /
+v91, and nothing has been pushed.
 
 Before further credit-card visualisation:
 1. Test against real-world credit-card statement examples.
@@ -366,7 +424,7 @@ At the end of a meaningful work session, update this document with:
 
 # 15. CURRENT NEXT ACTION
 
-**Next: Stage 4 — resolve the component approval gate (0 APPROVED entries), then select one approved component and complete its production checks before a versioned release.**
+**Next: Stage 5 - the owner drives real credit-card statements through the import UI, and decides the credit-limit field. Stage 4 stays open at the component approval gate (0 APPROVED entries) and needs one component chosen for a readiness review.**
 
 Do not begin another broad redesign before this checkpoint is closed.
 
