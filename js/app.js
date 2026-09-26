@@ -323,7 +323,12 @@ function wireSync() {
 // bill reminders, may have written to the database without going through
 // this page - so nothing read before then can be trusted to still be current.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') forgetCachedReads();
+  if (document.visibilityState !== 'visible') return;
+  forgetCachedReads();
+  if (!SAFE_TO_REFRESH.has(currentView) || typingInView()) return;
+  const container = document.getElementById('view-container');
+  const view = views[currentView];
+  if (container && view) void redraw(container, () => view.module.render(container, currentParams));
 });
 
 // Reuses the update banner for anything that needs you to act before the app
@@ -530,3 +535,4 @@ async function init() {
 }
 
 init();
+
