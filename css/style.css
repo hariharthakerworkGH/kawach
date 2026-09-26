@@ -1100,15 +1100,6 @@ h3 {
 
 /* ---------- Accounts ---------- */
 
-.account-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-sm) var(--space-md);
-  margin-bottom: var(--space-sm);
-  box-shadow: inset 0 1px 0 0 var(--edge), var(--shadow-card);
-}
-
 /* One line, always. A wrapping name pushed the balance below it out of step
    with the card beside it, which is most of what made the grid look busy.
    The full name is still there on a long press (title). */
@@ -3334,9 +3325,7 @@ textarea {
 }
 
 /* Figures shown without the button (FDs) sit on their own lines too. */
-.account-open > span,
-.account-card > span.account-headline,
-.account-card > span.muted-note {
+.account-open > span {
   display: block;
 }
 
@@ -4243,8 +4232,7 @@ summary {
 }
 
 .import-row:active,
-.hist-row:active,
-.account-card:active {
+.hist-row:active {
   background: var(--surface-press);
 }
 
@@ -4828,7 +4816,6 @@ select.chip {
    These are the level 2 surfaces. They now agree about all four of tone,
    corner, edge and depth, which is most of what "one product" means. */
 .totals-card,
-.account-card,
 .budget-card,
 .alert-card,
 .coach-panel,

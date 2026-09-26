@@ -891,7 +891,7 @@ async function notifySpendingLevel(f) {
     await reg.showNotification(f.level === 'warning' ? 'Spending: getting close' : f.level === 'critical' ? 'Spending: critical' : 'Spending budget crossed', {
       body: spendingWarning(f),
       tag: `spending-${f.cycleClose}`,
-      icon: './icons/icon-192.png',
+      icon: './icons/kawach-192.png',
       badge: './icons/badge-96.png',
       data: { view: 'summary' },
     });
