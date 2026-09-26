@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.0.13',
+    items: [
+      {
+        icon: 'sync',
+        title: 'Shared pages stay up to date',
+        text: 'The welcome page you send people and the privacy policy were being kept on the phone and never refreshed. They now load fresh every time.',
+      },
+    ],
+  },
+  {
     version: '4.0.12',
     items: [
       {
