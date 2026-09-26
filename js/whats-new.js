@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.8',
+    items: [
+      {
+        icon: 'plan',
+        title: 'The same cost, on your list twice',
+        text: 'Plan now points out two fixed costs that look like one payment written down twice, and lets you drop one. A cost counted twice makes what you can spend look smaller than it is.',
+        guide: [{ view: 'plan', target: '.dupe-note', text: 'Each pair is shown with both wordings, so you can tell which to keep.' }],
+      },
+    ],
+  },
+  {
     version: '4.7.3',
     items: [
       {

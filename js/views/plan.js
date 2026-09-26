@@ -7,7 +7,7 @@ import { getBudgets, setBudget, budgetStatusForMonth } from '../budgets.js';
 import { DEFAULT_KEEP_IN_BANK } from '../free-to-spend.js';
 import { currentMonthKey } from '../spending-month.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequencyShort, hasDueDate, toMonthly, toYearly, isoLocal } from '../frequency.js';
-import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder, isSetAside } from '../commitments.js';
+import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder, isSetAside, duplicateCommitments } from '../commitments.js';
 import { appearance } from '../appearance.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
@@ -17,6 +17,7 @@ import { committedBar, goalRing, radialMeter } from '../charts.js';
 import { bankBalance } from '../account-metrics.js';
 import { incomeType, incomeWords, businessPlan, isBusinessCategory, businesses, activeSpace, commitmentInSpace, accountInSpace } from '../business.js';
 import { escapeHtml, emptyState, sectionHead, hero } from '../ui.js';
+import { askConfirm } from '../dialog.js';
 
 let adding = false;
 let editingId = null;
@@ -103,6 +104,9 @@ export async function render(container) {
   // counts when both actually have one - otherwise a single uncategorised fixed
   // expense would silently hide every suggestion.
   const detected = (await detectRecurring()).filter((d) => !coveredByFixed(d, [...fixed, ...finished]));
+  // The same cost written down twice. It is shown before the list, because
+  // until it is settled every total below it is overstated.
+  const doubled = duplicateCommitments(recurring.filter(inLane), todayIso);
   const accountName = (id) => {
     const a = accounts.find((x) => x.id === id);
     return a ? a.label : null;
@@ -180,6 +184,40 @@ export async function render(container) {
       // above is made of. No second calculation.
       !inBusiness && incomeValue
         ? `<section class="plan-meter k-pane k-pane--quiet">${radialMeter({ committed: fixedTotal + keep, income: incomeValue + sideExtra })}</section>`
+        : ''
+    }
+    ${
+      doubled.length
+        ? `${sectionHead('The same payment twice?')}
+           <div class="totals-card">
+             <p class="muted-note dupe-note">${
+               doubled.some((p) => p.counted)
+                 ? 'Some of these are on your list twice, so your fixed costs are higher than they should be and what is left to spend reads lower. The rest are about to be offered to you when you already have them.'
+                 : 'Kawach has spotted these, and you already have them. Adding one would count the same cost twice.'
+             }</p>
+             ${doubled
+               .map(
+                 (p, i) => `<div class="dupe-pair">
+                   <span class="dupe-amount">${formatCurrency(p.amount)} a month${
+                     p.counted ? ' <span class="dupe-flag">counted twice</span>' : ''
+                   }</span>
+                   ${[p.a, p.b]
+                     .map(
+                       (r) => `<div class="attention-row dupe-row">
+                         <span>${escapeHtml(r.label)}<br><span class="muted-note">${
+                           r.dayOfMonth ? `around the ${ordinal(r.dayOfMonth)}` : 'no set day'
+                         }${isFixed(r) ? ' · you added this' : ' · Kawach spotted this'}</span></span>
+                         <span class="attention-actions">
+                           <button type="button" class="btn-tiny dupe-remove${r === p.suggested ? ' primary' : ''}" data-id="${r.id}" data-pair="${i}">Remove</button>
+                         </span>
+                       </div>`
+                     )
+                     .join('')}
+                   <button type="button" class="btn-tiny dupe-keep" data-pair="${i}">They are different, keep both</button>
+                 </div>`
+               )
+               .join('')}
+           </div>`
         : ''
     }
     ${sectionHead(
@@ -528,6 +566,37 @@ export async function render(container) {
         const item = fixed.find((f) => f.id === id);
         if (item.sortOrder !== index) await put('recurring', { ...item, sortOrder: index });
       }
+      redraw(container, () => render(container));
+    });
+  });
+
+  // Removing one of a pair. A commitment is a thing the person put there, so
+  // it is asked about before it goes, the same as any other delete.
+  container.querySelectorAll('.dupe-remove').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const pair = doubled[Number(btn.dataset.pair)];
+      const going = pair && [pair.a, pair.b].find((r) => r.id === btn.dataset.id);
+      if (!going) return;
+      const ok = await askConfirm({
+        title: 'Remove this one?',
+        message: `"${going.label}" comes off your fixed costs. The payments themselves are untouched.`,
+        confirmLabel: 'Remove',
+        danger: true,
+      });
+      if (!ok) return;
+      await remove('recurring', going.id);
+      redraw(container, () => render(container));
+    });
+  });
+
+  // Two real costs can be the same size on the same day. Saying so keeps the
+  // pair off this list without changing either of them.
+  container.querySelectorAll('.dupe-keep').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const pair = doubled[Number(btn.dataset.pair)];
+      if (!pair) return;
+      await put('recurring', { ...pair.a, notDuplicateOf: [...(pair.a.notDuplicateOf || []), pair.b.id] });
+      await put('recurring', { ...pair.b, notDuplicateOf: [...(pair.b.notDuplicateOf || []), pair.a.id] });
       redraw(container, () => render(container));
     });
   });

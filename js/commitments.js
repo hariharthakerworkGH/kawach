@@ -1,4 +1,4 @@
-import { nextOccurrence, isoLocal, frequencyOf, toMonthly } from './frequency.js';
+import { nextOccurrence, isoLocal, frequencyOf, toMonthly, monthlyAmountOf } from './frequency.js';
 
 // Fixed commitments: rent, EMIs, money sent home, cash you take out - anything
 // owed every period however careful you are. They live in the `recurring`
@@ -144,6 +144,60 @@ export function coveredByFixed(detected, fixed) {
 // A fixed commitment made from something the app spotted: its wording is
 // filled in so its payments are recognised from the first month, and money
 // from the bank is saved the way Plan saves it (no account).
+/* Two commitments that look like one payment written down twice.
+ *
+ * The test is the same monthly amount and effectively the same day. Wording
+ * is deliberately not used: the pair that started this were "W1 Loan EMI" and
+ * "IMPS-900000000014-01 W61 W62", which no word-matching would ever join, and
+ * that is exactly the pair worth catching.
+ *
+ * A day near the start of a month and one near the end count as the same day.
+ * An EMI paid on salary day lands on the 31st in one record and the 1st in
+ * another, which is the same payment in two calendars - the app already knows
+ * that rule for matching payments (js/free-to-spend.js).
+ *
+ * Returns pairs, never a decision. Two real subscriptions can be the same
+ * size on the same day, so the screen asks and the person answers.
+ */
+export function duplicateCommitments(list, today = isoLocal(new Date())) {
+  // isLiveCommitment() requires isFixed, which would throw away the detected
+  // half of every pair - the half that makes this worth doing. The same two
+  // conditions are applied directly instead.
+  const live = list.filter((r) => (isFixed(r) || r.source == null) && r.active !== false && !isFinished(r, today));
+  const near = (a, b) => {
+    if (a == null || b == null) return false;
+    const gap = Math.abs(a - b);
+    // Within a couple of days, or across the turn of the month.
+    return gap <= 2 || gap >= 28;
+  };
+  const pairs = [];
+  for (let i = 0; i < live.length; i += 1) {
+    for (let j = i + 1; j < live.length; j += 1) {
+      const a = live[i];
+      const b = live[j];
+      if (monthlyAmountOf(a) !== monthlyAmountOf(b)) continue;
+      // Already known to be one thing: an EMI and the loan it belongs to.
+      if (a.fromRecurringId === b.id || b.fromRecurringId === a.id) continue;
+      // Already told they are two different costs.
+      if ((a.notDuplicateOf || []).includes(b.id) || (b.notDuplicateOf || []).includes(a.id)) continue;
+      // Two the person typed in themselves, for the same money, are worth
+      // asking about whatever days they carry: only one of them can be the
+      // real cost, and both are already being taken out of the budget. The
+      // pair that prompted this was eight days apart and was the only one of
+      // seven actually costing anything.
+      const bothTyped = isFixed(a) && isFixed(b);
+      if (!bothTyped && !near(a.dayOfMonth, b.dayOfMonth)) continue;
+      // A suggestion is not in the budget yet, so that pair is about stopping
+      // one being added, not about a total being wrong today.
+      const counted = bothTyped;
+      // The one to offer removing is whichever the person did not type in.
+      const typed = isFixed(a) && !isFixed(b) ? a : isFixed(b) && !isFixed(a) ? b : null;
+      pairs.push({ a, b, amount: monthlyAmountOf(a), counted, suggested: typed ? (typed === a ? b : a) : b });
+    }
+  }
+  return pairs;
+}
+
 export function commitmentFromSuggestion(d, id) {
   return {
     id,
