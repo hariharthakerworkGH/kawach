@@ -1435,8 +1435,9 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
   color: oklch(80% 0.11 var(--k-hue, 206));
 }
 .k-brand__text {
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 100%;
   font-size: 0.78em;
@@ -1447,6 +1448,14 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
   font-variant-numeric: tabular-nums;
   transform: translateY(-0.02em);
 }
+.k-brand__glyph {
+  display: grid;
+  place-items: center;
+  width: 0.5em;
+  height: 1em;
+  flex: none;
+}
+.k-brand__glyph:only-child { width: 1em; }
 
 /* Nothing known at all: a quiet tile rather than a hole in the row. */
 .k-brand--none {
