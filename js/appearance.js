@@ -48,6 +48,28 @@ export const CHOICES = {
       },
     ],
   },
+  accounts: {
+    label: 'The Accounts screen',
+    question: 'What should Accounts show?',
+    fallback: 'ring',
+    where: 'Accounts',
+    options: [
+      { value: 'ring', label: 'The ring above the list', note: 'How what you hold is divided, drawn above your accounts.' },
+      { value: 'list', label: 'Just the list', note: 'Your accounts and their balances, nothing drawn.' },
+      { value: 'private', label: 'Keep balances covered', note: 'Amounts stay hidden behind a tap, for checking your phone where others can see it.' },
+    ],
+  },
+  opening: {
+    label: 'When Kawach opens',
+    question: 'Which screen should it start on?',
+    fallback: 'summary',
+    where: '',
+    options: [
+      { value: 'summary', label: 'Summary', note: 'What you have left to spend. The usual first question.' },
+      { value: 'add', label: 'Add', note: 'Straight to entering a payment, for logging as you go.' },
+      { value: 'accounts', label: 'Accounts', note: 'What is in each account first.' },
+    ],
+  },
   history: {
     label: 'The History screen',
     question: 'How should six months be drawn?',

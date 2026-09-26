@@ -14,6 +14,7 @@ import { CHOICES, appearance, setAppearance } from '../appearance.js';
 import { computeFreeToSpend } from '../free-to-spend.js';
 import { getAll } from '../db.js';
 import { spendingHero } from './summary.js';
+import { allocationRing } from '../charts.js';
 import { sixMonthCharts, lastSixMonths } from './transactions.js';
 import { showToast } from '../toast.js';
 
@@ -87,14 +88,33 @@ function previewFor(name, value) {
     const months = state.months || SAMPLE_MONTHS;
     return `<div class="look-preview-inner">${sixMonthCharts(months, value)}</div>`;
   }
-  // Daylight needs no preview pane: choosing it changes the whole app at once,
-  // which is a better look at it than any panel could be, and one tap undoes it.
+  if (name === 'accounts') {
+    // Two invented accounts, because the real ones are a scroll away on their
+    // own screen and the question here is only how they are presented.
+    const slices = [
+      { label: 'Salary account', amount: 11884000 },
+      { label: 'Cash', amount: 1500000 },
+    ];
+    const covered = value === 'private';
+    const rows = slices
+      .map(
+        (s) => `<div class="k-row"><span class="k-row__body"><span class="k-row__title">${s.label}</span></span>
+          <span class="k-row__value">${covered ? '<span class="amount-covered">••••</span>' : '₹' + (s.amount / 100).toLocaleString('en-IN')}</span></div>`
+      )
+      .join('');
+    const ring = value === 'ring' ? allocationRing({ slices, centre: '', caption: '' }) : '';
+    return `<div class="look-preview-inner">${ring}${rows}</div>`;
+  }
+  // Daylight and the opening screen need no preview pane. Choosing a daylight
+  // changes the whole app at once, which is a better look at it than a panel,
+  // and the opening screen is a screen the person already knows.
   return '';
 }
 
 function usingSample(name) {
   if (name === 'summary') return !state.real;
   if (name === 'history') return !state.months;
+  if (name === 'accounts') return true;
   return false;
 }
 
@@ -123,7 +143,11 @@ function card(name, spec) {
                <span class="look-preview-tag">${usingSample(name) ? 'Example figures' : 'Your money'}</span>
                ${preview}
              </div>`
-          : `<p class="muted-note look-live">Tap one to see the whole app change. Tap another to put it back.</p>`
+          : `<p class="muted-note look-live">${
+              name === 'theme'
+                ? 'Tap one to see the whole app change. Tap another to put it back.'
+                : 'Takes effect the next time Kawach opens.'
+            }</p>`
       }
     </div>`;
 }

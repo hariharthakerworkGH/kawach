@@ -12,7 +12,7 @@ import { keepDataSafe, isInstalled } from './install.js';
 import { signIn, rememberGoogleAccount } from './drive.js';
 import { showIfUpdated } from './whats-new.js';
 import { moneyProfile, businesses, activeSpace, setCurrentSpace, settleSpaces } from './business.js';
-import { applyTheme } from './appearance.js';
+import { applyTheme, appearance } from './appearance.js';
 import * as appearanceView from './views/appearance.js';
 import * as addView from './views/add.js';
 import * as categoriesView from './views/categories.js';
@@ -518,7 +518,10 @@ async function init() {
     // Nothing to catch up on: this version's notes are simply seen.
     showIfUpdated(APP_VERSION, await moneyProfile(), { isNew: true });
   } else {
-    await showView('summary', {}, true);
+    // Which screen to open on is the person's choice (js/appearance.js), and
+    // only ever a screen that stands on its own: Add and Accounts are fine to
+    // land on, the rest are somewhere you go from here.
+    await showView(appearance('opening'), {}, true);
     // After an update, once: what changed, for this person.
     setTimeout(async () => showIfUpdated(APP_VERSION, await moneyProfile(), { isNew: false }), 600);
   }

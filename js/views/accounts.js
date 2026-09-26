@@ -13,6 +13,7 @@ import { detectTransfers } from '../transfers.js';
 import { icon } from '../icons.js';
 import { brandMark } from '../brand.js';
 import { allocationRing } from '../charts.js';
+import { appearance } from '../appearance.js';
 import { displayName } from './transactions.js';
 import { escapeHtml, escapeAttr, emptyState, hero, moneyTone } from '../ui.js';
 
@@ -87,6 +88,7 @@ export async function render(container) {
           : `<button type="button" id="add-account-btn" class="k-btn k-btn--secondary">${editing === 'new' ? 'Cancel' : 'Add an account'}</button>`
       }
       <button type="button" id="go-import-btn" class="k-btn k-btn--ghost">Import a statement</button>
+      ${appearance('accounts') === 'private' ? `<button type="button" id="accounts-reveal" class="k-btn k-btn--ghost">${balancesShown ? 'Hide' : 'Show'} balances</button>` : ''}
       ${accounts.length > 1 ? `<button type="button" id="accounts-reorder" class="k-btn k-btn--ghost">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
     </div>
     ${accountsTotal(groups, transactions)}
@@ -115,6 +117,16 @@ export async function render(container) {
   };
   const emptyAdd = container.querySelector('#empty-add-account');
   if (emptyAdd) emptyAdd.addEventListener('click', openAdd);
+  const reveal = container.querySelector('#accounts-reveal');
+  if (reveal) {
+    reveal.addEventListener('click', () => {
+      balancesShown = !balancesShown;
+      // Redrawn in place, so the screen does not jump to the top when the
+      // amounts appear.
+      redraw(container, () => render(container));
+    });
+  }
+
   container.querySelectorAll('#go-import-btn, .account-go-import').forEach((btn) =>
     btn.addEventListener('click', () => {
       container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'import' } }));
@@ -562,7 +574,16 @@ function renderGroup(title, accounts, transactions, importBatches, editingAccoun
  * row's own actions. A row that is not openable carries its actions in the
  * detail below it, which those types show anyway.
  */
+/* Is this screen keeping amounts covered, and has the person asked to see
+ * them this visit? The answer is deliberately not remembered: covering them
+ * again the next time the screen opens is the whole point of the setting.
+ */
+let balancesShown = false;
+const covering = () => appearance('accounts') === 'private' && !balancesShown;
+const cover = (text) => (covering() && text ? '<span class="amount-covered" aria-label="Balance hidden">••••</span>' : text);
+
 function accountRow(account, { meta = '', value = '', tone = '', canOpen = false, place = {} }) {
+  value = cover(value);
   const open = opened.has(account.id);
   // The bank's own name if we know it, otherwise what the account is called.
   // brandMark() is the resolver from phase 9C: a licensed file, a category
@@ -1134,16 +1155,22 @@ function accountsTotal(groups, transactions) {
   const across = `Counted from ${spendable.length} account${spendable.length === 1 ? '' : 's'} with a known balance`;
   return hero({
     label: 'In your accounts',
-    amount: formatRupees(total),
+    amount: covering() ? '••••' : formatRupees(total),
     negative: total < 0,
-    figures: putAway.length ? [{ label: 'Put away', value: formatRupees(putAway.reduce((s, v) => s + v, 0)) }] : [],
-    status: across,
+    figures: putAway.length && !covering()
+      ? [{ label: 'Put away', value: formatRupees(putAway.reduce((s, v) => s + v, 0)) }]
+      : [],
+    status: covering() ? 'Tap Show to see your balances' : across,
     // Only when there is a split worth seeing; the ring's slices are the
-    // rows above, so they add to the figure above them exactly.
-    extra: allocationRing({
-      slices: spendableRows.filter((x) => x.amount > 0),
-      centre: '',
-      caption: 'Every slice is an account you can spend from. Money put away is counted apart.',
-    }),
+    // rows above, so they add to the figure above them exactly. Whether it is
+    // drawn at all is the person's choice (js/appearance.js).
+    extra:
+      appearance('accounts') === 'ring'
+        ? allocationRing({
+            slices: spendableRows.filter((x) => x.amount > 0),
+            centre: '',
+            caption: 'Every slice is an account you can spend from. Money put away is counted apart.',
+          })
+        : '',
   });
 }

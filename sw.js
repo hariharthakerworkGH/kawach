@@ -5,7 +5,7 @@
 // counter, not the version people see). The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v95';
+const CACHE_NAME = 'expense-tracker-v96';
 
 const APP_SHELL = [
   './',
@@ -169,6 +169,27 @@ self.addEventListener('fetch', (event) => {
   // never kept, so a page outside the app is never frozen at the copy someone
   // happened to see first.
   if (!SHELL_PATHS.has(url.pathname)) return;
+
+  // The manifest is how the phone learns the app's name and icons, and it is
+  // read by the operating system rather than by the app. Answered from the
+  // cache it can say the icons are the old ones long after they changed,
+  // which leaves a home screen showing a mark the app no longer uses. So it
+  // is fetched fresh whenever there is a network, and only falls back to the
+  // cached copy when there is not.
+  if (url.pathname.endsWith('/manifest.webmanifest')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok && response.type === 'basic') {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
 
   // Page loads can carry a query string (the app is reopened at ./?shared=1
   // after a share). Match those to the cached page regardless, so it opens
