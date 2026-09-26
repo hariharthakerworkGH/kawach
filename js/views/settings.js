@@ -105,6 +105,7 @@ export async function render(container, params = {}) {
     <h3>More</h3>
     <div class="button-stack">
       <button type="button" id="go-categories" class="btn-secondary btn-block">Manage categories</button>
+      <button type="button" id="go-appearance" class="btn-secondary btn-block">How it looks</button>
       <button type="button" id="watch-tour" class="btn-secondary btn-block">Watch the tour</button>
       <button type="button" id="run-setup" class="btn-secondary btn-block">Run setup again</button>
       <button type="button" id="whats-new-btn" class="btn-secondary btn-block">What's new</button>
@@ -178,6 +179,10 @@ export async function render(container, params = {}) {
 
   container.querySelector('#run-setup').addEventListener('click', () => {
     container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'setup', restart: true } }));
+  });
+
+  container.querySelector('#go-appearance').addEventListener('click', () => {
+    container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'appearance' } }));
   });
 
   container.querySelector('#go-categories').addEventListener('click', () => {

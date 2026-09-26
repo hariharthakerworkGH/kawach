@@ -215,7 +215,7 @@
 /* The light theme keeps the same bones: same contrast, same weight, just
    inverted. It is not a softer or quieter version of the app. */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="dark"]) {
     --bg: oklch(97.2% 0.004 255);
     --bg-elevated: oklch(100% 0 0);
     --surface: oklch(100% 0 0);
@@ -308,3 +308,96 @@
     --shadow-lift: 0 10px 30px oklch(16.8% 0.007 258 / 0.12);
   }
 }
+/* generated from the block above by tools/theme; do not edit by hand */
+:root[data-theme="light"] {
+    --bg: oklch(97.2% 0.004 255);
+    --bg-elevated: oklch(100% 0 0);
+    --surface: oklch(100% 0 0);
+    --surface-alt: oklch(95.6% 0.005 255);
+    --surface-hi: oklch(93% 0.007 255);
+    --text: oklch(17.5% 0.014 262);
+    --text-muted: oklch(48% 0.016 258);
+    /* Dim, but still readable: it carries the small labels. */
+    --text-dim: oklch(52% 0.016 258);
+    /* Same reasoning as the dark theme: a divider must be seen. */
+    --border: oklch(88.5% 0.007 255);
+    --border-hi: oklch(83% 0.011 255);
+    /* Paper cannot catch a white highlight; its edge is a faint shadow. */
+    --edge-lum: oklch(17.5% 0.014 262 / 0.05);
+
+    --surface-press: oklch(96% 0.005 255);
+    --surface-selected: oklch(95% 0.035 232);
+    --text-disabled: oklch(65% 0.014 258);
+
+    --accent: oklch(52% 0.13 235);
+    --accent-ink: oklch(100% 0 0);
+    --accent-soft: oklch(95% 0.035 232);
+    --accent-line: oklch(86% 0.07 230);
+    --emerald: oklch(50% 0.11 162);
+    --violet: oklch(50% 0.17 295);
+    --violet-soft: oklch(95% 0.03 295);
+
+    /* Measured on the paper: 3.78, 4.17 and 4.06 before this. Same colours,
+       darker, so a figure reads as well on the paper as on a card. */
+    --in: oklch(53% 0.13 159);
+    --out: oklch(56.9% 0.19 31);
+    --warn: oklch(55.4% 0.125 69);
+
+    /* Category colours are chosen against black. On white the same colours
+       measured between 1.29 and 2.72, so the light theme keeps each hue and
+       darkens it: every one now clears 4.5 on a card and on the paper. */
+    --cat-uncategorized: oklch(54.4% 0.026 165);
+    --cat-food: oklch(56.3% 0.155 42);
+    --cat-groceries: oklch(51.7% 0.182 152);
+    --cat-transport: oklch(53.3% 0.139 233);
+    --cat-bills: oklch(54.9% 0.164 84);
+    --cat-home: oklch(56.2% 0.159 294);
+    --cat-shopping: oklch(57% 0.175 350);
+    --cat-fun: oklch(56.7% 0.177 306);
+    --cat-health: oklch(51.7% 0.153 163);
+    --cat-income: oklch(53.4% 0.191 122);
+    --cat-transfer: oklch(54.3% 0.03 165);
+    --cat-invest: oklch(52.1% 0.134 212);
+    --cat-learning: oklch(54.9% 0.143 255);
+    --cat-gifts: oklch(56.9% 0.169 13);
+    --cat-none: oklch(54.3% 0.035 165);
+    --cat-1: oklch(55.4% 0.165 70);
+    --cat-2: oklch(57.1% 0.219 293);
+    --cat-3: oklch(52.5% 0.126 215);
+    --cat-4: oklch(57.5% 0.212 354);
+    --cat-5: oklch(53% 0.204 131);
+    --cat-6: oklch(57.4% 0.215 16);
+    --cat-7: oklch(52.2% 0.123 183);
+    --cat-8: oklch(57.6% 0.233 304);
+
+    /* On paper the pane is still a pane, but light passes the other way:
+       the fill is nearly opaque white and the sheen is a faint shadow from
+       above rather than a highlight. Glow is almost nothing - a lit edge on
+       white reads as a smudge - so hierarchy in daylight is carried by
+       weight and space, which is how paper has always done it. */
+    --glass: color-mix(in oklch, var(--surface) 92%, transparent);
+    --glass-hi: color-mix(in oklch, var(--surface-alt) 90%, transparent);
+    --glass-sheen: linear-gradient(
+      180deg,
+      oklch(100% 0 0 / 0.9) 0%,
+      oklch(100% 0 0 / 0.35) 40%,
+      transparent 75%
+    );
+    --glass-edge: color-mix(in oklch, var(--border) 62%, transparent);
+
+    --glow-cyan: 0 0 18px color-mix(in oklch, var(--accent) 12%, transparent);
+    --glow-blue: 0 0 16px color-mix(in oklch, var(--accent) 9%, transparent);
+    --glow-violet: 0 0 18px color-mix(in oklch, var(--violet) 10%, transparent);
+    --glow-warm: 0 0 18px color-mix(in oklch, var(--warn) 10%, transparent);
+    --glow-text: none;
+
+    --amb-warm: oklch(72% 0.13 55);
+
+    --scrim: oklch(16.8% 0.007 258 / 0.45);
+    /* On paper the light comes from above too, but a white card cannot catch
+       a white highlight: the edge is a faint shadow instead. */
+    --edge: oklch(16.8% 0.007 258 / 0.04);
+    --shadow-card: 0 1px 2px oklch(16.8% 0.007 258 / 0.04), 0 3px 12px oklch(16.8% 0.007 258 / 0.05);
+    --shadow: 0 1px 2px oklch(16.8% 0.007 258 / 0.05), 0 6px 20px oklch(16.8% 0.007 258 / 0.06);
+    --shadow-lift: 0 10px 30px oklch(16.8% 0.007 258 / 0.12);
+  }

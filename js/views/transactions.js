@@ -13,6 +13,7 @@ import { isoLocal } from '../frequency.js';
 import { icon } from '../icons.js';
 import { categoriesFor, activeSpace, accountInSpace } from '../business.js';
 import { inOutBars, cashRiver } from '../charts.js';
+import { appearance } from '../appearance.js';
 import { escapeHtml, escapeAttr, emptyState } from '../ui.js';
 
 // History: one month at a time, newest first, grouped by day, one line per
@@ -101,12 +102,19 @@ export async function render(container, params = {}) {
       <div class="hero-top"><span class="hero-label">Net this month</span><span class="hero-label" id="hist-period"></span></div>
       <p class="hero-amount" id="hist-net">&nbsp;</p>
       <p class="hero-status" id="txn-count"></p>
-      ${inOutBars({ months: lastSixMonths(transactions) })}
       ${(() => {
+        // Both drawings answer a question about the same six months; which of
+        // them is worth the room is the person's choice (js/appearance.js).
+        const look = appearance('history');
         const months = lastSixMonths(transactions);
-        const river = cashRiver({ months });
-        // Same six months, same figures the bars above are drawn from.
-        return river ? `<details class="section-fold river-fold"><summary>What you kept, month by month</summary>${river}</details>` : '';
+        const bars = look === 'river' ? '' : inOutBars({ months });
+        const river = look === 'bars' ? '' : cashRiver({ months });
+        if (!river) return bars;
+        // On its own the river stands open; under the bars it stays folded, so
+        // the bars remain the first thing and the two never compete.
+        return bars
+          ? `${bars}<details class="section-fold river-fold"><summary>What you kept, month by month</summary>${river}</details>`
+          : river;
       })()}
     </section>
     <div class="hero-under" id="hist-stats"></div>

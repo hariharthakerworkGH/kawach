@@ -10,10 +10,19 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#07090f" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
+<script>
+  // The chosen light or dark, put on <html> before the stylesheet paints, so
+  // the app never opens in the wrong colour and corrects itself a moment
+  // later. js/appearance.js is the same decision, made again once it loads.
+  try {
+    var t = (JSON.parse(localStorage.getItem('kawach-appearance')) || {}).theme;
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+</script>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icons/kawach.svg" type="image/svg+xml">
-<link rel="icon" href="./icons/icon-192.png" sizes="192x192">
-<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" href="./icons/kawach-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="./icons/kawach-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Kawach">
