@@ -2,9 +2,9 @@
 ## Single Source of Truth for Product Improvement
 
 **Last updated:** 2026-09-26  
-**Current production:** 4.5 / BUILD 98  
-**Current cache:** expense-tracker-v98  
-**Latest production commit:** 9c143a2e9cdd386d672227803d7555fcd88d9aa6  
+**Current production:** 4.6 / BUILD 99  
+**Current cache:** expense-tracker-v99  
+**Latest production commit:** 6a39f02f2cf1cadacd6731d90782344c17414215  
 **Architecture:** vanilla JS, static/offline-first, SVG/CSS, no build framework
 
 > This document is the authoritative roadmap for Kawach improvement work.
@@ -12,6 +12,32 @@
 > When a new task is inserted, deferred, completed, or reordered, update this document before or with the code change.
 
 ---
+
+# 0. THE SPENDING PERIOD - changed in 4.6
+
+Raised by the owner: the Summary was showing "26 Sep to 25 Oct" and he asked
+whether that was right, since the 26th is a credit-card billing date that
+varies from user to user.
+
+It was not right. Card spending ran on the card cycle, bank spending ran on
+the calendar month, and the headline printed the card one. Measured on a plain
+case - salary 52,000 on the 1st, rent 12,000, save 5,000, so a 35,000 budget,
+19,000 spent across September - the app said 24,000 left when the true answer
+was 16,000. The 8,000 gap was a card spend from the 10th that a new cycle
+beginning on the 26th had already forgiven, while bank spending from the 5th
+was still counted despite falling outside the window the screen named.
+
+Spending is now the calendar month on both sides. The card cycle still decides
+bills, because a bill is one cycle's worth; cardPosition() is untouched.
+
+Two things this settles for later work:
+- A money rule is never a preference. Customisation is for how the app looks.
+  If two people can get different answers for "left to spend" from identical
+  data, the number stops being worth trusting.
+- The five tests that asserted the old window were retargeted, not deleted.
+  Each still checks what it protected: the statement day coming from imported
+  statements, the bill being raised at cycle close, the bank shortfall being
+  reported, and salary timing.
 
 # 1. PRODUCT NORTH STAR
 
@@ -485,10 +511,10 @@ Every release must follow:
 **CODE → TESTS → VERSION → BUILD → SERVICE-WORKER CACHE → WHAT'S NEW → SNAPSHOT → GITHUB → LIVE VERIFICATION**
 
 Current:
-- 4.5
-- BUILD 98
-- cache v98
-- snapshot expense-tracker-versions/4.5
+- 4.6
+- BUILD 99
+- cache v99
+- snapshot expense-tracker-versions/4.6
 
 Never declare a release complete until the installed PWA can actually detect it.
 
@@ -513,6 +539,7 @@ Existing snapshots must never be overwritten:
 - expense-tracker-versions/4.3
 - expense-tracker-versions/4.4
 - expense-tracker-versions/4.5
+- expense-tracker-versions/4.6
 
 Every meaningful phase/release gets a new snapshot.
 
