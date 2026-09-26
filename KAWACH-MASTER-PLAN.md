@@ -260,10 +260,10 @@ Every release must follow:
 **CODE → TESTS → VERSION → BUILD → SERVICE-WORKER CACHE → WHAT'S NEW → SNAPSHOT → GITHUB → LIVE VERIFICATION**
 
 Current:
-- 4.0.7
-- BUILD 87
-- cache v87
-- snapshot versions/0.0.7
+- 4.0.10
+- BUILD 90
+- cache v90
+- snapshot expense-tracker-versions/4.0.10
 
 Never declare a release complete until the installed PWA can actually detect it.
 
@@ -278,7 +278,8 @@ Existing snapshots must never be overwritten:
 - versions/0.0.4
 - versions/0.0.5
 - versions/0.0.6
-- versions/0.0.7`r`n- expense-tracker-versions/4.0.10
+- versions/0.0.7
+- expense-tracker-versions/4.0.10
 
 Every meaningful phase/release gets a new snapshot.
 
