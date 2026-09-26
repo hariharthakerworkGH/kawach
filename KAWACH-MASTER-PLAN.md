@@ -2,9 +2,10 @@
 ## Single Source of Truth for Product Improvement
 
 **Last updated:** 2026-09-26  
-**Current production:** 4.0.7 / BUILD 87  
-**Current cache:** expense-tracker-v87  
-**Latest production commit:** 8daa712c4a5a3a248bb4b6046ffc744f3da1ec4d  
+**Current production:** 4.0.9 / BUILD 89  
+**Current cache:** expense-tracker-v89  
+**Latest production commit:** 4672053ab9c88d8afc795843acd16843b4bb65fe  
+**Latest repository commit:** 56833eecddfaad51aa199cc6ec6513c869f03e1f  
 **Architecture:** vanilla JS, static/offline-first, SVG/CSS, no build framework
 
 > This document is the authoritative roadmap for Kawach improvement work.
@@ -115,6 +116,12 @@ Next work:
 6. Confirm the top Summary area communicates the user's position immediately.
 7. Fix only issues found by QA.
 8. Release with the normal version/update process.
+
+### Active Summary follow-up from 4.0.9 screenshots
+- Simplify the card-cycle / bank-month split and the repeated card-liability messaging so the headline, details and warning have distinct jobs.
+- Fix breakdown rows so descriptions and amounts keep a clear gap and wrap safely on narrow screens.
+- Preserve the current financial calculation. Change it only if source inspection and made-up-data tests prove a calculation defect.
+- Recheck the salary-on-month-end case and imported statement-day cycle, then finish the listed responsive, light/dark and Budget Burn QA.
 
 Do not start the Brand Library until this checkpoint is visually acceptable.
 
@@ -321,6 +328,6 @@ At the end of a meaningful work session, update this document with:
 
 # 15. CURRENT NEXT ACTION
 
-**Complete visual QA of Summary 4.0.7, especially the Budget Burn projection, then proceed to Stage 2 — Brand Library.**
+**Refine Summary 4.0.9 using the reported hierarchy and spacing issues, complete the remaining visual QA, then proceed to Stage 2 — Brand Library.**
 
 Do not begin another broad redesign before this checkpoint is closed.
