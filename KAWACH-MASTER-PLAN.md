@@ -148,6 +148,7 @@ Build the reusable brand architecture and curated legitimate SVG assets for:
 - telecom
 
 Rules:
+- Simple Icons marks only when their individual entry explicitly identifies a CC0 license; keep the source and license evidence beside each bundled SVG
 - legitimate/local SVG assets only
 - no fabricated trademark logos
 - fallback remains real SVG → category icon → monogram
@@ -268,10 +269,10 @@ Every release must follow:
 **CODE → TESTS → VERSION → BUILD → SERVICE-WORKER CACHE → WHAT'S NEW → SNAPSHOT → GITHUB → LIVE VERIFICATION**
 
 Current:
-- 4.0.10
-- BUILD 90
-- cache v90
-- snapshot expense-tracker-versions/4.0.10
+- 4.0.11
+- BUILD 91
+- cache v91
+- snapshot expense-tracker-versions/4.0.11
 
 Never declare a release complete until the installed PWA can actually detect it.
 
