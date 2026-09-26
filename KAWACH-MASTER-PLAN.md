@@ -4,7 +4,7 @@
 **Last updated:** 2026-09-26  
 **Current production:** 4.0.10 / BUILD 90  
 **Current cache:** expense-tracker-v90  
-**Latest production commit:** 4672053ab9c88d8afc795843acd16843b4bb65fe  
+**Latest production commit:** dadc24e28ad20c297b61d77b6362cb66e5f11e96  
 **Architecture:** vanilla JS, static/offline-first, SVG/CSS, no build framework
 
 > This document is the authoritative roadmap for Kawach improvement work.
