@@ -12,6 +12,13 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.0.5',
+    items: [
+      { icon: 'accounts', title: 'Account marks line up', text: 'Small account marks and initials now sit consistently in their tiles.' },
+      { icon: 'summary', title: 'Design Lab drawings are back', text: 'The reusable charts and visual pieces now render correctly in the component catalogue.' },
+    ],
+  },
+  {
     version: '4.0.4',
     items: [
       {
