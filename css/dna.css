@@ -2889,3 +2889,17 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
    other stat on this screen. */
 .k .stat-wide { align-items: flex-start; }
 .k .stat-of { color: var(--k-text-3); font-weight: 400; }
+
+/* The same payment written down twice. The two rows are shown as one group
+   so the pair reads as a pair, and the amount they share sits above them
+   because the matching amount is the reason they are here. */
+.k .dupe-note { margin: 0 0 var(--k-4); }
+.k .dupe-pair { padding: var(--k-3) 0; border-top: 1px solid var(--k-hairline); }
+.k .dupe-pair:first-of-type { border-top: 0; padding-top: 0; }
+.k .dupe-amount { display: block; font-weight: var(--k-w-fig); color: var(--k-text); font-variant-numeric: tabular-nums; margin-bottom: var(--k-2); }
+.k .dupe-row { padding: var(--k-2) 0; }
+.k .dupe-keep { margin-top: var(--k-2); }
+
+/* Marks the pair that is actually costing something: both were typed in, so
+   both are already coming out of the budget. */
+.k .dupe-flag { font-size: var(--k-caption); font-weight: 400; letter-spacing: var(--k-track-caption); text-transform: uppercase; color: var(--k-warning); margin-left: var(--k-2); }

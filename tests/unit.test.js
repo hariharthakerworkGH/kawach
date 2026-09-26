@@ -5,7 +5,7 @@ import { txn, commitment, rupees } from './fixtures.js';
 import { nextOccurrence } from '../js/frequency.js';
 import { passwordErrorKind } from '../js/pdf-text.js';
 import { sameTransaction, findDuplicates } from '../js/duplicates.js';
-import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher } from '../js/commitments.js';
+import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments } from '../js/commitments.js';
 import { cardPosition, bankBalance, statementDayFixes } from '../js/account-metrics.js';
 import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance } from '../js/appearance.js';
@@ -435,6 +435,59 @@ test('spent and budget never read as "of" once the spending is past the budget',
   ok(!past.includes('>of<') && !/of/.test(past.replace(/<[^>]*>/g, '')), 'past it, nothing claims to be part of anything');
   ok(past.includes('against'), 'it says what the spending is measured against instead');
   ok(past.includes('₹44,234') && past.includes('₹9,000'), 'both figures are still shown');
+});
+
+// --- The same payment twice ---------------------------------------------
+// These are the real pairs from a plan where seven costs were on the list
+// twice, once typed in and once detected, under wording no word-matching
+// would ever join. Together they were 1,05,167 a month that did not exist.
+test('a cost entered twice is spotted by its amount and its day, not its words', () => {
+  const list = [
+    commitment({ id: 'f1', label: 'W1 Loan EMI', amount: 68000, dayOfMonth: 1, source: 'fixed' }),
+    commitment({ id: 'd1', label: 'IMPS-900000000014-01 W61 W62', amount: 68000, dayOfMonth: 31, source: null }),
+    commitment({ id: 'f2', label: 'W2 EMI Interest', amount: 420, dayOfMonth: 8, source: 'fixed' }),
+    commitment({ id: 'd2', label: 'Interest Amount Amortization', amount: 420, dayOfMonth: 8, source: null }),
+    commitment({ id: 'f3', label: 'W39', amount: 499, dayOfMonth: 21, source: 'fixed' }),
+    commitment({ id: 'd3', label: 'W40', amount: 499, dayOfMonth: 22, source: null }),
+    // Not a pair: same day, different money.
+    commitment({ id: 'x1', label: 'Something else', amount: 1500, dayOfMonth: 8, source: 'fixed' }),
+  ];
+  const pairs = duplicateCommitments(list, '2026-09-27');
+  equal(pairs.length, 3, 'three pairs, and the odd one out is left alone');
+  // None of these costs anything yet: a suggestion is not in the budget.
+  for (const p of pairs) equal(p.counted, false, 'a suggestion is not counted twice');
+  // The month turns over: the 31st and the 1st are the same payment.
+  ok(pairs.some((p) => p.a.id === 'f1' && p.b.id === 'd1'), 'across the end of the month');
+  // A day either side still counts.
+  ok(pairs.some((p) => p.a.id === 'f3' && p.b.id === 'd3'), 'a day apart');
+  // The one offered for removal is the one the person did not type.
+  for (const p of pairs) ok(p.suggested.source !== 'fixed', 'it offers to drop the detected one');
+});
+
+test('two real costs of the same size on the same day can be kept', () => {
+  const both = [
+    commitment({ id: 'a', label: 'One subscription', amount: 499, dayOfMonth: 1, source: 'fixed' }),
+    commitment({ id: 'b', label: 'Another subscription', amount: 499, dayOfMonth: 1, source: null }),
+  ];
+  equal(duplicateCommitments(both, '2026-09-27').length, 1, 'offered once');
+  const told = [
+    { ...both[0], notDuplicateOf: ['b'] },
+    { ...both[1], notDuplicateOf: ['a'] },
+  ];
+  equal(duplicateCommitments(told, '2026-09-27').length, 0, 'and never again once told they differ');
+});
+
+// The pair that was really costing something: both typed in by hand, for the
+// same money, eight days apart. The day test that suits a suggestion would
+// have thrown this away, and it was the only one of seven that was wrong.
+test('the same cost typed in twice is caught however far apart the days are', () => {
+  const list = [
+    commitment({ id: 'a', label: 'W8 to W9', amount: 30000, dayOfMonth: 9, source: 'fixed' }),
+    commitment({ id: 'b', label: 'Cash Withdrawal', amount: 30000, dayOfMonth: 1, source: 'fixed' }),
+  ];
+  const pairs = duplicateCommitments(list, '2026-09-27');
+  equal(pairs.length, 1, 'eight days apart is still the same money twice');
+  equal(pairs[0].counted, true, 'and this one really is coming out of the budget twice');
 });
 
 // --- Parsers ----------------------------------------------------------------
