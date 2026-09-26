@@ -143,7 +143,7 @@ export async function runDueReminders() {
     await reg.showNotification(item.title, {
       body: item.body,
       tag: item.id,
-      icon: './icons/icon-192.png',
+      icon: './icons/kawach-192.png',
       badge: './icons/badge-96.png',
       data: { view: 'accounts' },
     });

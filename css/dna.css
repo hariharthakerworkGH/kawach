@@ -578,8 +578,7 @@
   height: var(--k-tap);
   transform: translateY(-50%);
 }
-.k-chip[aria-pressed="true"],
-.k-chip.is-on {
+.k-chip[aria-pressed="true"] {
   background: color-mix(in oklch, var(--k-accent) 14%, transparent);
   border-color: color-mix(in oklch, var(--k-accent) 42%, transparent);
   color: var(--k-text);
@@ -1189,8 +1188,7 @@ body:has(#view-container.k)::after {
   vector-effect: non-scaling-stroke;
 }
 .k .goal-ring,
-.k .alloc-ring,
-.k .radial-meter { display: block; width: 100%; max-width: 120px; height: auto; overflow: visible; }
+.k .alloc-ring { display: block; width: 100%; max-width: 120px; height: auto; overflow: visible; }
 .k .chart-block { width: 100%; min-width: 0; }
 .k .chart-block > svg { max-width: 100%; }
 .k .bar-in { fill: color-mix(in oklch, var(--k-positive) 70%, transparent); }
