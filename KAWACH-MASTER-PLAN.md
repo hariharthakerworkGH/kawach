@@ -102,7 +102,7 @@ This is the intended 'where am I / where am I heading?' financial view.
 # 4. CURRENT STAGE
 
 ## STAGE 1 — VISUAL QA / SUMMARY REFINEMENT
-**Status: ACTIVE**
+**Status: COMPLETE**
 
 Design Lab 2.1 has been source-audited and approved.
 
@@ -120,22 +120,24 @@ Next work:
 - Complete: card-cycle and bank-month spending now share a compact line; the unpaid-card warning explains the liability once; the duplicate headline warning was removed.
 - Complete: breakdown rows have clear internal padding, a consistent label/amount gap and safe label wrapping.
 - Preserve the current financial calculation. Change it only if source inspection and made-up-data tests prove a calculation defect.
-- Verified: existing suite passes 132/132, including salary timing and imported statement-day cases. Remaining: check the live page at responsive widths, light/dark mode and Budget Burn before closing Stage 1.
+- Verified: the current suite passes 133/133, including salary timing and imported statement-day cases.
+- Complete: Summary checked with made-up salary, rent, bank and card data at 320 / 360 / 390 / desktop widths in dark and light themes; no horizontal overflow or console errors. The Budget Burn chart and accessible label render at every width.
+- Complete: realistic 4-day card-spend pace reports ₹13,250 spent against a ₹65,000 budget, with the expected ₹4,583 over-pace message. No financial logic changed.
 
 ### Production CSS regression — inserted before closing Stage 1
 - Root cause confirmed from GitHub: production `css/dna.css` is corrupted encoded data, while the 4.0.10 local snapshot has valid CSS. Summary and Accounts therefore lose DNA card, spacing and chart styling.
 - Complete: restored `css/dna.css` from the verified 4.0.10 snapshot; the live release displays DNA cards and the Summary Budget Burn chart again.
 - Complete: published release 4.0.11 / BUILD 91 / cache v91 and captured snapshot `expense-tracker-versions/4.0.11`.
 - Verified live in the browser: release reports 4.0.11; Summary Budget Burn and Accounts cards render with the Design Lab styling.
-- Remaining before Stage 1 closes: check phone widths, light/dark mode and realistic Budget Burn points.
+- Complete: checked the restored production styles against Design Lab 2.1 and completed the responsive, theme and Budget Burn checks above.
 - Do not change financial calculations or user data.
 
-Do not start the Brand Library until this checkpoint is visually acceptable.
+Stage 1 is closed. Proceed to Stage 2.
 
 ---
 
 # 5. STAGE 2 — BRAND LIBRARY
-**Status: NEXT**
+**Status: ACTIVE**
 
 Build the reusable brand architecture and curated legitimate SVG assets for:
 - food / delivery
@@ -149,6 +151,7 @@ Build the reusable brand architecture and curated legitimate SVG assets for:
 
 Rules:
 - Simple Icons marks only when their individual entry explicitly identifies a CC0 license; keep the source and license evidence beside each bundled SVG
+- Confirm each candidate against Simple Icons' individual metadata; the collection-wide CC0 license is not sufficient evidence for a brand mark.
 - legitimate/local SVG assets only
 - no fabricated trademark logos
 - fallback remains real SVG → category icon → monogram
@@ -338,7 +341,7 @@ At the end of a meaningful work session, update this document with:
 
 # 15. CURRENT NEXT ACTION
 
-**Finish Stage 1 phone-width, light/dark and realistic Budget Burn QA for 4.0.11; then proceed to Stage 2 — Brand Library.**
+**Stage 1 is closed; complete the CC0-verified Simple Icons asset inventory and wire eligible local SVG marks into the Stage 2 brand library.**
 
 Do not begin another broad redesign before this checkpoint is closed.
 
