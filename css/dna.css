@@ -2851,3 +2851,28 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 /* A balance the person has asked to keep off the glass. Same width as the
    figure it stands in for, so nothing shifts when it is uncovered. */
 .amount-covered { letter-spacing: 0.12em; color: var(--k-text-3); font-variant-numeric: tabular-nums; }
+
+/* --- Text size and spacing -----------------------------------------
+   Type is in rem everywhere, so one font-size on :root carries every
+   size in both stylesheets with it. The percentages are modest on purpose:
+   at 125% a ten-digit rupee figure still has to fit a 320px screen.
+
+   Spacing is restated rather than scaled, because the DNA holds it in
+   pixels. --k-tap and --k-1 are the same at every setting: a tighter screen
+   must not become a harder one to hit.
+*/
+:root[data-text="large"] { font-size: 112.5%; }
+:root[data-text="largest"] { font-size: 125%; }
+
+:root[data-density="compact"] {
+  --k-1: 4px;
+  --k-2: 6px;
+  --k-3: 9px;
+  --k-4: 12px;
+  --k-5: 15px;
+  --k-6: 18px;
+  --k-8: 24px;
+  --k-10: 30px;
+  --k-12: 36px;
+  --k-16: 48px;
+}

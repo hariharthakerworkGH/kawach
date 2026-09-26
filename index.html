@@ -15,8 +15,11 @@
   // the app never opens in the wrong colour and corrects itself a moment
   // later. js/appearance.js is the same decision, made again once it loads.
   try {
-    var t = (JSON.parse(localStorage.getItem('kawach-appearance')) || {}).theme;
-    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    var a = JSON.parse(localStorage.getItem('kawach-appearance')) || {};
+    var r = document.documentElement;
+    if (a.theme === 'light' || a.theme === 'dark') r.setAttribute('data-theme', a.theme);
+    if (a.text === 'large' || a.text === 'largest') r.setAttribute('data-text', a.text);
+    if (a.density === 'compact') r.setAttribute('data-density', 'compact');
   } catch (e) {}
 </script>
 <link rel="manifest" href="./manifest.webmanifest">

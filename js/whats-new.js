@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.5',
+    items: [
+      {
+        icon: 'eye',
+        title: 'Bigger writing, if you want it',
+        text: 'Text size and spacing are now yours to set. Larger text applies everywhere in the app, and buttons stay just as easy to tap.',
+        guide: [{ view: 'settings', target: '#go-appearance', text: 'Text size and spacing are at the top. Tap one and the whole app changes.' }],
+      },
+    ],
+  },
+  {
     version: '4.4',
     items: [
       {

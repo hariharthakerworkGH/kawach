@@ -167,7 +167,7 @@ function card(name, spec) {
                ${preview}
              </div>`
           : `<p class="muted-note look-live">${
-              name === 'theme'
+              name === 'theme' || name === 'text' || name === 'density'
                 ? 'Tap one to see the whole app change. Tap another to put it back.'
                 : spec.where
                   ? `Open ${spec.where} to see it.`

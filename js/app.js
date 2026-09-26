@@ -12,7 +12,7 @@ import { keepDataSafe, isInstalled } from './install.js';
 import { signIn, rememberGoogleAccount } from './drive.js';
 import { showIfUpdated } from './whats-new.js';
 import { moneyProfile, businesses, activeSpace, setCurrentSpace, settleSpaces } from './business.js';
-import { applyTheme, appearance } from './appearance.js';
+import { applyTheme, applyDisplay, appearance } from './appearance.js';
 import * as appearanceView from './views/appearance.js';
 import * as addView from './views/add.js';
 import * as categoriesView from './views/categories.js';
@@ -442,6 +442,7 @@ async function init() {
   // the first paint; this is the same decision made from the one module that
   // owns it, so there is only ever one answer.
   applyTheme();
+  applyDisplay();
 
   // The tab bar's and header's icons, before anything is drawn below them.
   fillIcons();
