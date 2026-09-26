@@ -5,7 +5,7 @@
 // counter, not the version people see). The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v93';
+const CACHE_NAME = 'expense-tracker-v94';
 
 const APP_SHELL = [
   './',
@@ -16,6 +16,8 @@ const APP_SHELL = [
   './css/dna.css',
   './fonts/Geist-Variable.woff2',
   './js/app.js',
+  './js/appearance.js',
+  './js/views/appearance.js',
   './js/db.js',
   './js/config.js',
   './js/format.js',
@@ -90,10 +92,10 @@ const APP_SHELL = [
   './js/parsers/icici-amazon-pay-credit-card.js',
   './js/vendor/pdf.min.js',
   './js/vendor/pdf.worker.min.js',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-maskable-512.png',
-  './icons/apple-touch-icon.png',
+  './icons/kawach-192.png',
+  './icons/kawach-512.png',
+  './icons/kawach-maskable-512.png',
+  './icons/kawach-touch-icon.png',
   './icons/badge-96.png',
   './icons/kawach.svg',
   './icons/art/empty-wallet.svg',
@@ -273,7 +275,7 @@ async function showDueReminders() {
     await self.registration.showNotification(item.title, {
       body: item.body,
       tag: item.id,
-      icon: './icons/icon-192.png',
+      icon: './icons/kawach-192.png',
       badge: './icons/badge-96.png',
       data: { view: 'accounts' },
     });

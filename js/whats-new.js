@@ -12,6 +12,27 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.1',
+    items: [
+      {
+        icon: 'settings',
+        title: 'Make it look how you like',
+        text: 'Settings now has "How it looks": light or dark whatever your phone does, how much sits under the big number on Summary, and how six months are drawn on History.',
+        guide: [{ view: 'settings', target: '#go-appearance', text: 'Your choices live here. They stay on this phone.' }],
+      },
+      {
+        icon: 'sync',
+        title: 'Updates arrive on their own',
+        text: 'Kawach now takes a new version as soon as it is ready, instead of asking. It waits if you are part way through adding something or checking a statement.',
+      },
+      {
+        icon: 'wallet',
+        title: 'The app icon',
+        text: 'If your home screen still showed the old green shield, it should pick up the current one. On some phones you may need to remove Kawach from the home screen and add it again.',
+      },
+    ],
+  },
+  {
     version: '4.0.13',
     items: [
       {

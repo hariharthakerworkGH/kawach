@@ -12,6 +12,7 @@ import { categoryStyle } from '../category-style.js';
 import { categorySlices, needsCategory } from '../splits.js';
 import { getBudgets, budgetStatusForMonth, cycleAwareEnabled } from '../budgets.js';
 import { spendingMonthOf, accountMap, currentMonthKey, previousMonthKey } from '../spending-month.js';
+import { appearance } from '../appearance.js';
 import { APP_VERSION, versionStatus, checkForUpdate } from '../version.js';
 import { getSyncConfig, getSyncPassphrase } from '../sync.js';
 import { dataSafety } from './settings.js';
@@ -468,15 +469,20 @@ function renderCardsHero(f) {
   // is the picture instead.
   const burn = burnLine({ totals: f.spendDays, budget: f.limit, days: f.daysIntoCycle + f.daysToClose - 1, shortfall: f.bankShortfall });
   const meter = burn || !(f.spentThisCycle > 0) ? null : { pct, tone: f.level === 'ok' ? '' : f.level === 'warning' ? 'warn' : 'over' };
+  // How much goes under the number is the person's choice (js/appearance.js).
+  // The figures below the hero, the warnings and the breakdown are not part of
+  // it: those are how the money is explained, not decoration, and a quieter
+  // screen must never be a less honest one.
+  const look = appearance('summary');
   return hero({
     label: 'Left to spend',
     period: `${formatDateNice(f.cycleStart)} to ${until}`,
     amount: formatRupees(f.free),
     negative: f.free < 0,
     level: f.level,
-    meter,
-    chart: burn,
-    status: escapeHtml(spendingStatus(f)),
+    meter: look === 'full' ? meter : null,
+    chart: look === 'full' ? burn : '',
+    status: look === 'plain' ? '' : escapeHtml(spendingStatus(f)),
   }) + `
     <div class="hero-under">
       <div class="stat"><span class="stat-k">Spent</span><span class="stat-v">${formatRupees(f.spentThisCycle)}</span></div>

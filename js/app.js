@@ -12,6 +12,8 @@ import { keepDataSafe, isInstalled } from './install.js';
 import { signIn, rememberGoogleAccount } from './drive.js';
 import { showIfUpdated } from './whats-new.js';
 import { moneyProfile, businesses, activeSpace, setCurrentSpace, settleSpaces } from './business.js';
+import { applyTheme } from './appearance.js';
+import * as appearanceView from './views/appearance.js';
 import * as addView from './views/add.js';
 import * as categoriesView from './views/categories.js';
 import * as summaryView from './views/summary.js';
@@ -57,6 +59,7 @@ const views = {
   import: { title: 'Import Statement', module: importView },
   settings: { title: 'Backup & Settings', module: settingsView },
   setup: { title: 'Set up', module: setupView },
+  appearance: { title: 'How it looks', module: appearanceView },
 };
 
 async function seedIfNeeded() {
@@ -349,6 +352,15 @@ function showNotice(message, buttonLabel = null) {
 async function showUpdateBannerIfStale() {
   const status = await versionStatus();
   if (!status.stale) return;
+  // A newer version is already cached, so the code running is out of date.
+  // Take it now if there is nothing on screen to lose - the same test sync
+  // uses before it redraws under you. Mid-import, or with something typed in,
+  // reloading would throw that away, so those screens are told instead and
+  // pick it up when they move on.
+  if (SAFE_TO_REFRESH.has(currentView) && !typingInView()) {
+    location.reload();
+    return;
+  }
   showNotice(`A new version of Kawach is ready - you're still seeing ${status.running}.`, 'Reload');
 }
 
@@ -425,6 +437,11 @@ async function init() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch((err) => console.error('SW registration failed', err));
   }
+
+  // The chosen light or dark. index.html has already done this inline before
+  // the first paint; this is the same decision made from the one module that
+  // owns it, so there is only ever one answer.
+  applyTheme();
 
   // The tab bar's and header's icons, before anything is drawn below them.
   fillIcons();

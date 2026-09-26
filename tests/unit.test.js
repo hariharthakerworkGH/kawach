@@ -8,6 +8,7 @@ import { sameTransaction, findDuplicates } from '../js/duplicates.js';
 import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher } from '../js/commitments.js';
 import { cardPosition, bankBalance, statementDayFixes } from '../js/account-metrics.js';
 import { currentCycleStart } from '../js/billing-cycle.js';
+import { CHOICES, appearance, setAppearance } from '../js/appearance.js';
 import { looksLikeCardPayment } from '../js/transfers.js';
 import { spendingMonthOf } from '../js/spending-month.js';
 import { parseAlert, splitAlerts } from '../js/alerts.js';
@@ -374,6 +375,53 @@ test('a statement row dated before the statement is billed on the statement it w
   const p = cardPosition(card, [row], [batch], '2026-09-20');
   equal(p.cycleClose, '2026-09-25');
   paise(p.owed, rupees(3000));
+});
+
+// --- How it looks -----------------------------------------------------------
+// The screens read these straight into what they draw, so a value that is not
+// one of the offered options has to fall back rather than reach a renderer
+// that cannot handle it.
+test('a look that was never offered falls back to the one that was', () => {
+  const key = 'kawach-appearance';
+  const before = localStorage.getItem(key);
+  try {
+    localStorage.setItem(key, JSON.stringify({ summary: 'from-an-older-build', history: 'bars' }));
+    equal(appearance('summary'), CHOICES.summary.fallback);
+    equal(appearance('history'), 'bars');
+    equal(appearance('nothing-by-this-name'), null);
+    localStorage.removeItem(key);
+    for (const name of Object.keys(CHOICES)) equal(appearance(name), CHOICES[name].fallback, name);
+  } finally {
+    if (before === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, before);
+  }
+});
+
+test('a look is only saved when it is one of the offered options', () => {
+  const key = 'kawach-appearance';
+  const before = localStorage.getItem(key);
+  try {
+    localStorage.removeItem(key);
+    ok(setAppearance('theme', 'light'));
+    equal(appearance('theme'), 'light');
+    ok(!setAppearance('theme', 'purple'));
+    equal(appearance('theme'), 'light', 'a rejected value leaves the old one alone');
+    ok(!setAppearance('no-such-choice', 'light'));
+  } finally {
+    if (before === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, before);
+    document.documentElement.removeAttribute('data-theme');
+  }
+});
+
+test('every look offers options, a fallback among them, and no repeats', () => {
+  for (const [name, spec] of Object.entries(CHOICES)) {
+    ok(spec.options.length >= 2, `${name} needs a choice to be a choice`);
+    const values = spec.options.map((o) => o.value);
+    equal(new Set(values).size, values.length, `${name} repeats a value`);
+    ok(values.includes(spec.fallback), `${name} falls back to something it does not offer`);
+    for (const o of spec.options) ok(Boolean(o.label && o.note), `${name}/${o.value} needs words`);
+  }
 });
 
 // --- Parsers ----------------------------------------------------------------
