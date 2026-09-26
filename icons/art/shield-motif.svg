@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" role="img" aria-label="Kawach shield motif">
+  <title>Kawach</title>
+  <path d="M60 10l38 14v30c0 24-16 43-38 54-22-11-38-30-38-54V24l38-14Z" stroke="currentColor" stroke-width="2" opacity=".28"/>
+  <path d="M60 24l25 9v20c0 16-10 29-25 36-15-7-25-20-25-36V33l25-9Z" stroke="currentColor" stroke-width="2" opacity=".18"/>
+  <path d="M60 38v40" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".12"/>
+</svg>

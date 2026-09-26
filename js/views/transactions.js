@@ -12,7 +12,7 @@ import { looksLikeCardPayment } from '../transfers.js';
 import { isoLocal } from '../frequency.js';
 import { icon } from '../icons.js';
 import { categoriesFor, activeSpace, accountInSpace } from '../business.js';
-import { inOutBars } from '../charts.js';
+import { inOutBars, cashRiver } from '../charts.js';
 import { escapeHtml, escapeAttr, emptyState } from '../ui.js';
 
 // History: one month at a time, newest first, grouped by day, one line per
@@ -102,6 +102,12 @@ export async function render(container, params = {}) {
       <p class="hero-amount" id="hist-net">&nbsp;</p>
       <p class="hero-status" id="txn-count"></p>
       ${inOutBars({ months: lastSixMonths(transactions) })}
+      ${(() => {
+        const months = lastSixMonths(transactions);
+        const river = cashRiver({ months });
+        // Same six months, same figures the bars above are drawn from.
+        return river ? `<details class="section-fold river-fold"><summary>What you kept, month by month</summary>${river}</details>` : '';
+      })()}
     </section>
     <div class="hero-under" id="hist-stats"></div>
     <div class="hist-top">

@@ -10,12 +10,12 @@
 // The version people see, written the way apps are: 3.0, then 3.1 for
 // features, then 3.1.1 for a fix. No leading zeros, no third number until
 // there is a fix to number. Major (4.0) is the app rebuilt.
-export const APP_VERSION = '4.0.3';
+export const APP_VERSION = '4.0.4';
 
 // A counter one higher with every release, never shown. The offline copy is
 // named after it (CACHE_NAME in sw.js), so a newer download can be told from
 // the one running. IMPORTANT: bump BUILD and CACHE_NAME together.
-export const BUILD = 83;
+export const BUILD = 84;
 
 // What's running versus what's downloaded and waiting.
 export async function versionStatus() {
