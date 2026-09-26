@@ -5,7 +5,7 @@
 // counter, not the version people see). The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v83';
+const CACHE_NAME = 'expense-tracker-v84';
 
 const APP_SHELL = [
   './',
@@ -96,6 +96,9 @@ const APP_SHELL = [
   './icons/apple-touch-icon.png',
   './icons/badge-96.png',
   './icons/kawach.svg',
+  './icons/art/empty-wallet.svg',
+  './icons/art/all-clear.svg',
+  './icons/art/something-broke.svg',
 ];
 
 self.addEventListener('install', (event) => {

@@ -92,13 +92,26 @@ export function sectionHead(title, action = '') {
  * (design.md section 12). For a list that is simply empty and needs no
  * action, the one muted line of `.empty` is still right.
  */
-export function emptyState({ what, why = '', action = null, className = '' }) {
+/* Kawach's own drawings, for the screens with nothing on them yet. Original
+ * artwork in icons/art/, drawn in currentColor so each takes the ink of
+ * whatever it sits in. `art: false` turns it off where a picture would be
+ * noise rather than welcome.
+ */
+const ART = {
+  empty: './icons/art/empty-wallet.svg',
+  error: './icons/art/something-broke.svg',
+  done: './icons/art/all-clear.svg',
+};
+
+export function emptyState({ what, why = '', action = null, className = '', art = 'empty' }) {
   const button = action
     ? `<button type="button" class="btn-secondary empty-state-btn"${action.id ? ` id="${action.id}"` : ''}${action.go ? ` data-go="${action.go}"` : ''}${
         action.attrs ? ` ${action.attrs}` : ''
       }>${action.label}</button>`
     : '';
+  const picture = art && ART[art] ? `<img class="empty-state-art" src="${ART[art]}" alt="" width="76" height="76" loading="lazy">` : '';
   return `<div class="empty-state ${className}">
+      ${picture}
       <p class="empty-state-what">${what}</p>
       ${why ? `<p class="empty-state-why">${why}</p>` : ''}
       ${button}

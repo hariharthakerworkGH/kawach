@@ -1,6 +1,12 @@
 import * as pdfjsLib from './vendor/pdf.min.js';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.js';
+// Relative to THIS module, not to whichever page imported it. As a bare
+// './pdf.worker.min.js' the browser resolved it against the page - so the
+// app asked for /pdf.worker.min.js, got a 404, and pdf.js quietly fell back
+// to reading on the main thread. That fallback opens small files and then
+// stalls or fails on a real statement, which is why a card PDF could end in
+// a blank review with nothing said.
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdf.worker.min.js', import.meta.url).href;
 
 export class PdfPasswordError extends Error {
   constructor(kind) {
@@ -17,6 +23,27 @@ export class PdfNoTextError extends Error {
   }
 }
 
+/* Is this pdf.js complaining about a password, and which complaint?
+ *
+ * Exported so it can be tested without an encrypted file to hand. pdf.js
+ * reports these as a PasswordException, but the name does not survive every
+ * minified build; the codes do - 1 means one is needed, 2 means the one
+ * given was wrong. The message is checked last so a build that changes both
+ * still gets classified rather than falling through to "couldn't read this
+ * file", which told the person nothing about what to do next.
+ *
+ * Returns 'required', 'incorrect', or null when it is some other failure.
+ */
+export function passwordErrorKind(err) {
+  if (!err) return null;
+  const name = err.name || '';
+  const message = err.message || '';
+  const code = err.code;
+  const isPassword = name === 'PasswordException' || code === 1 || code === 2 || /password/i.test(message);
+  if (!isPassword) return null;
+  return code === 2 || /incorrect|invalid|wrong/i.test(message) ? 'incorrect' : 'required';
+}
+
 export async function extractPdfText(file, password) {
   const arrayBuffer = await file.arrayBuffer();
   const params = { data: arrayBuffer };
@@ -26,9 +53,8 @@ export async function extractPdfText(file, password) {
   try {
     pdf = await pdfjsLib.getDocument(params).promise;
   } catch (err) {
-    if (err && err.name === 'PasswordException') {
-      throw new PdfPasswordError(err.code === 1 ? 'required' : 'incorrect');
-    }
+    const kind = passwordErrorKind(err);
+    if (kind) throw new PdfPasswordError(kind);
     throw err;
   }
 

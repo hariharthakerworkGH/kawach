@@ -12,6 +12,31 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.0.4',
+    items: [
+      {
+        icon: 'file',
+        title: 'Statements open again',
+        text: 'Importing a PDF was failing part way through and leaving the check page empty. Fixed.',
+      },
+      {
+        icon: 'lock',
+        title: 'A wrong password now says so',
+        text: 'If the password does not open the statement, Kawach tells you instead of going quiet.',
+      },
+      {
+        icon: 'accounts',
+        title: 'Account rows line up',
+        text: 'Everything under an account now starts where its name starts, and the line under the name is no longer cut off mid-word.',
+      },
+      {
+        icon: 'history',
+        title: 'The six-month chart reads properly',
+        text: 'Bars, labels and the in and out keys are laid out correctly, and what you kept month by month opens underneath.',
+      },
+    ],
+  },
+  {
     version: '4.0.3',
     items: [
       {

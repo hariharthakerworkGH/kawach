@@ -1223,10 +1223,22 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 
 /* The legend is a sentence, so it is set like one. */
 .k .in-out-legend {
+  /* The gap was here without the flex that makes a gap mean anything, so the
+     three parts ran together as "inoutSept keeps...". */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--k-2) var(--k-4);
   font-size: var(--k-label);
   color: var(--k-text-2);
-  gap: var(--k-3);
 }
+.k .in-out-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+/* The sentence takes the rest of the line rather than sitting in the middle
+   of the two keys. */
+/* A sentence is not a flex container: making it one turns each word and the
+   bold figure into items and eats the spaces between them. */
+.k .in-out-legend > span:last-child { display: block; flex: 1 1 100%; color: var(--k-text-2); }
+.k .key { display: inline-block; width: 9px; height: 9px; border-radius: 2px; flex: none; }
 .k .key { border-radius: 2px; }
 .k .key-in { background: var(--k-positive); }
 .k .key-out { background: var(--k-negative); }
@@ -2661,3 +2673,32 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k-plan .plan-common { margin-top: var(--k-3); border-top: 1px solid var(--k-hairline); }
 .k-plan .plan-common > summary { color: var(--k-text-2); font-size: var(--k-label); }
 .k-plan #plan-add-btn { width: 100%; min-height: var(--k-ctl-lg); }
+
+/* --- Accounts: everything under a row lines up with its name ---------- */
+/* The mark is 38 wide with a 12 gap, so the name starts 50 in. Anything
+   belonging to that account - its detail, its Edit, its notes - starts
+   there too. They were sitting at the card edge, which read as a second
+   column that did not line up with anything. */
+.k .account-detail { padding-left: 50px; }
+.k .account-detail.account-recent { padding-left: 50px; }
+
+/* The line under an account name explains it, so it is allowed a second
+   line. Cutting "same as your passbook" to "same as your pass..." saved a
+   few pixels and lost the sentence. */
+.k .account-row .k-row__meta {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: var(--k-lh-snug);
+}
+.k .account-row { min-height: 66px; }
+
+@media (max-width: 340px) {
+  /* At the narrowest width the indent costs more than the alignment gains. */
+  .k .account-detail, .k .account-detail.account-recent { padding-left: var(--k-3); }
+}
+
+/* --- Kawach's own artwork on an empty screen -------------------------- */
+.k .empty-state-art { display: block; margin: 0 auto var(--k-4); color: var(--k-accent); opacity: .85; }
+.k .river-fold { margin-top: var(--k-3); }
+.k .river-fold > summary { color: var(--k-text-2); font-size: var(--k-label); }

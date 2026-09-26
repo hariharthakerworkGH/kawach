@@ -739,6 +739,9 @@ async function analyse() {
     .pop();
   const statementStart = meta.periodStart || rangeStart;
   const statementEnd = meta.periodEnd || rangeEnd;
+  // renderResults() needs this too, and it is a different function, so it
+  // travels on state rather than being reached for across a scope.
+  state.statementEnd = statementEnd;
   const listBatches = batches.filter(
     (b) =>
       b.accountId === account.id &&
@@ -923,7 +926,7 @@ function renderResults(resultsEl) {
     </div>
     ${provisional ? '' : renderDuplicateWarning(state)}
     ${renderSuperseded(state.superseded, provisional)}
-    ${renderUnmatchedLogged(state.unmatchedLogged, provisional, statementEnd)}
+    ${renderUnmatchedLogged(state.unmatchedLogged, provisional, state.statementEnd)}
     ${renderEmis(state.emis)}
     ${
       attention.length

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Kawach design lab 2.0</title>
+<title>Kawach design lab 2.1</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#0a0c14">
 <!--
@@ -96,12 +96,36 @@
      show it in a page of other things, it is pinned inside a box instead. */
   .sheet-demo { position: relative; height: 320px; border-radius: var(--k-r-lg); overflow: hidden; border: 1px solid var(--k-hairline); }
   .sheet-demo .k-scrim, .sheet-demo .k-sheet { position: absolute; }
+
+  /* --- 2.1: the catalogue ------------------------------------------- */
+  .cat-grid { display: flex; flex-direction: column; gap: var(--k-3); }
+  .cat-card { padding: var(--k-4); border: 1px solid var(--k-hairline); border-radius: var(--k-r-md); background: color-mix(in oklch, var(--k-surface) 40%, transparent); }
+  .cat-top { display: flex; align-items: center; gap: var(--k-2); flex-wrap: wrap; }
+  .cat-id { font-family: ui-monospace, Consolas, monospace; font-size: 11px; letter-spacing: .02em; color: var(--k-text); font-weight: 600; }
+  .cat-badge { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; border-radius: var(--k-r-pill); border: 1px solid currentColor; flex: none; }
+  .cat-LIVE { color: var(--k-positive); }
+  .cat-TESTING { color: var(--k-warning); }
+  .cat-PROPOSED { color: var(--k-text-3); }
+  .cat-DEPRECATED { color: var(--k-negative); }
+  .cat-q { margin: var(--k-2) 0 0; font-size: var(--k-label); color: var(--k-text); }
+  .cat-meta { margin: var(--k-2) 0 0; font-size: var(--k-caption); color: var(--k-text-3); line-height: 1.5; }
+  .cat-meta b { color: var(--k-text-2); font-weight: var(--k-w-label); }
+  .cat-dont { color: var(--k-negative); }
+  .cat-demo { margin-top: var(--k-3); padding-top: var(--k-3); border-top: 1px solid var(--k-hairline); }
+  .cat-count { display: flex; gap: var(--k-4); flex-wrap: wrap; font-size: var(--k-label); margin-bottom: var(--k-4); }
+  .brand-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: var(--k-3); }
+  .brand-cell { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
+  .brand-cell span { font-size: 10px; color: var(--k-text-3); }
+  .art-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--k-4); }
+  .art-cell { display: flex; flex-direction: column; align-items: center; gap: var(--k-2); color: var(--k-accent); }
+  .art-cell img { width: 62px; height: 62px; }
+  .art-cell span { font-size: 10px; color: var(--k-text-3); }
 </style>
 </head>
 <body class="k k-atmosphere">
 
 <div class="lab-bar">
-  <b>Kawach design lab 2.0</b>
+  <b>Kawach design lab 2.1</b>
   <span>not a production screen</span>
 </div>
 
@@ -618,13 +642,39 @@
   <p class="lab-note">Daylight follows the phone rather than a switch in here. Set the system to light and this whole page becomes the light system: more opaque surfaces, borders doing the work the sheen does in the dark, and glow all but gone, because a lit edge on white reads as a smudge.</p>
 </section>
 
+
+<!-- 00 · THE CATALOGUE ------------------------------------------------ -->
+<section class="lab-sec" id="catalogue">
+  <h2>00 &middot; Component catalogue</h2>
+  <p>Every approved component, by name. Say the name and there is one thing it can mean.</p>
+  <div class="cat-count" id="cat-count"></div>
+  <div class="cat-grid" id="cat-grid"></div>
+  <p class="lab-note">Nothing here is a picture of a component. Each card renders the real one, from the same <code>js/charts.js</code>, <code>css/dna.css</code> and <code>js/brand.js</code> the app ships, so the catalogue cannot drift from what is on the screens.</p>
+</section>
+
+<!-- 17b · BRAND LIBRARY ----------------------------------------------- -->
+<section class="lab-sec">
+  <h2>17 &middot; Brand library</h2>
+  <p>Who Kawach would like a mark for, and what it currently has.</p>
+  <div id="brand-summary" class="cat-count"></div>
+  <div id="brand-groups"></div>
+  <p class="lab-note">Every tile below is what the resolver draws <em>today</em>: no third-party mark is bundled, so each falls through to a category icon or a monogram. Nothing is drawn from memory and no logo is approximated - a wrong-looking mark is worse than a letter, and an unlicensed one is worse than both. Adding a real asset is one file plus one line in <code>BRAND_ASSETS</code>.</p>
+</section>
+
+<!-- 19 · KAWACH ARTWORK ----------------------------------------------- -->
+<section class="lab-sec">
+  <h2>19 &middot; Kawach artwork</h2>
+  <p>Original drawings that belong to Kawach. No third-party mark anywhere.</p>
+  <div class="art-grid" id="art-grid"></div>
+  <p class="lab-note">Drawn in <code>currentColor</code> so each takes the ink of whatever it sits in, with no gradient to go wrong in daylight. Under 700 bytes each, in <code>icons/art/</code>, and not yet placed on a screen.</p>
+</section>
 </div>
 
 <script type="module">
   /* The lab uses the app's own modules so the icon set and the brand
      resolver are the real ones. Nothing else from the app is loaded: no
      database, no router, no network. */
-  import { fillIcons } from '../js/icons.js';
+  import { fillIcons, icon } from '../js/icons.js';
   import { brandMark } from '../js/brand.js';
 
   const money = (n) => '₹' + n.toLocaleString('en-IN');
@@ -726,6 +776,82 @@
       t.setAttribute('aria-checked', t.getAttribute('aria-checked') === 'true' ? 'false' : 'true');
     });
   });
+
+
+  /* --- 2.1: the catalogue, rendered from lab/catalogue.js ------------- */
+  const { CATALOGUE, ARTWORK, STATUS } = await import('./catalogue.js');
+  const { BRANDS, allBrands, present } = await import('../icons/brands/manifest.js');
+
+  // A live rendering for the components that can show one in a small space.
+  const DEMOS = {
+    'KAWACH-CHART-COMMITMENT-METER-V1': () => ch.radialMeter({ committed: 8220000, income: 9600000 }),
+    'KAWACH-CHART-ALLOCATION-RING-V1': () => ch.allocationRing({ slices: [
+      { label: 'Salary account', amount: 11884000 }, { label: 'Cash', amount: 1500000 }] }),
+    'KAWACH-CHART-SPENDING-PULSE-V1': () => ch.spendingPulse({ days: DAYS30, today: DAYS30[20].date }),
+    'KAWACH-CHART-CASH-RIVER-V1': () => ch.cashRiver({ months: SIXM }),
+    'KAWACH-CHART-IN-OUT-V1': () => ch.inOutBars({ months: SIXM.map((m) => ({ label: m.label, in: m.in, out: m.out })) }),
+    'KAWACH-CHART-CATEGORY-RANKING-V1': () => ch.categoryBars({ items: [
+      { name: 'Food & Dining', amount: 648000 }, { name: 'Shopping', amount: 425000 },
+      { name: 'Transport', amount: 312000 }, { name: 'Bills', amount: 264000 }] }),
+    'KAWACH-CHART-COMMITTED-BAR-V1': () => ch.committedBar({ must: 5350000, flex: 1670000, free: 1380000 }),
+    'KAWACH-CHART-GOAL-RING-V1': () => ch.goalRing({ saved: 34000000, target: 30000000, monthly: 500000, by: 'Jun 2027' }),
+    'KAWACH-CHART-RUNWAY-V1': () => ch.runwayBar({ covered: 4, needPerMonth: 4000000, have: 16000000 }),
+    'KAWACH-INSIGHT-CALM-V1': () => ctx('calm', 'check', 'On track for this cycle', '\u20b99,845 left, about \u20b9328 a day until 25 Oct.'),
+    'KAWACH-INSIGHT-ATTENTION-V1': () => ctx('attention', 'clock', 'The cycle is nearly over', '71% of the budget is gone with 6 days to go.'),
+    'KAWACH-INSIGHT-ALERT-V1': () => ctx('alert', 'alert', 'Money is owed the bank cannot cover', 'After salary and bills you are \u20b925,165 short.'),
+    'KAWACH-ROW-TRANSACTION-BRAND-V1': () => `<div class="k-rows">${rowHtml(TXNS[0])}${rowHtml(TXNS[2])}</div>`,
+    'KAWACH-STATE-EMPTY-V1': () => `<div class="k-empty"><div class="k-empty__title">No accounts yet</div><div>Add the account your salary lands in first.</div></div>`,
+    'KAWACH-STATE-SUCCESS-V1': () => `<div class="k-state"><span class="k-state__mark">${icon('check')}</span><div><div class="k-state__title">Payment saved</div><div class="k-state__body">\u20b9450 added to History.</div></div></div>`,
+    'KAWACH-STATE-ERROR-V1': () => `<div class="k-state k-state--error"><span class="k-state__mark">${icon('alert')}</span><div><div class="k-state__title">Could not save</div><div class="k-state__body">Nothing was lost. Try once more.</div></div></div>`,
+    'KAWACH-STATE-LOADING-V1': () => `<div class="stack stack--tight"><div class="k-skeleton" style="height:14px;width:45%"></div><div class="k-skeleton" style="height:14px;width:80%"></div></div>`,
+  };
+
+  const ch = await import('../js/charts.js');
+  const ctx = (tone, ic, title, body) => `<div class="k-context k-context--${tone}">
+      <span class="k-context__mark">${icon(ic)}</span>
+      <span class="k-context__body"><span class="k-context__k">${title}</span><p class="k-context__note">${body}</p></span>
+    </div>`;
+  const SIXM = [
+    { label: 'Apr', in: 5200000, out: 4440000 }, { label: 'May', in: 5200000, out: 4695000 },
+    { label: 'Jun', in: 5200000, out: 4910000 }, { label: 'Jul', in: 5640000, out: 4520000 },
+    { label: 'Aug', in: 5200000, out: 4659000 }, { label: 'Sep', in: 5200000, out: 4376000 },
+  ];
+  const DAY_V = [3,8,5,12,6,4,18,9,7,5,11,46,14,8,6,22,9,5,13,7,4,28,11,6,9,15,7,5,12,8];
+  const DAYS30 = DAY_V.map((v, i) => ({ date: `2026-09-${String(i + 1).padStart(2, '0')}`, amount: v * 10000 }));
+
+  const catGrid = document.getElementById('cat-grid');
+  catGrid.innerHTML = CATALOGUE.map((c) => {
+    const demo = DEMOS[c.id] ? `<div class="cat-demo">${DEMOS[c.id]()}</div>` : '';
+    return `<div class="cat-card">
+      <div class="cat-top">
+        <span class="cat-id">${c.id}</span>
+        <span class="cat-badge cat-${c.status}">${c.status}</span>
+      </div>
+      <p class="cat-q">${c.answers}</p>
+      <p class="cat-meta"><b>Use:</b> ${c.purpose}
+        ${c.screens.length ? `<br><b>On:</b> ${c.screens.join(', ')}` : '<br><b>On:</b> not placed yet'}
+        ${c.variants ? `<br><b>Variants:</b> ${c.variants.join(' &middot; ')}` : ''}
+        <br><b>Needs:</b> ${c.deps.join(', ')}
+        ${c.contract ? `<br><b>Takes:</b> <code>${c.contract}</code>` : ''}
+        ${c.notes ? `<br>${c.notes}` : ''}
+        ${c.dont ? `<br><span class="cat-dont">Never: ${c.dont}</span>` : ''}
+      </p>${demo}</div>`;
+  }).join('');
+
+  const tally = STATUS.map((st) => `<span><b>${CATALOGUE.filter((c) => c.status === st).length}</b> ${st.toLowerCase()}</span>`).join('');
+  document.getElementById('cat-count').innerHTML = `<span><b>${CATALOGUE.length}</b> components</span>${tally}`;
+
+  // --- the brand library, drawn by the real resolver --------------------
+  const all = allBrands();
+  document.getElementById('brand-summary').innerHTML =
+    `<span><b>${all.length}</b> wanted</span><span><b>${present().length}</b> licensed</span><span><b>${all.length - present().length}</b> falling back</span>`;
+  document.getElementById('brand-groups').innerHTML = BRANDS.map((g) => `
+    <h3 class="lab-sub" style="font-size:var(--k-caption);text-transform:uppercase;letter-spacing:var(--k-track-caption);color:var(--k-text-3);margin:var(--k-5) 0 var(--k-3)">${g.category}</h3>
+    <div class="brand-grid">${g.items.map((b) => `<span class="brand-cell">${brandMark(b.name, { size: 'md' })}<span>${b.name}</span></span>`).join('')}</div>`).join('');
+
+  document.getElementById('art-grid').innerHTML = ARTWORK.map(
+    (a) => `<span class="art-cell"><img src="../icons/art/${a.file}" alt="" loading="lazy"><span>${a.file}</span></span>`
+  ).join('');
 
   fillIcons(document);
 </script>

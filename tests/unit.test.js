@@ -3,6 +3,7 @@
 import { test, equal, ok, paise } from './harness.js';
 import { txn, commitment, rupees } from './fixtures.js';
 import { nextOccurrence } from '../js/frequency.js';
+import { passwordErrorKind } from '../js/pdf-text.js';
 import { sameTransaction, findDuplicates } from '../js/duplicates.js';
 import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher } from '../js/commitments.js';
 import { cardPosition, bankBalance, statementDayFixes } from '../js/account-metrics.js';
@@ -199,6 +200,19 @@ test('EMI principal and interest rows merge, even when a statement wraps the mer
   equal([emis[0].current, emis[0].total, emis[0].endDate], [4, 12, '2027-04-08']);
 });
 
+
+// --- a locked PDF says which problem it has -----------------------------
+
+test('a wrong password is told apart from a missing one', () => {
+  equal(passwordErrorKind({ name: 'PasswordException', code: 1 }), 'required', 'code 1 needs one');
+  equal(passwordErrorKind({ name: 'PasswordException', code: 2 }), 'incorrect', 'code 2 is wrong');
+  // The name does not survive every minified build; the code still does.
+  equal(passwordErrorKind({ name: 'v', code: 2 }), 'incorrect', 'classified without the name');
+  equal(passwordErrorKind({ message: 'Incorrect Password' }), 'incorrect', 'or by the message alone');
+  equal(passwordErrorKind({ message: 'No password given' }), 'required', 'a request for one');
+  equal(passwordErrorKind({ name: 'TypeError', message: 'x is not a function' }), null, 'other faults pass through');
+  equal(passwordErrorKind(null), null, 'nothing is not a password problem');
+});
 
 // --- the Design Lab drawings, on the figures they are given -------------
 

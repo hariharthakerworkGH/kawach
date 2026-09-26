@@ -1,0 +1,9 @@
+js/pdf-text.js           worker path via import.meta.url; passwordErrorKind() exported
+js/views/import.js       statementEnd passed on state (fixes the 4.0.3 import regression)
+js/ui.js                 emptyState takes original Kawach artwork
+js/views/transactions.js cash river folded under the six-month bars
+css/dna.css              account detail alignment, meta wrap, in/out legend, artwork
+sw.js                    3 artwork files in APP_SHELL; cache v84
+js/version.js            4.0.4 / BUILD 84
+js/whats-new.js          4.0.4 notes
+tests/unit.test.js       password classification test

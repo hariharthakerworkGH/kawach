@@ -1,0 +1,5 @@
+lab/catalogue.js           NEW  the component register, 26 entries
+lab/index.html                  Lab 2.1: catalogue, brand library, artwork sections
+icons/brands/manifest.js   NEW  40 merchants, licensed-asset state
+icons/art/*.svg            NEW  4 original Kawach drawings
+versions/0.0.4/            NEW  this record
