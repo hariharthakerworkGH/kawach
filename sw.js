@@ -5,7 +5,7 @@
 // counter, not the version people see). The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v92';
+const CACHE_NAME = 'expense-tracker-v93';
 
 const APP_SHELL = [
   './',
@@ -101,6 +101,18 @@ const APP_SHELL = [
   './icons/art/something-broke.svg',
 ];
 
+/* The paths this version actually ships, resolved once.
+ *
+ * Everything else on the site - the design lab, the welcome page people are
+ * invited with, the privacy policy - is fetched fresh every time. They used to
+ * be cached on first visit by the rule below and then served from that copy
+ * for ever, because the cache is read before the network and never rechecked.
+ * A correction to the invite page or the privacy policy therefore never
+ * reached anyone who had already opened it, and could not be published
+ * without a new app version. None of those pages needs to work offline.
+ */
+const SHELL_PATHS = new Set(APP_SHELL.map((p) => new URL(p, self.location).pathname));
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -150,6 +162,11 @@ self.addEventListener('fetch', (event) => {
   // The tour video streams straight from the network in pieces, and is never
   // kept: eleven megabytes on every phone for a single watch.
   if (url.pathname.includes('/media/')) return;
+
+  // Anything that is not part of the app itself goes to the network and is
+  // never kept, so a page outside the app is never frozen at the copy someone
+  // happened to see first.
+  if (!SHELL_PATHS.has(url.pathname)) return;
 
   // Page loads can carry a query string (the app is reopened at ./?shared=1
   // after a share). Match those to the cached page regardless, so it opens
