@@ -349,15 +349,37 @@ function showNotice(message, buttonLabel = null) {
 
 // Tells you, rather than leaving you to wonder, when the copy you are looking
 // at has been superseded by one already downloaded in the background.
-async function showUpdateBannerIfStale() {
+/* Has this tab already reloaded itself to reach this build?
+ *
+ * Reloading to pick up a new version is only safe once, per version. The
+ * files are cached by the new worker before it takes control, so between
+ * those two moments a reload serves the OLD files again, finds the same
+ * newer cache sitting there, and reloads again: the app appeared to flicker
+ * through several loads before settling. This remembers the build it
+ * reloaded for, so it can never happen twice for the same one.
+ */
+function reloadedAlreadyFor(build) {
+  const KEY = 'kawach-reloaded-for';
+  try {
+    if (sessionStorage.getItem(KEY) === String(build)) return true;
+    sessionStorage.setItem(KEY, String(build));
+  } catch {
+    // No session storage (a private window): fall back to not reloading on
+    // its own, which is the safe direction - the banner still offers it.
+    return true;
+  }
+  return false;
+}
+
+async function showUpdateBannerIfStale({ mayReload = false } = {}) {
   const status = await versionStatus();
   if (!status.stale) return;
-  // A newer version is already cached, so the code running is out of date.
-  // Take it now if there is nothing on screen to lose - the same test sync
-  // uses before it redraws under you. Mid-import, or with something typed in,
-  // reloading would throw that away, so those screens are told instead and
-  // pick it up when they move on.
-  if (SAFE_TO_REFRESH.has(currentView) && !typingInView()) {
+  // Taking it automatically is only right when the new worker is already in
+  // control, which is what mayReload means. Asked at any other moment the
+  // reload would fetch the same old files again. Mid-import, or with
+  // something typed in, reloading would throw that away, so those screens are
+  // told instead and pick it up when they move on.
+  if (mayReload && SAFE_TO_REFRESH.has(currentView) && !typingInView() && !reloadedAlreadyFor(status.cached)) {
     location.reload();
     return;
   }
@@ -365,15 +387,18 @@ async function showUpdateBannerIfStale() {
 }
 
 function wireUpdateBanner() {
+  // At startup the new worker, if there is one, has not taken over yet, so
+  // this only ever offers.
   showUpdateBannerIfStale();
 
   if ('serviceWorker' in navigator) {
-    // A new worker taking over mid-session means newer files are now cached.
-    // Only meaningful if something was already controlling this page - on a
-    // first-ever install there is no older version to be stale against.
+    // The one moment a reload is certain to land on the new files: a new
+    // worker has taken control of this page. Only meaningful if something was
+    // already controlling it - on a first-ever install there is no older
+    // version to be stale against.
     const hadController = Boolean(navigator.serviceWorker.controller);
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (hadController) showUpdateBannerIfStale();
+      if (hadController) showUpdateBannerIfStale({ mayReload: true });
     });
   }
 
