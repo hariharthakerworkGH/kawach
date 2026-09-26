@@ -39,7 +39,7 @@ comment is the specification; keep it true.
 
 ```
 Budget   = monthly income − live fixed commitments (bank + card) − saved each month
-Spent    = card spends this card cycle + bank spends this month − commitment payments
+Spent    = card spends this month + bank spends this month − commitment payments
 Left     = budget − spent
 ```
 
@@ -73,12 +73,18 @@ holds goals: an amount, a month, and the savings pots it is counted in, with
 because those have no statement to read.
 
 Periods:
-- **Cards:** the card cycle, the day after the statement day to the next statement
-  day. The statement day comes from imported statements when there are any
-  (`statementDay` in js/account-metrics.js), not from what was typed in.
-- **Bank and cash:** the calendar month, 1st to last day. Nothing before the 1st
-  counts, with one exception: a commitment with a set day (EMI, rent) paid on
-  salary day at the end of a month belongs to the month after.
+- **Spending is the calendar month**, 1st to last day, for cards and bank alike.
+  Nothing before the 1st counts, with one exception: a commitment with a set day
+  (EMI, rent) paid on salary day at the end of a month belongs to the month
+  after. Card spending ran on the card cycle until 4.6, which meant a headline
+  reading "26 Sep to 25 Oct" while bank money from the 5th was counted and card
+  money from the 10th was not: one month's budget against two windows. The
+  statement day is a fact about a bank's paperwork, not about the person - it
+  differs per card, and with several cards the latest one decided.
+- **The card cycle still decides bills**, because a bill is one cycle's worth:
+  `cardPosition` in js/account-metrics.js works that way, and `cycleClose` is
+  still when the next statement falls. The statement day comes from imported
+  statements when there are any (`statementDay`), not from what was typed in.
 - The bank balance never raises the budget. It is a separate check that only warns.
 - A commitment is one of two things, asked once on Plan: **must be paid** (rent,
   an EMI, a bill: it has a day and can be late) or **set aside** (groceries,
@@ -134,8 +140,8 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   red as soon as the two differ (`js/password-field.js`).
 - A card's statement day is never typed in: it comes from its statements
   (`statementDayFixes` corrects a saved day that disagrees).
-- No card with a statement day yet (every new user): the spending period is
-  the calendar month, never the month the next salary pays for.
+- The spending period is the calendar month for everyone, whether or not a
+  card has a statement day yet, and never the month the next salary pays for.
 - The tour (`media/kawach-tour.mp4`, 82s) is drawn from the app's own tokens with
   made-up data, and plays from Setup, Settings (`js/tour.js`) and the welcome
   page. It has no voice: nine scenes, micro-copy, a synthesised score and a

@@ -498,9 +498,9 @@ function renderCardsHero(f) {
       <div class="stat"><span class="stat-k">Budget</span><span class="stat-v">${formatRupees(f.limit)}</span></div>
       ${stillSetAside(f)}
     </div>
-    <div class="summary-spending-split" aria-label="Spending by period">
-      <span>Card cycle <strong>${formatRupees(f.cardSpent || 0)}</strong></span>
-      <span>Bank this month <strong>${formatRupees(f.bankSpent || 0)}</strong></span>
+    <div class="summary-spending-split" aria-label="Spending by where it was paid from">
+      <span>On cards <strong>${formatRupees(f.cardSpent || 0)}</strong></span>
+      <span>From the bank <strong>${formatRupees(f.bankSpent || 0)}</strong></span>
     </div>
     ${insightCard(f)}
     ${moneyShape(f)}
@@ -738,7 +738,7 @@ function renderCommitmentTracker(f) {
   return `
     <div class="section-head">
       <h3>Commitments</h3>
-      <span class="section-note">Bank: ${MONTH_NAMES[Number(f.bankMonthStart.slice(5, 7)) - 1]} · Cards: ${formatDateNice(f.cycleStart)} to ${formatDateNice(f.cycleKey)}</span>
+      <span class="section-note">${MONTH_NAMES[Number(f.bankMonthStart.slice(5, 7)) - 1]}</span>
     </div>
     <div class="totals-card commitment-list">
       ${open.map((t) => commitmentRow(t)).join('')}

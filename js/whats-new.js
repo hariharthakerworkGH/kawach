@@ -12,6 +12,22 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.6',
+    items: [
+      {
+        icon: 'summary',
+        title: 'Summary now runs the whole month',
+        text: 'It used to run from your card statement day, so it showed something like 26 Sep to 25 Oct. It now runs the 1st to the last day, and counts card spending and bank spending over that same month.',
+        guide: [{ view: 'summary', target: '.hero', text: 'The period is now the month, so this is what you can spend before the month ends.' }],
+      },
+      {
+        icon: 'card',
+        title: 'Card spending counts when you spend it',
+        text: 'A card spend made earlier in the month no longer disappears from "spent" when the card is billed. Your card is still billed on its own day, and that day still decides the bill.',
+      },
+    ],
+  },
+  {
     version: '4.5',
     items: [
       {
