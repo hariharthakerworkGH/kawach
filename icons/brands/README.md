@@ -85,6 +85,12 @@ only when `BRAND_ASSETS` says it was bundled.
 ## Sourcing
 
 Use the brand's own press or identity kit, or a reputable set such as
-[Simple Icons](https://simpleicons.org) (icon files CC0; the trademarks are
-still the owners'). Do not take logos from image search, and never hotlink:
-the app has to work with the aeroplane mode on.
+[Simple Icons](https://simpleicons.org). Its collection license does not
+automatically cover every mark: check the individual icon's license entry in
+its [brand data](https://github.com/simple-icons/simple-icons/blob/develop/data/simple-icons.json)
+before bundling it. Kawach includes a Simple Icons mark only when that entry
+explicitly says `CC0-1.0`; record the source in `SOURCES.md`. The mark remains
+the brand owner's trademark, and an artwork license does not imply endorsement.
+Do not take logos from image search, and never hotlink: the app has to work
+with the aeroplane mode on.
+

@@ -11,10 +11,11 @@
  * "PAY*SWIGGY BENGALURU" and "UPI/SWIGGY/8412" both land on `swiggy`. That
  * key is the filename.
  *
- * `asset: false` everywhere below is the honest current state: no
- * third-party mark is bundled, because none has been licensed. Nothing here
- * is drawn from memory and no logo is approximated - a wrong-looking logo is
- * worse than a monogram, and an unlicensed one is worse than both.
+ * `asset: false` everywhere below is the honest current state: none of the
+ * shortlist has an explicit CC0-1.0 entry in the checked source data. A
+ * missing entry does not prove a mark is unlicensed; it means it does not
+ * meet Kawach's current inclusion rule. Nothing here is drawn from memory or
+ * approximated. See SOURCES.md for the check and source links.
  *
  * To add one: drop `<key>.svg` here, flip `asset` to true, add the key to
  * BRAND_ASSETS in js/brand.js, and add the path to APP_SHELL in sw.js.
@@ -85,3 +86,4 @@ export const BRANDS = [
 export const allBrands = () => BRANDS.flatMap((g) => g.items.map((b) => ({ ...b, category: g.category })));
 export const missing = () => allBrands().filter((b) => !b.asset);
 export const present = () => allBrands().filter((b) => b.asset);
+
