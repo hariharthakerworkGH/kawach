@@ -21,7 +21,7 @@ import { assignStyles } from '../js/category-style.js';
 import { searchWords, findCandidates } from '../js/category-match.js';
 import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
-import { burnLine, inOutBars, categoryBars, runwayBar } from '../js/charts.js';
+import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, spendingPulse, cashRiver } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
@@ -197,6 +197,60 @@ test('EMI principal and interest rows merge, even when a statement wraps the mer
   equal(emis.length, 1);
   paise(emis[0].amount, rupees(4179.53));
   equal([emis[0].current, emis[0].total, emis[0].endDate], [4, 12, '2027-04-08']);
+});
+
+
+// --- the Design Lab drawings, on the figures they are given -------------
+
+test('a ring refuses to draw what it cannot split', () => {
+  equal(allocationRing({ slices: [] }), '', 'nothing at all');
+  equal(allocationRing({ slices: [{ label: 'One', amount: 5000 }] }), '', 'one slice is not a split');
+  equal(allocationRing({ slices: [{ label: 'a', amount: 0 }, { label: 'b', amount: 0 }] }), '', 'no money to split');
+});
+
+test("a ring's slices add up to the total it is drawn from", () => {
+  const slices = [
+    { label: 'Salary account', amount: rupees(118840) },
+    { label: 'Cash', amount: rupees(15000) },
+  ];
+  const html = allocationRing({ slices });
+  const shown = [...html.matchAll(/class="alloc-val">([^<]+)</g)].map((m) => Number(m[1].replace(/[^0-9]/g, '')));
+  equal(shown.reduce((a, b) => a + b, 0), 133840, 'the legend adds to the total');
+});
+
+test('the commitment meter handles nothing, everything and too much', () => {
+  equal(radialMeter({ committed: 0, income: 0 }), '', 'no income, no meter');
+  ok(radialMeter({ committed: 0, income: rupees(96000) }).includes('0%'), 'nothing committed reads 0%');
+  ok(radialMeter({ committed: rupees(82200), income: rupees(96000) }).includes('86%'), 'the share is the share');
+  const over = radialMeter({ committed: rupees(120000), income: rupees(96000) });
+  ok(over.includes('125%'), 'over budget says so');
+  ok(over.includes('Over by'), 'and names what is over');
+  ok(!/NaN|Infinity/.test(over), 'never NaN or Infinity');
+});
+
+test('the pulse needs days before it draws any', () => {
+  equal(spendingPulse({ days: [] }), '', 'no days');
+  equal(spendingPulse({ days: [{ date: '2026-09-26', amount: 100 }] }), '', 'one day is not a shape');
+  const days = [
+    { date: '2026-09-26', amount: rupees(200) },
+    { date: '2026-09-27', amount: rupees(3180) },
+    { date: '2026-09-28', amount: 0 },
+  ];
+  const html = spendingPulse({ days, today: '2026-09-28' });
+  ok(html.includes('pulse-bar--peak'), 'the biggest day is marked');
+  ok(html.includes('pulse-bar--quiet'), 'a day with nothing on it still has a stub');
+});
+
+test('the river only draws when there is a run of months', () => {
+  equal(cashRiver({ months: [] }), '', 'nothing');
+  const months = [
+    { label: 'Jul', in: rupees(52000), out: rupees(45200) },
+    { label: 'Aug', in: rupees(52000), out: rupees(46590) },
+    { label: 'Sep', in: rupees(143490), out: rupees(255964) },
+  ];
+  const html = cashRiver({ months });
+  ok(html.includes('Short'), 'a month that spent more than it took says short');
+  ok(!/NaN/.test(html), 'no NaN in the path');
 });
 
 test('spread commitment: the rest of this month pro rata, next month in full', () => {

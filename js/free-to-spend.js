@@ -626,10 +626,13 @@ export async function computeFreeToSpend(now = new Date()) {
   for (const e of datedSpends) perDay.set(e.date, (perDay.get(e.date) || 0) + e.amount);
   const undated = spentThisCycle - datedSpends.reduce((s, e) => s + e.amount, 0);
   const spendDays = [];
+  const spendByDay = [];
   let running = undated;
   for (let i = 0; i < daysBetweenInclusive(windowStart, today); i += 1) {
-    running += perDay.get(addDays(windowStart, i)) || 0;
+    const on = addDays(windowStart, i);
+    running += perDay.get(on) || 0;
     spendDays.push(running);
+    spendByDay.push({ date: on, amount: Math.max(0, perDay.get(on) || 0) });
   }
   const free = limit == null || noCommitments ? null : limit - spentThisCycle;
   if (monthlyIncome && noCommitments) notes.push('Add your fixed commitments on Plan - without them your whole income looks free.');
@@ -867,6 +870,7 @@ export async function computeFreeToSpend(now = new Date()) {
     spentThisCycle,
     // Cumulative spending, one figure per day gone by. See above.
     spendDays,
+    spendByDay,
     tracker,
     cutBack,
     flexible,

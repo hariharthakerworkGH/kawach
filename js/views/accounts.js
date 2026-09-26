@@ -12,6 +12,7 @@ import { ensureBusinessCategories, moneyProfile, activeSpace, accountInSpace } f
 import { detectTransfers } from '../transfers.js';
 import { icon } from '../icons.js';
 import { brandMark } from '../brand.js';
+import { allocationRing } from '../charts.js';
 import { displayName } from './transactions.js';
 import { escapeHtml, escapeAttr, emptyState, hero, moneyTone } from '../ui.js';
 
@@ -79,6 +80,15 @@ export async function render(container) {
 
   container.classList.add('k');
   container.innerHTML = `
+    <div class="accounts-actions accounts-actions--top">
+      ${
+        showEmpty
+          ? ''
+          : `<button type="button" id="add-account-btn" class="k-btn k-btn--secondary">${editing === 'new' ? 'Cancel' : 'Add an account'}</button>`
+      }
+      <button type="button" id="go-import-btn" class="k-btn k-btn--ghost">Import a statement</button>
+      ${accounts.length > 1 ? `<button type="button" id="accounts-reorder" class="k-btn k-btn--ghost">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
+    </div>
     ${accountsTotal(groups, transactions)}
     ${editing === 'new' ? accountForm(null, transactions, accounts) : ''}
     ${
@@ -97,19 +107,6 @@ export async function render(container) {
     ${renderGroup('Savings and FDs', groups.savings, transactions, importBatches, editingAccount, accounts)}
     ${renderGroup('Provident fund', groups.pf, transactions, importBatches, editingAccount, accounts)}
 
-    <!-- The things you do here, after the money they act on. Adding an
-         account matters, but it never matters more than the balances. -->
-    <div class="accounts-actions">
-      ${
-        // The empty state is already asking. Two "Add an account" buttons a
-        // finger apart read as two different things to do.
-        showEmpty
-          ? ''
-          : `<button type="button" id="add-account-btn" class="k-btn k-btn--secondary">${editing === 'new' ? 'Cancel' : 'Add an account'}</button>`
-      }
-      <button type="button" id="go-import-btn" class="k-btn k-btn--ghost">Import a statement</button>
-      ${accounts.length > 1 ? `<button type="button" id="accounts-reorder" class="k-btn k-btn--ghost">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
-    </div>
   `;
 
   const openAdd = () => {
@@ -1115,14 +1112,22 @@ function readLoanFields(form) {
 // be typed in - and money put away (savings, FDs) is named beside the total
 // rather than folded into it, because it is not money to spend.
 function accountsTotal(groups, transactions) {
-  const known = (list) => (list || []).map((a) => bankBalance(a, transactions)).filter((v) => v != null);
-  const spendable = [...known(groups.bank), ...known(groups.cash)];
+  // Label and figure together, so the drawing and the total are made of the
+  // same rows and cannot drift apart.
+  const known = (list) =>
+    (list || [])
+      .map((a) => ({ label: a.label, amount: bankBalance(a, transactions) }))
+      .filter((x) => x.amount != null);
+  const spendableRows = [...known(groups.bank), ...known(groups.cash)];
+  const spendable = spendableRows.map((x) => x.amount);
   if (!spendable.length) return '';
   const total = spendable.reduce((s, v) => s + v, 0);
   // Savings and the provident fund are yours but not spendable, so they are
   // named beside the total rather than folded into it - and named whenever
   // such an account exists, so the figure above is never read as everything.
-  const putAway = [...known(groups.savings), ...known(groups.pf)];
+  // Money put away is not part of the ring: it is not what "In your accounts"
+  // counts, and drawing it beside the same total would show it twice.
+  const putAway = [...known(groups.savings), ...known(groups.pf)].map((x) => x.amount);
   // The supporting line counts the very accounts just added up, not every
   // account on screen: an account whose balance is not known yet is not in
   // the figure, and saying otherwise would make the total look wrong.
@@ -1133,5 +1138,12 @@ function accountsTotal(groups, transactions) {
     negative: total < 0,
     figures: putAway.length ? [{ label: 'Put away', value: formatRupees(putAway.reduce((s, v) => s + v, 0)) }] : [],
     status: across,
+    // Only when there is a split worth seeing; the ring's slices are the
+    // rows above, so they add to the figure above them exactly.
+    extra: allocationRing({
+      slices: spendableRows.filter((x) => x.amount > 0),
+      centre: '',
+      caption: 'Every slice is an account you can spend from. Money put away is counted apart.',
+    }),
   });
 }

@@ -12,6 +12,33 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.0.3',
+    items: [
+      {
+        icon: 'summary',
+        title: 'Summary shows the shape of your money',
+        text: 'How much of the month is already committed, when your spending actually happens, and how much of what you hold is already owed on cards.',
+        guide: [{ view: 'summary', target: '.summary-viz, .summary-insight', text: 'Each drawing is made from the same figures as the number above it.' }],
+      },
+      {
+        icon: 'accounts',
+        title: 'Accounts opens with what you can do',
+        text: 'Import, add and reorder are at the top now, with a ring showing how your money is split across accounts.',
+        guide: [{ view: 'accounts', target: '.accounts-actions--top, .alloc', text: 'Every slice is an account you can spend from. Money put away is counted apart.' }],
+      },
+      {
+        icon: 'inbox',
+        title: 'An entry the statement does not show can wait for the next bill',
+        text: 'It stays where it is unless you move it, and moving it re-dates the entry you already have instead of making a second one.',
+      },
+      {
+        icon: 'history',
+        title: 'History fits more on the screen',
+        text: 'Tighter rows, and the six-month chart no longer runs off the edge.',
+      },
+    ],
+  },
+  {
     version: '4.0.2',
     items: [
       {
