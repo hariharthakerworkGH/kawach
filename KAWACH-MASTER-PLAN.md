@@ -2,8 +2,8 @@
 ## Single Source of Truth for Product Improvement
 
 **Last updated:** 2026-09-26  
-**Current production:** 4.0.9 / BUILD 89  
-**Current cache:** expense-tracker-v89  
+**Current production:** 4.0.10 / BUILD 90  
+**Current cache:** expense-tracker-v90  
 **Latest production commit:** 4672053ab9c88d8afc795843acd16843b4bb65fe  
 **Architecture:** vanilla JS, static/offline-first, SVG/CSS, no build framework
 
@@ -117,10 +117,10 @@ Next work:
 8. Release with the normal version/update process.
 
 ### Active Summary follow-up from 4.0.9 screenshots
-- Simplify the card-cycle / bank-month split and the repeated card-liability messaging so the headline, details and warning have distinct jobs.
-- Fix breakdown rows so descriptions and amounts keep a clear gap and wrap safely on narrow screens.
+- Complete: card-cycle and bank-month spending now share a compact line; the unpaid-card warning explains the liability once; the duplicate headline warning was removed.
+- Complete: breakdown rows have clear internal padding, a consistent label/amount gap and safe label wrapping.
 - Preserve the current financial calculation. Change it only if source inspection and made-up-data tests prove a calculation defect.
-- Recheck the salary-on-month-end case and imported statement-day cycle, then finish the listed responsive, light/dark and Budget Burn QA.
+- Verified: existing suite passes 132/132, including salary timing and imported statement-day cases. Remaining: check the live page at responsive widths, light/dark mode and Budget Burn before closing Stage 1.
 
 Do not start the Brand Library until this checkpoint is visually acceptable.
 
@@ -327,6 +327,6 @@ At the end of a meaningful work session, update this document with:
 
 # 15. CURRENT NEXT ACTION
 
-**Refine Summary 4.0.9 using the reported hierarchy and spacing issues, complete the remaining visual QA, then proceed to Stage 2 — Brand Library.**
+**Finish live responsive, light/dark and Budget Burn QA for Summary 4.0.10, then proceed to Stage 2 — Brand Library.**
 
 Do not begin another broad redesign before this checkpoint is closed.
