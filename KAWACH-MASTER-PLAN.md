@@ -2,9 +2,9 @@
 ## Single Source of Truth for Product Improvement
 
 **Last updated:** 2026-09-26  
-**Current production:** 4.0.10 / BUILD 90  
-**Current cache:** expense-tracker-v90  
-**Latest production commit:** dadc24e28ad20c297b61d77b6362cb66e5f11e96  
+**Current production:** 4.0.11 / BUILD 91  
+**Current cache:** expense-tracker-v91  
+**Latest production commit:** d8d2994c9fc2e8670aa2db012087389d1f779ff4  
 **Architecture:** vanilla JS, static/offline-first, SVG/CSS, no build framework
 
 > This document is the authoritative roadmap for Kawach improvement work.
@@ -116,17 +116,19 @@ Next work:
 7. Fix only issues found by QA.
 8. Release with the normal version/update process.
 
-### Production CSS regression — inserted before closing Stage 1
-- Root cause confirmed from GitHub: production `css/dna.css` is corrupted encoded data, while the 4.0.10 local snapshot has valid CSS. Summary and Accounts therefore lose DNA card, spacing and chart styling.
-- Repair the published stylesheet from the verified local release source, then compare all production CSS/assets against that source.
-- Recheck Summary and Accounts against Design Lab 2.1 at phone widths and verify the ring/chart visibility before Stage 1 can close.
-- Do not change financial calculations or user data.
-
 ### Active Summary follow-up from 4.0.9 screenshots
 - Complete: card-cycle and bank-month spending now share a compact line; the unpaid-card warning explains the liability once; the duplicate headline warning was removed.
 - Complete: breakdown rows have clear internal padding, a consistent label/amount gap and safe label wrapping.
 - Preserve the current financial calculation. Change it only if source inspection and made-up-data tests prove a calculation defect.
 - Verified: existing suite passes 132/132, including salary timing and imported statement-day cases. Remaining: check the live page at responsive widths, light/dark mode and Budget Burn before closing Stage 1.
+
+### Production CSS regression — inserted before closing Stage 1
+- Root cause confirmed from GitHub: production `css/dna.css` is corrupted encoded data, while the 4.0.10 local snapshot has valid CSS. Summary and Accounts therefore lose DNA card, spacing and chart styling.
+- Complete: restored `css/dna.css` from the verified 4.0.10 snapshot; the live release displays DNA cards and the Summary Budget Burn chart again.
+- Complete: published release 4.0.11 / BUILD 91 / cache v91 and captured snapshot `expense-tracker-versions/4.0.11`.
+- Verified live in the browser: release reports 4.0.11; Summary Budget Burn and Accounts cards render with the Design Lab styling.
+- Remaining before Stage 1 closes: check phone widths, light/dark mode and realistic Budget Burn points.
+- Do not change financial calculations or user data.
 
 Do not start the Brand Library until this checkpoint is visually acceptable.
 
@@ -286,6 +288,7 @@ Existing snapshots must never be overwritten:
 - versions/0.0.6
 - versions/0.0.7
 - expense-tracker-versions/4.0.10
+- expense-tracker-versions/4.0.11
 
 Every meaningful phase/release gets a new snapshot.
 
@@ -334,7 +337,7 @@ At the end of a meaningful work session, update this document with:
 
 # 15. CURRENT NEXT ACTION
 
-**Repair the corrupted production DNA stylesheet, verify the production assets match the 4.0.10 source, then finish Stage 1 responsive/theme/Budget Burn QA before Stage 2 — Brand Library.**
+**Finish Stage 1 phone-width, light/dark and realistic Budget Burn QA for 4.0.11; then proceed to Stage 2 — Brand Library.**
 
 Do not begin another broad redesign before this checkpoint is closed.
 
