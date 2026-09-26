@@ -1,0 +1,6 @@
+js/free-to-spend.js   one-salary horizon; bankShortfall; headline defers to the bank check
+js/views/summary.js   spendingStatus says the shortfall in words
+js/whats-new.js       4.0.1 notes
+js/version.js         4.0.1 / BUILD 81
+sw.js                 cache expense-tracker-v81
+tests/scenarios.test.js   3 rollover tests

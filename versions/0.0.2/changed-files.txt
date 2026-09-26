@@ -1,0 +1,11 @@
+js/account-metrics.js   bankBalance takes an asOf date, defaulting to today
+js/free-to-spend.js     passes its own today to bankBalance (3 call sites)
+js/business.js          businessRunway passes its own today
+js/charts.js            burnLine takes a shortfall and says it in its note
+js/views/summary.js     hands the chart the same shortfall the headline uses
+tests/scenarios.test.js 4 tests: future dating, owed across the statement day, constant budget
+js/version.js           4.0.2 / BUILD 82
+sw.js                   cache expense-tracker-v82
+js/whats-new.js         4.0.2 notes
+js/commitments.js       spread: one rule for the month in progress
+js/views/add.js         date capped at today

@@ -319,7 +319,7 @@ export function businessRunway(transactions, accounts, spaceId, today) {
   // unknown balance as zero would say the shop is closer to empty than it is.
   const balances = own
     .filter((a) => a.type === 'bank' || a.type === 'cash')
-    .map((a) => bankBalance(a, transactions))
+    .map((a) => bankBalance(a, transactions, today))
     .filter((v) => v != null);
   if (!balances.length) return null;
   const have = balances.reduce((s, v) => s + v, 0);

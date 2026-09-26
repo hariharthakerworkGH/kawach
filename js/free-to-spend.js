@@ -176,7 +176,7 @@ export async function computeFreeToSpend(now = new Date()) {
   // --- Bank ---------------------------------------------------------------
   const bankLines = bankAccounts
     .map((a) => {
-      const balance = bankBalance(a, transactions);
+      const balance = bankBalance(a, transactions, today);
       if (balance == null) return null;
       const since = transactions.filter((t) => t.accountId === a.id && afterKnownBalance(a, t)).length;
       return { account: a, balance, asOf: a.knownBalanceDate, entriesSince: since };
@@ -225,18 +225,30 @@ export async function computeFreeToSpend(now = new Date()) {
       first = next;
     }
 
-    // The salary that pays this cycle's card bills: the first payday on or
-    // after the statement day. Every salary up to it is counted, and the
-    // plan runs to the end of the month that salary pays for.
+    // The bank check looks one payday ahead: the next salary, and the month
+    // of commitments it pays for. One, on every day of the month.
+    //
+    // It used to run to the first payday on or after the statement day and
+    // count every salary up to it. Before the 25th that is one salary, which
+    // is what the rest of this module and its test assume. From the 26th the
+    // cycle closing date jumps a month, so a second salary and a second month
+    // of commitments came with it: the horizon silently doubled the day the
+    // statement cut, and the answer improved by a net month - about ₹36,000
+    // on the owner's figures - with no new money. A check that flatters you
+    // the day after you overspend is worse than no check.
+    //
+    // This cycle's card bills are still counted, through cardBills and
+    // owedCards below. Measuring them against one salary rather than two is
+    // the conservative reading, which is the one a safety net should take.
     const billsPayday = cycleClose ? nextOccurrence(salaryDay, dateOf(cycleClose)) : first;
-    for (let d = first; d <= billsPayday; d = dayAfter(d)) salary.dates.push(d);
+    salary.dates.push(first);
     salary.billsPayday = billsPayday;
     salary.nextUnreceived = first;
     salary.dayAfter = dayAfter;
     salary.amount = monthlyIncome * salary.dates.length;
     salary.counted = salary.dates.length > 0;
     salary.date = salary.dates[0] || null;
-    windowEnd = addDays(dayAfter(billsPayday), -1);
+    windowEnd = addDays(dayAfter(first), -1);
   } else {
     // Without a salary day there's no pay period to plan to, so plan to the
     // end of this month and count no future income.
@@ -795,6 +807,16 @@ export async function computeFreeToSpend(now = new Date()) {
   else if (used >= CRITICAL_SHARE || (crossesOn && crossesOn <= addDays(today, 3))) level = 'critical';
   else if (used >= WARNING_SHARE || (crossesOn && crossesOn <= spendEnd)) level = 'warning';
 
+  // What the bank still cannot cover, however healthy this cycle's budget
+  // looks. A cycle lives on its own salary, so a new cycle starts with a
+  // fresh budget even when the last one ended badly - that is the rule, and
+  // it stays. But the money owed from before did not disappear with the
+  // statement, and the headline is the figure a person acts on. So the
+  // headline is never calmer than the check underneath it: if the bank comes
+  // up short, "left to spend" says so instead of offering a daily allowance.
+  const bankShortfall = bankAfterBills != null && bankAfterBills < 0 ? -bankAfterBills : 0;
+  if (bankShortfall > 0 && level !== 'over') level = 'critical';
+
   return {
     today,
     windowEnd,
@@ -804,7 +826,7 @@ export async function computeFreeToSpend(now = new Date()) {
     cycleKey: spendEnd,
     unassignedCardPayments,
     // Bank spending and bank commitments run by the salary month.
-    savings: savingsAccounts.map((a) => ({ account: a, balance: bankBalance(a, transactions) })),
+    savings: savingsAccounts.map((a) => ({ account: a, balance: bankBalance(a, transactions, today) })),
     pf: pfAccounts.map((a) => ({ account: a, balance: pfPosition(a, transactions, today).balance })),
     loans: loanAccounts.map((a) => ({ account: a, ...loanPosition(a, transactions, today, loanAccounts) })),
     bankMonthStart: bankPeriod.start,
@@ -827,7 +849,7 @@ export async function computeFreeToSpend(now = new Date()) {
     // away would cover, for a month when little comes home.
     monthsCovered:
       bank != null && monthlyIncome && monthlyIncome - keep > 0
-        ? Math.floor((bank + savingsAccounts.reduce((s, a) => s + Math.max(0, bankBalance(a, transactions) || 0), 0)) / (monthlyIncome - keep))
+        ? Math.floor((bank + savingsAccounts.reduce((s, a) => s + Math.max(0, bankBalance(a, transactions, today) || 0), 0)) / (monthlyIncome - keep))
         : null,
     business: hasBusiness ? businessMonth(transactions, allAccounts, categories, today.slice(0, 7)) : null,
     budgetItems,
@@ -864,6 +886,7 @@ export async function computeFreeToSpend(now = new Date()) {
     cardBills,
     cardUpcoming,
     bankAfterBills,
+    bankShortfall,
     bankLevel,
     totals: { owedCards, unpaidBills, upcoming: upcomingTotal },
     duplicates,

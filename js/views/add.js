@@ -90,7 +90,7 @@ export async function render(container, params = {}) {
 
       <label class="k-field field field-date">
         <span class="k-label">Date</span>
-        <input id="add-date" class="k-input" type="date" value="${today}">
+        <input id="add-date" class="k-input" type="date" value="${today}" max="${today}">
       </label>
 
       <div class="k-switch-row">
