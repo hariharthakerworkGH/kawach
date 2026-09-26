@@ -12,6 +12,12 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.0.6',
+    items: [
+      { icon: 'accounts', title: 'Account marks align', text: 'Merchant initials now use consistent letter cells so marks sit evenly across the app.' },
+    ],
+  },
+  {
     version: '4.0.5',
     items: [
       { icon: 'accounts', title: 'Account marks line up', text: 'Small account marks and initials now sit consistently in their tiles.' },
