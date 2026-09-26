@@ -144,8 +144,10 @@ export function brandMark(name, { category = '', size = 'md' } = {}) {
   if (!label) {
     return `<span class="${cls} k-brand--none" aria-hidden="true"></span>`;
   }
+  const mark = initials(label);
+  const glyphs = [...mark].map((ch) => `<span class="k-brand__glyph">${escapeHtml(ch)}</span>`).join('');
   return `<span class="${cls} k-brand--mono" style="--k-hue:${brandHue(label)}" aria-hidden="true"
-    ><span class="k-brand__text">${escapeHtml(initials(label))}</span></span>`;
+    ><span class="k-brand__text">${glyphs}</span></span>`;
 }
 
 const escapeHtml = (s) =>
