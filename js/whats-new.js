@@ -12,6 +12,22 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.7',
+    items: [
+      {
+        icon: 'summary',
+        title: 'Summary says it in fewer words',
+        text: 'Spent and budget are one line now, and the note under the drawing is shorter.',
+        guide: [{ view: 'summary', target: '.hero-under', text: 'One line, so the two figures explain each other.' }],
+      },
+      {
+        icon: 'card',
+        title: 'Card and bank spending at a glance',
+        text: 'A single bar under the figures shows how much of the month went on cards and how much left the bank.',
+      },
+    ],
+  },
+  {
     version: '4.6',
     items: [
       {
