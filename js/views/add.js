@@ -1,3 +1,4 @@
+import { appearance } from '../appearance.js';
 import { put, getAll, newId } from '../db.js';
 import { icon } from '../icons.js';
 import { CASH_ACCOUNT_ID } from '../config.js';
@@ -33,6 +34,55 @@ export async function render(container, params = {}) {
   const catList = byRecentUse(categories, transactions);
 
   container.classList.add('k');
+  // What the person nearly always leaves alone. On the quick form these
+  // sit behind one tap; on the full form they stay where they were. The
+  // inputs exist either way, so everything that finds them by id still does.
+  const rest = `
+      <label class="k-field field">
+        <span class="k-label">Account</span>
+        <div class="k-picker k-picker--select">
+          <span class="k-picker__mark" id="add-account-mark"></span>
+          <select id="add-account" class="k-select">
+            ${accounts
+              // A loan or the provident fund is not somewhere you spend from.
+              .filter((a) => ['bank', 'card', 'cash', 'savings'].includes(a.type))
+              .map((a) => `<option value="${a.id}" ${a.id === initialAccountId ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
+              .join('')}
+          </select>
+        </div>
+      </label>
+
+      <label class="k-field field field-date">
+        <span class="k-label">Date</span>
+        <input id="add-date" class="k-input" type="date" value="${today}" max="${today}">
+      </label>
+
+      <div class="k-switch-row">
+        <span class="k-switch-row__text" id="add-repeats-label">Repeats every month
+          <span class="k-switch-row__sub">Counts it in your plan, not just today</span>
+        </span>
+        <input type="checkbox" id="add-repeats" class="k-vis-hidden">
+        <button type="button" class="k-toggle" id="add-repeats-toggle" role="switch"
+                aria-checked="false" aria-labelledby="add-repeats-label"></button>
+      </div>
+
+      <div id="add-repeat-options" hidden>
+        <label class="k-field field">
+          <span class="k-label">How often</span>
+          <select id="add-frequency" class="k-select">
+            ${Object.entries(FREQUENCIES)
+              .map(([key, f]) => `<option value="${key}" ${key === DEFAULT_FREQUENCY ? 'selected' : ''}>${f.label}</option>`)
+              .join('')}
+          </select>
+        </label>
+        <p class="freq-preview" id="add-freq-preview" hidden></p>
+      </div>
+  `;
+  const detailFields =
+    appearance('add') === 'quick'
+      ? `<details class="k-disclose k-add-more"><summary>Date, account and repeats</summary>
+         <div class="k-add-more__body">${rest}</div></details>`
+      : rest;
   container.innerHTML = `
     <!-- The fastest way in, so it goes first. Pasting the bank's own message
          fills in everything below, which beats typing any of it by hand. -->
@@ -74,45 +124,7 @@ export async function render(container, params = {}) {
         </button>
       </div>
 
-      <label class="k-field field">
-        <span class="k-label">Account</span>
-        <div class="k-picker k-picker--select">
-          <span class="k-picker__mark" id="add-account-mark"></span>
-          <select id="add-account" class="k-select">
-            ${accounts
-              // A loan or the provident fund is not somewhere you spend from.
-              .filter((a) => ['bank', 'card', 'cash', 'savings'].includes(a.type))
-              .map((a) => `<option value="${a.id}" ${a.id === initialAccountId ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
-              .join('')}
-          </select>
-        </div>
-      </label>
-
-      <label class="k-field field field-date">
-        <span class="k-label">Date</span>
-        <input id="add-date" class="k-input" type="date" value="${today}" max="${today}">
-      </label>
-
-      <div class="k-switch-row">
-        <span class="k-switch-row__text" id="add-repeats-label">Repeats every month
-          <span class="k-switch-row__sub">Counts it in your plan, not just today</span>
-        </span>
-        <input type="checkbox" id="add-repeats" class="k-vis-hidden">
-        <button type="button" class="k-toggle" id="add-repeats-toggle" role="switch"
-                aria-checked="false" aria-labelledby="add-repeats-label"></button>
-      </div>
-
-      <div id="add-repeat-options" hidden>
-        <label class="k-field field">
-          <span class="k-label">How often</span>
-          <select id="add-frequency" class="k-select">
-            ${Object.entries(FREQUENCIES)
-              .map(([key, f]) => `<option value="${key}" ${key === DEFAULT_FREQUENCY ? 'selected' : ''}>${f.label}</option>`)
-              .join('')}
-          </select>
-        </label>
-        <p class="freq-preview" id="add-freq-preview" hidden></p>
-      </div>
+      ${detailFields}
 
       <!-- Quiet, because the app works this out on its own nearly always. -->
       <details class="k-disclose k-add-more">

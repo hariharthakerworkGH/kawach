@@ -59,6 +59,27 @@ export const CHOICES = {
       { value: 'private', label: 'Keep balances covered', note: 'Amounts stay hidden behind a tap, for checking your phone where others can see it.' },
     ],
   },
+  plan: {
+    label: 'The Plan screen',
+    question: 'In what order should your fixed costs sit?',
+    fallback: 'yours',
+    where: 'Plan',
+    options: [
+      { value: 'yours', label: 'The order you arranged', note: 'However you put them with Reorder. Kawach leaves them alone.' },
+      { value: 'day', label: 'By the day they are due', note: 'Earliest in the month first, so what is coming next is at the top.' },
+      { value: 'size', label: 'Biggest first', note: 'The largest amounts at the top, to see what dominates the month.' },
+    ],
+  },
+  add: {
+    label: 'The Add screen',
+    question: 'How much of the form do you want to see?',
+    fallback: 'full',
+    where: 'Add',
+    options: [
+      { value: 'full', label: 'Everything at once', note: 'Amount, what it was for, category, account, date and repeats, all on the screen.' },
+      { value: 'quick', label: 'Just the essentials', note: 'Amount, what it was for and category. Date, account and repeats fold behind one tap.' },
+    ],
+  },
   opening: {
     label: 'When Kawach opens',
     question: 'Which screen should it start on?',
