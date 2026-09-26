@@ -201,15 +201,21 @@ test('two accounts for the same card are flagged', async () => {
   equal(f.duplicateAccounts.map((g) => g.map((a) => a.id).sort()), [['card', 'card-copy']]);
 });
 
-test('on the 26th a new cycle starts: spending resets and the card spends become a bill', async () => {
+test('the statement day bills the card without wiping what the month has spent', async () => {
   await seedMonth();
   await putAll('transactions', [txn({ accountId: 'card', date: '2026-09-10', amount: 3000, rawDescription: 'SHOES' })]);
   const before = await computeFreeToSpend(day('2026-09-25'));
   paise(before.spentThisCycle, rupees(3000));
+  // Crossing the statement day closes a bill; it does not start the month
+  // again. The spend was made in September and is still September's.
   const after = await computeFreeToSpend(day('2026-09-26'));
-  paise(after.spentThisCycle, 0);
+  paise(after.spentThisCycle, rupees(3000), 'the month has not turned over');
   paise(after.cardBills.reduce((s, b) => s + b.amount, 0), rupees(3000));
   equal(after.cycleClose, '2026-10-25');
+  // It is the 1st that resets spending, and then the card spend is on a bill.
+  const october = await computeFreeToSpend(day('2026-10-01'));
+  paise(october.spentThisCycle, 0, 'a new month starts clean');
+  equal(october.cycleStart, '2026-10-01');
 });
 
 test('bank check: after the next salary, bills and next month\'s commitments', async () => {
@@ -323,13 +329,15 @@ test('a new cycle does not go quiet about money the bank cannot cover', async ()
   // the 25th, so on the 26th the cycle is fresh and the budget looks healthy.
   await putAll('transactions', [txn({ accountId: 'card', date: '2026-09-10', amount: 120000, rawDescription: 'BIG SPEND' })]);
   const f = await computeFreeToSpend(day('2026-09-26'));
-  ok(f.free > 0, 'the new cycle does start with a budget again');
-  ok(f.bankAfterBills < 0, 'but the bank cannot cover what is owed');
+  // The spend was made on the 10th, so it still counts against September
+  // however recently the card was billed.
+  ok(f.free < 0, 'a big spend this month is still spent this month');
+  ok(f.bankAfterBills < 0, 'and the bank cannot cover what is owed');
   ok(f.bankShortfall > 0, 'the shortfall is reported as a figure');
   ok(f.level !== 'ok', 'so the headline does not read as calm');
 });
 
-test('summary figures keep card cycle and bank month separate before payday', async () => {
+test('summary figures run cards and bank over the one month before payday', async () => {
   await seedMonth();
   await put('settings', { id: 'salaryDay', value: 30 });
   await putAll('transactions', [
@@ -337,12 +345,14 @@ test('summary figures keep card cycle and bank month separate before payday', as
     txn({ accountId: 'bank', date: '2026-09-27', amount: 2500, rawDescription: 'SEPTEMBER UPI' }),
   ]);
   const f = await computeFreeToSpend(day('2026-09-28'));
-  equal(f.cycleStart, '2026-09-26');
-  equal(f.cycleClose, '2026-10-25');
+  equal(f.cycleStart, '2026-09-01', 'the headline period is the month');
+  equal(f.cycleKey, '2026-09-30');
+  equal(f.cycleClose, '2026-10-25', 'the card still knows when it is billed');
   equal(f.bankMonthStart, '2026-09-01');
   equal(f.bankMonthEnd, '2026-09-30');
   paise(f.bankSpent, rupees(2500), 'bank spending stays in September');
-  paise(f.spentThisCycle, f.bankSpent + f.cardSpent, 'the combined headline is both periods');
+  paise(f.cardSpent, rupees(12000), 'and so does the card spend, though it is already billed');
+  paise(f.spentThisCycle, f.bankSpent + f.cardSpent, 'the headline is the whole month');
   equal(f.salary.dates[0], '2026-09-30');
   ok(f.totals.unpaidBills > 0, 'a billed card liability remains visible until it is paid');
 });
@@ -442,18 +452,19 @@ test('suggestions: rent sent by transfer and monthly ATM cash, added with their 
   equal(f.tracker.find((t) => t.id === 'fixed-rent').status, 'paid');
 });
 
-test('bank spending runs by the calendar month, card spending by the card cycle', async () => {
+test('spending runs by the calendar month, the card side and the bank side alike', async () => {
   await seedMonth();
   await putAll('transactions', [
-    // 27 Aug: inside the card cycle (from 26 Aug) but not in September
+    // 27 Aug: inside the old card cycle (from 26 Aug), but August is August.
     txn({ accountId: 'bank', date: '2026-08-27', amount: 700, rawDescription: 'UPI-GROCER-111111111111' }),
     txn({ accountId: 'card', date: '2026-08-27', amount: 900, rawDescription: 'BOOKS' }),
     txn({ accountId: 'bank', date: '2026-09-02', amount: 300, rawDescription: 'UPI-CAFE-222222222222' }),
   ]);
   const f = await computeFreeToSpend(day('2026-09-16'));
-  equal([f.bankMonthStart, f.bankMonthEnd, f.cycleStart], ['2026-09-01', '2026-09-30', '2026-08-26']);
+  equal([f.bankMonthStart, f.bankMonthEnd, f.cycleStart], ['2026-09-01', '2026-09-30', '2026-09-01']);
   paise(f.bankSpent, rupees(300));
-  paise(f.spentThisCycle, rupees(300 + 900));
+  paise(f.cardSpent, 0, 'an August card spend is not September spending');
+  paise(f.spentThisCycle, rupees(300));
 });
 
 test('no look-back: payments made in August never count for September, except EMI and rent paid on salary day', async () => {
@@ -545,7 +556,10 @@ test('a card\'s statement day comes from its imported statements, whatever was t
   await put('accounts', { id: 'card', label: 'Test Card', type: 'card', issuer: 'Test Bank', last4: '2222', billingCycleDay: 26 });
   await put('importBatches', { id: 'stmt', accountId: 'card', periodStart: '2026-07-26', periodEnd: '2026-08-25', provisional: false, importedAt: '2026-08-27T10:00:00Z' });
   const f = await computeFreeToSpend(day('2026-09-16'));
-  equal([f.cycleStart, f.cycleClose], ['2026-08-26', '2026-09-25']);
+  // The typed-in 26th is still overruled by the statement's own 25th. The
+  // period the screen shows is the month; the statement day decides the bill.
+  equal(f.cycleClose, '2026-09-25', 'the statement, not what was typed in');
+  equal(f.cycleStart, '2026-09-01');
 });
 
 test('a CRED payment that could be either card is listed until you say which card it paid', async () => {

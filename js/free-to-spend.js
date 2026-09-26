@@ -8,18 +8,30 @@ import { isLoanAccount, loanCommitment, loanPosition, assignLoanPayments } from 
 import { isPfAccount, pfPosition } from './pf.js';
 import { businessPlan, businessMonth } from './business.js';
 
-// THE RULE - how much you can spend this cycle (26th to 25th, the cards'
-// statement day).
+// THE RULE - how much you can spend this month (the 1st to the last day).
 //
-//   Budget this cycle = monthly income: the salary (or pension, or household
+//   Budget this month = monthly income: the salary (or pension, or household
 //                       money); for a business owner, the lowest of the last
 //                       three months taken home from the business (js/business.js)
 //                     − every fixed commitment paid from the bank or a card
 //                     − what you save each month
-//   Spent this cycle  = card spends since the last statement day (refunds and
-//                       cashback taken off) + bank spends (UPI and the rest)
+//   Spent this month  = card spends this month (refunds and cashback taken
+//                       off) + bank spends (UPI and the rest)
 //                     − payments that are one of the fixed commitments
 //   Left to spend     = budget − spent
+//
+// Both halves of "spent" run over the same calendar month. They did not
+// always: card spending ran on the card cycle while bank spending ran on the
+// month, and the headline printed the card one. On the 27th that meant a
+// screen reading "26 Sep to 25 Oct" while counting bank money from the 5th,
+// and dropping card money from the 10th because a new cycle had begun - a
+// month's budget measured against two different windows. The statement day
+// is a fact about a bank's paperwork rather than about the person: it
+// differs per card, and with several cards the latest one decided.
+//
+// The card cycle still decides bills, because a bill really is one cycle's
+// worth, and cardPosition() in js/account-metrics.js still works that way.
+// It no longer decides what spending belongs to this month.
 //
 // The money in the bank never adds to the budget: each cycle lives on its
 // salary, so spending the budget still leaves next month's salary for next
@@ -399,8 +411,9 @@ export async function computeFreeToSpend(now = new Date()) {
   // No card with a statement day yet (a new user, or cash and bank only):
   // spending runs by the calendar month, like the bank's. The salary window
   // can reach a month further, which would spread this month's budget thin.
-  const spendEnd = cycleClose || monthEnd;
-  const windowStart = cycleStart || `${today.slice(0, 7)}-01`;
+  // Spending, both halves of it, runs over the calendar month.
+  const spendEnd = monthEnd;
+  const windowStart = monthStart;
   // The period each commitment is tracked over. Cards: the card cycle (the day
   // after the statement day to the next statement day). The bank and cash:
   // the calendar month, 1st to last day - except that a payment with a set day
@@ -606,7 +619,19 @@ export async function computeFreeToSpend(now = new Date()) {
   const bankSpends = unclaimed.filter((t) => !returnedIds.has(t.id));
   const bankBeyondPlan = budgetItems.reduce((s, x) => s + x.charges.bankBeyond, 0);
   const bankSpent = bankSpends.reduce((s, t) => s + t.amount, 0) + bankBeyondPlan;
-  const cardSpent = owedCards - sum(cardCommitmentCharges);
+  // Card spending over the same month as the bank's, so both halves of
+  // "spent" answer the same question. Refunds and cashback come off, as they
+  // always did, which is why this cannot use inRange(): that keeps debits
+  // only, being built for matching payments to commitments. Bill payments are
+  // transfers and were never spending, and an EMI charged to a card is debt
+  // coming down rather than spending. Copies saved twice are already gone:
+  // findDuplicates() ran before any of this.
+  const inCardMonth = (t) => t.date >= cardPeriod.start && t.date <= cardPeriod.end && t.date <= today;
+  const cardWindow = transactions.filter(
+    (t) => cardIds.has(t.accountId) && !t.isTransfer && !loanEmiIds.has(t.id) && inCardMonth(t)
+  );
+  const cardGross = cardWindow.reduce((s, t) => s + (t.direction === 'credit' ? -t.amount : t.amount), 0);
+  const cardSpent = cardGross - sum(cardCommitmentCharges);
   const spentThisCycle = cardSpent + bankSpent;
   // The same spending, laid out by day, for the burn drawing on Summary
   // (js/charts.js). Every step is a real dated payment; whatever has no date
