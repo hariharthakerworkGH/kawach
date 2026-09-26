@@ -2,9 +2,9 @@
 ## Single Source of Truth for Product Improvement
 
 **Last updated:** 2026-09-26  
-**Current production:** 4.0.13 / BUILD 93  
-**Current cache:** expense-tracker-v93  
-**Latest production commit:** 0835f2dd5712ce14febece2c74557660012a6682  
+**Current production:** 4.1 / BUILD 94  
+**Current cache:** expense-tracker-v94  
+**Latest production commit:** fc0d41d9bb165e4a4ad24bbe9e9d18dae84c0bf1  
 **Architecture:** vanilla JS, static/offline-first, SVG/CSS, no build framework
 
 > This document is the authoritative roadmap for Kawach improvement work.
@@ -255,6 +255,44 @@ intact. Released as 4.0.13 / BUILD 93 / cache v93, commit `0835f2dd57`, snapshot
 Note for future releases: a change to any page outside APP_SHELL could not
 reach existing users before this fix. It can now.
 
+### Direction changed - 26 September 2026: customisation, not approval
+The owner's intent for the Design Lab panel was never an approval gate. He
+wants the people using Kawach to be able to shape it: "an app that can be
+customised as per their choosing and how they feel comfortable", reached from
+the app itself rather than a separate page.
+
+That reverses the earlier objection recorded above. Alternatives are not dead
+weight to be maintained for nothing; they are the feature, and maintaining
+them is the product decision. Stage 4 as written - promote one APPROVED
+component into a screen - is therefore no longer the work. It is closed.
+
+Shipped in 4.1: Settings now opens "How it looks", with light or dark
+independent of the phone, how much sits under the big number on Summary, and
+how six months are drawn on History. Choices are this device's, in
+localStorage, beside the space toggle. Nothing there touches the money: the
+figures under the hero, the warnings and the breakdown are never part of a
+look, because a quieter screen must not be a less honest one.
+
+Both stylesheets gained a forced theme generated from the light rules they
+already had. css/tokens.css matters as much as css/dna.css here: the app's
+frame still reads the older --bg family, so a theme that reached only the DNA
+changed the screens and left the frame dark.
+
+Also in 4.1: a new version is now taken automatically when there is nothing on
+screen to lose, reusing the test sync already applies before redrawing; and the
+app icons have new filenames, because Android and Windows copy the icon at
+install and never look again while the URL is unchanged, which is why a phone
+installed in the green-logo era kept showing it.
+
+Next for customisation: more choices, added only where two finished designs
+genuinely exist or are worth designing. The honest way to add more is one
+screen at a time - three complete versions of a screen, one chosen - rather
+than inventing alternatives for all 26 components at once and having to keep
+every one of them working for ever.
+
+Released as 4.1 / BUILD 94 / cache v94, commit `fc0d41d9bb`, snapshot
+`expense-tracker-versions/4.1`, verified live. 141 tests pass.
+
 Move only approved Design Lab components into production screens.
 
 Process:
@@ -391,10 +429,10 @@ Every release must follow:
 **CODE → TESTS → VERSION → BUILD → SERVICE-WORKER CACHE → WHAT'S NEW → SNAPSHOT → GITHUB → LIVE VERIFICATION**
 
 Current:
-- 4.0.13
-- BUILD 93
-- cache v93
-- snapshot expense-tracker-versions/4.0.13
+- 4.1
+- BUILD 94
+- cache v94
+- snapshot expense-tracker-versions/4.1
 
 Never declare a release complete until the installed PWA can actually detect it.
 
@@ -414,6 +452,7 @@ Existing snapshots must never be overwritten:
 - expense-tracker-versions/4.0.11
 - expense-tracker-versions/4.0.12
 - expense-tracker-versions/4.0.13
+- expense-tracker-versions/4.1
 
 Every meaningful phase/release gets a new snapshot.
 
