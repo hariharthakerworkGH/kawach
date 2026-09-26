@@ -2,9 +2,9 @@
 ## Single Source of Truth for Product Improvement
 
 **Last updated:** 2026-09-26  
-**Current production:** 4.4 / BUILD 97  
-**Current cache:** expense-tracker-v97  
-**Latest production commit:** 7777a3a6b5c7834b8b126e0f519c49739ce3e82d  
+**Current production:** 4.5 / BUILD 98  
+**Current cache:** expense-tracker-v98  
+**Latest production commit:** 9c143a2e9cdd386d672227803d7555fcd88d9aa6  
 **Architecture:** vanilla JS, static/offline-first, SVG/CSS, no build framework
 
 > This document is the authoritative roadmap for Kawach improvement work.
@@ -328,9 +328,19 @@ saving a real entry on the short form.
 - Add: the full form, or a quick one with amount and category and the rest
   behind a tap.
 
-**Phase 4.** Size and spacing: comfortable or compact, and larger text. Worth
-doing last because it touches every screen, and worth doing at all because the
-people this app is for are not all young.
+**Phase 4 - done (4.5).** Text size (normal, larger, largest) and spacing
+(comfortable or compact). Type is in rem in both stylesheets, so one font-size
+on :root carries every size with it. The DNA's pixel spacing is restated for
+compact, generated from the tokens already in the file so the two cannot
+drift. --k-tap (44px) and --k-1 (4px) are identical at every setting: a
+tighter screen must not be a harder one to hit. Checked at 320px across all
+six screens in all six combinations with no overflow anywhere.
+
+**Customisation is complete as planned. Nine choices.** Before adding a tenth,
+find out which of these are actually used. A choice nobody makes is a screen
+nobody needed, and it still has to be kept working for ever. There is no way
+to measure that without watching people, and Kawach has no analytics by
+design, so the honest method is to ask the people using it.
 
 After each phase, look at what is actually being used before adding more. A
 choice nobody makes is a screen nobody needed, and it still has to be kept
@@ -475,10 +485,10 @@ Every release must follow:
 **CODE → TESTS → VERSION → BUILD → SERVICE-WORKER CACHE → WHAT'S NEW → SNAPSHOT → GITHUB → LIVE VERIFICATION**
 
 Current:
-- 4.4
-- BUILD 97
-- cache v97
-- snapshot expense-tracker-versions/4.4
+- 4.5
+- BUILD 98
+- cache v98
+- snapshot expense-tracker-versions/4.5
 
 Never declare a release complete until the installed PWA can actually detect it.
 
@@ -502,6 +512,7 @@ Existing snapshots must never be overwritten:
 - expense-tracker-versions/4.2
 - expense-tracker-versions/4.3
 - expense-tracker-versions/4.4
+- expense-tracker-versions/4.5
 
 Every meaningful phase/release gets a new snapshot.
 
