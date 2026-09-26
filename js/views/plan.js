@@ -8,6 +8,7 @@ import { DEFAULT_KEEP_IN_BANK } from '../free-to-spend.js';
 import { currentMonthKey } from '../spending-month.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequencyShort, hasDueDate, toMonthly, toYearly, isoLocal } from '../frequency.js';
 import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder, isSetAside } from '../commitments.js';
+import { appearance } from '../appearance.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
 import { COMMON_COSTS } from '../calendar.js';
@@ -50,7 +51,17 @@ export async function render(container) {
   const todayIso = isoLocal(new Date());
   // In the order you arranged them (new ones at the end).
   const inLane = commitmentInSpace(space);
-  const fixed = recurring.filter((r) => inLane(r) && isLiveCommitment(r, todayIso)).sort(byYourOrder);
+  // The order is the person's choice (js/appearance.js). By day puts what is
+  // coming next at the top; biggest first shows what dominates the month.
+  // Either way it is only the order - nothing is added, hidden or recounted.
+  const planOrder = appearance('plan');
+  const ordering =
+    planOrder === 'day'
+      ? (a, b) => (a.dayOfMonth || 32) - (b.dayOfMonth || 32) || byYourOrder(a, b)
+      : planOrder === 'size'
+        ? (a, b) => monthlyAmountOf(b) - monthlyAmountOf(a) || byYourOrder(a, b)
+        : byYourOrder;
+  const fixed = recurring.filter((r) => inLane(r) && isLiveCommitment(r, todayIso)).sort(ordering);
   const finished = recurring.filter((r) => inLane(r) && isFixed(r) && r.active !== false && isFinished(r, todayIso));
   const laneAccounts = accounts.filter(accountInSpace(space));
   const laneCategories = categories.filter((c) => isBusinessCategory(c) === inBusiness);
@@ -173,7 +184,9 @@ export async function render(container) {
     }
     ${sectionHead(
       inBusiness ? 'Fixed costs' : 'Commitments',
-      fixed.length > 1 ? `<button type="button" class="icon-btn" id="plan-reorder">${reordering ? 'Done' : 'Reorder'}</button>` : ''
+      fixed.length > 1 && planOrder === 'yours'
+        ? `<button type="button" class="icon-btn" id="plan-reorder">${reordering ? 'Done' : 'Reorder'}</button>`
+        : ''
     )}
     ${
       fixed.length

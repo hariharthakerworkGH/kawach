@@ -105,6 +105,29 @@ function previewFor(name, value) {
     const ring = value === 'ring' ? allocationRing({ slices, centre: '', caption: '' }) : '';
     return `<div class="look-preview-inner">${ring}${rows}</div>`;
   }
+  if (name === 'plan') {
+    // Three invented fixed costs, chosen so that all three orders come out
+    // different: the biggest is the latest, the earliest is the smallest, and
+    // the arranged order matches neither. An example where two options looked
+    // identical would say nothing about the difference between them.
+    const items = [
+      { label: 'Car EMI', amount: 890000, day: 12, arranged: 1 },
+      { label: 'Rent', amount: 1200000, day: 25, arranged: 2 },
+      { label: 'Phone bill', amount: 49900, day: 2, arranged: 3 },
+    ];
+    const order =
+      value === 'day'
+        ? (a, b) => a.day - b.day
+        : value === 'size'
+          ? (a, b) => b.amount - a.amount
+          : (a, b) => a.arranged - b.arranged;
+    const rows = [...items].sort(order).map(
+      (i) => `<div class="k-row"><span class="k-row__body"><span class="k-row__title">${i.label}</span>
+        <span class="k-row__meta">Due ${i.day}${i.day === 1 ? 'st' : i.day === 2 ? 'nd' : i.day === 3 ? 'rd' : 'th'}</span></span>
+        <span class="k-row__value">₹${(i.amount / 100).toLocaleString('en-IN')}</span></div>`
+    ).join('');
+    return `<div class="look-preview-inner">${rows}</div>`;
+  }
   // Daylight and the opening screen need no preview pane. Choosing a daylight
   // changes the whole app at once, which is a better look at it than a panel,
   // and the opening screen is a screen the person already knows.
@@ -114,7 +137,7 @@ function previewFor(name, value) {
 function usingSample(name) {
   if (name === 'summary') return !state.real;
   if (name === 'history') return !state.months;
-  if (name === 'accounts') return true;
+  if (name === 'accounts' || name === 'plan') return true;
   return false;
 }
 
@@ -146,7 +169,9 @@ function card(name, spec) {
           : `<p class="muted-note look-live">${
               name === 'theme'
                 ? 'Tap one to see the whole app change. Tap another to put it back.'
-                : 'Takes effect the next time Kawach opens.'
+                : spec.where
+                  ? `Open ${spec.where} to see it.`
+                  : 'Takes effect the next time Kawach opens.'
             }</p>`
       }
     </div>`;

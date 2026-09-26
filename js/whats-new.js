@@ -12,6 +12,22 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.4',
+    items: [
+      {
+        icon: 'add',
+        title: 'A shorter Add screen, if you want one',
+        text: 'Keep the whole form, or just the amount, what it was for and the category, with the date, account and repeats behind one tap.',
+        guide: [{ view: 'settings', target: '#go-appearance', text: 'The Add screen is here, with your other choices.' }],
+      },
+      {
+        icon: 'plan',
+        title: 'Your fixed costs, in your order',
+        text: 'Keep the order you arranged, or put them by the day they are due, or biggest first.',
+      },
+    ],
+  },
+  {
     version: '4.3',
     items: [
       {
