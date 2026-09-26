@@ -12,6 +12,12 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.0.11',
+    items: [
+      { icon: 'summary', title: 'The app’s full design is back', text: 'Summary and Accounts cards, charts and spacing now display correctly again.' },
+    ],
+  },
+  {
     version: '4.0.10',
     items: [
       { icon: 'summary', title: 'Summary is easier to scan', text: 'Card-cycle and bank-month spending sit in one short line, card bills are explained once, and breakdown amounts have room beside their labels.', guide: [{ view: 'summary', target: '.summary-spending-split', text: 'Card spending follows the statement cycle; bank spending follows the calendar month.' }] },
@@ -419,3 +425,4 @@ export function openNotes(notes, { title }) {
   document.body.appendChild(backdrop);
   backdrop.querySelector('.notes-close').focus();
 }
+
