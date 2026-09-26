@@ -329,6 +329,24 @@ test('a new cycle does not go quiet about money the bank cannot cover', async ()
   ok(f.level !== 'ok', 'so the headline does not read as calm');
 });
 
+test('summary figures keep card cycle and bank month separate before payday', async () => {
+  await seedMonth();
+  await put('settings', { id: 'salaryDay', value: 30 });
+  await putAll('transactions', [
+    txn({ accountId: 'card', date: '2026-09-10', amount: 12000, rawDescription: 'AUGUST CYCLE BILL' }),
+    txn({ accountId: 'bank', date: '2026-09-27', amount: 2500, rawDescription: 'SEPTEMBER UPI' }),
+  ]);
+  const f = await computeFreeToSpend(day('2026-09-28'));
+  equal(f.cycleStart, '2026-09-26');
+  equal(f.cycleClose, '2026-10-25');
+  equal(f.bankMonthStart, '2026-09-01');
+  equal(f.bankMonthEnd, '2026-09-30');
+  paise(f.bankSpent, rupees(2500), 'bank spending stays in September');
+  paise(f.spentThisCycle, f.bankSpent + f.cardSpent, 'the combined headline is both periods');
+  equal(f.salary.dates[0], '2026-09-30');
+  ok(f.totals.unpaidBills > 0, 'a billed card liability remains visible until it is paid');
+});
+
 test('a healthy month is still allowed to look healthy', async () => {
   await seedMonth();
   const f = await computeFreeToSpend(day('2026-09-26'));
