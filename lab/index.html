@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#0a0c14">
 <!--
-  THE DESIGN LAB 2.0. Not a screen of the app.
+  THE DESIGN LAB 2.1. Not a screen of the app.
 
   It exists so the visual system can be judged on its own before a screen is
   built on it. It loads css/dna.css for the system and two of the app's own
@@ -118,7 +118,7 @@
   .brand-cell span { font-size: 10px; color: var(--k-text-3); }
   .art-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--k-4); }
   .art-cell { display: flex; flex-direction: column; align-items: center; gap: var(--k-2); color: var(--k-accent); }
-  .art-cell img { width: 62px; height: 62px; }
+  .art-cell__art { width: 62px; height: 62px; display: block; background: currentColor; -webkit-mask: var(--k-art) center / contain no-repeat; mask: var(--k-art) center / contain no-repeat; }
   .art-cell span { font-size: 10px; color: var(--k-text-3); }
 </style>
 </head>
@@ -732,7 +732,7 @@
 
   /* --- the three steps of the brand system ------------------------- */
   const BRAND_DEMO = [
-    ['A licensed file in icons/brands/', `<span class="k-brand k-brand--md"><img src="../icons/kawach.svg" alt="" width="24" height="24"></span>`, 'Kawach’s own mark, standing in: no third-party logo is bundled.'],
+    ['Kawach’s own mark', `<span class="k-brand k-brand--md"><img src="../icons/kawach.svg" alt="" width="24" height="24"></span>`, 'Reference mark for the product itself. Third-party logos appear only when a legitimate SVG asset is bundled.'],
     ['The category’s own icon', brandMark('Big Bazaar', { category: 'Food & Dining', size: 'md' }), 'Used when the category is known but the merchant is not.'],
     ['A monogram', brandMark('Shree Balaji Provision Stores', { size: 'md' }), 'The long tail: the kirana shop, the clinic, the tuition teacher.'],
     ['Nothing known at all', brandMark('', { size: 'md' }), 'A quiet tile rather than a hole in the row.'],
@@ -860,7 +860,7 @@
     <div class="brand-grid">${g.items.map((b) => `<span class="brand-cell">${brandMark(b.name, { size: 'md' })}<span>${b.name}</span></span>`).join('')}</div>`).join('');
 
   document.getElementById('art-grid').innerHTML = ARTWORK.map(
-    (a) => `<span class="art-cell"><img src="../icons/art/${a.file}" alt="" loading="lazy"><span>${a.file}</span></span>`
+    (a) => `<span class="art-cell"><span class="art-cell__art" style="--k-art:url("../icons/art/${a.file}")" role="img" aria-label="${a.file}"></span><span>${a.file}</span></span>`
   ).join('');
 
   fillIcons(document);
