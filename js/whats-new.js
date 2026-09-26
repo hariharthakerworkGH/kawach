@@ -12,6 +12,27 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.3',
+    items: [
+      {
+        icon: 'accounts',
+        title: 'Accounts, your way',
+        text: 'Show the ring above your accounts, just the list, or keep balances covered until you tap Show - for checking your phone where other people can see it.',
+        guide: [{ view: 'settings', target: '#go-appearance', text: 'The Accounts screen is here, with the rest of your choices.' }],
+      },
+      {
+        icon: 'home',
+        title: 'Start where you like',
+        text: 'Kawach can open on Summary, on Add, or on Accounts.',
+      },
+      {
+        icon: 'wallet',
+        title: 'The app icon should catch up',
+        text: 'Your phone was being told about the old icon even after it changed. If your home screen still shows the old green shield, removing Kawach and adding it again will fix it for good.',
+      },
+    ],
+  },
+  {
     version: '4.2',
     items: [
       {
