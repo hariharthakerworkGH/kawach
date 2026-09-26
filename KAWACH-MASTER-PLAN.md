@@ -132,7 +132,7 @@ Next work:
 - Complete: checked the restored production styles against Design Lab 2.1 and completed the responsive, theme and Budget Burn checks above.
 - Do not change financial calculations or user data.
 
-Stage 1 is closed. Stage 2 is complete; Stage 3 is now active.
+Stage 1 is closed. Stage 2 is complete. Stage 3 is next.
 
 ---
 
@@ -171,7 +171,7 @@ Stage 2 is complete under the stated license rule; its intended outcome is a wor
 ---
 
 # 6. STAGE 3 — PONYTAIL AUDIT
-**Status: ACTIVE**
+**Status: NEXT**
 
 Ponytail is **audit-only first**.
 
@@ -350,7 +350,7 @@ At the end of a meaningful work session, update this document with:
 
 # 15. CURRENT NEXT ACTION
 
-**Stage 2 is complete: audit-only Ponytail review of visual consistency, dead CSS, layout, accessibility, duplication and performance, while preserving the brand system and financial logic.**
+**Next: Stage 3 — audit-only Ponytail review of visual consistency, dead CSS, layout, accessibility, duplication and performance, while preserving the brand system and financial logic.**
 
 Do not begin another broad redesign before this checkpoint is closed.
 
