@@ -132,7 +132,7 @@ Next work:
 - Complete: checked the restored production styles against Design Lab 2.1 and completed the responsive, theme and Budget Burn checks above.
 - Do not change financial calculations or user data.
 
-Stage 1 is closed. Stage 2 is complete. Stage 3 is next.
+Stage 1 and Stage 2 are closed. Stage 3 audit is complete; Stage 4 is next.
 
 ---
 
@@ -171,7 +171,7 @@ Stage 2 is complete under the stated license rule; its intended outcome is a wor
 ---
 
 # 6. STAGE 3 — PONYTAIL AUDIT
-**Status: NEXT**
+**Status: COMPLETE — audit only; no fixes applied**
 
 Ponytail is **audit-only first**.
 
@@ -204,10 +204,16 @@ NEXT**
 
 Do not repeat audits that have already been verified unless a new change touches that area.
 
+### Audit result — 26 September 2026
+- Reviewed current GitHub source at commit `4da36816a8a87d026964cf2cb59b8bfdf3db170d`: 76 non-vendored JS/CSS app-shell files, plus the app entrypoints, Design Lab and test index.
+- Checked module references and CSS selectors for clear dead code or repeated blocks; found no safe complexity cut and no dependency to remove. Ponytail result: **Lean already. Ship.** `net: -0 lines, -0 deps possible.`
+- Visual consistency follow-up for the next Design Lab edit: `lab/index.html` navigation sample order differs from production `index.html`, and the section numbering repeats 17 and skips 18. No production screen or user data was changed.
+- Stage 3 is closed as an audit. This follow-up is recorded under deferred visual work.
+
 ---
 
 # 7. STAGE 4 — APPROVED COMPONENTS → PRODUCTION
-**Status: AFTER STAGE 3**
+**Status: NEXT**
 
 Move only approved Design Lab components into production screens.
 
@@ -243,6 +249,10 @@ Before further credit-card visualisation:
 ---
 
 # 9. DEFERRED VISUAL WORK
+
+## Design Lab consistency follow-up
+- Before the next Design Lab edit, align the navigation sample with production order and correct the duplicate 17 / missing 18 section numbers.
+- This is confined to the Design Lab and does not block an app release unless the lab itself is changed.
 
 ## Cash River
 - Renderer exists and is tested.
@@ -350,7 +360,7 @@ At the end of a meaningful work session, update this document with:
 
 # 15. CURRENT NEXT ACTION
 
-**Next: Stage 3 — audit-only Ponytail review of visual consistency, dead CSS, layout, accessibility, duplication and performance, while preserving the brand system and financial logic.**
+**Next: Stage 4 — choose one APPROVED Design Lab component, define the production screen and user question it serves, then implement and verify it before a versioned release.**
 
 Do not begin another broad redesign before this checkpoint is closed.
 
