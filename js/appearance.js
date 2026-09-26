@@ -25,6 +25,27 @@ export const CHOICES = {
       { value: 'light', label: 'Always light', note: 'Paper white, whatever the phone is set to.' },
     ],
   },
+  text: {
+    label: 'Text size',
+    question: 'How big should the writing be?',
+    fallback: 'normal',
+    where: '',
+    options: [
+      { value: 'normal', label: 'Normal', note: 'The size Kawach is drawn at.' },
+      { value: 'large', label: 'Larger', note: 'About an eighth bigger, everywhere in the app.' },
+      { value: 'largest', label: 'Largest', note: 'A quarter bigger. Easiest to read; fewer rows fit on a screen.' },
+    ],
+  },
+  density: {
+    label: 'Spacing',
+    question: 'How much room between things?',
+    fallback: 'comfortable',
+    where: '',
+    options: [
+      { value: 'comfortable', label: 'Comfortable', note: 'Room to breathe, the way Kawach is laid out.' },
+      { value: 'compact', label: 'Compact', note: 'Tighter gaps, so more fits on the screen at once. Buttons stay the same size to tap.' },
+    ],
+  },
   summary: {
     label: 'The Summary screen',
     question: 'How much goes under the big number?',
@@ -135,6 +156,7 @@ export function setAppearance(name, value) {
     return false;
   }
   if (name === 'theme') applyTheme();
+  if (name === 'text' || name === 'density') applyDisplay();
   return true;
 }
 
@@ -150,4 +172,18 @@ export function applyTheme() {
   const root = document.documentElement;
   if (theme === 'auto') root.removeAttribute('data-theme');
   else root.setAttribute('data-theme', theme);
+}
+
+/* Text size and spacing, put on <html> beside the daylight. The default of
+ * each is left off entirely rather than written out, so the stylesheet's own
+ * values are what apply and there is only one place they are stated.
+ */
+export function applyDisplay() {
+  const root = document.documentElement;
+  const text = appearance('text');
+  const density = appearance('density');
+  if (text === 'normal') root.removeAttribute('data-text');
+  else root.setAttribute('data-text', text);
+  if (density === 'comfortable') root.removeAttribute('data-density');
+  else root.setAttribute('data-density', density);
 }
