@@ -12,6 +12,12 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.0.9',
+    items: [
+      { icon: 'summary', title: 'See both spending periods', text: 'Summary separates card-cycle spending from bank spending this month, and shows an unpaid card bill while salary is still due.', guide: [{ view: 'summary', target: '.summary-periods', text: 'Card spending follows the statement cycle; bank spending follows the month. Billed card dues stay visible until paid.' }] },
+    ],
+  },
+  {
     version: '4.0.8',
     items: [
       { icon: 'summary', title: 'Summary catches up when you return', text: 'Come back to the app and Summary rereads the latest entries saved on this phone.' },
@@ -407,4 +413,3 @@ export function openNotes(notes, { title }) {
   document.body.appendChild(backdrop);
   backdrop.querySelector('.notes-close').focus();
 }
-

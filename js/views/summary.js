@@ -477,6 +477,7 @@ function renderCardsHero(f) {
       <div class="stat"><span class="stat-k">Budget</span><span class="stat-v">${formatRupees(f.limit)}</span></div>
       ${stillSetAside(f)}
     </div>
+    ${spendingPeriods(f)}
     ${insightCard(f)}
     ${moneyShape(f)}
       <details class="fts-breakdown hero-work">
@@ -507,6 +508,25 @@ function renderCardsHero(f) {
         </div>
         ${f.notes.map((n) => `<p class="muted-note">${escapeHtml(n)}</p>`).join('')}
       </details>`;
+}
+
+// Card purchases follow the statement cycle; bank and cash purchases follow
+// the calendar month. Show both windows beside the combined spending figure
+// so crossing the statement day cannot make one period look like the other.
+function spendingPeriods(f) {
+  const card = f.cardSpent || 0;
+  const month = f.bankSpent || 0;
+  const pendingPayday = f.salary && f.salary.setUp && !f.salary.alreadyIn &&
+    (f.salary.late || (f.salary.dates[0] && f.salary.dates[0] >= f.today));
+  const billed = f.totals && f.totals.unpaidBills || 0;
+  const liability = pendingPayday && billed > 0
+    ? `<div class="totals-row net"><span>Card bill still owed · salary ${formatDateNice(f.salary.dates[0] || f.salary.nextUnreceived)}</span><span class="out">${formatRupees(billed)}</span></div>`
+    : '';
+  return `<div class="totals-card summary-periods">
+      <div class="totals-row"><span>Card cycle · ${formatDateNice(f.cycleStart)} to ${formatDateNice(f.cycleClose || f.cycleKey)}</span><span>${formatRupees(card)}</span></div>
+      <div class="totals-row"><span>Bank this month · ${formatDateNice(f.bankMonthStart)} to ${formatDateNice(f.bankMonthEnd)}</span><span>${formatRupees(month)}</span></div>
+      ${liability}
+    </div>`;
 }
 
 // How much of the month is already spoken for: the one question the hero
@@ -1417,4 +1437,3 @@ function renderAccountBreakdown(byAccount, accounts, transactions) {
     })
     .join('');
 }
-
