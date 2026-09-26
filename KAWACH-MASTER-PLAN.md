@@ -132,7 +132,7 @@ Next work:
 - Complete: checked the restored production styles against Design Lab 2.1 and completed the responsive, theme and Budget Burn checks above.
 - Do not change financial calculations or user data.
 
-Stage 1 and Stage 2 are closed. Stage 3 audit is complete; Stage 4 is next.
+Stage 1, Stage 2 and the Stage 3 audit are closed. Stage 4 preflight is active; component promotion is waiting at the APPROVED-status gate.
 
 ---
 
@@ -213,7 +213,13 @@ Do not repeat audits that have already been verified unless a new change touches
 ---
 
 # 7. STAGE 4 — APPROVED COMPONENTS → PRODUCTION
-**Status: NEXT**
+**Status: ACTIVE — waiting for an APPROVED component**
+
+### Stage 4 entry check — 26 September 2026
+- Current GitHub catalogue: 23 `LIVE`, 3 `TESTING`, 0 `APPROVED`.
+- The three testing entries are `KAWACH-STATE-SUCCESS-V1`, `KAWACH-STATE-ERROR-V1` and `KAWACH-STATE-LOADING-V1`; none has a production screen assigned.
+- The Stage 4 rule is to move only components already marked `APPROVED`. No component currently meets that condition, so no production component can be selected or released yet.
+- Next: choose one testing component for an explicit readiness review, or provide an already-approved component. Do not bypass the catalogue status.
 
 Move only approved Design Lab components into production screens.
 
@@ -360,7 +366,7 @@ At the end of a meaningful work session, update this document with:
 
 # 15. CURRENT NEXT ACTION
 
-**Next: Stage 4 — choose one APPROVED Design Lab component, define the production screen and user question it serves, then implement and verify it before a versioned release.**
+**Next: Stage 4 — resolve the component approval gate (0 APPROVED entries), then select one approved component and complete its production checks before a versioned release.**
 
 Do not begin another broad redesign before this checkpoint is closed.
 
