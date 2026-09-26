@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.2',
+    items: [
+      {
+        icon: 'eye',
+        title: 'See it before you choose it',
+        text: 'How it looks now shows each option drawn with your own money, so you can look at it before you decide.',
+        guide: [{ view: 'settings', target: '#go-appearance', text: 'Pick an option and the picture underneath changes with it.' }],
+      },
+    ],
+  },
+  {
     version: '4.1',
     items: [
       {

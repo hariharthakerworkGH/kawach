@@ -2838,3 +2838,12 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .look-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .look-label { color: var(--k-text); line-height: var(--k-lh-body); }
 .look-option.chosen .look-label { font-weight: 600; }
+
+/* The real component, shown at the size it will be. Nothing is scaled: a
+   shrunken screen reads as a different design, and the point is to show the
+   one you are choosing. */
+.look-preview { position: relative; margin-top: var(--k-4); padding: var(--k-4) var(--k-3) var(--k-3); border: 1px dashed var(--k-hairline); border-radius: var(--k-r-md); }
+.look-preview-tag { position: absolute; top: calc(var(--k-2) * -1); left: var(--k-3); padding: 0 var(--k-2); background: var(--k-surface); font-size: var(--k-caption); letter-spacing: var(--k-track-caption); text-transform: uppercase; color: var(--k-text-3); }
+.look-preview-inner > .hero { margin: 0; }
+.look-preview-inner .section-fold { margin-top: var(--k-3); }
+.look-live { margin-top: var(--k-4); }
