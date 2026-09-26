@@ -2,9 +2,9 @@
 ## Single Source of Truth for Product Improvement
 
 **Last updated:** 2026-09-26  
-**Current production:** 4.1 / BUILD 94  
-**Current cache:** expense-tracker-v94  
-**Latest production commit:** fc0d41d9bb165e4a4ad24bbe9e9d18dae84c0bf1  
+**Current production:** 4.2 / BUILD 95  
+**Current cache:** expense-tracker-v95  
+**Latest production commit:** 25e3413c762308b524c9a880da3d15fbbebb3bec  
 **Architecture:** vanilla JS, static/offline-first, SVG/CSS, no build framework
 
 > This document is the authoritative roadmap for Kawach improvement work.
@@ -293,6 +293,40 @@ every one of them working for ever.
 Released as 4.1 / BUILD 94 / cache v94, commit `fc0d41d9bb`, snapshot
 `expense-tracker-versions/4.1`, verified live. 141 tests pass.
 
+### Customisation, by phases - agreed 26 September 2026
+The owner has asked for the whole app to become customisable, in phases of my
+choosing. A choice is only added where two finished ways of doing the thing
+exist, or are worth designing, and where a person can feel the difference.
+Nothing that explains the money is ever part of a look.
+
+**Phase 1 - done (4.1, 4.2).** The mechanism, plus daylight, the Summary
+headline and the History drawings. 4.2 added previews: each option is drawn
+from the person's own money using the real component, because the screens and
+the preview now call one shared function (spendingHero, sixMonthCharts). A
+preview that could drift from the screen would be worse than none.
+
+**Phase 2 - next.** Accounts, and which screen the app opens on.
+- Accounts: the ring above the list, the list alone, or balances hidden until
+  tapped. The last is a real need rather than a taste - a person checking
+  their phone on a bus should be able to keep the numbers off the glass.
+- Opening screen: Summary today for everyone; some people want Add.
+
+**Phase 3.** Plan and Add.
+- Plan: commitments grouped as must and flex, one list by day, or by size.
+- Add: the full form, or a quick one with amount and category and the rest
+  behind a tap.
+
+**Phase 4.** Size and spacing: comfortable or compact, and larger text. Worth
+doing last because it touches every screen, and worth doing at all because the
+people this app is for are not all young.
+
+After each phase, look at what is actually being used before adding more. A
+choice nobody makes is a screen nobody needed, and it still has to be kept
+working for ever.
+
+Released 4.2 as `25e3413c76`, snapshot `expense-tracker-versions/4.2`, verified live.
+141 tests pass.
+
 Move only approved Design Lab components into production screens.
 
 Process:
@@ -429,10 +463,10 @@ Every release must follow:
 **CODE → TESTS → VERSION → BUILD → SERVICE-WORKER CACHE → WHAT'S NEW → SNAPSHOT → GITHUB → LIVE VERIFICATION**
 
 Current:
-- 4.1
-- BUILD 94
-- cache v94
-- snapshot expense-tracker-versions/4.1
+- 4.2
+- BUILD 95
+- cache v95
+- snapshot expense-tracker-versions/4.2
 
 Never declare a release complete until the installed PWA can actually detect it.
 
@@ -453,6 +487,7 @@ Existing snapshots must never be overwritten:
 - expense-tracker-versions/4.0.12
 - expense-tracker-versions/4.0.13
 - expense-tracker-versions/4.1
+- expense-tracker-versions/4.2
 
 Every meaningful phase/release gets a new snapshot.
 
