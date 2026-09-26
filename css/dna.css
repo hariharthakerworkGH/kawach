@@ -2555,3 +2555,109 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k-coach .coach-note { margin-bottom: var(--k-3); }
 .k-coach .coach-note .k-context__k { text-transform: none; letter-spacing: normal; font-size: var(--k-body); font-weight: var(--k-w-fig); color: var(--k-text); }
 .k-coach .coach-note-info { --k-tint: var(--k-accent); }
+/* ---------------------------------------------------------------------
+   PHASE 12 · the Design Lab drawings, in production
+   --------------------------------------------------------------------- */
+
+/* --- a total split into parts ---------------------------------------- */
+.k .alloc { position: relative; display: flex; flex-direction: column; align-items: center; margin-top: var(--k-4); }
+.k .alloc-ring { display: block; }
+.k .alloc-centre { position: absolute; top: 0; left: 0; right: 0; height: 132px; display: grid; place-items: center; pointer-events: none; }
+.k .alloc-centre-v { font-size: var(--k-value); font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; }
+.k .alloc-legend { width: 100%; margin-top: var(--k-4); display: flex; flex-direction: column; gap: var(--k-2); }
+.k .alloc-item { display: flex; align-items: baseline; gap: var(--k-2); font-size: var(--k-label); }
+.k .alloc-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.k .alloc-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--k-text-2); }
+.k .alloc-val { flex: none; font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* --- how much is already spoken for ----------------------------------- */
+.k .meter-radial { position: relative; display: grid; place-items: center; margin: var(--k-3) auto 0; width: 150px; }
+.k .meter-radial svg { display: block; }
+.k .meter-radial-mid { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 1px; pointer-events: none; }
+.k .meter-radial-v { font-size: var(--k-display); font-weight: var(--k-w-strong); letter-spacing: var(--k-track-display); line-height: 1; font-variant-numeric: tabular-nums; }
+.k .meter-radial-v.over { color: var(--k-negative); }
+.k .meter-radial-k { font-size: var(--k-caption); color: var(--k-text-3); }
+.k .meter-radial-legend { display: flex; justify-content: space-between; gap: var(--k-3); margin-top: var(--k-4); font-size: var(--k-label); font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; }
+.k .meter-radial-legend .muted { font-weight: var(--k-w-body); color: var(--k-text-3); }
+
+/* --- when the money goes ---------------------------------------------- */
+.k .pulse { display: flex; align-items: flex-end; gap: 2px; height: 76px; margin-top: var(--k-2); }
+.k .pulse-bar {
+  display: block;
+  flex: 1;
+  min-height: 3px;
+  height: var(--h, 6%);
+  border-radius: 2px 2px 1px 1px;
+  background: linear-gradient(180deg, color-mix(in oklch, var(--k-accent) 70%, transparent), color-mix(in oklch, var(--k-accent) 22%, transparent));
+}
+.k .pulse-bar--peak { background: linear-gradient(180deg, var(--k-accent), color-mix(in oklch, var(--k-violet) 55%, transparent)); box-shadow: 0 0 10px color-mix(in oklch, var(--k-accent) 38%, transparent); }
+.k .pulse-bar--quiet { background: color-mix(in oklch, var(--k-text-3) 22%, transparent); }
+.k .pulse-bar--today { outline: 1px solid color-mix(in oklch, var(--k-accent) 55%, transparent); outline-offset: 1px; }
+
+/* --- money in against money out --------------------------------------- */
+.k .river-legend { display: flex; flex-wrap: wrap; gap: var(--k-2) var(--k-4); margin-top: var(--k-2); font-size: var(--k-caption); color: var(--k-text-2); }
+.k .river-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.k .river-dot { display: block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.k .river-band { display: block; width: 16px; height: 9px; border-radius: 2px; flex: none; background: color-mix(in oklch, var(--k-positive) 16%, transparent); }
+
+/* --- the blocks these sit in ------------------------------------------ */
+.k .summary-viz {
+  margin-top: var(--k-4);
+  padding: var(--k-5);
+  border-radius: var(--k-r-lg);
+  border: 1px solid var(--k-hairline);
+  background-color: var(--k-glass-1);
+  background-image: var(--k-sheen);
+  box-shadow: var(--k-inner-top);
+}
+.k .summary-viz__head {
+  margin: 0 0 var(--k-2);
+  font-size: var(--k-caption);
+  font-weight: var(--k-w-fig);
+  letter-spacing: var(--k-track-caption);
+  text-transform: uppercase;
+  color: var(--k-text-3);
+}
+.k .summary-insight { margin-top: var(--k-4); }
+
+/* --- Accounts: the controls, now at the top --------------------------- */
+.k .accounts-actions--top { margin: var(--k-1) 0 var(--k-5); padding-top: 0; border-top: 0; }
+
+/* Every account row lines up on the same grid, whatever type it is: the
+   mark, then the name and its line, then the figure hard right. */
+.k .account-row .k-icon,
+.k .account-row .k-brand { flex: none; align-self: center; }
+.k .account-row .k-row__body { align-self: center; }
+
+/* The note an account makes about itself is part of the same block, so it
+   starts where the name starts rather than at the card edge. */
+.k .account-note { margin-left: 50px; }
+
+/* --- History: closer together, still easy to hit ---------------------- */
+.k .hist-day .k-row,
+.k .hist-row { min-height: 52px; padding-top: var(--k-2); padding-bottom: var(--k-2); }
+
+/* --- "How it's worked out" was touching the card edges ---------------- */
+.k .hero-work { margin-top: var(--k-3); }
+.k .hero-work > .totals-card { padding: var(--k-4) var(--k-5); }
+.k .hero-work .totals-row { gap: var(--k-4); }
+.k .hero-work .totals-row > span:last-child { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* A section header and its count/chevron on one baseline, off the edges. */
+.k .section-fold > summary { padding: var(--k-3) var(--k-1); gap: var(--k-3); }
+.k .section-fold > summary .summary-sub { margin-left: auto; color: var(--k-text-3); font-variant-numeric: tabular-nums; }
+
+/* --- Import: an entry the statement did not show ---------------------- */
+.k .unmatched-row { display: flex; align-items: center; gap: var(--k-3); flex-wrap: wrap; padding: var(--k-3) 0; }
+.k .unmatched-row + .unmatched-row { border-top: 1px solid var(--k-hairline); }
+.k .unmatched-what { flex: 1; min-width: 0; }
+.k .unmatched-when { font-size: var(--k-caption); }
+.k .unmatched-actions { flex: none; margin-left: auto; }
+.k .unmatched-actions .btn-tiny { min-height: var(--k-tap); padding: 0 var(--k-3); border-radius: var(--k-r-pill); }
+.k .unmatched-row--moved { opacity: 0.62; }
+
+/* --- Plan: the meter, and one clear action ---------------------------- */
+.k-plan .plan-meter { margin: var(--k-4) 0 var(--k-2); padding: var(--k-5); }
+.k-plan .plan-common { margin-top: var(--k-3); border-top: 1px solid var(--k-hairline); }
+.k-plan .plan-common > summary { color: var(--k-text-2); font-size: var(--k-label); }
+.k-plan #plan-add-btn { width: 100%; min-height: var(--k-ctl-lg); }

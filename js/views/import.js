@@ -923,7 +923,7 @@ function renderResults(resultsEl) {
     </div>
     ${provisional ? '' : renderDuplicateWarning(state)}
     ${renderSuperseded(state.superseded, provisional)}
-    ${renderUnmatchedLogged(state.unmatchedLogged, provisional)}
+    ${renderUnmatchedLogged(state.unmatchedLogged, provisional, statementEnd)}
     ${renderEmis(state.emis)}
     ${
       attention.length
@@ -1009,17 +1009,49 @@ function renderEmis(emis) {
   `;
 }
 
-function renderUnmatchedLogged(list, provisional) {
+/* Something you logged that the statement does not show.
+ *
+ * It is never thrown away and never quietly moved. It stays exactly where it
+ * is unless you say otherwise, and the one thing you can say is "put it on
+ * the next bill" - which re-dates the entry you already have. Nothing is
+ * created, so the money cannot end up counted twice.
+ */
+function renderUnmatchedLogged(list, provisional, statementEnd) {
   if (!list || list.length === 0) return '';
+  const canMove = !provisional && !!statementEnd;
   return `
     <div class="totals-card warn-card">
       <div class="totals-row"><span>${icon('alert')} ${list.length} entr${list.length === 1 ? 'y' : 'ies'} you logged ${provisional ? "aren't on this list" : "in this period didn't show up in the statement"}</span></div>
-      <ul class="breakdown-list">
-        ${list.map((m) => `<li class="breakdown-row"><span>${escapeHtml(m.rawDescription)} (${formatDateNice(m.date)})</span><span class="${m.direction === 'credit' ? 'in' : 'out'}">${m.direction === 'credit' ? '+' : '-'}${formatCurrency(m.amount)}</span></li>`).join('')}
+      <ul class="breakdown-list unmatched-list">
+        ${list
+          .map(
+            (m) => `<li class="breakdown-row unmatched-row" data-id="${escapeAttr(m.id)}">
+              <span class="unmatched-what">${escapeHtml(m.rawDescription)}<br><span class="muted-note unmatched-when">${formatDateNice(m.date)}</span></span>
+              <span class="${m.direction === 'credit' ? 'in' : 'out'}">${m.direction === 'credit' ? '+' : '-'}${formatCurrency(m.amount)}</span>
+              ${
+                canMove
+                  ? `<span class="unmatched-actions">
+                      <button type="button" class="btn-tiny unmatched-next" data-id="${escapeAttr(m.id)}" data-to="${escapeAttr(dayAfterIso(statementEnd))}">Put on next bill</button>
+                    </span>`
+                  : ''
+              }
+            </li>`
+          )
+          .join('')}
       </ul>
-      <p class="muted-note">${provisional ? "They stay. New spends take a day or two to appear." : "They stay. Check they weren't cancelled."}</p>
+      <p class="muted-note">${
+        provisional
+          ? 'They stay. New spends take a day or two to appear.'
+          : 'They stay where they are. If one of them will land on the next statement instead, move it - the entry is re-dated, never copied.'
+      }</p>
     </div>
   `;
+}
+
+// The day after the statement closed: the first day of the next cycle.
+function dayAfterIso(iso) {
+  const [y, m, d] = String(iso).split('-').map(Number);
+  return isoLocal(new Date(y, m - 1, d + 1));
 }
 
 function renderDuplicateWarning({ duplicateCount, priorImport }) {
@@ -1122,6 +1154,35 @@ function handleFieldChange(e, resultsEl) {
 }
 
 function handleClick(e, resultsEl, container) {
+  // "Put on next bill": an entry you logged that this statement does not
+  // show, which you are saying will land on the next one instead.
+  //
+  // The entry already exists, so it is re-dated to the first day of the next
+  // cycle and nothing is added. Doing it here rather than at Save means it
+  // cannot interact with the rows being imported, and re-importing the same
+  // statement later finds the entry outside the period and leaves it alone.
+  const nextBill = e.target.closest('.unmatched-next');
+  if (nextBill) {
+    const id = nextBill.dataset.id;
+    const to = nextBill.dataset.to;
+    const row = nextBill.closest('.unmatched-row');
+    nextBill.disabled = true;
+    (async () => {
+      const all = await getAll('transactions');
+      const txn = all.find((t) => t.id === id);
+      if (!txn) return;
+      await put('transactions', { ...txn, date: to });
+      // It is no longer one of this statement's unmatched entries.
+      state.unmatchedLogged = (state.unmatchedLogged || []).filter((t) => t.id !== id);
+      if (row) {
+        row.classList.add('unmatched-row--moved');
+        const actions = row.querySelector('.unmatched-actions');
+        if (actions) actions.innerHTML = `<span class="muted-note">moved to ${formatDateNice(to)}</span>`;
+      }
+    })();
+    return;
+  }
+
   // Next card, or skipping this one. The queue is taken once and the buttons
   // cleared at the tap, so a double tap can't jump over a card.
   const nextBtn = e.target.closest('#import-next-btn, #import-skip-btn');

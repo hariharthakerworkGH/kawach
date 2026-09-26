@@ -5,7 +5,7 @@ import { isoLocal, hasDueDate, frequencyOf } from '../frequency.js';
 import { formatCurrency, formatDateNice, formatRupees } from '../format.js';
 import { cardBillDue } from '../account-metrics.js';
 import { computeFreeToSpend } from '../free-to-spend.js';
-import { burnLine, runwayBar } from '../charts.js';
+import { burnLine, runwayBar, radialMeter, spendingPulse, allocationRing } from '../charts.js';
 import { detectRecurring, nextDueDate } from '../recurring.js';
 import { detectAnomalies } from '../anomalies.js';
 import { categoryStyle } from '../category-style.js';
@@ -335,6 +335,86 @@ function renderSpendingLimit(f) {
 }
 
 // One short line under the headline number.
+/* What the app noticed, from what it already worked out. Nothing here is
+ * invented: each line is a figure free-to-spend.js already returned, and
+ * when none of them is true the card is not drawn at all.
+ */
+function insightCard(f) {
+  const days = f.daysToClose;
+  let tone = '';
+  let title = '';
+  let body = '';
+
+  if (f.bankShortfall > 0) {
+    tone = 'k-context--alert';
+    title = 'Money is owed that the bank cannot cover';
+    body = `After your salary and the bills already raised, you are ${formatRupees(f.bankShortfall)} short. The budget below is this cycle's; it does not pay last cycle's card bills.`;
+  } else if (f.free != null && f.free < 0) {
+    tone = 'k-context--alert';
+    title = 'Over budget for this cycle';
+    body = `You are ${formatRupees(-f.free)} past the ${formatRupees(f.limit)} this cycle had.`;
+  } else if (f.level === 'critical' || f.level === 'warning') {
+    tone = 'k-context--attention';
+    title = days <= 7 ? 'The cycle is nearly over' : 'Spending is ahead of pace';
+    body = f.crossesOn
+      ? `At this pace the budget runs out on ${formatDateNice(f.crossesOn)}. ${formatRupees(f.perDay)} a day keeps it to ${formatDateNice(f.cycleKey)}.`
+      : `${Math.round(f.used * 100)}% of the budget is gone with ${days} day${days === 1 ? '' : 's'} to go.`;
+  } else if (f.free != null && f.free > 0) {
+    tone = 'k-context--calm';
+    title = 'On track for this cycle';
+    body = `${formatRupees(f.free)} left, about ${formatRupees(f.perDay)} a day until ${formatDateNice(f.cycleKey)}.`;
+  } else {
+    return '';
+  }
+
+  return `<div class="k-context summary-insight ${tone}">
+      <span class="k-context__mark">${icon(tone === 'k-context--calm' ? 'check' : tone === 'k-context--attention' ? 'clock' : 'alert')}</span>
+      <span class="k-context__body">
+        <span class="k-context__k">${escapeHtml(title)}</span>
+        <p class="k-context__note">${escapeHtml(body)}</p>
+      </span>
+    </div>`;
+}
+
+/* The shape of the money: what is committed before anything is decided,
+ * when it actually goes, and where what you hold is sitting. Each drawing
+ * is handed figures the model already produced.
+ */
+function moneyShape(f) {
+  const income = (f.monthlyIncome || 0) + (f.businessExtra || 0);
+  const committed = income && f.limit != null ? income - f.limit : 0;
+
+  const meter = radialMeter({ committed, income });
+  const pulse = spendingPulse({ days: f.spendByDay || [], today: f.today });
+
+  // What the money you hold is already promised to.
+  //
+  // This was meant to be "money you hold against room left on your cards",
+  // but a card's credit limit is not in the data model anywhere - the app
+  // never asks for it and no statement reader takes it - so that half would
+  // have had to be invented. It is not drawn.
+  //
+  // The honest version of the same question: of the money actually in the
+  // accounts, how much is already claimed by card bills that have been
+  // raised? Both figures are real, and together they are one total split in
+  // two, which is what a ring can show without lying.
+  const held = Math.max(0, f.bank || 0);
+  const claimed = Math.min(held, (f.totals && f.totals.unpaidBills) || 0);
+  const sources = allocationRing({
+    slices: [
+      { label: 'Not yet claimed', amount: Math.max(0, held - claimed) },
+      { label: 'Claimed by card bills', amount: claimed },
+    ],
+    caption: 'Of the money in your accounts, this much is already owed on cards. A card limit is not money and is not counted.',
+  });
+
+  if (!meter && !pulse && !sources) return '';
+  return `
+    ${meter ? `<section class="summary-viz"><h3 class="summary-viz__head">Before you decide anything</h3>${meter}</section>` : ''}
+    ${pulse ? `<section class="summary-viz"><h3 class="summary-viz__head">When it goes</h3>${pulse}</section>` : ''}
+    ${sources ? `<section class="summary-viz"><h3 class="summary-viz__head">What the money you hold is promised to</h3>${sources}</section>` : ''}`;
+}
+
 function spendingStatus(f) {
   const until = formatDateNice(f.cycleKey);
   // A shortfall in the bank outranks a healthy-looking cycle: the budget can
@@ -397,6 +477,8 @@ function renderCardsHero(f) {
       <div class="stat"><span class="stat-k">Budget</span><span class="stat-v">${formatRupees(f.limit)}</span></div>
       ${stillSetAside(f)}
     </div>
+    ${insightCard(f)}
+    ${moneyShape(f)}
       <details class="fts-breakdown hero-work">
         <summary>How it's worked out</summary>
         <div class="totals-card">

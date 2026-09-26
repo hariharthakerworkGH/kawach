@@ -12,7 +12,7 @@ import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
 import { COMMON_COSTS } from '../calendar.js';
 import { getGoals, saveGoals, goalProgress, GOAL_IDEAS } from '../goals.js';
-import { committedBar, goalRing } from '../charts.js';
+import { committedBar, goalRing, radialMeter } from '../charts.js';
 import { bankBalance } from '../account-metrics.js';
 import { incomeType, incomeWords, businessPlan, isBusinessCategory, businesses, activeSpace, commitmentInSpace, accountInSpace } from '../business.js';
 import { escapeHtml, emptyState, sectionHead, hero } from '../ui.js';
@@ -164,6 +164,13 @@ export async function render(container) {
     </section>`
     }
 
+    ${
+      // How much of the month is spoken for, from the same figures the hero
+      // above is made of. No second calculation.
+      !inBusiness && incomeValue
+        ? `<section class="plan-meter k-pane k-pane--quiet">${radialMeter({ committed: fixedTotal + keep, income: incomeValue + sideExtra })}</section>`
+        : ''
+    }
     ${sectionHead(
       inBusiness ? 'Fixed costs' : 'Commitments',
       fixed.length > 1 ? `<button type="button" class="icon-btn" id="plan-reorder">${reordering ? 'Done' : 'Reorder'}</button>` : ''
@@ -188,10 +195,11 @@ export async function render(container) {
       adding
         ? fixedForm(laneCategories, laneAccounts, draft)
         : `<button type="button" id="plan-add-btn" class="btn-secondary btn-block">${inBusiness ? 'Add a fixed cost' : 'Add a commitment'}</button>
+           <details class="k-disclose plan-common"><summary>Common costs</summary>
            <div class="common-costs">${COMMON_COSTS[inBusiness ? 'business' : 'home']
              .filter((c) => !fixed.some((f) => f.label.toLowerCase() === c.label.toLowerCase()))
              .map((c) => `<button type="button" class="plan-chip common-cost" data-label="${escapeHtml(c.label)}" data-frequency="${c.frequency}">+ ${escapeHtml(c.label)}</button>`)
-             .join('')}</div>`
+             .join('')}</div></details>`
     }
     ${
       finished.length

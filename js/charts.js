@@ -178,12 +178,15 @@ export function inOutBars({ months = [] }) {
   const H = 84;
   const base = H - 14;
   const top = Math.max(...real.map((m) => Math.max(m.in, m.out))) || 1;
-  const slot = W / real.length;
+  // A gutter each side, or the first and last month are drawn on the frame
+  // and their labels get cut off.
+  const pad = 12;
+  const slot = (W - pad * 2) / real.length;
   const barW = Math.min(7, slot / 5);
   const h = (v) => Math.max(barW, (v / top) * (base - 6));
   const bars = real
     .map((m, i) => {
-      const cx = i * slot + slot / 2;
+      const cx = pad + i * slot + slot / 2;
       const inH = h(m.in);
       const outH = h(m.out);
       const gap = barW * 0.62;
@@ -244,4 +247,187 @@ function smoothPath(points) {
     d += ` C${(x0 + dx).toFixed(1)} ${y0.toFixed(1)}, ${(x1 - dx).toFixed(1)} ${y1.toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`;
   }
   return d;
+}
+/* ======================================================================
+   Design Lab 2.0 drawings (phase 12)
+
+   Four more, each answering a question the figure beside it cannot. They
+   take figures already worked out by js/free-to-spend.js and the account
+   modules; not one of them does arithmetic on money beyond turning a pair of
+   paise figures into a share of a circle.
+
+   The "never a pie" rule above stands for comparing quantities. A ring is
+   allowed here for one job only - showing how a total splits - and always
+   with the figures listed beside it, so nothing has to be judged by the
+   angle of a slice.
+   ====================================================================== */
+
+const HUES = ['var(--k-cyan)', 'var(--k-violet)', 'var(--k-magenta)', 'var(--k-positive)', 'var(--k-warning)', 'var(--k-cyan-deep)'];
+
+/* --- 07 Where the money sits ------------------------------------------
+ * Answers: how is what I have split across my accounts?
+ *   slices  [{ label, amount }] paise, any order; zero and negative dropped
+ *   centre  what to write in the hole (already formatted)
+ *   caption the line under the ring
+ * The ring is the shape; the legend carries the figures, and the legend's
+ * figures are the ones that must add up.
+ */
+export function allocationRing({ slices = [], centre = '', caption = '', size = 132 }) {
+  const parts = slices.filter((s) => Number.isFinite(s.amount) && s.amount > 0);
+  if (parts.length < 2) return '';
+  const total = parts.reduce((sum, s) => sum + s.amount, 0);
+  if (!(total > 0)) return '';
+
+  const r = size / 2 - 11;
+  const circ = 2 * Math.PI * r;
+  let at = 0;
+  const ring = parts
+    .map((part, i) => {
+      const share = part.amount / total;
+      const len = circ * share;
+      // A hair of a gap so two slices never look like one.
+      const seg = `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none"
+        stroke="${HUES[i % HUES.length]}" stroke-width="11"
+        stroke-dasharray="${Math.max(0, len - 1.5).toFixed(2)} ${(circ - len + 1.5).toFixed(2)}"
+        stroke-dashoffset="${(-at).toFixed(2)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>`;
+      at += len;
+      return seg;
+    })
+    .join('');
+
+  const legend = parts
+    .map(
+      (part, i) =>
+        `<span class="alloc-item"><i class="alloc-dot" style="background:${HUES[i % HUES.length]}"></i>
+          <span class="alloc-name">${esc(part.label)}</span>
+          <span class="alloc-val">${formatRupees(part.amount)}</span></span>`
+    )
+    .join('');
+
+  const label = `Split across ${parts.length} accounts: ${parts.map((x) => `${x.label} ${formatRupees(x.amount)}`).join(', ')}.`;
+  return `<div class="alloc">
+      <svg class="alloc-ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(label)}">
+        <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" class="chart-ring-track" stroke-width="11"/>
+        ${ring}
+      </svg>
+      ${centre ? `<div class="alloc-centre"><span class="alloc-centre-v">${centre}</span></div>` : ''}
+      <div class="alloc-legend">${legend}</div>
+    </div>${caption ? note(caption) : ''}`;
+}
+
+/* --- 08 How much of the month is spoken for ---------------------------
+ * Answers: before I decide anything, how much is already committed?
+ *   committed  paise already promised
+ *   income     paise the month has to work with
+ * Guards: no income, nothing committed, and more committed than there is.
+ */
+export function radialMeter({ committed = 0, income = 0, size = 150 }) {
+  if (!Number.isFinite(committed) || !Number.isFinite(income) || income <= 0) return '';
+  const raw = committed / income;
+  const share = Math.max(0, Math.min(1, raw));
+  const over = raw > 1;
+  const pct = Math.round(raw * 100);
+  const left = income - committed;
+
+  const r = size / 2 - 12;
+  const circ = 2 * Math.PI * r;
+  const label = `${pct} per cent of the month is committed: ${formatRupees(committed)} of ${formatRupees(income)}.`;
+  return `<div class="meter-radial">
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(label)}">
+        <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" class="chart-ring-track" stroke-width="12"/>
+        <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke-width="12" stroke-linecap="round"
+          stroke="${over ? 'var(--k-negative)' : 'url(#kMeterGrad)'}"
+          stroke-dasharray="${(circ * share).toFixed(1)} ${circ.toFixed(1)}"
+          transform="rotate(-90 ${size / 2} ${size / 2})"/>
+        <defs><linearGradient id="kMeterGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="var(--k-cyan)"/><stop offset="100%" stop-color="var(--k-violet)"/>
+        </linearGradient></defs>
+      </svg>
+      <div class="meter-radial-mid">
+        <span class="meter-radial-v${over ? ' over' : ''}">${pct}%</span>
+        <span class="meter-radial-k">committed</span>
+      </div>
+    </div>
+    <div class="meter-radial-legend">
+      <span><span class="muted">Committed</span> ${formatRupees(committed)}</span>
+      <span><span class="muted">${left < 0 ? 'Over by' : 'Left to plan'}</span> ${formatRupees(Math.abs(left))}</span>
+    </div>`;
+}
+
+/* --- 09 When the money goes -------------------------------------------
+ * Answers: where in this period does my spending actually happen?
+ *   days   [{ date, amount }] one entry a day, oldest first (paise)
+ *   today  the date to light up
+ * A quiet day keeps a stub so it reads as "almost nothing", never as a gap
+ * in the data.
+ */
+export function spendingPulse({ days = [], today = '' }) {
+  const usable = days.filter((d) => d && Number.isFinite(d.amount));
+  if (usable.length < MIN_POINTS) return '';
+  const peak = usable.reduce((m, d) => Math.max(m, d.amount), 0);
+  if (!(peak > 0)) return '';
+  const biggest = usable.reduce((a, b) => (b.amount > a.amount ? b : a), usable[0]);
+
+  const bars = usable
+    .map((d) => {
+      const h = Math.round((d.amount / peak) * 100);
+      const cls = d.date === biggest.date ? ' pulse-bar--peak' : d.amount <= peak * 0.06 ? ' pulse-bar--quiet' : '';
+      const mark = d.date === today ? ' pulse-bar--today' : '';
+      return `<i class="pulse-bar${cls}${mark}" style="--h:${Math.max(3, h)}%"></i>`;
+    })
+    .join('');
+
+  const when = new Date(biggest.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  const label = `Daily spending across the period. The biggest day is ${when}, ${formatRupees(biggest.amount)}.`;
+  return `<div class="pulse" role="img" aria-label="${esc(label)}">${bars}</div>
+    ${note(`Biggest day: <b>${esc(when)}, ${formatRupees(biggest.amount)}</b>`)}`;
+}
+
+/* --- 10 Money in against money out ------------------------------------
+ * Answers: is more coming in than going out, and how has that changed?
+ *   months  [{ label, in, out }] oldest first (paise)
+ * Two lines on a scale zoomed to the data, with the gap between them
+ * shaded: the gap is what was kept, so the answer is the subject of the
+ * picture. Only the gap is filled - shading to a baseline the axis does not
+ * start at is the lie this kind of chart usually tells.
+ */
+export function cashRiver({ months = [] }) {
+  const pts = months.filter((m) => m && Number.isFinite(m.in) && Number.isFinite(m.out));
+  if (pts.length < MIN_POINTS) return '';
+  const values = pts.flatMap((m) => [m.in, m.out]);
+  const lo = Math.min(...values);
+  const hi = Math.max(...values);
+  const span = hi - lo || Math.max(1, hi || 1);
+  const W = 300;
+  const H = 110;
+  const x = (i) => 12 + (i / (pts.length - 1)) * (W - 24);
+  const y = (v) => 96 - ((v - lo) / span) * 74;
+
+  const line = (key) => pts.map((m, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(m[key]).toFixed(1)}`).join(' ');
+  const band =
+    pts.map((m, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(m.in).toFixed(1)}`).join(' ') +
+    ' ' +
+    pts
+      .slice()
+      .reverse()
+      .map((m, i) => `L${x(pts.length - 1 - i).toFixed(1)},${y(m.out).toFixed(1)}`)
+      .join(' ') +
+    ' Z';
+
+  const last = pts[pts.length - 1];
+  const kept = last.in - last.out;
+  const label = `Money in against money out over ${pts.length} months. Latest: ${formatRupees(last.in)} in, ${formatRupees(last.out)} out.`;
+  const inner = `<path d="${band}" fill="${kept >= 0 ? 'color-mix(in oklch, var(--k-positive) 16%, transparent)' : 'color-mix(in oklch, var(--k-negative) 16%, transparent)'}"/>
+      <path d="${line('in')}" fill="none" stroke="var(--k-positive)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      <path d="${line('out')}" fill="none" stroke="var(--k-negative)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      <circle cx="${x(pts.length - 1).toFixed(1)}" cy="${y(last.in).toFixed(1)}" r="3" fill="var(--k-positive)"/>
+      <circle cx="${x(pts.length - 1).toFixed(1)}" cy="${y(last.out).toFixed(1)}" r="3" fill="var(--k-negative)"/>
+      ${pts.map((m, i) => `<text class="chart-tick" x="${x(i).toFixed(1)}" y="108" text-anchor="middle">${esc(m.label)}</text>`).join('')}`;
+
+  return `${frame(inner, { label, viewBox: `0 0 ${W} ${H}` })}
+    <div class="river-legend">
+      <span><i class="river-dot" style="background:var(--k-positive)"></i>In</span>
+      <span><i class="river-dot" style="background:var(--k-negative)"></i>Out</span>
+      <span><i class="river-band" ></i>${kept >= 0 ? 'Kept' : 'Short'} ${formatRupees(Math.abs(kept))}</span>
+    </div>`;
 }
