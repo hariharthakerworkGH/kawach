@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.15.1',
+    items: [
+      {
+        icon: 'alert',
+        title: 'Which month each commitment belongs to',
+        text: 'Your commitments are now in two groups: what runs by the calendar month from your bank, and what runs by the card cycle. The card group says the dates it covers and that it is billed next month - so the days after your statement day cannot read like spare room when the bill has not arrived yet.',
+        guide: [{ view: 'summary', target: '#commitments-fold', text: 'From your bank runs 1st to month end. On your cards runs from the day after your statement day.' }],
+      },
+    ],
+  },
+  {
     version: '4.15',
     items: [
       {

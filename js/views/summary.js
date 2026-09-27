@@ -762,22 +762,42 @@ function renderCommitmentTracker(f) {
     .filter(Boolean)
     .join(' · ');
 
+  // Bank and card commitments do not run over the same days, so they are no
+  // longer shown as though they do. A card one belongs to its card cycle,
+  // which after the statement day is next month's bill - and that is exactly
+  // when one undivided list could talk someone into spending an allowance
+  // their next salary has to cover.
+  const onMonth = open.filter((t) => t.period !== 'cycle');
+  const onCycle = open.filter((t) => t.period === 'cycle');
+  const monthName = MONTH_NAMES[Number(f.bankMonthStart.slice(5, 7)) - 1];
+  // The dates the card group covers, taken from the rows themselves rather
+  // than worked out again here.
+  const cycleRow = onCycle[0];
+  const cycleNote = cycleRow
+    ? `${formatDateNice(cycleRow.periodStart)} to ${formatDateNice(cycleRow.cycleKey)} \u00b7 billed next month`
+    : '';
+
+  const group = (rows, title, note) =>
+    rows.length
+      ? `<div class="section-head"><h3>${title}</h3><span class="section-note">${note}</span></div>
+         <div class="totals-card commitment-list">${rows.map((t) => commitmentRow(t)).join('')}</div>`
+      : '';
+
+  // Paid and skipped go together at the end: which period they belonged to
+  // stops mattering once they are done with.
+  const settled = done.length
+    ? `<div class="totals-card commitment-list">
+         <details class="commitment-done" ${open.length ? '' : 'open'}>
+           <summary>${doneLabel}</summary>
+           ${done.map((t) => commitmentRow(t)).join('')}
+         </details>
+       </div>`
+    : '';
+
   return `
-    <div class="section-head">
-      <h3>Commitments</h3>
-      <span class="section-note">${MONTH_NAMES[Number(f.bankMonthStart.slice(5, 7)) - 1]}</span>
-    </div>
-    <div class="totals-card commitment-list">
-      ${open.map((t) => commitmentRow(t)).join('')}
-      ${
-        done.length
-          ? `<details class="commitment-done" ${open.length ? '' : 'open'}>
-              <summary>${doneLabel}</summary>
-              ${done.map((t) => commitmentRow(t)).join('')}
-            </details>`
-          : ''
-      }
-    </div>`;
+    ${group(onMonth, 'From your bank', monthName)}
+    ${group(onCycle, 'On your cards', cycleNote)}
+    ${settled}`;
 }
 
 // Loans and savings: what you still owe and what is put away. Neither is
