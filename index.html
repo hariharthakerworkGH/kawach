@@ -35,8 +35,119 @@
 <!-- The new visual system. Screens opt in by carrying the `k` class; while
      the migration is under way the rest of the app is untouched by it. -->
 <link rel="stylesheet" href="./css/dna.css">
+<style>
+  /* The opening. Inline so it is on screen in the first frame, before any
+     stylesheet or module has loaded - the moment it exists to fill. */
+  .boot {
+    position: fixed; inset: 0; z-index: 9999;
+    display: grid; place-items: center;
+    background: #07090f;
+    /* The failsafe. Nothing here depends on a script running: the overlay
+       clears itself on a timer whatever happens, so a broken module can
+       never leave someone staring at a shield. The script below only makes
+       it leave sooner. */
+    animation: boot-out 420ms cubic-bezier(0.32, 0, 0.24, 1) 3200ms forwards;
+  }
+  .boot.is-done { animation: boot-out 420ms cubic-bezier(0.32, 0, 0.24, 1) forwards; }
+  @keyframes boot-out {
+    to { opacity: 0; visibility: hidden; }
+  }
+  :root[data-theme="light"] .boot { background: #f4f6f8; }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) .boot { background: #f4f6f8; }
+  }
+
+  /* The glow behind the shield, brought up as the edge closes. */
+  .boot-halo {
+    position: absolute; width: 300px; height: 300px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(71, 208, 248, 0.20), rgba(71, 208, 248, 0) 68%);
+    opacity: 0; animation: boot-halo 900ms ease-out 260ms forwards;
+  }
+  @keyframes boot-halo { to { opacity: 1; } }
+
+  .boot-mark { width: 116px; height: 116px; overflow: visible; }
+  /* The plate arrives first and at rest, so the shield is drawn ON something
+     rather than floating in the dark. */
+  .b-plate { opacity: 0; animation: boot-fill 300ms ease-out forwards; }
+
+  /* The edge draws itself round the shield: one continuous stroke, so it
+     reads as the shield closing rather than a picture appearing. */
+  .b-edge {
+    stroke-dasharray: 1; stroke-dashoffset: 1;
+    animation: boot-draw 620ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  }
+  @keyframes boot-draw { to { stroke-dashoffset: 0; } }
+
+  /* The glass fills once there is something to fill. */
+  .b-body { opacity: 0; animation: boot-fill 460ms ease-out 300ms forwards; }
+  @keyframes boot-fill { to { opacity: 1; } }
+
+  /* Then the rupee is written on it, in the order a hand would write it. */
+  .b-rupee path {
+    stroke-dasharray: 1; stroke-dashoffset: 1;
+    animation: boot-draw 380ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  }
+  .b-rupee path:nth-child(1) { animation-delay: 430ms; }
+  .b-rupee path:nth-child(2) { animation-delay: 500ms; }
+  .b-rupee path:nth-child(3) { animation-delay: 560ms; }
+
+  /* A light passes over the glass at the end, the way it does on every
+     other surface in the app. */
+  .b-sheen { opacity: 0; animation: boot-sheen 760ms ease-out 640ms forwards; }
+  @keyframes boot-sheen {
+    40% { opacity: 1; transform: translateX(0); }
+    to { opacity: 0.55; transform: translateX(26px); }
+  }
+
+  /* Motion the person has asked not to see: the mark is simply there, and
+     the overlay still clears itself. */
+  @media (prefers-reduced-motion: reduce) {
+    .boot-halo, .b-body, .b-sheen { animation: none; opacity: 1; }
+    .b-edge, .b-rupee path { animation: none; stroke-dashoffset: 0; }
+    .boot { animation-delay: 900ms; }
+  }
+</style>
 </head>
 <body>
+<!-- The opening. Removed by the script at the end of this file as soon as a
+     screen has drawn, and by its own animation if that never happens. -->
+<div id="boot" class="boot" aria-hidden="true">
+  <div class="boot-halo"></div>
+  <svg class="boot-mark" viewBox="0 0 100 100" fill="none">
+    <defs>
+      <linearGradient id="bBody" x1="0.1" y1="0" x2="0.7" y2="1">
+        <stop offset="0" stop-color="#47d0f8" stop-opacity="0.42"/>
+        <stop offset="0.5" stop-color="#2b7fb8" stop-opacity="0.26"/>
+        <stop offset="1" stop-color="#7c5cf0" stop-opacity="0.18"/>
+      </linearGradient>
+      <linearGradient id="bEdge" x1="0" y1="0" x2="0.4" y2="1">
+        <stop offset="0" stop-color="#cdf5ff" stop-opacity="0.98"/>
+        <stop offset="0.4" stop-color="#47d0f8" stop-opacity="0.8"/>
+        <stop offset="1" stop-color="#47d0f8" stop-opacity="0.34"/>
+      </linearGradient>
+      <linearGradient id="bSheen" x1="0" y1="0" x2="0.2" y2="1">
+        <stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/>
+        <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.04"/>
+        <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+      </linearGradient>
+      <clipPath id="bClip"><path d="M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z"/></clipPath>
+    </defs>
+    <!-- The icon's own plate. Invisible against the dark background, and on
+         light it gives the mark exactly the rounded tile that sits on the
+         home screen - so the opening and the installed icon are one thing. -->
+    <rect class="b-plate" width="100" height="100" rx="22" fill="#07090f"/>
+    <path class="b-body" d="M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z" fill="url(#bBody)"/>
+    <g clip-path="url(#bClip)">
+      <ellipse class="b-sheen" cx="33" cy="24" rx="33" ry="25" fill="url(#bSheen)"/>
+    </g>
+    <path class="b-edge" d="M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z" pathLength="1" stroke="url(#bEdge)" stroke-width="2.9"/>
+    <g class="b-rupee" stroke="#e8fbff" stroke-width="6.6" stroke-linecap="round" stroke-linejoin="round">
+      <path pathLength="1" d="M38 34h24"/>
+      <path pathLength="1" d="M38 45h24"/>
+      <path pathLength="1" d="M44 34c11 0 11 20 0 20h-5l17 17"/>
+    </g>
+  </svg>
+</div>
 <header class="app-header">
   <h1 id="view-title">Summary</h1>
   <button type="button" id="space-chip" class="space-chip" hidden></button>
@@ -69,5 +180,39 @@
   </button>
 </nav>
 <script type="module" src="./js/app.js"></script>
+<script>
+  // Clear the opening as soon as a screen has actually drawn something, but
+  // never so fast that it flickers past: the shield has to finish closing or
+  // it looks like a glitch rather than a logo. Watching the view container
+  // means app.js needs to know nothing about this.
+  (function () {
+    var boot = document.getElementById('boot');
+    if (!boot) return;
+    var started = Date.now();
+    var MIN = 900;   // let the mark finish
+    var done = false;
+    function clear() {
+      if (done) return;
+      done = true;
+      setTimeout(function () {
+        boot.classList.add('is-done');
+        setTimeout(function () { boot.remove(); }, 480);
+      }, Math.max(0, MIN - (Date.now() - started)));
+    }
+    // Look again each frame rather than watching the container for changes:
+    // showView() in js/app.js REPLACES that element rather than filling it,
+    // so anything holding the original node is left watching something that
+    // has been thrown away. Asking the document fresh each time cannot be
+    // wrong-footed by that, and it stops the moment a screen has drawn.
+    (function look() {
+      var main = document.getElementById('view-container');
+      if (main && main.firstElementChild) return clear();
+      // Whatever happens - a screen that draws nothing, a module that fails
+      // to load - the opening goes.
+      if (Date.now() - started > 2600) return clear();
+      requestAnimationFrame(look);
+    })();
+  })();
+</script>
 </body>
 </html>
