@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.14.1',
+    items: [
+      {
+        icon: 'file',
+        title: 'The privacy policy is in the app now',
+        text: 'It was only ever linked from the invite page, which you never see again once Kawach is installed. It sits in Settings under More, and its own link brings you back to the app rather than to the invite page.',
+      },
+    ],
+  },
+  {
     version: '4.14',
     items: [
       {
