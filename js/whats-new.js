@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.8.1',
+    items: [
+      {
+        icon: 'plan',
+        title: 'Removing a duplicate now sticks',
+        text: 'Removing one Kawach had spotted appeared to do nothing, because it was found again the moment the screen redrew. It stays gone now.',
+      },
+    ],
+  },
+  {
     version: '4.8',
     items: [
       {
