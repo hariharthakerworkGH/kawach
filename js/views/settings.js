@@ -110,6 +110,10 @@ export async function render(container, params = {}) {
       <button type="button" id="run-setup" class="btn-secondary btn-block">Run setup again</button>
       <button type="button" id="whats-new-btn" class="btn-secondary btn-block">What's new</button>
       <button type="button" id="share-app-btn" class="btn-secondary btn-block">Share Kawach with a friend</button>
+      <!-- Reachable from inside the app, not only from the invite page.
+           Someone who installed Kawach never sees welcome.html again, and
+           had no way at all to read what the app does with their money. -->
+      <a href="./privacy.html" class="btn-secondary btn-block btn-link">Privacy policy</a>
     </div>
 
     <h3>Import history</h3>

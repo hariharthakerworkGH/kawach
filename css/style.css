@@ -751,6 +751,17 @@ input:disabled, select:disabled, textarea:disabled {
   width: 100%;
 }
 
+/* A link that has to sit in a stack of buttons and look like one of them.
+   An <a> is not a <button>: it needs the centring and the line height that
+   button styling gives for free. */
+.btn-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  text-align: center;
+}
+
 .btn-tiny {
   padding: var(--space-2xs) var(--space-sm);
   border: 1px solid var(--border-hi);
