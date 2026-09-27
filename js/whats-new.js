@@ -12,6 +12,20 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.9',
+    items: [
+      {
+        icon: 'plan',
+        title: 'See the payments behind a duplicate',
+        text: 'A pair on Plan now offers to show every payment of that amount, across every month. One a month means the cost is on your list twice; two a month means they are two real costs.',
+        guide: [
+          { view: 'plan', target: '.dupe-see', text: 'Only you can tell two costs of the same size apart, so this takes you to the payments themselves.' },
+          { view: 'transactions', target: '#txn-search', text: 'Searching here now finds an amount as well as words, because a bank line rarely says what it cost.' },
+        ],
+      },
+    ],
+  },
+  {
     version: '4.8.1',
     items: [
       {

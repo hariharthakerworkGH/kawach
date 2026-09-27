@@ -6,6 +6,7 @@ import { nextOccurrence } from '../js/frequency.js';
 import { passwordErrorKind } from '../js/pdf-text.js';
 import { sameTransaction, findDuplicates } from '../js/duplicates.js';
 import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments } from '../js/commitments.js';
+import { searchHit } from '../js/views/transactions.js';
 import { cardPosition, bankBalance, statementDayFixes } from '../js/account-metrics.js';
 import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance } from '../js/appearance.js';
@@ -1198,4 +1199,15 @@ test('a nought is neither money in nor money out', () => {
   equal(moneyTone(0), '');
   equal(moneyTone(rupees(23000)), 'out');
   equal(moneyTone(-rupees(500)), 'in');
+});
+
+test('a search looks at the amount as well as the words', () => {
+  const t = { rawDescription: 'IMPS-900000000014-01 W61 W62', amount: rupees(30000) };
+  // The line says nothing about what it cost, so the number has to find it.
+  equal(searchHit(t, '30000'), true, 'the amount is searchable');
+  equal(searchHit(t, 'imps'), true, 'so are the words');
+  equal(searchHit(t, '3000'), false, 'a part of the amount is not the amount');
+  equal(searchHit(t, '130000'), false, 'nor is a bigger one containing it');
+  // Paise round to the rupee shown, which is what anyone would type.
+  equal(searchHit({ rawDescription: '', amount: 2999951 }, '30000'), true, 'rounded to the rupee on screen');
 });
