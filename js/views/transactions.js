@@ -555,7 +555,7 @@ function splitTemplate(t) {
           .join('')}
       </div>
       <div class="split-remainder ${remainder === 0 ? 'good' : 'bad'}">
-        ${remainder === 0 ? 'Adds up exactly' : remainder > 0 ? `${formatCurrency(remainder)} still unassigned` : `${formatCurrency(-remainder)} over the transaction amount`}
+        ${remainder === 0 ? 'Adds up exactly' : remainder > 0 ? `${formatCurrency(remainder)} still unassigned` : `${formatCurrency(-remainder)} over the payment amount`}
       </div>
       <div class="txn-edit-row">
         <button type="button" class="btn-tiny split-add">Add a part</button>
@@ -678,7 +678,7 @@ function updateRemainder(container, t) {
       ? 'Adds up exactly'
       : remainder > 0
         ? `${formatCurrency(remainder)} still unassigned`
-        : `${formatCurrency(-remainder)} over the transaction amount`;
+        : `${formatCurrency(-remainder)} over the payment amount`;
   const saveBtn = container.querySelector('.split-save');
   if (saveBtn) saveBtn.disabled = remainder !== 0;
 }
@@ -770,7 +770,7 @@ async function handleClick(e, container) {
   }
 
   if (e.target.closest('.txn-delete')) {
-    const sure = await askConfirm({ title: 'Delete this transaction?', message: `${t.rawDescription.slice(0, 80)}. This can't be undone.`, confirmLabel: 'Delete', danger: true });
+    const sure = await askConfirm({ title: 'Delete this payment?', message: `${t.rawDescription.slice(0, 80)}. This can't be undone.`, confirmLabel: 'Delete', danger: true });
     if (!sure) return;
     await remove('transactions', t.id);
     cache.transactions = cache.transactions.filter((x) => x.id !== t.id);

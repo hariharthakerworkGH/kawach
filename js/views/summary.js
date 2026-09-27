@@ -1402,7 +1402,7 @@ function addToBucket(map, key, direction, amount) {
 
 function renderCategoryBreakdown(map, nameFn, totalOut) {
   const rows = [...map.entries()].sort((a, b) => b[1].out - b[1].in - (a[1].out - a[1].in));
-  if (rows.length === 0) return '<li class="empty">No transactions.</li>';
+  if (rows.length === 0) return '<li class="empty">No payments.</li>';
 
   return rows
     .map(([id, v]) => {

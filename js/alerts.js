@@ -89,8 +89,8 @@ const FORMATS = [
 
 // Messages that mention an amount and a card but are not transactions.
 const NOT_A_TRANSACTION = [
-  { re: /\b(OTP|one[\s-]?time\s+password|verification\s+code)\b/i, reason: "That's a one-time password message, not a transaction." },
-  { re: /\b(declined|was\s+not\s+successful|unsuccessful|failed)\b/i, reason: "That transaction didn't go through, so there's nothing to log." },
+  { re: /\b(OTP|one[\s-]?time\s+password|verification\s+code)\b/i, reason: "That's a one-time password message, not a payment." },
+  { re: /\b(declined|was\s+not\s+successful|unsuccessful|failed)\b/i, reason: "That payment didn't go through, so there's nothing to log." },
 ];
 
 // --- Splitting -----------------------------------------------------------

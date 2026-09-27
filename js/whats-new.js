@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.11.1',
+    items: [
+      {
+        icon: 'phone',
+        title: 'Reads properly on a small phone',
+        text: 'On a narrow screen at the largest text, the bottom bar cut "Coach" in half and this very screen pushed its own button off the side. Both fit now, and the app says "payment" everywhere it used to say "transaction".',
+      },
+    ],
+  },
+  {
     version: '4.11',
     items: [
       {

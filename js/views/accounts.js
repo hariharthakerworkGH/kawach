@@ -425,7 +425,7 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
       <p class="af-error status" hidden></p>
       ${
         account
-          ? `<button type="button" class="btn-tiny danger account-delete" data-id="${account.id}">Delete this account${txnCount ? ` and its ${txnCount} transaction${txnCount === 1 ? '' : 's'}` : ''}</button>`
+          ? `<button type="button" class="btn-tiny danger account-delete" data-id="${account.id}">Delete this account${txnCount ? ` and its ${txnCount} payment${txnCount === 1 ? '' : 's'}` : ''}</button>`
           : ''
       }
     </form>

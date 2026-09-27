@@ -323,7 +323,7 @@ function wire(container, name, { accounts }) {
       const account = accounts.find((a) => a.id === btn.dataset.id);
       const used = (await getAll('transactions')).some((t) => t.accountId === btn.dataset.id);
       if (used) {
-        await tellUser({ title: 'It has transactions', message: `${account.label} already has transactions. Delete it from the Accounts screen instead.` });
+        await tellUser({ title: 'It has payments', message: `${account.label} already has payments. Delete it from the Accounts screen instead.` });
         return;
       }
       await remove('accounts', btn.dataset.id);
