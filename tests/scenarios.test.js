@@ -1159,3 +1159,76 @@ test('a backup cannot ask for an unreasonable amount of work to open', async () 
   }
   ok(refusedLazy && /unreasonable/i.test(refusedLazy), 'and so is one round');
 });
+
+// --- A card allowance, and the cycle it belongs to ----------------------
+// "Entertainment, 10,000 a month" is a set-aside on a card. Two things have
+// to be true of it: any card can draw it down, and which month it belongs to
+// follows the card's bill, not the calendar.
+async function seedAllowance() {
+  await seedBasics();
+  await put('accounts', { id: 'card2', label: 'Second Card', type: 'card', issuer: 'B', last4: '3333', billingCycleDay: 25 });
+  await put('categories', { id: 'ent', name: 'Entertainment' });
+  await put('recurring', {
+    id: 'entc', label: 'Entertainment', amount: rupees(10000), frequency: 'monthly',
+    dayOfMonth: null, accountId: 'card', categoryId: 'ent', active: true, source: 'fixed', spread: true,
+  });
+}
+const entRow = (f) => (f.tracker || []).find((t) => t.label === 'Entertainment');
+
+test('an allowance on one card is drawn down by any card', async () => {
+  await seedAllowance();
+  // Paid with the OTHER card, and filed under entertainment.
+  await putAll('transactions', [
+    txn({ id: 'e1', accountId: 'card2', date: '2026-09-10', amount: 2000, rawDescription: 'PVR CINEMAS', categoryId: 'ent' }),
+  ]);
+  const row = entRow(await computeFreeToSpend(day('2026-09-16')));
+  equal(row.used, rupees(2000), 'the other card still spends the allowance');
+  equal(row.left, rupees(8000), 'and what is left goes down with it');
+});
+
+test('a bill on a named card is still only that card', async () => {
+  await seedAllowance();
+  // Not a set-aside: a subscription that must be paid, on the first card.
+  await put('recurring', {
+    id: 'nflx', label: 'Netflix', amount: rupees(499), frequency: 'monthly',
+    dayOfMonth: 5, accountId: 'card', categoryId: null, active: true, source: 'fixed',
+  });
+  await putAll('transactions', [
+    txn({ id: 'n1', accountId: 'card2', date: '2026-09-05', amount: 499, rawDescription: 'NETFLIX' }),
+  ]);
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  const nf = (f.tracker || []).find((t) => t.label === 'Netflix');
+  equal(nf.used, 0, 'a named bill paid on a different card is not it');
+});
+
+// The point of the whole change: after the statement day the cycle has moved
+// on, so what you spend now belongs to the next bill and the next allowance.
+test('after the statement day, an allowance spend belongs to the next cycle', async () => {
+  await seedAllowance();
+  await putAll('transactions', [
+    // Before the 25th: the cycle that has just closed.
+    txn({ id: 'old', accountId: 'card', date: '2026-09-20', amount: 3000, rawDescription: 'OLD CYCLE FILM', categoryId: 'ent' }),
+    // After it: the cycle now running, billed next month.
+    txn({ id: 'new', accountId: 'card', date: '2026-09-28', amount: 1500, rawDescription: 'NEW CYCLE FILM', categoryId: 'ent' }),
+  ]);
+  const row = entRow(await computeFreeToSpend(day('2026-09-28')));
+  equal(row.period, 'cycle', 'a card allowance runs by the cycle');
+  equal(row.periodStart, '2026-09-26', 'which started the day after the statement day');
+  equal(row.used, rupees(1500), 'only what was spent since then counts against it');
+  equal(row.left, rupees(8500), 'the closed cycle does not eat into this one');
+});
+
+// The window that decides "Left to spend" did NOT move: a card spend still
+// lands on the month it happened in, so the number reacts the same day. This
+// is what 4.6 fixed and what must not come undone.
+test('left to spend still counts a card spend the day it happens', async () => {
+  await seedBasics();
+  const before = await computeFreeToSpend(day('2026-09-28'));
+  await putAll('transactions', [
+    txn({ id: 'p1', accountId: 'card', date: '2026-09-28', amount: 4000, rawDescription: 'SOMETHING' }),
+  ]);
+  const after = await computeFreeToSpend(day('2026-09-28'));
+  // Asserted on cardSpent, not on free: seedBasics has no commitments, and
+  // Kawach deliberately refuses to show a spendable figure until it has some.
+  equal(after.cardSpent - before.cardSpent, rupees(4000), 'spent after the statement day, counted the same day');
+});

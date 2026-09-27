@@ -12,6 +12,22 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.15',
+    items: [
+      {
+        icon: 'card',
+        title: 'A card allowance follows the card, not the calendar',
+        text: 'Spend on entertainment after your statement day and it goes on next month’s bill - so it now comes out of next month’s entertainment, not what is left of this month’s. What you can spend overall still counts every payment the day you make it.',
+        guide: [{ view: 'plan', target: '.tracker-row, .commitment-row', text: 'A set-aside on a card now runs from the day after your statement day to the next one.' }],
+      },
+      {
+        icon: 'tag',
+        title: 'Any card spends the allowance',
+        text: 'An allowance set against one card only counted spending on that card, so paying with a different one left it sitting there untouched. Entertainment is entertainment whichever card you used.',
+      },
+    ],
+  },
+  {
     version: '4.14.4',
     items: [
       {
