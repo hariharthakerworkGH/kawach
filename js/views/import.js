@@ -1,5 +1,7 @@
 import { getAll, put, remove, newId, setSetting } from '../db.js';
 import { icon } from '../icons.js';
+import { categoryStyle } from '../category-style.js';
+import { categoryIcon } from '../category-icons.js';
 import { extractPdfText, PdfPasswordError, PdfNoTextError } from '../pdf-text.js';
 import { detectParser, parsers } from '../parsers/registry.js';
 import { matchCategoryForDescription, learnFromAssignment } from '../merchant-rules.js';
@@ -1098,6 +1100,17 @@ function renderReconciliation(meta) {
   return '';
 }
 
+// The mark for whatever category a row is on, guessed or chosen. An
+// unrecognised row gets the question mark and the uncategorised colour,
+// which is the same pair History uses, so a blank row looks blank in the
+// way people already know.
+function categoryMark(row, categories) {
+  const cat = row.categoryId ? categories.find((c) => c.id === row.categoryId) : null;
+  return cat
+    ? categoryStyle(cat.name)
+    : { icon: categoryIcon('question'), color: 'var(--cat-uncategorized)' };
+}
+
 function rowTemplate(row, idx, categories) {
   const badge = row._keepExisting
     ? '<div class="import-row-badge">Unchanged</div>'
@@ -1109,6 +1122,11 @@ function rowTemplate(row, idx, categories) {
       ${row._duplicate ? '<div class="import-row-badge badge-warn">Already imported</div>' : ''}
       ${badge}
       <div class="import-row-top">
+        <!-- CHANGED: the guessed category, beside the description. A label
+             rather than a button, so tapping it opens this row's own
+             category list with no script. -->
+        <label class="ir-cat-mark" for="ir-cat-${idx}" style="color: ${categoryMark(row, categories).color}"
+               title="${row.categoryId ? 'Change the category' : 'Nothing recognised - pick a category'}">${categoryMark(row, categories).icon}</label>
         <input type="date" class="ir-field ir-date" data-field="date" value="${row.date}">
         <input type="text" class="ir-field ir-desc" data-field="description" value="${escapeAttr(row.description)}">
         <button type="button" class="icon-btn ir-delete" title="Delete row" aria-label="Delete row">${icon('close')}</button>
@@ -1119,7 +1137,7 @@ function rowTemplate(row, idx, categories) {
           <button type="button" class="dir-btn ir-dir ${row.direction === 'credit' ? 'active' : ''}" data-dir="credit">Received</button>
         </div>
         <input type="number" step="0.01" class="ir-field ir-amount" data-field="amount" value="${(row.amount / 100).toFixed(2)}">
-        <select class="ir-field ir-category" data-field="categoryId">
+        <select class="ir-field ir-category" id="ir-cat-${idx}" data-field="categoryId">
           <option value="">Uncategorized</option>
           ${categories.map((c) => `<option value="${c.id}" ${c.id === row.categoryId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
         </select>
@@ -1148,6 +1166,17 @@ function handleFieldChange(e, resultsEl) {
   } else if (field === 'categoryId') {
     row.categoryId = e.target.value || null;
     row._ownCategoryId = row.categoryId;
+    // CHANGED: your choice is the one that counts, so the mark beside the
+    // description follows it immediately. Only this row's mark is touched -
+    // redrawing the row would throw away whatever is half-typed in it.
+    const rowEl = e.target.closest('.import-row');
+    const mark = rowEl && rowEl.querySelector('.ir-cat-mark');
+    if (mark) {
+      const style = categoryMark(row, categoriesFor(categoriesCache, state.account));
+      mark.innerHTML = style.icon;
+      mark.style.color = style.color;
+      mark.title = row.categoryId ? 'Change the category' : 'Nothing recognised - pick a category';
+    }
   } else {
     row[field] = e.target.value;
   }
