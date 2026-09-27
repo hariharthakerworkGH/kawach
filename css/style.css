@@ -33,6 +33,29 @@ html {
   display: none !important;
 }
 
+/* Nothing on screen is text to take away.
+ *
+ * Long-pressing a figure or a label brought up Copy / Select all / Web
+ * search / Share and, on Android, a dictionary card over the bottom of the
+ * screen - and the blue selection handles landed on top of the very numbers
+ * they were covering. None of it is text anyone wants to copy: it is the app
+ * talking. What you type into is a different matter and stays selectable, so
+ * a passphrase, an amount or a description can still be corrected, cut and
+ * pasted as normal. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+input,
+textarea,
+select,
+[contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 body {
   margin: 0;
   font-family: var(--font-body);
@@ -2151,6 +2174,15 @@ textarea {
 
 .bank-card {
   margin-top: calc(var(--space-2xs) * -1);
+}
+
+/* That tuck is right when the block above ends with its own edge. When it
+   ends with a note instead - "the bill ... is estimated from your entries",
+   say - the tuck pulls this card up over the note's last line and hides it.
+   No tuck in that case. */
+details:has(> .muted-note:last-child) + .bank-card,
+.hero-under:has(> .muted-note:last-child) + .bank-card {
+  margin-top: 0;
 }
 
 .bank-figures {
@@ -4744,10 +4776,14 @@ select.chip {
 /* The header sits on the room rather than covering it, so it fades the
    content out beneath itself instead of drawing a line under it. */
 .app-header {
+  /* Solid for almost its whole height, with only the last sliver softening.
+     At 62% the fade began level with the title, so a figure scrolling under
+     it stayed perfectly readable behind the word "Summary" and the two
+     collided. The soft edge is kept; it just starts below the type. */
   background: linear-gradient(
     180deg,
     var(--bg) 0%,
-    var(--bg) 62%,
+    var(--bg) 88%,
     color-mix(in oklch, var(--bg) 0%, transparent) 100%
   );
 }
