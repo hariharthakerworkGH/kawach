@@ -1637,6 +1637,11 @@ function shiftDays(isoDate, delta) {
 
 function showStatus(el, message, isError) {
   el.hidden = false;
+  // An import says everything through this line - what was read, what could
+  // not be, what to do instead - and none of it was reaching a screen
+  // reader. A problem interrupts; progress waits its turn.
+  el.setAttribute('role', isError ? 'alert' : 'status');
+  el.setAttribute('aria-live', isError ? 'assertive' : 'polite');
   el.textContent = message;
   el.classList.toggle('out', !!isError);
   el.classList.toggle('in', !isError);
