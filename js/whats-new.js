@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.14.4',
+    items: [
+      {
+        icon: 'summary',
+        title: 'The bank breakdown is one card again',
+        text: 'Opening it drew a second card inside the first, darker than the one holding it and with its own edge down the side. It is a plain list now, inside the one card it belongs to.',
+      },
+    ],
+  },
+  {
     version: '4.14.2',
     items: [
       {

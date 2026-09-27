@@ -1089,6 +1089,28 @@ body:has(#view-container.k)::after {
   box-shadow: var(--k-inner-top), var(--k-shadow-soft);
 }
 
+/* A pane inside a pane is always wrong here.
+ *
+ * The panes are translucent glass, so putting one inside another stacks the
+ * tint: the inner box comes out darker and heavier than the card holding it,
+ * with its own edge and its own 22px corners. That is what the bank
+ * breakdown looked like - a second card drawn inside the first, indented,
+ * with a seam down its right side.
+ *
+ * The inner one keeps its rows and its spacing, and loses everything that
+ * made it look like a pane. Written as a rule rather than fixed at the one
+ * call site, because a pane inside a pane is never right in this design and
+ * there are sixty-odd places that could do it. */
+.k .totals-card .totals-card,
+.k .breakdown-list .totals-card,
+.k .empty-state .totals-card {
+  background: none;
+  background-image: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .k .bank-card { padding: var(--k-5); border-radius: var(--k-r-lg); }
 .k .bank-amount { font-size: var(--k-display); font-weight: var(--k-w-fig); letter-spacing: var(--k-track-display); }
 .k .bank-amount.small { font-size: var(--k-value); }

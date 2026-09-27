@@ -4405,6 +4405,17 @@ summary {
   border-color: transparent;
 }
 
+/* Same rule for the screens still on the base styling: a card drawn inside
+   a card is a box-in-a-box, never intended. See css/dna.css for the long
+   version of why. */
+.totals-card .totals-card {
+  background: none;
+  background-image: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .due-soon {
   border-color: color-mix(in oklch, var(--warn) 34%, transparent);
 }
