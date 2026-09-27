@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.11',
+    items: [
+      {
+        icon: 'image',
+        title: 'A new tour, twenty seconds and silent',
+        text: 'The old one was eighty-two seconds of setup with a soundtrack. The new one shows where a salary actually goes, and what Kawach says when a month goes wrong. No sound at all, and a quarter the size to load.',
+      },
+    ],
+  },
+  {
     version: '4.10',
     items: [
       {
