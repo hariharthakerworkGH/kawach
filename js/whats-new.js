@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.10',
+    items: [
+      {
+        icon: 'lock',
+        title: 'Kawach opens with its shield',
+        text: 'The app used to sit blank for a moment while it started. Now the shield draws itself and the rupee is written on it, carrying straight on from the icon you tapped.',
+      },
+    ],
+  },
+  {
     version: '4.9.1',
     items: [
       {
