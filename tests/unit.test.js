@@ -7,6 +7,7 @@ import { passwordErrorKind } from '../js/pdf-text.js';
 import { sameTransaction, findDuplicates } from '../js/duplicates.js';
 import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments } from '../js/commitments.js';
 import { searchHit } from '../js/views/transactions.js';
+import { versionStatus } from '../js/version.js';
 import { cardPosition, bankBalance, statementDayFixes } from '../js/account-metrics.js';
 import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance } from '../js/appearance.js';
@@ -1210,4 +1211,35 @@ test('a search looks at the amount as well as the words', () => {
   equal(searchHit(t, '130000'), false, 'nor is a bigger one containing it');
   // Paise round to the rupee shown, which is what anyone would type.
   equal(searchHit({ rawDescription: '', amount: 2999951 }, '30000'), true, 'rounded to the rupee on screen');
+});
+
+// A cache is named when the download starts and filled when it finishes, so
+// an empty one is an install that failed. Counting it left the app saying "a
+// new version is ready" for ever, with a Reload that could not deliver one.
+test('a download that failed is not a new version waiting', async () => {
+  const store = (contents) => ({
+    keys: async () => Object.keys(contents),
+    open: async (name) => ({ keys: async () => contents[name] }),
+  });
+
+  // The newest cache is empty: the download never finished.
+  const failed = await versionStatus(store({
+    'share-inbox': ['a shared alert'],
+    'expense-tracker-v107': [],
+    'expense-tracker-v106': ['index.html', 'js/app.js'],
+  }));
+  equal(failed.cached, 106, 'the empty one is passed over');
+  equal(failed.stale, false, 'so no new version is announced');
+
+  // The same cache once every file has arrived.
+  const ready = await versionStatus(store({
+    'expense-tracker-v9999': ['index.html', 'js/app.js'],
+  }));
+  equal(ready.cached, 9999, 'a finished download counts');
+  equal(ready.stale, true, 'and is announced');
+
+  // Nothing downloaded at all is not a claim either way.
+  const none = await versionStatus(store({ 'share-inbox': [] }));
+  equal(none.cached, null, 'no version cache, nothing to say');
+  equal(none.stale, false, 'and nothing claimed');
 });

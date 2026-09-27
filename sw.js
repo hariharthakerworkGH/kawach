@@ -5,7 +5,7 @@
 // counter, not the version people see). The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v107';
+const CACHE_NAME = 'expense-tracker-v108';
 
 const APP_SHELL = [
   './',
@@ -122,7 +122,17 @@ self.addEventListener('install', (event) => {
       // browser's own HTTP cache can answer - GitHub Pages lets it keep files
       // for 10 minutes - and a new version would be installed holding copies
       // of the previous version's files: "Version 22" running version-21 code.
-      .then((cache) => cache.addAll(APP_SHELL.map((url) => new Request(url, { cache: 'reload' }))))
+      .then((cache) => cache.addAll(APP_SHELL.map((url) => new Request(url, { cache: 'reload' })))
+        // caches.open() above named this cache before a single file arrived,
+        // and the name is what the app reads to say a new version is ready.
+        // A download that fails half way through therefore left an empty
+        // cache claiming to be a version nothing could load. Clearing it
+        // means a failed install leaves no trace and the next attempt, on a
+        // better connection, starts clean.
+        .catch(async (err) => {
+          await caches.delete(CACHE_NAME);
+          throw err;
+        }))
       .then(() => self.skipWaiting())
   );
 });
