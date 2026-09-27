@@ -46,7 +46,7 @@
        clears itself on a timer whatever happens, so a broken module can
        never leave someone staring at a shield. The script below only makes
        it leave sooner. */
-    animation: boot-out 420ms cubic-bezier(0.32, 0, 0.24, 1) 3200ms forwards;
+    animation: boot-out 420ms cubic-bezier(0.32, 0, 0.24, 1) 3600ms forwards;
   }
   .boot.is-done { animation: boot-out 420ms cubic-bezier(0.32, 0, 0.24, 1) forwards; }
   @keyframes boot-out {
@@ -59,13 +59,13 @@
 
   /* The glow behind the shield, brought up as the edge closes. */
   .boot-halo {
-    position: absolute; width: 300px; height: 300px; border-radius: 50%;
+    position: absolute; width: min(560px, 132vw); height: min(560px, 132vw); border-radius: 50%;
     background: radial-gradient(circle, rgba(71, 208, 248, 0.20), rgba(71, 208, 248, 0) 68%);
     opacity: 0; animation: boot-halo 900ms ease-out 260ms forwards;
   }
   @keyframes boot-halo { to { opacity: 1; } }
 
-  .boot-mark { width: 116px; height: 116px; overflow: visible; }
+  .boot-mark { width: min(348px, 84vw); height: min(348px, 84vw); overflow: visible; }
   /* The plate arrives first and at rest, so the shield is drawn ON something
      rather than floating in the dark. */
   .b-plate { opacity: 0; animation: boot-fill 300ms ease-out forwards; }
@@ -93,7 +93,7 @@
 
   /* A light passes over the glass at the end, the way it does on every
      other surface in the app. */
-  .b-sheen { opacity: 0; animation: boot-sheen 760ms ease-out 640ms forwards; }
+  .b-sheen { opacity: 0; animation: boot-sheen 460ms ease-out 640ms forwards; }
   @keyframes boot-sheen {
     40% { opacity: 1; transform: translateX(0); }
     to { opacity: 0.55; transform: translateX(26px); }
@@ -104,7 +104,7 @@
   @media (prefers-reduced-motion: reduce) {
     .boot-halo, .b-body, .b-sheen { animation: none; opacity: 1; }
     .b-edge, .b-rupee path { animation: none; stroke-dashoffset: 0; }
-    .boot { animation-delay: 900ms; }
+    .boot { animation-delay: 2100ms; }
   }
 </style>
 </head>
@@ -189,7 +189,7 @@
     var boot = document.getElementById('boot');
     if (!boot) return;
     var started = Date.now();
-    var MIN = 900;   // let the mark finish
+    var MIN = 2100;  // 1.1s to draw the mark, then a second of it just sitting there
     var done = false;
     function clear() {
       if (done) return;
@@ -209,7 +209,7 @@
       if (main && main.firstElementChild) return clear();
       // Whatever happens - a screen that draws nothing, a module that fails
       // to load - the opening goes.
-      if (Date.now() - started > 2600) return clear();
+      if (Date.now() - started > 3000) return clear();
       requestAnimationFrame(look);
     })();
   })();
