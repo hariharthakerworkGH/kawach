@@ -281,9 +281,12 @@ code {
   left: 0;
   right: 0;
   display: flex;
-  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  /* Opaque. It used to be 92% over a blur, which reads as frosted glass on
+     a still screen but lets a figure scroll up behind it and sit there
+     legible through the labels. A number half readable under "Accounts" is
+     just a mess - and the one place it matters most is the last row of a
+     list. */
+  background: var(--bg-elevated);
   border-top: 1px solid var(--border);
   padding: var(--space-2xs) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   z-index: 30;
