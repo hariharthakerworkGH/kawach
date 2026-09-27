@@ -85,6 +85,19 @@ Periods:
   `cardPosition` in js/account-metrics.js works that way, and `cycleClose` is
   still when the next statement falls. The statement day comes from imported
   statements when there are any (`statementDay`), not from what was typed in.
+- **The card cycle also decides which month a card commitment belongs to**
+  (`cardPeriod`), which is not the same thing as the spending window. Spend on
+  entertainment on the 28th with the statement day on the 25th and it lands on
+  next month's bill, so it draws down next month's entertainment allowance,
+  not what is left of this month's. 4.6 lost this by accident - it changed
+  `spendEnd`/`windowStart` to fix the spending window and `cardPeriod` was
+  built from the same two variables - and 4.15 put it back. `inCardMonth` must
+  keep reading the spending window and never `cardPeriod`, or an August card
+  spend lands in September.
+- **A set-aside on a card is drawn down by any card.** "Entertainment, 10,000
+  a month" is an allowance, not a bill, so paying for a film with a different
+  card still spends it (`isSetAside` decides). A **must be paid** item on a
+  named card stays on that card, because that one really is one bill.
 - The bank balance never raises the budget. It is a separate check that only warns.
 - A commitment is one of two things, asked once on Plan: **must be paid** (rent,
   an EMI, a bill: it has a day and can be late) or **set aside** (groceries,

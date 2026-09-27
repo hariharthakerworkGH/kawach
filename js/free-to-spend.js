@@ -418,7 +418,23 @@ export async function computeFreeToSpend(now = new Date()) {
   // after the statement day to the next statement day). The bank and cash:
   // the calendar month, 1st to last day - except that a payment with a set day
   // (EMI, rent) made on salary day belongs to the month after.
-  const cardPeriod = { kind: 'card', start: windowStart, end: spendEnd, key: spendEnd };
+  //
+  // This is NOT the spending window. Spending is the calendar month for
+  // everything (see spendEnd above), so "Left to spend" moves the moment you
+  // pay for something, whichever card you used. What runs by the cycle is
+  // which bill a card commitment belongs to - and that is the question an
+  // allowance answers. Spend on entertainment on the 28th with the statement
+  // day on the 25th and it lands on next month's bill, so it draws down next
+  // month's entertainment, not what is left of this month's.
+  //
+  // 4.6 lost this by accident: it changed spendEnd and windowStart to fix the
+  // spending window, and cardPeriod was built out of those same two
+  // variables. With no card, or no statement day yet, there is no cycle to
+  // use and the calendar month is right anyway.
+  const cardPeriod =
+    cycleStart && cycleClose
+      ? { kind: 'card', start: cycleStart, end: cycleClose, key: cycleClose }
+      : { kind: 'card', start: windowStart, end: spendEnd, key: spendEnd };
   const bankPeriod = {
     kind: 'bank',
     start: monthStart,
@@ -434,7 +450,12 @@ export async function computeFreeToSpend(now = new Date()) {
   const choseFor = (list, item) => {
     if (!Array.isArray(list)) return false;
     const p = periodOf(item);
-    return list.some((k) => k === p.key || (p.kind === 'bank' && k >= p.start && k <= p.end));
+    // Any date inside the period counts, not only its exact key. The bank has
+    // always worked this way; cards need it too now, because the key they are
+    // recorded under changed with the line above - a choice made while the key
+    // was the month end still falls inside the cycle, so it still counts and
+    // nothing anyone marked paid is lost.
+    return list.some((k) => k === p.key || (k >= p.start && k <= p.end));
   };
   // "Mark paid" on the Summary - for payments the app can't see, like cash or
   // another bank.
@@ -467,8 +488,14 @@ export async function computeFreeToSpend(now = new Date()) {
   // Card-paid commitments not yet charged in this cycle.
   const cardUpcoming = [];
   for (const item of live.filter((i) => paidBy(i) === 'card' && !markedPaid(i) && !skipped(i))) {
-    const entries = transactions.filter((t) => t.accountId === item.accountId && t.direction === 'debit');
-    const { amount, detail } = commitmentDueInWindow(item, { today, windowEnd: spendEnd, bankEntries: entries });
+    // A set-aside is an allowance, and an allowance does not care which card
+    // paid: entertainment is entertainment whether it went on the ICICI or
+    // the HDFC. A "must be paid" item stays on its own card, because that one
+    // really is about one bill on one card.
+    const entries = transactions.filter(
+      (t) => t.direction === 'debit' && (isSetAside(item) ? cardIds.has(t.accountId) : t.accountId === item.accountId)
+    );
+    const { amount, detail } = commitmentDueInWindow(item, { today, windowEnd: cardPeriod.end, bankEntries: entries });
     const card = cardAccounts.find((a) => a.id === item.accountId);
     if (amount > 0) cardUpcoming.push({ label: item.label, amount, detail: `${card ? card.label : 'card'} · ${detail}` });
   }
@@ -594,7 +621,12 @@ export async function computeFreeToSpend(now = new Date()) {
   const holdingIds = new Set([...bankIds, ...savingsAccounts.map((a) => a.id)]);
   const bankPool = transactions.filter((t) => holdingIds.has(t.accountId) && !looksLikeCardPayment(t, 'bank'));
   for (const b of budgetItems) {
-    matchedTo(b, b.paidBy === 'card' ? transactions.filter((t) => t.accountId === b.item.accountId && !t.isTransfer) : bankPool);
+    // Same rule as above for what has already been paid: an allowance is
+    // drawn down by any card, a named bill only by its own.
+    const cardPool = transactions.filter(
+      (t) => !t.isTransfer && (isSetAside(b.item) ? cardIds.has(t.accountId) : t.accountId === b.item.accountId)
+    );
+    matchedTo(b, b.paidBy === 'card' ? cardPool : bankPool);
   }
   const cardCommitmentCharges = budgetItems.filter((b) => b.charges.card > 0).map((b) => ({ label: b.label, amount: b.charges.card }));
   const bankCommitmentPayments = budgetItems.filter((b) => b.charges.bank > 0).map((b) => ({ label: b.label, amount: b.charges.bank }));
@@ -626,7 +658,11 @@ export async function computeFreeToSpend(now = new Date()) {
   // transfers and were never spending, and an EMI charged to a card is debt
   // coming down rather than spending. Copies saved twice are already gone:
   // findDuplicates() ran before any of this.
-  const inCardMonth = (t) => t.date >= cardPeriod.start && t.date <= cardPeriod.end && t.date <= today;
+  // SPENDING is the calendar month, for cards and bank alike - the whole
+  // point of 4.6. This must be built from the spending window and NOT from
+  // cardPeriod: cardPeriod now follows the card cycle again, and reading it
+  // here would quietly put an August card spend into September.
+  const inCardMonth = (t) => t.date >= windowStart && t.date <= spendEnd && t.date <= today;
   const cardWindow = transactions.filter(
     (t) => cardIds.has(t.accountId) && !t.isTransfer && !loanEmiIds.has(t.id) && inCardMonth(t)
   );
