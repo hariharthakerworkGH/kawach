@@ -56,13 +56,41 @@ export async function extractPdfText(file, password) {
     const kind = passwordErrorKind(err);
     if (kind) throw new PdfPasswordError(kind);
     throw err;
+  } finally {
+    // The password has done its job the moment the document is open, but
+    // `params` would hold on to it for as long as the pages are being read -
+    // which on a year of statements is not a short time. Let go of it here,
+    // on the way out, whether opening worked or not. The same for the file's
+    // bytes.
+    //
+    // Being straight about the limit: a JavaScript string cannot be wiped.
+    // Dropping the reference is all that can be done, and the string itself
+    // lives until the garbage collector gets to it. This shortens how long
+    // it is reachable. It does not erase it.
+    params.password = null;
+    params.data = null;
   }
 
   let fullText = '';
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    fullText += reconstructLines(content.items) + '\n';
+  try {
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      fullText += reconstructLines(content.items) + '\n';
+    }
+  } finally {
+    // The whole decrypted statement lives inside this document, and inside
+    // the worker behind it, and pdf.js keeps both until it is told not to.
+    // Kawach's promise is that a statement is never kept, so the moment the
+    // text is out the document goes - on the error path too, where it would
+    // otherwise simply be abandoned still holding everything.
+    try {
+      await pdf.destroy();
+    } catch {
+      // Nothing useful to do if tearing it down fails, and it must not hide
+      // whatever error brought us here.
+    }
+    pdf = null;
   }
 
   if (!fullText.replace(/\s+/g, '').length) {
