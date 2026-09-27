@@ -12,6 +12,21 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.13.1',
+    items: [
+      {
+        icon: 'eye',
+        title: 'Nothing grabs at your text now',
+        text: 'Pressing on a figure or a line of writing used to select it and throw up Copy, Web search and a dictionary card over the screen. Only the boxes you type into do that now.',
+      },
+      {
+        icon: 'summary',
+        title: 'Two things on Summary that sat on top of each other',
+        text: 'A note about an estimated card bill was half hidden under the card below it, and anything scrolling past could be read straight through the title at the top.',
+      },
+    ],
+  },
+  {
     version: '4.13',
     items: [
       {
