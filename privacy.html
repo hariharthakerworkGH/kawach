@@ -2,6 +2,27 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+  <!-- What the browser is allowed to do.
+     Kawach's promise is that money data never leaves the phone, and this is
+     what makes the browser enforce it rather than trusting the code to be
+     careful: connect-src names the only four places anything may be sent,
+     so even injected script could not post a statement anywhere else.
+     form-action 'none' stops a planted form doing the same, and object-src
+     kills plugins outright. There is no frame-ancestors: that one only works
+     as an HTTP header, which GitHub Pages will not let us set, so a <meta>
+     policy carrying it is ignored and warns. -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data:;
+    font-src 'self';
+    worker-src 'self' blob:;
+    connect-src 'self' https://api.github.com https://gist.githubusercontent.com https://www.googleapis.com;
+    form-action 'none';
+    base-uri 'self';
+    object-src 'none';
+  ">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kawach privacy policy</title>
 <link rel="icon" href="./icons/kawach.svg" type="image/svg+xml">

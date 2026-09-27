@@ -81,7 +81,16 @@ async function parseEnvelopeRaw(fileText, passphrase) {
 
   const salt = fromBase64(envelope.kdf.salt);
   const iv = fromBase64(envelope.iv);
-  const key = await deriveKey(passphrase, salt, envelope.kdf.iterations);
+  // The iteration count comes out of the file, and deriving the key happens
+  // BEFORE anything is authenticated - so a made-up envelope claiming two
+  // billion iterations would lock the tab up solid without even needing the
+  // passphrase. Anything Kawach wrote says 210,000; this only bounds what a
+  // file is allowed to ask for.
+  const asked = Number(envelope.kdf.iterations);
+  if (!Number.isFinite(asked) || asked < 1000 || asked > 1000000) {
+    throw new Error('That backup asks for an unreasonable amount of work to open. It was not made by Kawach.');
+  }
+  const key = await deriveKey(passphrase, salt, asked);
 
   let plaintext;
   try {

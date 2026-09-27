@@ -12,6 +12,21 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.14',
+    items: [
+      {
+        icon: 'lock',
+        title: 'The browser now enforces the promise',
+        text: 'Kawach has always kept your money on your phone by being careful. It now tells the browser to allow it only four places to reach - GitHub and Google, for the backups you switch on, and itself - so nothing could send your statements anywhere else even if it tried.',
+      },
+      {
+        icon: 'key',
+        title: 'A backup file cannot tie the app in knots',
+        text: 'A backup says how much work opening it should take, and that was believed without question. A made-up file could have named a number big enough to freeze the app before it had even checked the passphrase.',
+      },
+    ],
+  },
+  {
     version: '4.13.1',
     items: [
       {

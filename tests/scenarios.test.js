@@ -1125,3 +1125,37 @@ test('sorting the rest out never touches a payment you categorised', async () =>
   equal(byId.m2.categoryId, 'cat-rent', 'the one you set by hand is left exactly as it was');
   equal(byId.m3.categoryId, null, 'and money moved between your own accounts is not a spend');
 });
+
+// Opening a backup derives the key BEFORE anything is authenticated, and the
+// number of rounds to use is read out of the file itself. A made-up envelope
+// asking for two billion rounds would lock the tab up solid without ever
+// needing the passphrase.
+test('a backup cannot ask for an unreasonable amount of work to open', async () => {
+  const text = await encryptPayload({ hello: 'there' }, 'a passphrase');
+
+  const back = await decryptPayload(text, 'a passphrase');
+  equal(back.hello, 'there', 'a real file still opens');
+
+  const envelope = JSON.parse(text);
+  equal(envelope.kdf.iterations, 210000, 'and is written with the proper number of rounds');
+
+  const greedy = JSON.stringify({ ...envelope, kdf: { ...envelope.kdf, iterations: 2000000000 } });
+  let refused = null;
+  try {
+    await decryptPayload(greedy, 'a passphrase');
+  } catch (e) {
+    refused = e.message;
+  }
+  ok(refused && /unreasonable/i.test(refused), 'two billion rounds is refused rather than attempted');
+
+  // The other end: a file asking for almost no work would be cheap to
+  // attack, so it is not accepted as Kawach's either.
+  const lazy = JSON.stringify({ ...envelope, kdf: { ...envelope.kdf, iterations: 1 } });
+  let refusedLazy = null;
+  try {
+    await decryptPayload(lazy, 'a passphrase');
+  } catch (e) {
+    refusedLazy = e.message;
+  }
+  ok(refusedLazy && /unreasonable/i.test(refusedLazy), 'and so is one round');
+});
