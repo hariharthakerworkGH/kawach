@@ -10,22 +10,37 @@
 // The version people see, written the way apps are: 3.0, then 3.1 for
 // features, then 3.1.1 for a fix. No leading zeros, no third number until
 // there is a fix to number. Major (4.0) is the app rebuilt.
-export const APP_VERSION = '4.9';
+export const APP_VERSION = '4.9.1';
 
 // A counter one higher with every release, never shown. The offline copy is
 // named after it (CACHE_NAME in sw.js), so a newer download can be told from
 // the one running. IMPORTANT: bump BUILD and CACHE_NAME together.
-export const BUILD = 107;
+export const BUILD = 108;
 
 // What's running versus what's downloaded and waiting.
-export async function versionStatus() {
+//
+// `store` is the Cache Storage to look in; the tests hand it a made-up one.
+export async function versionStatus(store = typeof caches === 'undefined' ? null : caches) {
   let cached = null;
   try {
-    const keys = await caches.keys();
+    const keys = await store.keys();
     const versions = keys
-      .map((k) => Number((k.match(/v(\d+)$/) || [])[1]))
-      .filter((n) => Number.isFinite(n));
-    if (versions.length) cached = Math.max(...versions);
+      .map((k) => ({ key: k, build: Number((k.match(/v(\d+)$/) || [])[1]) }))
+      .filter((v) => Number.isFinite(v.build))
+      .sort((a, b) => b.build - a.build);
+    // A cache is NAMED the moment the download starts and filled only when
+    // every file has arrived - cache.addAll() stores all of them or none. So
+    // an empty one is a download that failed, or one still running, and the
+    // worker it belongs to has not taken over. Reading the name alone made
+    // the app announce a new version that could never load, with a Reload
+    // button that did nothing because the old worker was still answering.
+    for (const v of versions) {
+      const cache = await store.open(v.key);
+      if ((await cache.keys()).length) {
+        cached = v.build;
+        break;
+      }
+    }
   } catch {
     // Cache Storage can be unavailable (private windows, blocked site data).
     // Not knowing is fine - it just means no staleness claim either way.

@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.9.1',
+    items: [
+      {
+        icon: 'sync',
+        title: 'The update banner that would not go away',
+        text: 'If a download was interrupted, Kawach kept saying a new version was ready and Reload did nothing about it, because the version it meant had never finished arriving. It now waits until the new version is really there.',
+      },
+    ],
+  },
+  {
     version: '4.9',
     items: [
       {

@@ -1,4 +1,4 @@
-# Kawach — a brief for an AI collaborator
+# Kawach - a brief for an AI collaborator
 
 You are being asked to work on Kawach. This document tells you what it is, who
 uses it, the rules it holds itself to, and the states any screen must survive.
@@ -30,7 +30,7 @@ and never will be. They think in rupees, in months, and in "will my card bill
 clear when my salary lands".
 
 Design and copy consequences:
-- No jargon on screen. Not "commitment recurrence interval" — "how often".
+- No jargon on screen. Not "commitment recurrence interval" but "how often".
 - No setup ritual. The app must be useful before it is fully configured.
 - 320px wide is a real person with an older handset, not an edge case.
 - Whole rupees, grouped the Indian way: ₹1,17,900 not ₹117,900.
@@ -58,7 +58,7 @@ and bank alike.** This matters and was once wrong: spending used to run on the
 credit-card statement day, so the screen said something like "26 Sep to 25 Oct"
 while bank spending was counted over the calendar month. One month's budget was
 being measured against two different windows. A statement day is a fact about a
-bank's paperwork, not about the person — it differs per card, and with several
+bank's paperwork, not about the person - it differs per card, and with several
 cards the latest one silently decided the whole app's period.
 
 The card cycle still exists, but it decides **only when a card bill falls**, not
@@ -92,17 +92,17 @@ Avoid: "transaction" where "payment" works, "expense" where "spend" works,
 
 The app has one bottom navigation bar, six places, always in this order:
 
-1. **Summary** — the headline number and why it is that number. The first
+1. **Summary** - the headline number and why it is that number. The first
    screen, and the one that must answer the question without scrolling.
-2. **Add** — record a payment. Amount, what it was for, category; date, account
+2. **Add** - record a payment. Amount, what it was for, category; date, account
    and "repeats" can fold away for people who want a short form.
-3. **Accounts** — what is in each account. Banks, cards, cash, savings, loans,
+3. **Accounts** - what is in each account. Banks, cards, cash, savings, loans,
    provident fund. Card bills and what is still owed.
-4. **Plan** — income, the fixed commitments, savings goals, category budgets.
+4. **Plan** - income, the fixed commitments, savings goals, category budgets.
    Where the budget is actually decided.
-5. **History** — every payment, searchable, and six months of money in against
+5. **History** - every payment, searchable, and six months of money in against
    money out.
-6. **Coach** — "can I afford this?", and things worth noticing.
+6. **Coach** - "can I afford this?", and things worth noticing.
 
 Settings sits behind a control in the header, not in the navigation.
 
@@ -114,7 +114,7 @@ Payments reach the app three ways, in rising order of effort:
   automatically.
 - **A statement PDF**, imported. It is parsed in memory and never stored. If it
   is password-protected the password is used once and never saved. **Parsed rows
-  are never saved on their own** — a review table always comes first, and a row
+  are never saved on their own** - a review table always comes first, and a row
   that matches something already recorded is matched rather than duplicated.
 - **Typed in by hand** on Add.
 
@@ -137,7 +137,7 @@ These are not preferences. Breaking one is a bug, however good it looks.
 6. **If a PDF has no readable text, say so plainly** rather than returning an
    empty result that looks like "no payments found".
 7. **Money is stored as whole paise**, never as a fractional rupee. Dates are
-   local, never converted through UTC — that is a day behind in India.
+   local, never converted through UTC - that is a day behind in India.
 8. **It must work with no network at all**, having been opened once.
 9. **No large language model runs in the app.** Ever.
 
@@ -172,7 +172,7 @@ a normal Tuesday for someone:
 | **A card bill is unpaid** | Said once, clearly, with the amount and what it means for the bank after payday. |
 | **Set-aside money unspent** | Shown as kept back, so it does not look like money that disappeared. |
 | **A business space is active** | The screens follow that lane only, and business categories replace household ones. |
-| **The same cost entered twice** | Flagged as a possible duplicate, never deleted automatically — two real costs can be the same size on the same day. |
+| **The same cost entered twice** | Flagged as a possible duplicate, never deleted automatically - two real costs can be the same size on the same day. |
 
 ## 10. What it deliberately does not do
 
