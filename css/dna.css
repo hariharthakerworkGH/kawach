@@ -1224,7 +1224,9 @@ body:has(#view-container.k) .app-header h1 {
 }
 
 body:has(#view-container.k) .bottom-nav {
-  background: color-mix(in oklch, var(--k-bg-elev) 80%, transparent);
+  /* Opaque, for the same reason as the base rule in css/style.css: at 80%
+     anything scrolling underneath stayed readable through the labels. */
+  background: var(--k-bg-elev);
   border-top-color: var(--k-hairline);
 }
 
