@@ -490,6 +490,20 @@ test('the same cost typed in twice is caught however far apart the days are', ()
   equal(pairs[0].counted, true, 'and this one really is coming out of the budget twice');
 });
 
+// Removing one Kawach spotted has to survive the next render. detectRecurring()
+// saves what it finds on every Plan and Summary draw, so a deleted suggestion
+// comes straight back and the button looks broken. Setting it aside is what
+// sticks, and duplicateCommitments has to honour that.
+test('a suggestion set aside stops being offered as a duplicate', () => {
+  const pair = [
+    commitment({ id: 'mine', label: 'Netflix', amount: 499, dayOfMonth: 21, source: 'fixed' }),
+    commitment({ id: 'spotted', label: 'NETFLIXMUMBAI', amount: 499, dayOfMonth: 22, source: null }),
+  ];
+  equal(duplicateCommitments(pair, '2026-09-27').length, 1, 'offered while both are live');
+  const afterSettingAside = [pair[0], { ...pair[1], active: false }];
+  equal(duplicateCommitments(afterSettingAside, '2026-09-27').length, 0, 'and gone once it is set aside');
+});
+
 // --- Parsers ----------------------------------------------------------------
 
 const LIST = `Test Credit Card 1234

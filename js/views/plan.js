@@ -579,12 +579,20 @@ export async function render(container) {
       if (!going) return;
       const ok = await askConfirm({
         title: 'Remove this one?',
-        message: `"${going.label}" comes off your fixed costs. The payments themselves are untouched.`,
+        message: isFixed(going)
+          ? `"${going.label}" comes off your fixed costs. The payments themselves are untouched.`
+          : `"${going.label}" stops being suggested. The payments themselves are untouched.`,
         confirmLabel: 'Remove',
         danger: true,
       });
       if (!ok) return;
-      await remove('recurring', going.id);
+      // A cost the person typed in is theirs to delete. One Kawach spotted
+      // cannot be: detectRecurring() writes its findings back on every Plan
+      // and Summary render, so a deleted one returns on the next draw and
+      // nothing appears to happen. Setting it aside is what makes a
+      // suggestion stay gone, the same as Dismiss does below.
+      if (isFixed(going)) await remove('recurring', going.id);
+      else await put('recurring', { ...going, active: false });
       redraw(container, () => render(container));
     });
   });
