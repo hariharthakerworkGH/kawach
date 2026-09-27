@@ -213,6 +213,7 @@ export async function render(container) {
                        </div>`
                      )
                      .join('')}
+                   <button type="button" class="btn-tiny dupe-see" data-pair="${i}">See these payments</button>
                    <button type="button" class="btn-tiny dupe-keep" data-pair="${i}">They are different, keep both</button>
                  </div>`
                )
@@ -594,6 +595,18 @@ export async function render(container) {
       if (isFixed(going)) await remove('recurring', going.id);
       else await put('recurring', { ...going, active: false });
       redraw(container, () => render(container));
+    });
+  });
+
+  // Only the person can tell these apart, so send them to the evidence: every
+  // payment of that size, across every month. One a month means it is on the
+  // list twice; two a month means they are two real costs.
+  container.querySelectorAll('.dupe-see').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const pair = doubled[Number(btn.dataset.pair)];
+      if (!pair) return;
+      const detail = { view: 'transactions', search: String(Math.round(pair.amount / 100)) };
+      container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail }));
     });
   });
 

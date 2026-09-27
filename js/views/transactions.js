@@ -106,7 +106,7 @@ export async function render(container, params = {}) {
     </section>
     <div class="hero-under" id="hist-stats"></div>
     <div class="hist-top">
-      <input type="search" id="txn-search" class="hist-search" placeholder="Search all months" value="${escapeAttr(filters.search)}" aria-label="Search all months">
+      <input type="search" id="txn-search" class="hist-search" placeholder="Search words or an amount" value="${escapeAttr(filters.search)}" aria-label="Search all months">
       <button type="button" id="txn-select" class="btn-secondary hist-select-btn">Change many</button>
     </div>
     <div class="hist-chips">
@@ -288,6 +288,15 @@ function acrossMonths() {
   return Boolean(filters.search.trim()) || filters.categoryId === 'uncategorized';
 }
 
+// What a search matches. Words on the line, and - when a number is typed -
+// the amount itself, because a bank line rarely says what it cost: "30000"
+// has to find a 30,000 payment whose line reads "IMPS-900000000014-01".
+// That is what makes two costs of the same size comparable by eye.
+export function searchHit(t, needle) {
+  if (String(t.rawDescription || '').toLowerCase().includes(needle)) return true;
+  return /^[0-9]+$/.test(needle) && String(Math.round(t.amount / 100)) === needle;
+}
+
 function matching() {
   const needle = filters.search.trim().toLowerCase();
   const month = acrossMonths() ? null : filters.month;
@@ -299,7 +308,7 @@ function matching() {
       if (filters.categoryId && filters.categoryId !== 'uncategorized') {
         if (!categorySlices(t).some((s) => s.categoryId === filters.categoryId)) return false;
       }
-      if (needle && !String(t.rawDescription || '').toLowerCase().includes(needle)) return false;
+      if (needle && !searchHit(t, needle)) return false;
       return true;
     })
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
