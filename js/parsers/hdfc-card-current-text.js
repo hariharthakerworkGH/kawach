@@ -107,7 +107,7 @@ export function parse(text) {
       if (pending && pending.date) {
         rows.push({
           date: pending.date,
-          description: pending.description.join(' ').replace(/\s+/g, ' ').trim() || 'HDFC card transaction',
+          description: pending.description.join(' ').replace(/\s+/g, ' ').trim() || 'HDFC card payment',
           amount: toPaise(am[1]),
           direction: am[2].toLowerCase() === 'credit' ? 'credit' : 'debit',
         });

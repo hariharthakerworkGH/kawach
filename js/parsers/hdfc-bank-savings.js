@@ -71,7 +71,7 @@ export function parse(text) {
 
 function reconcile(rows) {
   if (rows.length === 0) {
-    return { reconciled: null, note: 'No transactions found.' };
+    return { reconciled: null, note: 'No payments found.' };
   }
   const first = rows[0];
   const impliedOpening = first._closingBalance - first._deposit + first._withdrawal;
