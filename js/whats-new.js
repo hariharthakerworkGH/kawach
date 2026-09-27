@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.12',
+    items: [
+      {
+        icon: 'tag',
+        title: 'It knows the shops before you teach it',
+        text: 'Kawach already learned a shop from what you filed it under, but only after you had filed something. It now arrives knowing nearly eighty of them - Swiggy, Blinkit, Amazon, Uber, Airtel and the rest - so the very first statement you bring in is mostly sorted. Anything you change still wins, for good.',
+        guide: [{ view: 'transactions', target: '#txn-needs, .txn-row', text: 'Anything it did not recognise is left blank on purpose, waiting for you rather than guessed at.' }],
+      },
+    ],
+  },
+  {
     version: '4.11.1',
     items: [
       {

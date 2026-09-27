@@ -1,7 +1,7 @@
 // Whole situations run through the same calculation the Summary uses,
 // against a separate test database.
 import { test, equal, ok, paise } from './harness.js';
-import { seedBasics, putAll, txn, commitment, rupees, day } from './fixtures.js';
+import { seedBasics, putAll, txn, commitment, rupees, day, resetDB } from './fixtures.js';
 import { computeFreeToSpend } from '../js/free-to-spend.js';
 import { buildDiagnosticReport } from '../js/diagnostics.js';
 import { getAll, put } from '../js/db.js';
@@ -13,6 +13,7 @@ import { encryptPayload, decryptPayload, exportEncrypted, decryptBackup, restore
 import { takenHome, categoriesFor } from '../js/business.js';
 import { notesFor } from '../js/whats-new.js';
 import { isSetAside } from '../js/commitments.js';
+import { matchCategoryForDescription, learnFromAssignment, applyLearnedCategories } from '../js/merchant-rules.js';
 import { APP_VERSION } from '../js/version.js';
 
 // Salary ₹1,00,000; commitments: EMI ₹40,000 (bank), rent ₹20,000 (bank),
@@ -1053,4 +1054,74 @@ test('isSetAside reads the field the app has always stored', () => {
   equal(isSetAside({ flexible: true, dayOfMonth: 5 }), false);
   equal(isSetAside(null), false);
   equal(isSetAside({}), false);
+});
+
+// The merchants it ships knowing (js/merchant-seed.js). Before these, a
+// person importing their first statement had no rules at all and every row
+// came back blank, because the matcher only knew what it had been taught.
+test('a first import is sorted without having taught it anything', async () => {
+  await resetDB();
+  // Nothing learned yet: no merchantRules row exists.
+  equal((await getAll('merchantRules')).length, 0, 'starting from nothing');
+
+  equal(await matchCategoryForDescription('PAY*SWIGGY BANGALORE IN'), 'cat-food', 'a food delivery');
+  equal(await matchCategoryForDescription('UPI-AMAZON PAY INDIA-1234'), 'cat-shopping', 'a shop');
+  equal(await matchCategoryForDescription('UBER INDIA SYSTEMS'), 'cat-transport', 'a ride');
+  equal(await matchCategoryForDescription('BLINKIT GURGAON'), 'cat-groceries', 'the ten-minute shop');
+  equal(await matchCategoryForDescription('NETFLIX COM'), 'cat-entertainment', 'a subscription');
+  equal(await matchCategoryForDescription('PHARMEASY ONLINE'), 'cat-health', 'the chemist');
+});
+
+// The same merchant arrives under a different gateway prefix on every
+// statement, and sometimes with the city glued on with no space.
+test('a merchant is recognised through the prefix a gateway puts on it', async () => {
+  await resetDB();
+  equal(await matchCategoryForDescription('PTM*SWIGGYBENGALURU'), 'cat-food', 'city glued on');
+  equal(await matchCategoryForDescription('RSP*ZOMATO LTD'), 'cat-food', 'a different prefix');
+});
+
+// A bank's own name is in nearly every line of its own statement. A rule on
+// it would not find a merchant, it would file the whole import under one
+// category - which is worse than leaving it blank.
+test('a bank name is never treated as a merchant', async () => {
+  await resetDB();
+  equal(await matchCategoryForDescription('NEFT DR-HDFC BANK LTD-SALARY'), null, 'the bank on the statement');
+  equal(await matchCategoryForDescription('IMPS-SBI-900000000014'), null, 'a transfer to another bank');
+  equal(await matchCategoryForDescription('ICICI BANK CREDIT CARD PAYMENT'), null, 'a card bill');
+});
+
+// Nothing recognised means the row stays blank and lands in "needs a
+// category", where you decide. Guessing "Other" would bury a rent payment.
+test('an unknown merchant is left blank rather than guessed at', async () => {
+  await resetDB();
+  equal(await matchCategoryForDescription('UPI-SHARMA GENERAL STORE-98765'), null, 'no guess');
+  equal(await matchCategoryForDescription('CASH WITHDRAWAL'), null, 'nor here');
+});
+
+// The seeds are a starting point, never a floor. Correct one once and the
+// correction outranks it for good.
+test('a category you set yourself beats the one it shipped with', async () => {
+  await resetDB();
+  equal(await matchCategoryForDescription('SWIGGY BANGALORE'), 'cat-food', 'ships as food');
+  // You decide this one is groceries - Instamart billed as plain Swiggy.
+  await learnFromAssignment('SWIGGY BANGALORE', 'cat-groceries');
+  equal(await matchCategoryForDescription('SWIGGY BANGALORE'), 'cat-groceries', 'and stays yours');
+});
+
+// Hard rule: a category set by hand is never overwritten.
+test('sorting the rest out never touches a payment you categorised', async () => {
+  await resetDB();
+  await seedBasics();
+  await putAll('transactions', [
+    txn({ id: 'm1', accountId: 'bank', date: '2026-09-05', amount: 400, rawDescription: 'SWIGGY BANGALORE' }),
+    { ...txn({ id: 'm2', accountId: 'bank', date: '2026-09-06', amount: 900, rawDescription: 'UBER INDIA' }), categoryId: 'cat-rent' },
+    { ...txn({ id: 'm3', accountId: 'bank', date: '2026-09-07', amount: 500, rawDescription: 'AMAZON PAY' }), isTransfer: true },
+  ]);
+
+  await applyLearnedCategories();
+  const after = await getAll('transactions');
+  const byId = Object.fromEntries(after.map((t) => [t.id, t]));
+  equal(byId.m1.categoryId, 'cat-food', 'the blank one is filled in');
+  equal(byId.m2.categoryId, 'cat-rent', 'the one you set by hand is left exactly as it was');
+  equal(byId.m3.categoryId, null, 'and money moved between your own accounts is not a spend');
 });

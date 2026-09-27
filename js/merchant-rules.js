@@ -1,4 +1,5 @@
 import { getAll, put, newId } from './db.js';
+import { SEED_MERCHANTS } from './merchant-seed.js';
 
 // Words that show up constantly in narrations but never identify a merchant
 // (payment-gateway prefixes, corporate suffixes, generic connectors).
@@ -32,7 +33,16 @@ export function extractMerchantKey(rawDescription) {
 }
 
 export async function matchCategoryForDescription(rawDescription) {
-  return matchWithRules(rawDescription, await getAll('merchantRules'));
+  return matchWithRules(rawDescription, await knownRules());
+}
+
+// What you have taught it, plus the merchants it ships knowing. The seeds
+// carry hitCount 0 and go last, so where a seed and a rule you taught fit a
+// line equally well, matchWithRules breaks the tie on hitCount and yours
+// wins. Before this, someone importing their first statement had no rules at
+// all and every row came back blank.
+async function knownRules() {
+  return [...(await getAll('merchantRules')), ...SEED_MERCHANTS];
 }
 
 // Takes the rules as an argument so a bulk pass over hundreds of transactions
@@ -67,7 +77,7 @@ function matchWithRules(rawDescription, rules) {
 // anything. Only ever fills a blank: a category set by hand, or a split, is
 // never touched. Pass `dryRun` to count what it would do without doing it.
 export async function applyLearnedCategories({ dryRun = false } = {}) {
-  const [transactions, rules] = await Promise.all([getAll('transactions'), getAll('merchantRules')]);
+  const [transactions, rules] = await Promise.all([getAll('transactions'), knownRules()]);
   if (rules.length === 0) return 0;
 
   let changed = 0;
