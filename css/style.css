@@ -3692,6 +3692,37 @@ textarea {
   background: var(--accent-ink);
 }
 
+/* The guessed category on an import review row. Fixed size and never
+   allowed to shrink, so a long description cannot squash it and it cannot
+   squash anything either. It sits on the row's top line; the amount is on
+   the bottom line and is untouched by it. */
+.ir-cat-mark {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+}
+.ir-cat-mark .icon { font-size: var(--icon-sm); }
+
+/* On a narrow phone the date field alone takes 151px of a 254px row, which
+   left the description 18px wide - a sliver you cannot read or edit. It was
+   already down to about 48px before the mark was added. Giving the
+   description the whole of the next line fixes both: the mark, the date and
+   the delete button sit on the first line, and the description gets room to
+   actually be a description. The amount is on its own line below and is
+   untouched. */
+@media (max-width: 400px) {
+  .import-row-top { flex-wrap: wrap; }
+  /* Last in the visual order, so the delete button stays up on the first
+     line with the date instead of taking a third line to itself. */
+  .import-row-top .ir-desc { flex: 1 1 100%; min-width: 0; order: 9; }
+}
+
 /* ---------- What's new (js/whats-new.js) ---------- */
 
 .notes-backdrop {

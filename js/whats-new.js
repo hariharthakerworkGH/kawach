@@ -12,6 +12,22 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.13',
+    items: [
+      {
+        icon: 'tag',
+        title: 'See what it guessed, on the row',
+        text: 'The category it picked for each imported payment now shows beside the description instead of only inside a dropdown. Tap it to change it, and anything it did not recognise carries a question mark rather than a wrong guess.',
+        guide: [{ view: 'accounts', target: '.import-row .ir-cat-mark, #import-paste-toggle', text: 'Every row on an import shows its category here. Tapping the mark opens the list for that row.' }],
+      },
+      {
+        icon: 'file',
+        title: 'Import rows fit a small phone',
+        text: 'On a narrow screen the date field was taking so much of the row that the description was squeezed to a sliver. It now has a line of its own.',
+      },
+    ],
+  },
+  {
     version: '4.12',
     items: [
       {
