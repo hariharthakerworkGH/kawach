@@ -114,6 +114,7 @@ export async function render(container, params = {}) {
            Someone who installed Kawach never sees welcome.html again, and
            had no way at all to read what the app does with their money. -->
       <a href="./privacy.html" class="btn-secondary btn-block btn-link">Privacy policy</a>
+      <a href="./terms.html" class="btn-secondary btn-block btn-link">Terms of use</a>
     </div>
 
     <h3>Import history</h3>

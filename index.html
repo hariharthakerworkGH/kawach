@@ -32,6 +32,19 @@
 <meta name="theme-color" content="#07090f" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
 <script>
+  // Not to be framed. frame-ancestors would say this properly, but it only
+  // works as an HTTP response header and GitHub Pages will not let us set
+  // one. This is the fallback: if Kawach finds itself inside someone else's
+  // page, it breaks out to the top rather than letting a hidden frame sit
+  // under their buttons and collect taps meant for something else.
+  try {
+    if (window.top !== window.self) window.top.location = window.self.location.href;
+  } catch (e) {
+    // Cross-origin parents will not even let us read window.top.location.
+    // Being blocked here IS the framing attempt, so hide the page instead.
+    document.documentElement.style.display = 'none';
+  }
+
   // The chosen light or dark, put on <html> before the stylesheet paints, so
   // the app never opens in the wrong colour and corrects itself a moment
   // later. js/appearance.js is the same decision, made again once it loads.

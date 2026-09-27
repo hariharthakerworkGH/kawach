@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.14.2',
+    items: [
+      {
+        icon: 'file',
+        title: 'Terms of use',
+        text: 'Plain words on what Kawach is and is not: a tool and not financial advice, figures that can be wrong and are worth checking against your bank, and the fact that nobody can recover your data if you lose the phone or forget the passphrase. In Settings, beside the privacy policy.',
+      },
+    ],
+  },
+  {
     version: '4.14.1',
     items: [
       {
