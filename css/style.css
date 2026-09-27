@@ -268,6 +268,9 @@ code {
 
 .nav-btn {
   flex: 1;
+  /* Six labels have to fit 320px. Without this the buttons refuse to shrink
+     below their own text and the last one is cut in half. */
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -297,6 +300,29 @@ code {
   height: 1.1em;
   vertical-align: -0.18em;
   flex-shrink: 0;
+}
+
+/* The label never wraps, and ellipsis is the last resort rather than the
+   normal state - see the nav sizing rule below. */
+.nav-btn > span:not(.nav-icon) {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Bounded so the largest text setting cannot grow six labels past the
+     width of the phone. At 320px this settles at about 11.5px, where the
+     six of them need 282px of the 320 and all read in full. */
+  font-size: min(var(--text-micro), 3.6vw);
+}
+
+/* Six equal buttons do not fit a 320px phone at the largest text: every one
+   gets 43px while "Accounts" needs 51px and "Add" needs 22px, so the long
+   labels are cut and the short ones waste the room. The six together need
+   282px of the 320, so the space was only ever distributed wrongly. Sizing
+   to content on a narrow screen gives each label what it actually needs;
+   wider screens keep the even spacing. */
+@media (max-width: 400px) {
+  .nav-btn { flex: 1 1 auto; }
 }
 
 .nav-icon {
@@ -3715,6 +3741,10 @@ textarea {
 
 .notes-text {
   flex: 1;
+  /* Without this a flex child will not shrink below its longest word, so at
+     320px with the largest text the row grew wider than the sheet and pushed
+     "Show me" off the right edge. */
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -3732,6 +3762,13 @@ textarea {
 
 .notes-show {
   flex-shrink: 0;
+}
+
+/* On the narrowest phone at the largest text there is no room for a button
+   beside the line, so it takes a line of its own rather than being clipped. */
+@media (max-width: 360px) {
+  .notes-item { flex-wrap: wrap; }
+  .notes-show { margin-left: auto; margin-top: var(--space-2xs); }
 }
 
 .notes-close {

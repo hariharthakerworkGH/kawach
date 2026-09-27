@@ -220,7 +220,7 @@ async function readPdf(file, password) {
     if (parser && (parser.accountType === 'bank' || parser.accountType === 'card') && !parser.provisional && !parser.parse(text).rows.length) parser = null;
     if (!parser) parser = readerFor(text);
     if (!parser) {
-      showStatus(status, "Couldn't find any transactions in this PDF. Download the statement from your bank as a spreadsheet (CSV) instead and choose that.", true);
+      showStatus(status, "Couldn't find any payments in this PDF. Download the statement from your bank as a spreadsheet (CSV) instead and choose that.", true);
       return;
     }
     status.hidden = true;
@@ -266,19 +266,19 @@ async function parsePasted(container) {
   resultsEl.innerHTML = '';
 
   if (!text.trim()) {
-    showStatus(status, 'Paste the transactions first.', true);
+    showStatus(status, 'Paste the payments first.', true);
     return;
   }
   // Only pasted-list parsers are asked: a whole copied page can also contain a
   // statement's wording ("Total Amount Due"), which isn't a reason to refuse it.
   const parser = parsers.find((p) => p.provisional && typeof p.splitSections === 'function' && p.detect(text));
   if (!parser) {
-    showStatus(status, "That doesn't look like HDFC's current transactions list. Each transaction should have a date line, a description, and an amount line ending in \"credit icon\" or \"debit icon\".", true);
+    showStatus(status, "That doesn't look like HDFC's current transactions list. Each payment should have a date line, a description, and an amount line ending in \"credit icon\" or \"debit icon\".", true);
     return;
   }
   const sections = parser.splitSections(text);
   if (sections.length === 0) {
-    showStatus(status, 'Found no complete transactions in that text.', true);
+    showStatus(status, 'Found no complete payments in that text.', true);
     return;
   }
   textarea.value = '';
@@ -318,7 +318,7 @@ async function startReview({ parser, text, last4 = null, queue }, status, result
     return;
   }
   if (rows.length === 0) {
-    showStatus(status, 'Recognised the format but found no transaction rows in it.', true);
+    showStatus(status, 'Recognised the format but found no payment rows in it.', true);
     return;
   }
   for (const row of rows) {

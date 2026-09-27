@@ -192,8 +192,8 @@ export async function render(container) {
            <div class="totals-card">
              <p class="muted-note dupe-note">${
                doubled.some((p) => p.counted)
-                 ? 'Some of these are on your list twice, so your fixed costs are higher than they should be and what is left to spend reads lower. The rest are about to be offered to you when you already have them.'
-                 : 'Kawach has spotted these, and you already have them. Adding one would count the same cost twice.'
+                 ? 'On your list twice, so your fixed costs read higher than they are.'
+                 : 'You already have these. Adding one would count the same cost twice.'
              }</p>
              ${doubled
                .map(

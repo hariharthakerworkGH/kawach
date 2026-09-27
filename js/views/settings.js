@@ -164,7 +164,7 @@ export async function render(container, params = {}) {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10000);
-      showStatus(diagnosticStatus, `Saved: ${report.counts.transactions} transactions, ${report.counts.commitments} commitments (plus ${report.counts.suggestions} the app spotted), no names or reference numbers.`, false);
+      showStatus(diagnosticStatus, `Saved: ${report.counts.transactions} payments, ${report.counts.commitments} commitments (plus ${report.counts.suggestions} the app spotted), no names or reference numbers.`, false);
     } catch (err) {
       showStatus(diagnosticStatus, `Couldn't make the report: ${err.message}`, true);
     }
@@ -567,7 +567,7 @@ function wireBackup(container, params) {
       showStatus(statusEl, 'Backing up to Google Drive…', false);
       const counts = await backUpToDrive();
       await setSetting('lastBackupAt', Date.now());
-      showToast(`Backed up ${counts.transactions} transactions to Drive`);
+      showToast(`Backed up ${counts.transactions} payments to Drive`);
       again();
     } catch (err) {
       orSignIn(err, 'backup');
@@ -590,7 +590,7 @@ function wireBackup(container, params) {
       const where = await saveWhereYouChoose(ready);
       await markFileBackup();
       await setSetting('lastBackupAt', Date.now());
-      showToast(`Backed up ${ready.counts.transactions} transactions${where}`);
+      showToast(`Backed up ${ready.counts.transactions} payments${where}`);
       again();
     } catch (err) {
       // Closing the share sheet or the Save box is a choice, not a failure.
@@ -635,7 +635,7 @@ function wireBackup(container, params) {
         const { data, createdAt, counts } = file ? await decryptBackup(await file.text(), passphrase) : await openDriveBackup(chosen.value, passphrase);
         const ok = await askConfirm({
           title: 'Replace everything with this backup?',
-          message: `From ${formatDateNice(createdAt)}, ${counts.transactions} transactions. Everything in the app now is replaced. This cannot be undone.`,
+          message: `From ${formatDateNice(createdAt)}, ${counts.transactions} payments. Everything in the app now is replaced. This cannot be undone.`,
           confirmLabel: 'Restore',
           danger: true,
         });
@@ -806,7 +806,7 @@ async function renderImportHistory(container) {
       const affected = transactions.filter((t) => t.importBatchId === batchId);
       const ok = await askConfirm({
         title: `Undo this import?`,
-        message: `${affected.length} transactions from it are removed. Anything you logged by hand that it replaced does not come back, and categories set on these are lost.`,
+        message: `${affected.length} payments from it are removed. Anything you logged by hand that it replaced does not come back, and categories set on these are lost.`,
         confirmLabel: 'Undo import',
         danger: true,
       });
