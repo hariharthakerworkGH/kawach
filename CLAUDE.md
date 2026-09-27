@@ -142,13 +142,22 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   (`statementDayFixes` corrects a saved day that disagrees).
 - The spending period is the calendar month for everyone, whether or not a
   card has a statement day yet, and never the month the next salary pays for.
-- The tour (`media/kawach-tour.mp4`, 82s) is drawn from the app's own tokens with
-  made-up data, and plays from Setup, Settings (`js/tour.js`) and the welcome
-  page. It has no voice: nine scenes, micro-copy, a synthesised score and a
-  little UI sound, and it has to make sense with the sound off. The service
-  worker never caches `media/`. Re-render it when a screen it shows changes. A first visit in a browser (not installed, nothing set up)
-  goes to `welcome.html` once. The scripts that record it are kept outside
-  the repository, in `expense-tracker-versions/tools/tour`.
+- The tour (`media/kawach-tour.mp4`, 20s, 1080x1920) plays from Setup, Settings
+  (`js/tour.js`) and the welcome page. It is **silent** - no score, no sound
+  effects - because it has to make sense with the sound off and the noise was
+  the part nobody liked. Nine scenes: the salary lands, most of it is gone by
+  the 9th, "Where did it go?", the subtraction that leaves 30,101, and then two
+  real screens - a month going well and the same month gone wrong - before the
+  shield closes on "Nothing leaves your phone". Those two screens are genuine
+  captures of the published app, not mockups, so the film cannot quietly drift
+  away from the product. Colours are the `css/dna.css` tokens as oklch. Frame 0
+  is the poster, because players and social sites grab frame 0 and ignore
+  everything else. The service worker never caches `media/`. Re-render it when
+  a screen it shows changes. A first visit in a browser (not installed, nothing set up)
+  goes to `welcome.html` once. It is built with Hyperframes and kept outside
+  the repository, in `expense-tracker-versions/brag-output` (the composition,
+  the plan and the share copy); `tools/tour` holds the older hand-rolled
+  renderer and the script that captures the two screens from the live site.
 - `sw.js` service worker: `CACHE_NAME` must match `APP_VERSION` in
   `js/version.js`, and `APP_SHELL` must list every js file, both stylesheets
   and the font, or the app breaks offline.
