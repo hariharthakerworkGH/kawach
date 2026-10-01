@@ -71,7 +71,7 @@ const LAND = {
   giant: { x: 800, y: 760, size: 330 },
   pocket: { x: 760, y: 250 }, lock: { x: 760, y: 445 }, tileW: 330,
   fan: (i) => ({ x: 740, y: 215 + i * 122, s: 1.15, ry: 20, rz: 0, z: 30 - i * 10 }),
-  shield: { x: 800, y: 400 }, shieldUp: { x: 800, y: 235, s: 0.72 }, shieldEnd: { x: 800, y: 270 },
+  shield: { x: 800, y: 400 }, shieldUp: { x: 800, y: 235, s: 0.72 }, shieldEnd: { x: 800, y: 240 },
   hl: {
     h1: { x: 0, y: 392, w: 1600, align: 'center', size: 96 },
     prom: { x: 0, y: 410, w: 1600, align: 'center', size: 62 },
@@ -83,9 +83,9 @@ const LAND = {
     h7: { x: 120, y: 300, w: 640, align: 'left', size: 88 },
     h8: { x: 120, y: 580, w: 800, align: 'left', size: 64 },
     h9: { x: 120, y: 320, w: 420, align: 'left', size: 78 },
-    end: { x: 0, y: 425, w: 1600, align: 'center', size: 80 },
+    end: { x: 0, y: 480, w: 1600, align: 'center', size: 68 },
   },
-  word: { y: 620, size: 104 }, rule: { y: 760, w: 420 }, url: { y: 785 },
+  word: { y: 394, size: 30 }, url: { y: 690 },
   chapter: 'left:64px;top:54px', bug: 'right:64px;top:48px', note: 'left:64px;bottom:42px',
 };
 
@@ -104,7 +104,7 @@ const PORT = {
   giant: { x: 450, y: 520, size: 250 },
   pocket: { x: 255, y: 470 }, lock: { x: 645, y: 470 }, tileW: 330,
   fan: (i) => ({ x: 450, y: 400 + i * 104, s: 1.12, ry: 0, rz: i % 2 ? 1.5 : -1.5, z: 30 }),
-  shield: { x: 450, y: 720 }, shieldUp: { x: 450, y: 520, s: 0.72 }, shieldEnd: { x: 450, y: 540 },
+  shield: { x: 450, y: 720 }, shieldUp: { x: 450, y: 520, s: 0.72 }, shieldEnd: { x: 450, y: 520 },
   hl: {
     h1: { x: 60, y: 690, w: 780, align: 'center', size: 86, lines: 2 },
     prom: { x: 0, y: 690, w: 900, align: 'center', size: 58 },
@@ -116,9 +116,9 @@ const PORT = {
     h7: { x: 60, y: 160, w: 780, align: 'center', size: 80 },
     h8: { x: 60, y: 130, w: 780, align: 'center', size: 62 },
     h9: { x: 60, y: 160, w: 780, align: 'center', size: 76 },
-    end: { x: 0, y: 740, w: 900, align: 'center', size: 76 },
+    end: { x: 0, y: 780, w: 900, align: 'center', size: 72 },
   },
-  word: { y: 930, size: 92 }, rule: { y: 1050, w: 360 }, url: { y: 1075 },
+  word: { y: 674, size: 34 }, url: { y: 1000 },
   chapter: 'left:48px;top:60px', bug: 'right:48px;top:54px', note: 'left:48px;bottom:48px',
 };
 
@@ -147,6 +147,59 @@ const NAV = [['summary', 'Summary'], ['add', 'Add'], ['accounts', 'Accounts'], [
 const CHAPTERS = [['01', 'Left to spend', 12.2], ['02', 'Card bills', 23.5], ['03', 'Work costs', 35.5], ['04', 'History', 47.5]];
 const TILES = [['Monthly income', rupees(120000)], ['Fixed commitments', MINUS + rupees(78500)], ['Saved each month', MINUS + rupees(10000)], ['Spent so far', MINUS + rupees(16350)]];
 const SHIELD = 'M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z';
+const RUPEE = 'M38 34h24M38 45h24M44 34c11 0 11 20 0 20h-5l17 17';
+
+// Kawach's mark exactly as the app's opening draws it (index.html, .boot):
+// the glass icon, its glow, and the line mark, whose two edges trace down
+// from the top and meet at the point while the glass dissolves. The film
+// must show the same mark the app opens with. `p` keeps each copy's ids apart.
+function markMarkup(p) {
+  return `
+    <svg class="tf-m" data-a="${p}Icon" viewBox="0 0 100 100" aria-hidden="true">
+      <defs>
+        <linearGradient id="${p}Body" x1="0.1" y1="0" x2="0.7" y2="1">
+          <stop offset="0" stop-color="#47d0f8" stop-opacity="0.42"/>
+          <stop offset="0.5" stop-color="#2b7fb8" stop-opacity="0.26"/>
+          <stop offset="1" stop-color="#7c5cf0" stop-opacity="0.18"/>
+        </linearGradient>
+        <linearGradient id="${p}Edge" x1="0" y1="0" x2="0.4" y2="1">
+          <stop offset="0" stop-color="#cdf5ff" stop-opacity="0.98"/>
+          <stop offset="0.4" stop-color="#47d0f8" stop-opacity="0.8"/>
+          <stop offset="1" stop-color="#47d0f8" stop-opacity="0.34"/>
+        </linearGradient>
+        <linearGradient id="${p}Sheen" x1="0" y1="0" x2="0.2" y2="1">
+          <stop offset="0" stop-color="#ffffff" stop-opacity="0.3"/>
+          <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.03"/>
+          <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+        </linearGradient>
+        <filter id="${p}Halo" x="-45%" y="-45%" width="190%" height="190%">
+          <feGaussianBlur stdDeviation="3.2" result="b"/>
+          <feComponentTransfer in="b" result="g"><feFuncA type="linear" slope="0.52"/></feComponentTransfer>
+          <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <clipPath id="${p}Clip"><path d="${SHIELD}"/></clipPath>
+      </defs>
+      <g filter="url(#${p}Halo)">
+        <path d="${SHIELD}" fill="url(#${p}Body)"/>
+        <g clip-path="url(#${p}Clip)"><ellipse cx="33" cy="24" rx="33" ry="25" fill="url(#${p}Sheen)"/></g>
+        <path d="${SHIELD}" fill="none" stroke="url(#${p}Edge)" stroke-width="2.9"/>
+        <path d="${RUPEE}" fill="none" stroke="#e8fbff" stroke-width="6.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </svg>
+    <svg class="tf-m tf-m-glow" data-a="${p}Glow" viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="${SHIELD}" stroke="#47d0f8" stroke-width="3.2"/>
+      <path d="${RUPEE}" stroke="#d6f6ff" stroke-width="7"/>
+    </svg>
+    <svg class="tf-m" viewBox="0 0 100 100" aria-hidden="true">
+      <path class="tf-m-edge" data-a="${p}L" pathLength="1" d="M50 12L20 22V48C20 68 33 82 50 89"/>
+      <path class="tf-m-edge" data-a="${p}R" pathLength="1" d="M50 12L80 22V48C80 68 67 82 50 89"/>
+      <path class="tf-m-sym" d="${RUPEE}"/>
+    </svg>`;
+}
+
+// The name under the mark, as the opening sets it: each letter starts pulled
+// toward the middle by its distance from it and slides out to its place.
+const markWord = (p) => [...'KAWACH'].map((c, i) => `<span data-a="${p}${i}">${c}</span>`).join('');
 
 function phoneMarkup() {
   return `
@@ -243,7 +296,7 @@ function phoneMarkup() {
                 <span class="tf-nav-on" data-a="on-${key}">${icon(key)}<span>${label}</span></span>
               </span>`).join('')}
           </nav>
-          <div class="tf-boot" data-a="boot"><img src="./icons/kawach.svg" alt=""></div>
+          <div class="tf-boot" data-a="boot"><div class="tf-boot-art">${markMarkup('pb')}<p class="tf-mark-word tf-boot-word">${markWord('pbw')}</p></div></div>
           <div class="tf-glare" data-a="glare"></div>
           <div class="tf-finger" data-a="finger"></div>
         </div>
@@ -302,8 +355,7 @@ function stageMarkup() {
       ${headline('h8', hl.h8, [['Work costs never touch'], ['what you can spend.', 'acc']])}
       ${headline('h9', hl.h9, [['Every payment.'], ['Newest first.', 'acc']])}
       ${headline('end', hl.end, [['Your wealth.'], ['Your device.', 'acc']])}
-      <div class="tf-word" data-a="word" style="top:${F.word.y}px;font-size:${F.word.size}px">${[...'KAWACH'].map((c, i) => `<span data-a="wl${i}">${c}</span>`).join('')}</div>
-      <div class="tf-rule" data-a="rule" style="top:${F.rule.y}px;left:${(F.W - F.rule.w) / 2}px;width:${F.rule.w}px"></div>
+      <p class="tf-mark-word tf-word" style="top:${F.word.y}px;font-size:${F.word.size}px">${markWord('wl')}</p>
       <div class="tf-url" data-a="url" style="top:${F.url.y}px">getkawach.com</div>
 
       <div class="tf-chapter" data-a="chapter" style="${F.chapter}">
@@ -311,35 +363,12 @@ function stageMarkup() {
         <div class="tf-ch-text">${CHAPTERS.map(([, label], i) => `<span data-a="cl${i}">${label}</span>`).join('')}</div>
         <div class="tf-ch-track"><i data-a="chFill"></i></div>
       </div>
-      <div class="tf-bug" data-a="bug" style="${F.bug}"><img src="./icons/kawach.svg" alt="">KAWACH</div>
+      <div class="tf-bug" data-a="bug" style="${F.bug}"><svg viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${SHIELD}" stroke="#47d0f8" stroke-width="4.5"/><path d="${RUPEE}" stroke="#e8fbff" stroke-width="8"/></svg>KAWACH</div>
       <div class="tf-note" data-a="note" style="${F.note}">Example figures</div>
     </div>
 
     <div class="tf-layer">
-      <div class="tf-rays" data-a="rays"></div>
-      <div class="tf-shield" data-a="shield">
-        <svg viewBox="0 0 100 100" aria-hidden="true">
-          <defs>
-            <linearGradient id="tfBody" x1="0.1" y1="0" x2="0.7" y2="1">
-              <stop offset="0" stop-color="#47d0f8" stop-opacity="0.5"/>
-              <stop offset="0.5" stop-color="#2b7fb8" stop-opacity="0.3"/>
-              <stop offset="1" stop-color="#7c5cf0" stop-opacity="0.24"/>
-            </linearGradient>
-            <linearGradient id="tfEdge" x1="0" y1="0" x2="0.4" y2="1">
-              <stop offset="0" stop-color="#cdf5ff"/>
-              <stop offset="0.4" stop-color="#47d0f8" stop-opacity="0.9"/>
-              <stop offset="1" stop-color="#47d0f8" stop-opacity="0.45"/>
-            </linearGradient>
-          </defs>
-          <path data-a="sBody" d="${SHIELD}" fill="url(#tfBody)"/>
-          <path data-a="sEdge" d="${SHIELD}" fill="none" stroke="url(#tfEdge)" stroke-width="2.9" stroke-linejoin="round" pathLength="1" stroke-dasharray="1"/>
-          <g fill="none" stroke="#e8fbff" stroke-width="6.6" stroke-linecap="round" stroke-linejoin="round">
-            <path data-a="sR0" d="M38 34h24" pathLength="1" stroke-dasharray="1"/>
-            <path data-a="sR1" d="M38 45h24" pathLength="1" stroke-dasharray="1"/>
-            <path data-a="sR2" d="M44 34c11 0 11 20 0 20h-5l17 17" pathLength="1" stroke-dasharray="1"/>
-          </g>
-        </svg>
-      </div>
+      <div class="tf-shield" data-a="shield">${markMarkup('sm')}</div>
       <div class="tf-flash" data-a="flash"></div>
       <div class="tf-grain" data-a="grain"></div>
       <div class="tf-vignette"></div>
@@ -469,6 +498,42 @@ function lift(src, cls) {
   return wrap;
 }
 
+// The opening's own timings (index.html): the edges trace from 0.2 s to
+// 1.1 s, the glass fades from 0.45 s to 1.35 s, the glow rises from 0.7 s to
+// 1.6 s. Started at each moment in `starts`; between runs it is put back to
+// its first frame while nobody can see it.
+const DRAW = 'cubic-bezier(0.65, 0, 0.35, 1)';
+const RISE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const FADE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+function drawMark(p, starts) {
+  const icon = [];
+  const glow = [];
+  const edge = [];
+  starts.forEach((t0, k) => {
+    if (k) {
+      const r = t0 - 0.3;
+      icon.push([r, { opacity: 0 }, LIN], [r + 0.01, { opacity: 1 }]);
+      glow.push([r, { opacity: 0.8 }, LIN], [r + 0.01, { opacity: 0 }]);
+      edge.push([r, { strokeDashoffset: '0' }, LIN], [r + 0.01, { strokeDashoffset: '1.01' }]);
+    }
+    icon.push([t0 + 0.45, { opacity: 1 }, FADE], [t0 + 1.35, { opacity: 0 }]);
+    glow.push([t0 + 0.7, { opacity: 0 }, RISE], [t0 + 1.6, { opacity: 0.8 }]);
+    edge.push([t0 + 0.2, { strokeDashoffset: '1.01' }, DRAW], [t0 + 1.1, { strokeDashoffset: '0' }]);
+  });
+  track($(`${p}Icon`), icon);
+  track($(`${p}Glow`), glow);
+  track($(`${p}L`), edge);
+  track($(`${p}R`), edge);
+}
+
+// The name: every letter on one curve, so the gaps stay equal as it opens.
+function markLetters(p, at, size) {
+  [...'KAWACH'].forEach((_, i) => {
+    const dx = (i - 2.5) * -0.42 * size;
+    track($(`${p}${i}`), [[at, { opacity: 0, transform: `translateX(${dx}px)` }, RISE], [at + 0.76, { opacity: 1, transform: 'translateX(0px)' }]]);
+  });
+}
+
 function dim(el, from, to, low = 0.18) {
   track(el, [[from, { opacity: 1 }, LIN], [from + 0.05, { opacity: low }], [to, { opacity: low }, LIN], [to + 0.15, { opacity: 1 }]]);
 }
@@ -543,12 +608,9 @@ function build() {
   screen('add', [[35.5, 47.6]]);
   screen('history', [[47.6, 53.3]]);
   track($('boot'), [[9.0, { opacity: 1 }, IO], [9.6, { opacity: 0 }]]);
-  track($('boot').firstElementChild, [
-    [7.6, { transform: 'scale(0.6)', opacity: 0 }, EX],
-    [8.6, { transform: 'scale(1)', opacity: 1 }, LIN],
-    [9.0, { transform: 'scale(1.05)', opacity: 1 }, IN],
-    [9.6, { transform: 'scale(1.4)', opacity: 0 }],
-  ]);
+  // The phone opens the way the app does.
+  drawMark('pb', [7.4]);
+  markLetters('pbw', 7.5, 13);
 
   // ---- inside the phone ------------------------------------------------------
   // The panel and the new History row slide into place rather than grow:
@@ -579,27 +641,21 @@ function build() {
       [7.35 + i * 0.05, { transform: 'scale(0) rotate(0deg)', opacity: 0 }],
     ]);
   });
+  // The mark arrives as the app's opening draws it, out of the flash; later
+  // it rises over the promises. At the close it is drawn again, with the name.
   track($('shield'), [
-    [3.55, { transform: AT(F.shield, 0.55) }, EX],
+    [3.55, { transform: AT(F.shield, 0.94) }, EX],
     [4.8, { transform: AT(F.shield, 1) }, EX],
     [5.6, { transform: AT(F.shieldUp, F.shieldUp.s) }],
     [6.8, { transform: AT(F.shieldUp, F.shieldUp.s) }, IN],
     [7.25, { transform: AT(F.shieldUp, 0.3) }, LIN],
-    [55.2, { transform: AT(F.shieldEnd, 0.6) }, EX],
-    [56.3, { transform: AT(F.shieldEnd, 1) }, LIN],
-    [60, { transform: AT(F.shieldEnd, 1.05) }],
+    [55.2, { transform: AT(F.shieldEnd, 1.1 * 0.94) }, EX],
+    [56.4, { transform: AT(F.shieldEnd, 1.1) }, LIN],
+    [60, { transform: AT(F.shieldEnd, 1.1 * 1.03) }],
   ]);
-  // Opacity on the drawing, transform on its frame, so each has one animation.
-  track($('shield').firstElementChild, [[3.55, { opacity: 0 }, LIN], [3.7, { opacity: 1 }], [6.8, { opacity: 1 }, IN], [7.25, { opacity: 0 }], [55.2, { opacity: 0 }, LIN], [55.35, { opacity: 1 }]]);
-  track($('sEdge'), [[3.6, { strokeDashoffset: '1' }, EX], [4.7, { strokeDashoffset: '0' }], [54, { strokeDashoffset: '0' }, LIN], [54.01, { strokeDashoffset: '1' }], [55.3, { strokeDashoffset: '1' }, EX], [56.4, { strokeDashoffset: '0' }]]);
-  track($('sBody'), [[4.2, { opacity: 0 }, EX], [4.9, { opacity: 1 }], [54, { opacity: 1 }, LIN], [54.01, { opacity: 0 }], [55.8, { opacity: 0 }, EX], [56.5, { opacity: 1 }]]);
-  [0, 1, 2].forEach((i) => {
-    track($(`sR${i}`), [
-      [4.4 + i * 0.12, { strokeDashoffset: '1' }, EX], [5.0 + i * 0.12, { strokeDashoffset: '0' }],
-      [54, { strokeDashoffset: '0' }, LIN], [54.01, { strokeDashoffset: '1' }],
-      [56.0 + i * 0.12, { strokeDashoffset: '1' }, EX], [56.6 + i * 0.12, { strokeDashoffset: '0' }],
-    ]);
-  });
+  // Opacity on its contents, transform on its frame, so each has one animation.
+  for (const svg of $('shield').children) track(svg, [[3.55, { opacity: 0 }, LIN], [3.7, { opacity: 1 }], [6.8, { opacity: 1 }, IN], [7.25, { opacity: 0 }], [55.2, { opacity: 0 }, LIN], [55.35, { opacity: 1 }]]);
+  drawMark('sm', [3.55, 55.3]);
   track($('flash'), [
     [3.5, { opacity: 0, transform: AT(F.shield) }, LIN], [3.62, { opacity: 1 }, EX], [4.4, { opacity: 0 }],
     [30, { opacity: 0, transform: AT(F.shieldEnd) }, LIN],
@@ -748,14 +804,8 @@ function build() {
 
   // ---- act 6: the close -----------------------------------------------------------------
   ring($('ring4'), 55.25, F.shieldEnd);
-  track($('rays'), [[55.3, { opacity: 0, transform: AT(F.shieldEnd, 0.6, 0) }, EX], [56.4, { opacity: 1, transform: AT(F.shieldEnd, 1, 20) }, LIN], [60, { opacity: 0.8, transform: AT(F.shieldEnd, 1.05, 52) }]]);
-  reveal($('end'), 56.4, 61, { stagger: 0.09 });
-  // The letters close in from wide apart, each one moved on its own.
-  [...'KAWACH'].forEach((_, i) => {
-    const dx = (i - 2.5) * 0.38 * F.word.size;
-    track($(`wl${i}`), [[57.0 + i * 0.07, { opacity: 0, transform: `translate(${dx}px, 40px)` }, EX], [58.3, { opacity: 1, transform: 'translate(0px, 0px)' }]]);
-  });
-  track($('rule'), [[57.8, { transform: 'scaleX(0)' }, EX], [58.6, { transform: 'scaleX(1)' }]]);
+  markLetters('wl', 55.8, F.word.size);
+  reveal($('end'), 56.8, 61, { stagger: 0.09 });
   track($('url'), [[58.0, { opacity: 0, transform: 'translateY(10px)' }, EX], [58.7, { opacity: 1, transform: 'translateY(0px)' }]]);
   track($('black'), [[0, { opacity: 1 }, LIN], [0.2, { opacity: 0 }], [59.2, { opacity: 0 }, IO], [60, { opacity: 1 }]]);
 
