@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.27',
+    items: [
+      {
+        icon: 'coach',
+        title: "Clearer answers on Coach",
+        text: "Ask Coach whether you can afford something and the answer now shows how much of what is left it would take, as a bar, with the sums counting in.",
+        guide: [{ view: 'coach', target: '.coach-questions', text: "Try: Can I afford this?" }],
+      },
+    ],
+  },
+  {
     version: '4.26',
     items: [
       {
