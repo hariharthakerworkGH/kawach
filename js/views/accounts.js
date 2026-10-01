@@ -15,7 +15,7 @@ import { brandMark } from '../brand.js';
 import { allocationRing } from '../charts.js';
 import { appearance } from '../appearance.js';
 import { displayName } from './transactions.js';
-import { escapeHtml, escapeAttr, emptyState, hero, moneyTone } from '../ui.js';
+import { escapeHtml, escapeAttr, emptyState, hero, moneyTone, shapeLike } from '../ui.js';
 // NEW for the bill-payment panel: reading a pasted bank SMS or email, and
 // saying what happened.
 import { parseAlert, alertFingerprint } from '../alerts.js';
@@ -282,7 +282,9 @@ export async function render(container) {
       await put('accounts', { ...fresh, statementDuePaid: true });
       payingBill = null;
       showToast(`${cardName(card)} bill paid`);
-      redraw(container, () => render(container));
+      const before = balanceOf(container, sourceId);
+      await redraw(container, () => render(container));
+      showPaid(container, card.id, sourceId, before);
     });
   });
 
@@ -930,6 +932,11 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
                    ? `<dl class="loan-lines">${fact('At maturity', `<span class="in">${formatRupees(account.deposit.atMaturity)}</span>`)}</dl>`
                    : ''
                }
+               ${
+                 // Said once, on the account it is true of: a savings pot is
+                 // never money you can spend (js/free-to-spend.js).
+                 account.type === 'savings' ? `<p class="acc-state acc-state--saved"><i class="bill-dot" aria-hidden="true"></i>Never counted as spendable</p>` : ''
+               }
                ${fdHint ? `<div class="account-detail"><button type="button" class="k-btn k-btn--ghost account-go-import">Import SBI's statement PDF to see your FDs</button></div>` : ''}
                ${account.type !== 'bank' ? `<div class="account-detail">${rowActions(account, { spendable })}</div>` : ''}`
             : `${accountRow(account, { meta: `${account.business ? 'business · ' : ''}import a statement to see the balance`, value: '', place })}
@@ -1185,7 +1192,7 @@ function renderBill(bill, account) {
   if (bill.paid) {
     return `
       <div class="bill-line">
-        <span class="bill-when">Paid${account.statementPeriodEnd ? ` · bill of ${formatDateNice(account.statementPeriodEnd)}` : ''}</span>
+        <span class="bill-when bill-paid"><i class="bill-dot" aria-hidden="true"></i>Paid${account.statementPeriodEnd ? ` · bill of ${formatDateNice(account.statementPeriodEnd)}` : ''}</span>
         <span class="bill-amount in">${formatCurrency(bill.amount)}</span>
       </div>
       <div class="bill-actions"><button type="button" class="link-btn bill-toggle-paid" data-id="${account.id}">Mark unpaid</button></div>
@@ -1201,12 +1208,44 @@ function renderBill(bill, account) {
   const open = payingBill === account.id;
   return `
     <div class="bill-line">
-      <span class="bill-when ${urgency ? 'bill-' + urgency : ''}">${when}</span>
+      <span class="bill-when ${urgency ? 'bill-' + urgency : ''}"><i class="bill-dot" aria-hidden="true"></i>${when}</span>
       <span class="bill-amount out">${formatCurrency(bill.amount)}</span>
     </div>
     <div class="bill-actions"><button type="button" class="link-btn bill-pay-open" data-id="${account.id}" aria-expanded="${open}">Mark bill paid</button></div>
     ${open ? billPanel(account) : ''}
   `;
+}
+
+// The bank row's figure as it reads on screen, so that after a bill is paid
+// it can count from there to the new one.
+function balanceOf(container, id) {
+  const el = container.querySelector(`.account-open[data-id="${id}"] .account-balance`);
+  return el ? el.textContent.trim() : '';
+}
+
+// A bill just paid: its card glows green for a moment and the bank's balance
+// counts down to what is left, so both sides of the one payment are seen to
+// move. Only figures already on screen; nothing for reduced motion.
+function showPaid(container, cardId, sourceId, before) {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const block = container.querySelector(`.account-open[data-id="${cardId}"]`)?.closest('.account-block');
+  if (block) {
+    block.classList.add('just-paid');
+    setTimeout(() => block.classList.remove('just-paid'), 1800);
+  }
+  const el = container.querySelector(`.account-open[data-id="${sourceId}"] .account-balance`);
+  const final = el ? el.textContent.trim() : '';
+  const from = Number(before.replace(/[^\d]/g, ''));
+  const to = Number(final.replace(/[^\d]/g, ''));
+  if (!el || !from || !to || from === to || /[^\d,₹−-]/.test(final)) return;
+  const start = performance.now();
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / 900);
+    el.textContent = t >= 1 ? final : shapeLike(final, Math.round(from + (to - from) * (1 - (1 - t) ** 3)));
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+  setTimeout(() => { el.textContent = final; }, 1400);
 }
 
 // The inline panel behind "Mark bill paid": where it was paid from, the bank's
