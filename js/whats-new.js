@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.20.2',
+    items: [
+      {
+        icon: 'play',
+        title: 'The tour is a video now',
+        text: 'The tour plays as a sharp, smooth video on every phone, instead of being drawn while you watch. It needs an internet connection to play.',
+      },
+    ],
+  },
+  {
     version: '4.20.1',
     items: [
       {

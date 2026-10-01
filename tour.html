@@ -83,6 +83,11 @@
     60% { transform: translate(-30px, -30px); } 80% { transform: translate(70px, 60px); } 100% { transform: translate(0, 0); }
   }
   @media (prefers-reduced-motion: reduce) { .tf-grain { animation: none; } }
+  /* Rendering the video (?capture=1): the stage fills the window, and nothing
+     moves by the wall clock, since every frame is taken at a set moment. */
+  .is-capture .tf-frame { inset: 0; }
+  .is-capture .tf-controls, .is-capture .tf-grain { display: none; }
+  .is-capture *, .is-capture *::before, .is-capture *::after { transition: none !important; }
   .tf-vignette { position: absolute; inset: 0; background: radial-gradient(120% 95% at 50% 46%, transparent 55%, oklch(0% 0 0 / 0.7)); }
   .tf-black { position: absolute; inset: 0; background: #000; }
   .tf-ring {
