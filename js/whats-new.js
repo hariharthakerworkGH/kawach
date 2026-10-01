@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.23',
+    items: [
+      {
+        icon: 'add',
+        title: "Adding a payment, with feedback",
+        text: "A pasted bank SMS now lights up each part as it is read. A work cost switched on glows green, and saving one tells you your Left to spend is unchanged. Save shows a tick when it is done.",
+      },
+    ],
+  },
+  {
     version: '4.22',
     items: [
       {

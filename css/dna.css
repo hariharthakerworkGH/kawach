@@ -3100,3 +3100,47 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .is-arriving .summary-owed .summary-row { animation-delay: 230ms; }
 .is-arriving .summary-owed .summary-row + .summary-row { animation-delay: 300ms; }
 @keyframes summary-rise { from { opacity: 0; transform: translateY(10px); } }
+
+/* ---- Add: the work-cost switch, Save, and a pasted SMS filling in (4.23) --
+ * A work cost switched on gets a green edge, the colour of money coming back.
+ * Save turns green with a tick and one soft ring for a moment. A message just
+ * pasted into the SMS inbox lights its fields one after another. */
+.k .k-switch-row:has(#add-reimb:checked),
+.k .k-switch-row:has(#add-settle:checked) {
+  margin: 0 calc(-1 * var(--k-3));
+  padding: var(--k-3);
+  border-radius: var(--k-r-md);
+  box-shadow: 0 0 0 1.5px color-mix(in oklch, var(--k-positive) 70%, transparent), 0 0 18px color-mix(in oklch, var(--k-positive) 22%, transparent);
+  transition: box-shadow var(--k-t-normal) var(--k-ease);
+}
+.k .k-switch-row:has(#add-reimb:checked) .k-toggle,
+.k .k-switch-row:has(#add-settle:checked) .k-toggle { background: color-mix(in oklch, var(--k-positive) 45%, transparent); box-shadow: none; }
+.k .k-switch-row:has(#add-reimb:checked) .k-toggle::after,
+.k .k-switch-row:has(#add-settle:checked) .k-toggle::after { background: var(--k-positive); }
+.k .add-form .btn-primary { position: relative; transition: background var(--k-t-normal) var(--k-ease); }
+.k .add-form .btn-primary.is-saved { background: var(--k-positive); box-shadow: 0 0 22px color-mix(in oklch, var(--k-positive) 45%, transparent); display: inline-flex; align-items: center; justify-content: center; gap: var(--k-2); }
+.k .add-form .btn-primary.is-saved .icon { width: 20px; height: 20px; }
+.k .add-form .btn-primary.is-saved::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 0 0 2px var(--k-positive);
+  animation: saved-ring 800ms var(--k-ease) forwards;
+}
+@keyframes saved-ring { from { opacity: 0.9; transform: scale(1); } to { opacity: 0; transform: scale(1.18, 1.9); } }
+.alert-card.is-fresh { animation: fresh-in 480ms var(--k-ease) both; }
+.alert-card.is-fresh .field,
+.alert-card.is-fresh .alert-amount { position: relative; }
+.alert-card.is-fresh .field::after,
+.alert-card.is-fresh .alert-amount::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 12px; pointer-events: none;
+  animation: fresh-field 900ms var(--k-ease) both;
+  animation-delay: calc(var(--i, 0) * 140ms + 260ms);
+}
+@keyframes fresh-in { from { opacity: 0; transform: translateY(12px); } }
+@keyframes fresh-field {
+  0% { box-shadow: 0 0 0 0 transparent; }
+  25% { box-shadow: 0 0 0 1.5px var(--k-accent), 0 0 18px color-mix(in oklch, var(--k-cyan) 40%, transparent); }
+  100% { box-shadow: 0 0 0 1.5px transparent, 0 0 18px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k .add-form .btn-primary.is-saved::after { animation: none; opacity: 0; }
+}

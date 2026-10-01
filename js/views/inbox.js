@@ -350,9 +350,19 @@ async function ingest(text, refresh) {
     showToast('Nothing to read yet');
     return;
   }
+  const before = new Set([...document.querySelectorAll('.alert-card[data-id]')].map((c) => c.dataset.id));
   const n = await addToInbox(text, 'paste');
   showToast(n ? `${n} alert${n === 1 ? '' : 's'} added to check` : 'Already in the list');
   await refresh();
+  // The message just read fills its card in front of you: each field lights
+  // in turn, so you see what was taken from where. Only the new card, once.
+  if (!n || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  for (const card of document.querySelectorAll('.alert-card[data-id]')) {
+    if (before.has(card.dataset.id)) continue;
+    card.querySelectorAll('.field, .alert-amount').forEach((f, i) => f.style.setProperty('--i', i));
+    card.classList.add('is-fresh');
+    setTimeout(() => card.classList.remove('is-fresh'), 2600);
+  }
 }
 
 function readEdits(card, draft) {

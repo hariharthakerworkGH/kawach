@@ -424,8 +424,12 @@ export async function render(container, params = {}) {
       });
       showToast(`Saved · ${formatCurrency(toMonthly(amount, frequency))} a month in your plan`);
     } else {
-      showToast(`Saved ${direction === 'debit' ? '-' : '+'}₹${(amount / 100).toLocaleString('en-IN')}`);
+      // A work cost is never spending (js/free-to-spend.js), so saying so
+      // here answers the question it raises: did that just eat my budget?
+      const work = transaction.isReimbursable ? ' · Left to spend unchanged' : '';
+      showToast(`Saved ${direction === 'debit' ? '-' : '+'}₹${(amount / 100).toLocaleString('en-IN')}${work}`);
     }
+    savedFeedback(form.querySelector('button[type="submit"]'));
 
     form.reset();
     repeatOptions.hidden = true;
@@ -443,6 +447,22 @@ export async function render(container, params = {}) {
   });
 
   amountInput.focus();
+}
+
+// The Save button says it worked: green, a tick, one soft ring, then back
+// to itself for the next payment. Nothing moves for reduced motion beyond
+// the colour and the tick.
+function savedFeedback(btn) {
+  if (!btn) return;
+  btn.classList.remove('is-saved');
+  void btn.offsetWidth;
+  btn.classList.add('is-saved');
+  btn.dataset.label = btn.textContent;
+  btn.innerHTML = `${icon('check')}<span>Saved</span>`;
+  setTimeout(() => {
+    btn.classList.remove('is-saved');
+    btn.textContent = btn.dataset.label || 'Save';
+  }, 1300);
 }
 
 // The last two days of the month a date is in - the 30th and 31st, or the
