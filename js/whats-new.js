@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.22',
+    items: [
+      {
+        icon: 'summary',
+        title: "Summary, as a ring",
+        text: "Left to spend now sits inside a ring. The thick arc is how much of your budget is spent, the thin one how much of the month has gone: if the thick arc runs ahead, you are spending faster than the month. The figures under it are one per row.",
+        guide: [{ view: 'summary', target: '.hero-ring', text: "Thick arc: budget spent. Thin ring: the month gone." }],
+      },
+    ],
+  },
+  {
     version: '4.21',
     items: [
       {
@@ -432,7 +443,7 @@ const NOTES = [
         icon: 'summary',
         title: 'Summary says it in fewer words',
         text: 'Spent and budget are one line now, and the note under the drawing is shorter.',
-        guide: [{ view: 'summary', target: '.hero-under', text: 'One line, so the two figures explain each other.' }],
+        guide: [{ view: 'summary', target: '.summary-rows', text: 'One line, so the two figures explain each other.' }],
       },
       {
         icon: 'card',
@@ -659,7 +670,7 @@ const NOTES = [
         icon: 'wallet',
         title: 'Money arrives when it arrives',
         text: 'Anything dated ahead - a salary, a payment you logged for next week - no longer counts in your bank balance until the day comes.',
-        guide: [{ view: 'summary', target: '.bank-card, .hero-under', text: 'In bank is what is there today. Money still to come is counted separately, after salary and bills.' }],
+        guide: [{ view: 'summary', target: '.bank-card, .summary-rows', text: 'In bank is what is there today. Money still to come is counted separately, after salary and bills.' }],
       },
       {
         icon: 'summary',
@@ -739,7 +750,7 @@ const NOTES = [
         icon: 'wallet',
         title: 'What you kept back, still there',
         text: 'Summary shows what is left of the money you set aside, instead of it quietly disappearing.',
-        guide: [{ view: 'summary', target: '#set-aside-stat, .hero-under', text: 'When money you set aside is still unspent, it shows here. Tap it for the list.' }],
+        guide: [{ view: 'summary', target: '#set-aside-stat, .summary-rows', text: 'When money you set aside is still unspent, it shows here. Tap it for the list.' }],
       },
       {
         icon: 'history',

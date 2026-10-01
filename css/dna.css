@@ -3047,3 +3047,56 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .bank-refund span:last-child { font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .k .bank-late { margin: var(--k-2) 0 0; color: var(--k-warning); }
 .k .stat-sub { display: block; margin-top: 2px; font-size: var(--k-caption); color: var(--k-warning); }
+
+/* ---- Summary: the ring, and one card of rows (4.22) ----------------------
+ * The ring is the Summary's headline: a thick arc for the share of the budget
+ * spent, a thin violet one for the share of the month gone. The arc is green, then
+ * amber from 75% of the budget spent, red from 90%: about the budget only. It draws itself once as the screen
+ * arrives (.is-arriving, set by countUpHeroes in js/ui.js) and then sits
+ * still; a screen redrawing itself never replays it. */
+.k .hero--ring { text-align: center; }
+.k .hero--ring .hero-top { text-align: left; }
+.k .hero-ring { position: relative; width: min(256px, 70vw); aspect-ratio: 1; margin: var(--k-3) auto var(--k-1); }
+.k .hero-ring svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.k .hero-ring circle { fill: none; }
+.k .hero-ring__track { stroke: var(--k-surface-elev); stroke-width: 14; }
+.k .hero-ring__track--days { stroke: color-mix(in oklch, var(--k-text) 7%, transparent); stroke-width: 5; }
+.k .hero-ring__spent { stroke: var(--k-positive); stroke-width: 14; stroke-linecap: round; filter: drop-shadow(0 0 6px color-mix(in oklch, var(--k-positive) 50%, transparent)); }
+.k .hero-ring--warn .hero-ring__spent { stroke: var(--k-warning); filter: drop-shadow(0 0 6px color-mix(in oklch, var(--k-warning) 50%, transparent)); }
+.k .hero-ring--over .hero-ring__spent { stroke: var(--k-negative); filter: drop-shadow(0 0 6px color-mix(in oklch, var(--k-negative) 50%, transparent)); }
+.k .hero-ring__days { stroke: var(--k-violet); stroke-width: 5; stroke-linecap: round; }
+.k .hero-ring__mid { position: absolute; inset: 0; display: grid; place-content: center; }
+.k .hero--ring .hero-amount { margin: 0; font-size: calc(min(256px, 70vw) * 0.165); }
+.k .hero--ring .hero-amount--long { font-size: calc(min(256px, 70vw) * 0.13); }
+.k .hero-ring__of { margin: var(--k-1) 0 0; font-size: var(--k-caption); color: var(--k-text-2); }
+.k .hero--ring .hero-status { margin-top: var(--k-2); }
+.k .hero-ring__key { display: flex; justify-content: center; gap: var(--k-5); margin: var(--k-3) 0 0; font-size: var(--k-caption); color: var(--k-text-3); }
+.k .hero-ring__key span::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--c); }
+.k .hero-ring__key-spent { --c: var(--k-positive); }
+.k .hero-ring--warn .hero-ring__key-spent { --c: var(--k-warning); }
+.k .hero-ring--over .hero-ring__key-spent { --c: var(--k-negative); }
+.k .hero-ring__key-days { --c: var(--k-violet); }
+.is-arriving .hero-ring__spent { animation: hero-ring-in 900ms var(--k-ease) 80ms both; }
+.is-arriving .hero-ring__days { animation: hero-ring-in 900ms var(--k-ease) 200ms both; }
+@keyframes hero-ring-in { from { stroke-dasharray: 0 100; } }
+
+/* The figures under it: one card, one figure a row (no side-by-side cards). */
+.k .summary-rows { margin: var(--k-4) 0 0; padding: 0 var(--k-5); border-radius: var(--k-r-lg); background: var(--k-surface); }
+.k .summary-owed { display: contents; }
+.k .summary-row { display: flex; align-items: center; gap: var(--k-3); width: 100%; padding: var(--k-4) 0; border: 0; border-top: 1px solid var(--k-hairline); background: none; color: inherit; font: inherit; text-align: left; }
+.k .summary-rows > :first-child,
+.k .summary-rows > :first-child > .summary-row:first-child { border-top: 0; }
+.k .summary-row__k { flex: 1; min-width: 0; display: grid; gap: 2px; font-weight: 600; }
+.k .summary-row__k small { font-size: var(--k-caption); font-weight: 400; color: var(--k-text-3); }
+.k .summary-row__k .summary-row__late { color: var(--k-warning); }
+.k .summary-row__v { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.k .summary-row__v--cards { color: var(--k-cyan); }
+.k .summary-row__v--back { color: var(--k-positive); }
+.k .summary-row--tap { cursor: pointer; }
+.k .summary-row--tap:active { background: var(--k-surface-press); }
+.k .summary-spark { flex: none; width: 64px; height: 24px; }
+.k .summary-spark polyline { fill: none; stroke: var(--k-positive); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.is-arriving .summary-row { animation: summary-rise 480ms var(--k-ease) 160ms both; }
+.is-arriving .summary-owed .summary-row { animation-delay: 230ms; }
+.is-arriving .summary-owed .summary-row + .summary-row { animation-delay: 300ms; }
+@keyframes summary-rise { from { opacity: 0; transform: translateY(10px); } }

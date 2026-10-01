@@ -432,12 +432,23 @@ const breakdownLine = (label, amount, sign, note = '') =>
  * most likely to be staring at. Past the budget it says "against" instead,
  * which stays true however far past it goes.
  */
-export function spentLine(spent, limit) {
+export function spentLine(spent, limit, spark = '') {
   const over = spent > limit;
-  return `<div class="stat stat-wide">
-        <span class="stat-v">${formatRupees(spent)}${over ? '' : ` <span class="stat-of">of</span> ${formatRupees(limit)}`}</span>
-        <span class="stat-k">${over ? `spent against ${formatRupees(limit)}` : 'spent'}</span>
+  return `<div class="summary-row">
+        <span class="summary-row__k">Spent<small>${over ? `against ${formatRupees(limit)}` : `of ${formatRupees(limit)}`}</small></span>
+        ${spark}
+        <span class="summary-row__v">${formatRupees(spent)}</span>
       </div>`;
+}
+
+// The month so far, day by day, as one small line beside what was spent:
+// the shape of it, not the figures, which are in the row already.
+function spendSpark(days) {
+  const v = (days || []).map((d) => d.amount || 0);
+  if (v.length < 3 || !v.some((x) => x > 0)) return '';
+  const top = Math.max(...v);
+  const pts = v.map((x, i) => `${((i / (v.length - 1)) * 64).toFixed(1)},${(22 - (x / top) * 20).toFixed(1)}`).join(' ');
+  return `<svg class="summary-spark" viewBox="0 0 64 24" aria-hidden="true" focusable="false"><polyline points="${pts}"/></svg>`;
 }
 
 // NEW (4.18): a work cost you will be refunded for is inside "owed on cards",
@@ -460,15 +471,15 @@ function renderOwed(f) {
   const onCards = Math.max(0, ((f.totals && f.totals.owedCards) || 0) + ((f.totals && f.totals.unpaidBills) || 0));
   const employer = (f.reimbursable && f.reimbursable.owed) || 0;
   if (!f.cards.length && !employer) return '';
-  return `<div class="hero-under summary-owed">
+  return `<div class="summary-owed">
       ${
         f.cards.length
-          ? `<div class="stat"><span class="stat-v">${formatRupees(onCards)}</span><span class="stat-k">Owed on cards</span></div>`
+          ? `<div class="summary-row"><span class="summary-row__k">Owed on cards<small>unpaid bills and new spending</small></span><span class="summary-row__v summary-row__v--cards">${formatRupees(onCards)}</span></div>`
           : ''
       }
       ${
         employer
-          ? `<div class="stat"><span class="stat-v">${formatRupees(employer)}</span><span class="stat-k">Owed back by employer</span>${f.refundOverdue ? `<span class="stat-sub">${formatRupees(f.refundOverdue.amount)} late, since ${formatDateNice(f.refundOverdue.since)}</span>` : ''}</div>`
+          ? `<div class="summary-row"><span class="summary-row__k">Owed back<small>by your employer</small>${f.refundOverdue ? `<small class="summary-row__late">${formatRupees(f.refundOverdue.amount)} late, since ${formatDateNice(f.refundOverdue.since)}</small>` : ''}</span><span class="summary-row__v summary-row__v--back">${formatRupees(employer)}</span></div>`
           : ''
       }
     </div>`;
@@ -487,8 +498,16 @@ export function spendingHero(f, look = 'full', statusText = null) {
   // A finished month has no pace to project ("heading for ₹30,000 ... under
   // today's pace" is about a month still running), so it gets the plain
   // used-up bar below instead of the pace drawing.
-  const burn = statusText != null ? null : burnLine({ totals: f.spendDays, budget: f.limit, days: f.daysIntoCycle + f.daysToClose - 1, shortfall: f.bankShortfall });
-  const meter = burn || !(f.spentThisCycle > 0) ? null : { pct, tone: f.level === 'ok' ? '' : f.level === 'warning' ? 'warn' : 'over' };
+  // CHANGED (4.22): the full look is a ring - a thick arc for the budget
+  // spent, a thin one for the month gone - which says what the bar and the
+  // pace drawing said, in one picture: an arc running ahead of the ring is
+  // spending running ahead of the month. A finished month's ring is full.
+  const monthDays = (f.daysIntoCycle || 0) + (f.daysToClose || 1) - 1;
+  const ring = look === 'full' && f.limit > 0
+    ? { spent: Math.max(0, f.used || 0), days: statusText != null ? 1 : monthDays > 0 ? f.daysIntoCycle / monthDays : 0, of: `of ${formatRupees(f.limit)}` }
+    : null;
+  const burn = ring || statusText != null ? null : burnLine({ totals: f.spendDays, budget: f.limit, days: f.daysIntoCycle + f.daysToClose - 1, shortfall: f.bankShortfall });
+  const meter = ring || burn || !(f.spentThisCycle > 0) ? null : { pct, tone: f.level === 'ok' ? '' : f.level === 'warning' ? 'warn' : 'over' };
   return hero({
     label: 'Left to spend',
     period: `${formatDateNice(f.cycleStart)} to ${until}`,
@@ -499,6 +518,7 @@ export function spendingHero(f, look = 'full', statusText = null) {
     // `burn` is null for a finished month; an empty string, never "null".
     chart: look === 'full' ? burn || '' : '',
     status: look === 'plain' ? '' : escapeHtml(statusText != null ? statusText : spendingStatus(f)),
+    ring,
   });
 }
 
@@ -510,14 +530,14 @@ function renderSpendingLimit(f, opts = {}) {
   const owed = opts.past ? '' : renderOwed(f);
   if (!f.monthlyIncome || !f.salary.setUp) {
     const ask = f.incomeKind === 'business' ? 'what the house needs a month' : `your ${incomeWords(f.incomeKind).noun} and the day it arrives`;
-    return `<div class="totals-card"><p class="muted-note">Add ${ask} on Plan to see what you can spend.</p></div>${owed}`;
+    return `<div class="totals-card"><p class="muted-note">Add ${ask} on Plan to see what you can spend.</p></div>${owed ? `<div class="summary-rows">${owed}</div>` : ''}`;
   }
   if (f.noCommitments) {
     return `<div class="hero level-warning">
         <p class="hero-label">Left to spend</p>
         <p class="hero-amount">-</p>
         <p class="hero-sub">Add your fixed commitments on Plan first - without them your whole income looks free.</p>
-      </div>${owed}`;
+      </div>${owed ? `<div class="summary-rows">${owed}</div>` : ''}`;
   }
   return renderCardsHero(f, opts);
 }
@@ -690,16 +710,18 @@ function renderCardsHero(f, { past = null } = {}) {
           .join('')}`
       : '';
 
+  // CHANGED (4.22): the figures under the headline are one card of rows,
+  // one figure a row, rather than figures side by side.
   return spendingHero(shown, appearance('summary'), past ? `Final for ${past.name}` : null) + `
-    <div class="hero-under">
-      ${spentLine(f.spentThisCycle, f.limit)}
+    <div class="summary-rows">
+      ${spentLine(f.spentThisCycle, f.limit, spendSpark(f.spendByDay))}
       ${past ? '' : stillSetAside(f)}
+      ${
+        // Owed on cards, and owed back by the employer while any is -
+        // straight under the spent figure, where the other numbers are.
+        past ? '' : renderOwed(f)
+      }
     </div>
-    ${
-      // NEW: owed on cards, and owed back by the employer while any is -
-      // straight under the spent figure, where the other numbers are.
-      past ? '' : renderOwed(f)
-    }
     ${(() => {
       const card = Math.max(0, f.cardSpent || 0);
       const bank = Math.max(0, f.bankSpent || 0);
@@ -792,9 +814,9 @@ function stillSetAside(f) {
   const rows = f.tracker.filter((t) => t.setAside && !t.skipped && t.left > 0 && ['ok', 'heading-over', 'part'].includes(t.status));
   const left = rows.reduce((s, t) => s + t.left, 0);
   if (!left) return '';
-  return `<button type="button" class="stat stat-aside" id="set-aside-stat">
-      <span class="stat-v">${formatRupees(left)}</span>
-      <span class="stat-k">kept back</span>
+  return `<button type="button" class="summary-row summary-row--tap" id="set-aside-stat">
+      <span class="summary-row__k">Kept back<small>set aside, not spent yet</small></span>
+      <span class="summary-row__v">${formatRupees(left)}</span>
     </button>`;
 }
 
