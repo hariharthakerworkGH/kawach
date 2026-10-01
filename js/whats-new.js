@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.26',
+    items: [
+      {
+        icon: 'history',
+        title: "Your month, day by day",
+        text: "History now shows a bar for what went out each day, with the biggest day named. Tap a day to jump to it in the list.",
+        guide: [{ view: 'transactions', target: '.hist-days', text: "Tap a day to jump to it." }],
+      },
+    ],
+  },
+  {
     version: '4.25',
     items: [
       {

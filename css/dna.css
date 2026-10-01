@@ -3218,3 +3218,24 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .is-arriving .committed-bar i { transform-origin: left center; animation: grow-x 700ms var(--k-ease) 120ms both; }
 @keyframes grow-up { from { transform: scaleY(0); } }
 @keyframes grow-x { from { transform: scaleX(0); } }
+
+/* ---- History: the month day by day (4.26) --------------------------------
+ * A bar for what went out each day, the biggest day named under it; tapping a
+ * bar takes the list to that day, which glows for a moment. The bars draw
+ * themselves left to right as the screen arrives. */
+.k .hist-days { margin: var(--k-4) 0 var(--k-2); }
+.k .hist-days__bars { display: flex; align-items: flex-end; gap: 2px; height: 84px; }
+.k .hist-days__bar, .k .hist-days__none { flex: 1 1 0; min-width: 0; }
+.k .hist-days__bar { height: var(--h); padding: 0; border: 0; border-radius: 3px 3px 1px 1px; background: color-mix(in oklch, var(--k-cyan) 55%, transparent); cursor: pointer; transform-origin: bottom center; }
+.k .hist-days__bar.is-top { background: var(--k-cyan); box-shadow: 0 0 12px color-mix(in oklch, var(--k-cyan) 55%, transparent); }
+.k .hist-days__bar:focus-visible { outline: 2px solid var(--k-text); outline-offset: 2px; }
+.k .hist-days__none { height: 3px; border-radius: 2px; background: color-mix(in oklch, var(--k-text) 8%, transparent); }
+.k .hist-days__top { margin: var(--k-2) 0 0; font-size: var(--k-caption); color: var(--k-text-3); }
+.k .hist-days__top strong { color: var(--k-cyan); font-variant-numeric: tabular-nums; }
+.k .hist-day { scroll-margin-top: 80px; }
+.k .hist-day.is-picked .hist-day-card { animation: day-picked 1.4s var(--k-ease); }
+@keyframes day-picked { 0%, 35% { box-shadow: 0 0 0 1.5px var(--k-cyan), 0 0 22px color-mix(in oklch, var(--k-cyan) 35%, transparent); } }
+.is-arriving .hist-days__bar { animation: grow-up 520ms var(--k-ease) calc(var(--i) * 14ms) both; }
+@media (prefers-reduced-motion: reduce) {
+  .k .hist-day.is-picked .hist-day-card { animation: none; }
+}
