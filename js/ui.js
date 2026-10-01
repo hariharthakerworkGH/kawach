@@ -29,8 +29,13 @@ export function escapeAttr(str) {
  *   status  one line saying whether this is good or bad
  *   chart   one drawing from js/charts.js (design.md section 9)
  *   extra   anything the screen adds under the status (a fold, a note)
+ *   ring    { spent, days, of } the Summary's ring, in place of a meter:
+ *           a thick arc for the share of the budget spent, a thin one for
+ *           the share of the month gone, the figure in the middle. When the
+ *           thick arc runs ahead of the thin one, spending is ahead of the
+ *           month. Both are fractions; spent may pass 1.
  */
-export function hero({ label, period = '', amount, negative = false, level = 'ok', meter = null, figures = [], status = '', chart = '', extra = '' }) {
+export function hero({ label, period = '', amount, negative = false, level = 'ok', meter = null, figures = [], status = '', chart = '', extra = '', ring = null }) {
   const top = period
     ? `<div class="hero-top"><span class="hero-label">${label}</span><span class="hero-label">${period}</span></div>`
     : `<p class="hero-label">${label}</p>`;
@@ -38,9 +43,35 @@ export function hero({ label, period = '', amount, negative = false, level = 'ok
   // count-up is only what the eye sees (role="img" with the label means a
   // screen reader reads the label and skips the digits underneath). If the
   // animation never runs, the same digits are already there to read.
+  const figure = `<p class="hero-amount ${negative ? 'negative' : ''}${ring && amount.length > 8 ? ' hero-amount--long' : ''}" role="img" aria-label="${escapeAttr(`${label}: ${amount}`)}"><span aria-hidden="true" data-count="${escapeAttr(amount)}">${amount}</span></p>`;
+  if (ring) {
+    const pct = (v) => (Math.max(0, Math.min(1, v || 0)) * 100).toFixed(1);
+    // A zero-length dash with round ends is still drawn as a dot, so an arc
+    // with nothing in it is left out rather than drawn empty.
+    const arc = (cls, r, v) => (v > 0.004 ? `<circle class="${cls}" cx="100" cy="100" r="${r}" pathLength="100" stroke-dasharray="${pct(v)} 100" transform="rotate(-90 100 100)"/>` : '');
+    // The arc's colour is about the budget alone: amber from 75% spent, red
+    // from 90%. The level can be red for another reason (the bank short after
+    // bills), which the status line says; the arc must not claim it.
+    const tone = ring.spent >= 0.9 ? ' hero-ring--over' : ring.spent >= 0.75 ? ' hero-ring--warn' : '';
+    return `<div class="hero hero--ring level-${level}${tone}">
+      ${top}
+      <div class="hero-ring">
+        <svg viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+          <circle class="hero-ring__track" cx="100" cy="100" r="88"/>
+          ${arc('hero-ring__spent', 88, ring.spent)}
+          <circle class="hero-ring__track hero-ring__track--days" cx="100" cy="100" r="70"/>
+          ${arc('hero-ring__days', 70, ring.days)}
+        </svg>
+        <div class="hero-ring__mid">${figure}${ring.of ? `<p class="hero-ring__of">${ring.of}</p>` : ''}</div>
+      </div>
+      ${status ? `<p class="hero-status level-${level}">${status}</p>` : ''}
+      <p class="hero-ring__key"><span class="hero-ring__key-spent">Spent</span><span class="hero-ring__key-days">Month gone</span></p>
+      ${extra}
+    </div>`;
+  }
   return `<div class="hero level-${level}">
       ${top}
-      <p class="hero-amount ${negative ? 'negative' : ''}" role="img" aria-label="${escapeAttr(`${label}: ${amount}`)}"><span aria-hidden="true" data-count="${escapeAttr(amount)}">${amount}</span></p>
+      ${figure}
       ${meter ? `<div class="hero-meter"><div class="hero-meter-fill ${meter.tone || ''}" style="width:${meter.pct}%"></div></div>` : ''}
       ${chart}
       ${figures.length ? `<div class="hero-figures">${figures.map((f) => `<span><span class="muted">${f.label}</span> ${f.value}</span>`).join('')}</div>` : ''}
@@ -133,6 +164,13 @@ export function countUpHeroes(root = document) {
   // A screen built while the tab is in the background has no frames to count
   // in - the browser stops them - so the figure simply stands at its value.
   if (document.hidden) return;
+  // Anything else that arrives with the screen (the Summary's ring, rows
+  // rising into place) plays under this class, once, and then sits still.
+  // A screen that only redraws itself never gets it, so nothing replays.
+  if (root.classList) {
+    root.classList.add('is-arriving');
+    setTimeout(() => root.classList.remove('is-arriving'), 1600);
+  }
   for (const el of root.querySelectorAll('.hero-amount [data-count]')) {
     const final = el.dataset.count;
     const digits = final.replace(/[^\d]/g, '');

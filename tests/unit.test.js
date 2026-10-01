@@ -1399,6 +1399,23 @@ test('a finished month\'s hero says it is final and never prints "null"', () => 
   ok(!html.includes('a day until'), 'no pace line for a month that is over');
 });
 
+test('the Summary ring: arcs for budget spent and month gone, coloured by the budget alone', () => {
+  const base = {
+    cycleKey: '2026-10-31', cycleStart: '2026-10-01', free: rupees(15150), level: 'ok', limit: rupees(31500), used: 0.52,
+    spentThisCycle: rupees(16350), spendDays: [], daysIntoCycle: 14, daysToClose: 18, bankShortfall: 0, perDay: rupees(500), crossesOn: null,
+  };
+  const html = spendingHero(base, 'full');
+  ok(html.includes('hero-ring__spent') && html.includes('stroke-dasharray="52.0 100"'), 'the thick arc is the share of the budget spent');
+  ok(html.includes('stroke-dasharray="45.2 100"'), 'the thin arc is the share of the month gone: 14 of 31 days');
+  ok(html.includes('of ₹31,500'), 'the budget is under the figure');
+  ok(!/hero-ring--(warn|over)/.test(html), 'half the budget spent is green');
+  ok(spendingHero({ ...base, used: 0.8 }, 'full').includes('hero-ring--warn'), 'amber from 75%');
+  ok(spendingHero({ ...base, used: 1.2, free: -rupees(6300), level: 'over' }, 'full').includes('hero-ring--over'), 'red from 90%, and past the budget');
+  ok(!/hero-ring--(warn|over)/.test(spendingHero({ ...base, used: 0.05, level: 'critical' }, 'full')), 'a red level for the bank does not turn the budget arc red');
+  ok(spendingHero(base, 'full', 'Final for September').includes('stroke-dasharray="100.0 100"'), 'a finished month has its month ring full');
+  ok(!spendingHero(base, 'plain').includes('hero-ring'), 'the plain look has no ring');
+  ok(!spendingHero({ ...base, used: 0 }, 'full').includes('hero-ring__spent'), 'nothing spent draws no arc (not a dot)');
+});
 // --- From the owner's report of 1 Oct: what the Summary said, and was not true -----
 test('a red headline that is only the bank being short does not say "almost all used"', () => {
   // 21% of the budget spent, the bank short after salary: free-to-spend lifts the level to critical.
