@@ -520,9 +520,19 @@ function renderSpendingLimit(f, opts = {}) {
  * invented: each line is a figure free-to-spend.js already returned, and
  * when none of them is true the card is not drawn at all.
  */
+// CHANGED: billed card bills worth a warning. A "bill" under ₹10 is a rounding
+// leftover between a card's spends and the payment that settled them (₹0.81 on
+// one card in the owner's own report), and free-to-spend.js already ignores it
+// in the bank check. The card here did not, and turned it into a red "Card
+// bill is still unpaid: ₹1". One rule, in one place, for this and the chart.
+export function billedOnCards(f) {
+  const billed = (f.totals && f.totals.unpaidBills) || 0;
+  return billed >= 1000 ? billed : 0;
+}
+
 function insightCard(f) {
   const days = f.daysToClose;
-  const billed = (f.totals && f.totals.unpaidBills) || 0;
+  const billed = billedOnCards(f);
   const payday = f.salary && (f.salary.dates[0] || f.salary.nextUnreceived);
   const salaryPending = Boolean(
     payday &&
@@ -624,18 +634,25 @@ function moneyShape(f) {
 // Exported so it can be tested.
 export function cashSplit(f) {
   const held = Math.max(0, f.bank || 0);
-  const billed = (f.totals && f.totals.unpaidBills) || 0;
-  const owed = billed >= 1000 ? billed : 0;
+  const owed = billedOnCards(f);
   const reserved = Math.min(held, owed);
   return { available: held - reserved, reserved, beyond: owed - reserved };
 }
 
-function spendingStatus(f) {
+export function spendingStatus(f) {
   const until = formatDateNice(f.cycleKey);
   // The insight below names any bank shortfall and unpaid card bill. Repeating
   // it under the headline made two warnings compete for the same attention.
   if (f.level === 'over') return `Over budget - stop spending until ${until}`;
-  if (f.level === 'critical') return f.crossesOn ? `Critical - runs out ${formatDateNice(f.crossesOn)} at this pace` : 'Critical - almost all used';
+  if (f.level === 'critical') {
+    if (f.crossesOn) return `Critical - runs out ${formatDateNice(f.crossesOn)} at this pace`;
+    // CHANGED: free-to-spend.js lifts the headline to critical whenever the
+    // bank cannot cover what is owed, however little of the budget is spent.
+    // "Almost all used" was then simply false - ₹2,067 of ₹9,733, 21% - under
+    // a red headline. Say what is true; the card below says how much, once.
+    if (f.used < 0.9) return `About ${formatRupees(f.perDay)} a day until ${until}. Bank is short: see below.`;
+    return 'Critical - almost all used';
+  }
   if (f.level === 'warning') return f.crossesOn ? `Careful - runs out ${formatDateNice(f.crossesOn)} at this pace` : `Careful - ${Math.round(f.used * 100)}% used`;
   return `About ${formatRupees(f.perDay)} a day until ${until}`;
 }

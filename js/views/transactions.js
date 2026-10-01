@@ -203,7 +203,7 @@ export async function render(container, params = {}) {
       // A split was set up deliberately; a bulk assign shouldn't flatten it.
       if (isSplit(t)) continue;
       t.categoryId = categoryId;
-      await put('transactions', t);
+      await save(t);
       await learnFromAssignment(t.rawDescription, categoryId);
     }
     selected.clear();
@@ -220,7 +220,7 @@ export async function render(container, params = {}) {
       if (!t || t.isTransfer) continue;
       t.isTransfer = true;
       t.transferManual = true;
-      await put('transactions', t);
+      await save(t);
       n++;
     }
     selected.clear();
@@ -300,6 +300,14 @@ export function searchHit(t, needle) {
   return /^[0-9]+$/.test(needle) && String(Math.round(t.amount / 100)) === needle;
 }
 
+// Every edit saves through here. put() stamps updatedAt, and for a payment
+// saved before 4.16 (no createdAt) that stamp was the only record of when it
+// was recorded - so one tap on a category would send it to the top of its day.
+// The earlier stamp is kept as createdAt first, once, before it is overwritten.
+function save(t) {
+  if (!t.createdAt && t.updatedAt) t.createdAt = t.updatedAt;
+  return put('transactions', t);
+}
 function matching() {
   const needle = filters.search.trim().toLowerCase();
   const month = acrossMonths() ? null : filters.month;
@@ -342,12 +350,25 @@ export function newestFirst(a, b) {
   return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
 }
 
+// The time of day a payment happened, as best it is known:
+//   1. a time set on it - the bank's own on an alert, or one you typed in Edit;
+//   2. the moment it was recorded (createdAt);
+//   3. for a payment saved before createdAt existed, the moment it was last
+//      saved (updatedAt). Right for one never edited, which is nearly all of
+//      the alerts saved the day they arrived; a payment edited since has lost
+//      its first time, and the Time box in Edit is how to give it back.
+// 2 and 3 count only when that was the day of the payment itself: one typed in
+// later for an earlier day has no time of day to speak of.
 function secondOfDay(t) {
   const m = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(t.time || '');
   if (m) return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3] || 0);
-  if (t.createdAt) {
-    const d = new Date(t.createdAt);
+  for (const when of [t.createdAt, t.updatedAt]) {
+    if (!when) continue;
+    const d = new Date(when);
     if (isoLocal(d) === t.date) return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+    // A createdAt on another day is a firm "no time of day": do not fall
+    // through to a later updatedAt that only says when it was last touched.
+    if (t.createdAt) break;
   }
   return -1;
 }
@@ -572,6 +593,10 @@ function expandedTemplate(t) {
             <button type="button" class="dir-btn rv-dir ${t.direction === 'credit' ? 'active' : ''}" data-dir="credit">Received</button>
           </div>
         </div>
+        <label class="hist-flag hist-time">
+          <span>Time</span>
+          <input type="time" class="rv-field" data-field="time" value="${/^\d{2}:\d{2}/.test(t.time || '') ? t.time.slice(0, 5) : ''}" aria-label="Time of day">
+        </label>
         <input type="text" class="rv-field rv-desc" data-field="rawDescription" value="${escapeAttr(t.rawDescription)}" aria-label="Description">
         <input type="number" step="0.01" class="rv-field rv-amount-input" data-field="amount" value="${(t.amount / 100).toFixed(2)}" aria-label="Amount">
         ${workFlagField(t)}
@@ -658,7 +683,7 @@ function splitTemplate(t) {
 
 async function setCategory(t, categoryId, container, rowEl) {
   t.categoryId = categoryId;
-  await put('transactions', t);
+  await save(t);
   if (categoryId) await learnFromAssignment(t.rawDescription, categoryId);
   // Working through "need a category": the row goes once it has one.
   if (filters.categoryId === 'uncategorized' && categoryId) {
@@ -714,10 +739,22 @@ async function handleChange(e, container) {
     if (e.type !== 'change') return;
     if (e.target.checked) t[field] = true;
     else delete t[field];
-    await put('transactions', t);
+    await save(t);
     // Refreshed in place, so the Edit panel stays open under the finger.
     const subEl = rowEl.querySelector('.hist-sub');
     if (subEl) subEl.innerHTML = subHtml(t);
+    return;
+  }
+
+  // NEW: a time of day, typed in Edit. It decides where the payment sits among
+  // the others of its day. Saved when you finish ('change'), and the list is
+  // drawn again so the payment moves to where it now belongs.
+  if (field === 'time') {
+    if (e.type !== 'change') return;
+    if (/^\d{2}:\d{2}$/.test(e.target.value)) t.time = e.target.value;
+    else delete t.time;
+    await save(t);
+    renderList(container);
     return;
   }
 
@@ -731,7 +768,7 @@ async function handleChange(e, container) {
     } else {
       delete t.paysCardId;
     }
-    await put('transactions', t);
+    await save(t);
     showToast(paysCardId ? "Counted as that card's bill payment" : 'Card cleared');
     return;
   }
@@ -747,7 +784,7 @@ async function handleChange(e, container) {
       // "Next month" has to say which commitment; without one it goes.
       delete t.forNextMonth;
     }
-    await put('transactions', t);
+    await save(t);
     // The next-month box follows the choice, in place.
     const nextBox = rowEl.querySelector('input[data-field="forNextMonth"]');
     if (nextBox) {
@@ -779,7 +816,7 @@ async function handleChange(e, container) {
     const nameEl = rowEl.querySelector('.hist-name');
     if (nameEl) nameEl.textContent = displayName(t.rawDescription);
   }
-  await put('transactions', t);
+  await save(t);
 }
 
 // Live feedback while typing split amounts, without re-rendering the row and
@@ -864,7 +901,7 @@ async function handleClick(e, container) {
 
   if (e.target.closest('.split-clear')) {
     delete t.splits;
-    await put('transactions', t);
+    await save(t);
     splitDraft = null;
     renderList(container);
     return;
@@ -877,7 +914,7 @@ async function handleClick(e, container) {
     // The top-level category becomes meaningless once split, and leaving a
     // stale one there would double-count in anything that misses the splits.
     t.categoryId = null;
-    await put('transactions', t);
+    await save(t);
     for (const r of rows) {
       if (r.categoryId) await learnFromAssignment(t.rawDescription, r.categoryId);
     }
@@ -902,7 +939,7 @@ async function handleClick(e, container) {
     // Remember that this was a human decision so auto-detection never
     // overrules it on a later import or app start.
     t.transferManual = true;
-    await put('transactions', t);
+    await save(t);
     renderList(container);
     return;
   }
@@ -913,7 +950,7 @@ async function handleClick(e, container) {
     // NEW: Spent to Received (or back) drops the flag that no longer fits, so
     // a refund never stays marked "Reimbursable".
     tidyFlags(t);
-    await put('transactions', t);
+    await save(t);
     renderList(container);
   }
 }

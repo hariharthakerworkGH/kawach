@@ -284,7 +284,7 @@ export function commitmentDueInWindow(item, { today, windowEnd, bankEntries, who
         // September that charged September's full 30,000 against one
         // remaining day and then added 29/31 of October on top: 58,065 of a
         // 30,000 commitment inside one pay period. One month, one rule.
-        const spent = bankEntries.filter((t) => t.date >= monthStart && t.date <= today && matcher(t)).reduce((s, t) => s + t.amount, 0);
+        const spent = bankEntries.filter((t) => t.date >= monthStart && t.date <= today && isPaymentFor(item, matcher, t)).reduce((s, t) => s + t.amount, 0);
         const share = Math.round(item.amount * (days / daysInMonth));
         part = Math.max(0, Math.min(item.amount - spent, share));
         parts.push(spent > 0 ? `${formatShort(part)} left this month` : `${formatShort(part)} this month`);
@@ -335,8 +335,24 @@ export function commitmentDueInWindow(item, { today, windowEnd, bankEntries, who
 function paidTowards(item, matcher, due, entries, today) {
   return entries
     .filter((t) => t.date >= addDays(due, -EARLY_DAYS) && t.date <= addDays(due, LATE_DAYS) && t.date <= today)
-    .filter((t) => (matcher ? matcher(t) : Math.abs(t.amount - item.amount) <= item.amount * 0.02))
+    .filter((t) => isPaymentFor(item, matcher, t))
     .reduce((s, t) => s + t.amount, 0);
+}
+
+// Whether one payment is towards this commitment. The tracker on Summary has
+// always honoured what you told it, and this is the same answer for the bank
+// check, which used to look at words and amounts alone:
+//   - a payment you tagged to it IS it, whatever its words say;
+//   - one you tagged to a different commitment, or marked "Not this", is not;
+//   - otherwise its words, or about its amount.
+// Without this, a rent payment tagged to Rent (its statement words matched
+// nothing) read as paid on Summary and still to pay in the bank check, and the
+// 40,000 came off the bank twice.
+function isPaymentFor(item, matcher, t) {
+  if (t.commitmentId === item.id) return true;
+  if (t.commitmentId) return false;
+  if ((t.notCommitmentIds || []).includes(item.id)) return false;
+  return matcher ? matcher(t) : Math.abs(t.amount - item.amount) <= item.amount * 0.02;
 }
 
 // True when a due date has in effect already been paid.

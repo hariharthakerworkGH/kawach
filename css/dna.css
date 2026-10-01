@@ -3016,3 +3016,19 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 /* A switch that is not available yet (the next-month one, until a
    commitment is chosen). */
 .k .k-toggle:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* The Time box in a payment's Edit panel: the label on the left, the
+   control taking the rest of the line. */
+.k .hist-time { justify-content: space-between; }
+.k .hist-time input[type="time"] {
+  width: auto;
+  flex: 0 1 9rem;
+  min-height: var(--k-ctl-md);
+  margin: 0;
+  padding: 0 var(--k-3);
+  border-radius: var(--k-r-md);
+  border: 1px solid var(--k-border-subtle);
+  background-color: var(--k-glass-1);
+  color: var(--k-text);
+  font: inherit;
+}

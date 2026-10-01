@@ -1384,3 +1384,59 @@ test('on the 1st, the old month still reads what it did when it closed', async (
   equal(september.free, september.limit - rupees(10000), 'and what was left when it closed');
   equal(september.cycleKey, '2026-09-30', 'for the month ending on the 30th');
 });
+
+test('an alert saved later keeps the time it arrived, so a morning of alerts saved at lunch stay in order', async () => {
+  await seedBasics();
+  const arrived = Date.now() - 3 * 3600 * 1000;
+  await addToInbox('Spent Rs.50 On HDFC Bank Card 7777 At CHAI On 2026-09-29:08:10:00', 'paste', arrived);
+  const [item] = await pendingAlerts();
+  await saveAlert(item, { accountId: 'card', date: '2026-09-29', description: 'CHAI', amount: 5000, direction: 'debit' });
+  const saved = (await getAll('transactions')).find((x) => x.rawDescription === 'CHAI');
+  equal(saved.createdAt, arrived, 'when it came, not when Save was tapped');
+  equal(saved.time, '08:10', 'and the bank\'s own time, where it gave one');
+});
+
+// --- Rent paid and tagged, but its statement words do not match ---------------
+// From the owner's own report of 1 Oct: Rent (due the 1st, words that match
+// nothing on the bank line) was paid that morning and tagged to its commitment.
+// The tracker said paid; the bank check still listed it as due, so the 40,000 left
+// the bank balance once as the payment and was taken off again as "still to pay".
+async function seedTaggedRent(extra = {}) {
+  await seedBasics({ keep: 0, bankBalance: 82000, balanceDate: '2026-09-16' });
+  await put('recurring', commitment({ id: 'rent', label: 'Rent', amount: 40000, dayOfMonth: 1, matchText: 'ZZZQ', ...extra }));
+  // September's salary has landed (on the 30th, as in the report), so the next one is 31 Oct
+  // and the bank check has a stretch of days to look at. Without it payday reads as late.
+  await put('transactions', txn({ id: 'salary', accountId: 'bank', date: '2026-09-30', amount: 100000, direction: 'credit', rawDescription: 'SALARY' }));
+}
+const rentLine = (f) => f.bankBeforeSalary.find((x) => x.label === 'Rent');
+const landlord = (extra = {}) => txn({ id: 'landlord', accountId: 'bank', date: '2026-10-01', amount: 39400, rawDescription: 'NEFT-A LANDLORD', ...extra });
+
+test('a payment tagged to a commitment counts as paying it in the bank check, as it does in the tracker', async () => {
+  await seedTaggedRent();
+  await putAll('transactions', [landlord({ commitmentId: 'rent' })]);
+  const f = await computeFreeToSpend(day('2026-10-01'));
+  equal(f.tracker.find((t) => t.label === 'Rent').status, 'paid', 'the tracker already said so');
+  ok(!rentLine(f), 'and the bank check no longer lists it as still to pay');
+});
+
+test('without the tag, a payment whose words do not match is not taken to be the rent', async () => {
+  await seedTaggedRent();
+  await putAll('transactions', [landlord()]);
+  const f = await computeFreeToSpend(day('2026-10-01'));
+  ok(rentLine(f), 'still due: nothing says that payment was the rent');
+});
+
+test('a payment tagged to a different commitment is not counted as this one, even at the same size', async () => {
+  await seedTaggedRent();
+  await put('recurring', commitment({ id: 'other', label: 'Other', amount: 39400, dayOfMonth: 20, matchText: 'ZZZY' }));
+  await putAll('transactions', [landlord({ commitmentId: 'other' })]);
+  const f = await computeFreeToSpend(day('2026-10-01'));
+  ok(rentLine(f), 'it belongs to Other');
+});
+
+test('a payment you marked "not this" is not counted as the rent either', async () => {
+  await seedTaggedRent({ matchText: '' });
+  await putAll('transactions', [landlord({ notCommitmentIds: ['rent'] })]);
+  const f = await computeFreeToSpend(day('2026-10-01'));
+  ok(rentLine(f), 'you said it was not the rent');
+});
