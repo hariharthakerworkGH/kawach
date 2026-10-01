@@ -129,7 +129,17 @@ export async function render(container, params = {}) {
       <!-- Quiet, because the app works this out on its own nearly always. -->
       <details class="k-disclose k-add-more">
         <summary>More</summary>
-        <div class="k-add-more__body">${commitmentField(commitments)}</div>
+        <div class="k-add-more__body">
+          ${commitmentField(commitments)}
+          <!-- NEW: work costs. One row for money out, one for money in; only
+               the one that fits the Spent/Received choice is shown. -->
+          ${reimbursableSwitch('add-reimb', 'Reimbursable (Work)', 'Your employer will pay this back')}
+          ${reimbursableSwitch('add-settle', 'Settles a reimbursement', 'Money your employer paid back', true)}
+          <!-- NEW: a bill paid in the last two days of a month for the next
+               one. Shown only then, and works only once a commitment is
+               chosen above, because it has to say which one it pays. -->
+          ${reimbursableSwitch('add-nextmonth', "Apply to next month's commitments", 'Choose the commitment above first', true)}
+        </div>
       </details>
 
       <button type="submit" class="k-btn k-btn--primary btn-primary">Save</button>
@@ -173,6 +183,57 @@ export async function render(container, params = {}) {
   let direction = 'debit';
   let categoryId = null;
 
+  // The two work-cost switches. The checkbox is what the form reads; the
+  // button is what you see (the same pattern as "Repeats every month").
+  const reimbEl = container.querySelector('#add-reimb');
+  const settleEl = container.querySelector('#add-settle');
+  [reimbEl, settleEl].forEach((box) => {
+    const toggle = container.querySelector(`#${box.id}-toggle`);
+    toggle.addEventListener('click', () => {
+      box.checked = !box.checked;
+      toggle.setAttribute('aria-checked', String(box.checked));
+    });
+  });
+  // Shows the row that fits the way the money went, and clears the other: a
+  // payment switched from Spent to Received must not carry "Reimbursable" with it.
+  const showWorkRows = () => {
+    const business = isBusinessAccount(accounts.find((a) => a.id === container.querySelector('#add-account').value));
+    reimbEl.closest('.k-switch-row').hidden = business || direction !== 'debit';
+    settleEl.closest('.k-switch-row').hidden = business || direction !== 'credit';
+    for (const [box, show] of [[reimbEl, direction === 'debit'], [settleEl, direction === 'credit']]) {
+      if (!show || business) {
+        box.checked = false;
+        container.querySelector(`#${box.id}-toggle`).setAttribute('aria-checked', 'false');
+      }
+    }
+  };
+
+  // NEW: "Apply to next month's commitments". Offered for a bank payment on
+  // the last two days of a month, when rent or an EMI goes out early for the
+  // month about to begin. It is switched off the moment any of that stops
+  // being true, so it can never be saved on a payment it does not fit.
+  const nextEl = container.querySelector('#add-nextmonth');
+  const nextToggle = container.querySelector('#add-nextmonth-toggle');
+  const nextSub = container.querySelector('#add-nextmonth-sub');
+  nextToggle.addEventListener('click', () => {
+    if (nextToggle.disabled) return;
+    nextEl.checked = !nextEl.checked;
+    nextToggle.setAttribute('aria-checked', String(nextEl.checked));
+  });
+  const showNextMonthRow = () => {
+    const account = accounts.find((a) => a.id === container.querySelector('#add-account').value);
+    const commitmentEl = container.querySelector('#add-commitment');
+    const chosen = Boolean(commitmentEl && commitmentEl.value);
+    const fits = direction === 'debit' && account && account.type !== 'card' && !isBusinessAccount(account) && isMonthEnd(dateInput.value || today);
+    nextEl.closest('.k-switch-row').hidden = !fits;
+    nextToggle.disabled = !fits || !chosen;
+    nextSub.textContent = chosen ? 'Counts for next month, not this one' : 'Choose the commitment above first';
+    if (!fits || !chosen) {
+      nextEl.checked = false;
+      nextToggle.setAttribute('aria-checked', 'false');
+    }
+  };
+
   container.querySelectorAll('.dir-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       direction = btn.dataset.dir;
@@ -181,6 +242,8 @@ export async function render(container, params = {}) {
         b.classList.toggle('active', on);
         b.setAttribute('aria-selected', String(on));
       });
+      showWorkRows();
+      showNextMonthRow();
     });
   });
 
@@ -270,6 +333,17 @@ export async function render(container, params = {}) {
 
   accountSelect.addEventListener('change', fitCategories);
   fitCategories();
+  // A business account's payments are the business's, never the house's, so
+  // there is nothing to claim back from an employer on them.
+  accountSelect.addEventListener('change', showWorkRows);
+  showWorkRows();
+  // The next-month row follows the date, the account and the commitment.
+  accountSelect.addEventListener('change', showNextMonthRow);
+  dateInput.addEventListener('input', showNextMonthRow);
+  dateInput.addEventListener('change', showNextMonthRow);
+  const commitmentPick = container.querySelector('#add-commitment');
+  if (commitmentPick) commitmentPick.addEventListener('change', showNextMonthRow);
+  showNextMonthRow();
 
   // "This repeats" turns a one-off entry into a standing commitment as well,
   // so ₹120 of chai logged once becomes ₹3,650 a month in the plan without
@@ -322,8 +396,17 @@ export async function render(container, params = {}) {
       importBatchId: null,
       isTransfer: false,
       notes: null,
+      // NEW: when it was recorded. History puts same-day payments latest
+      // first by this (and by the bank's own time on alerts).
+      createdAt: Date.now(),
     };
     if (!transaction.commitmentId) delete transaction.commitmentId;
+    // NEW: only the flag that fits the direction is ever written.
+    if (direction === 'debit' && reimbEl.checked) transaction.isReimbursable = true;
+    if (direction === 'credit' && settleEl.checked) transaction.isSettlement = true;
+    // NEW: only with a commitment to apply it to (the switch is disabled
+    // without one, and this is the second lock).
+    if (direction === 'debit' && nextEl.checked && transaction.commitmentId) transaction.forNextMonth = true;
     await put('transactions', transaction);
 
     if (repeatsEl.checked) {
@@ -354,10 +437,35 @@ export async function render(container, params = {}) {
     dateInput.value = today;
     accountSelect.value = initialAccountId;
     container.querySelector('#add-commitment').value = '';
+    showWorkRows();
+    showNextMonthRow();
     amountInput.focus();
   });
 
   amountInput.focus();
+}
+
+// The last two days of the month a date is in - the 30th and 31st, or the
+// 28th and 29th in February. Exported so History's Edit panel asks the same
+// question.
+export function isMonthEnd(iso) {
+  const [y, m, d] = String(iso || '').split('-').map(Number);
+  if (!y || !m || !d) return false;
+  return d >= new Date(y, m, 0).getDate() - 1;
+}
+
+// A switch for a work cost. Same look and same hidden-checkbox arrangement as
+// "Repeats every month" above, so nothing new to learn or style. `hidden`
+// starts the row out of sight; showWorkRows() decides which one is on show.
+function reimbursableSwitch(id, label, sub, hidden = false) {
+  return `<div class="k-switch-row" ${hidden ? 'hidden' : ''}>
+      <span class="k-switch-row__text" id="${id}-label">${label}
+        <span class="k-switch-row__sub" id="${id}-sub">${sub}</span>
+      </span>
+      <input type="checkbox" id="${id}" class="k-vis-hidden">
+      <button type="button" class="k-toggle" id="${id}-toggle" role="switch"
+              aria-checked="false" aria-labelledby="${id}-label"></button>
+    </div>`;
 }
 
 // Which fixed commitment a spend is for. Left on the first choice, the app

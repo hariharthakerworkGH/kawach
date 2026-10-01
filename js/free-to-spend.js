@@ -7,6 +7,7 @@ import { findDuplicates } from './duplicates.js';
 import { isLoanAccount, loanCommitment, loanPosition, assignLoanPayments } from './loans.js';
 import { isPfAccount, pfPosition } from './pf.js';
 import { businessPlan, businessMonth } from './business.js';
+import { reimbursableTally } from './reimbursable.js';
 
 // THE RULE - how much you can spend this month (the 1st to the last day).
 //
@@ -18,7 +19,24 @@ import { businessPlan, businessMonth } from './business.js';
 //   Spent this month  = card spends this month (refunds and cashback taken
 //                       off) + bank spends (UPI and the rest)
 //                     − payments that are one of the fixed commitments
+//                     − work costs paid back this month (see below)
 //   Left to spend     = budget − spent
+//
+// Work costs you front (isReimbursable) are spent like anything else the
+// month they are paid: swiping a ₹15,000 hotel takes ₹15,000 off that month.
+// The refund (isSettlement) is money coming back, and it comes off the month
+// it ARRIVES, never the month it was spent - September's figure is not
+// rewritten in October. A refund landing on a card is already netted with the
+// card's other credits, so only one into a bank or cash account is taken off
+// here. What is still owed back is a separate, all-time figure
+// (js/reimbursable.js) and never touches the budget.
+//
+// A bank payment can be flagged "apply to next month's commitments"
+// (forNextMonth, with the commitment it pays). Rent sent on the 30th for the
+// 5th is then not the old month's spending and not its rent; the new month
+// sees that commitment as already paid. The budget already holds the amount
+// back, so it is never taken twice. Without a commitment to apply it to, the
+// flag does nothing and the payment is ordinary spending.
 //
 // Both halves of "spent" run over the same calendar month. They did not
 // always: card spending ran on the card cycle while bank spending ran on the
@@ -97,7 +115,9 @@ function upiIdOf(t) {
 // fit - a different amount, a bank transfer with no UPI ID - still counts as
 // spent, and can be marked as a transfer in History.
 function paidBack(debits, transactions, today) {
-  const credits = transactions.filter((t) => t.direction === 'credit' && !t.isTransfer && t.date <= today && upiIdOf(t));
+  // A work refund is not "the same money coming back": it settles a claim,
+  // and has its own rule (isSettlement, below).
+  const credits = transactions.filter((t) => t.direction === 'credit' && !t.isTransfer && !t.isSettlement && t.date <= today && upiIdOf(t));
   const usedCredits = new Set();
   const pairs = [];
   for (const d of [...debits].sort((a, b) => (a.date < b.date ? -1 : 1))) {
@@ -212,6 +232,8 @@ export async function computeFreeToSpend(now = new Date()) {
           bankIds.has(t.accountId) &&
           t.direction === 'credit' &&
           !t.isTransfer &&
+          // A big work refund near payday is not the salary landing.
+          !t.isSettlement &&
           t.amount >= monthlyIncome / 2 &&
           t.date >= addDays(payday, -SALARY_EARLY_DAYS) &&
           t.date <= addDays(payday, SALARY_LATE_DAYS) &&
@@ -286,6 +308,7 @@ export async function computeFreeToSpend(now = new Date()) {
           bankIds.has(t.accountId) &&
           t.direction === 'credit' &&
           !t.isTransfer &&
+          !t.isSettlement &&
           t.amount >= monthlyIncome / 2 &&
           t.date >= addDays(payday, -SALARY_EARLY_DAYS) &&
           t.date <= payday
@@ -297,6 +320,7 @@ export async function computeFreeToSpend(now = new Date()) {
   const monthStart = `${today.slice(0, 7)}-01`;
   const monthEnd = isoLocal(new Date(now.getFullYear(), now.getMonth() + 1, 0));
   const previousMonthEnd = addDays(monthStart, -1);
+  const previousMonthStart = `${previousMonthEnd.slice(0, 8)}01`;
   const daysLeft = Math.max(1, daysBetweenInclusive(today, windowEnd));
 
   // --- Cards --------------------------------------------------------------
@@ -575,6 +599,30 @@ export async function computeFreeToSpend(now = new Date()) {
     const mine = (t) => t.commitmentId === item.id || Boolean(matcher && matcher(t));
     const dated = p.kind === 'bank' && !item.spread && frequencyOf(item) === 'monthly';
     let entries = pool.filter(inRange(p.start, p.end));
+    // A payment you flagged "apply to next month's commitments" (forNextMonth)
+    // is paid in one month and belongs to the next, which is what happens
+    // when rent goes out on the 30th for the 5th. For this commitment only,
+    // and only a bank one - a card's commitment already follows its cycle:
+    //   - dated in this period: it is not this month's rent and not spending,
+    //     so it is claimed and set aside, exactly like salary-day payments
+    //     below;
+    //   - dated last month: it is this month's rent, already paid. It counts
+    //     as used (so the commitment reads paid) but is last month's money,
+    //     never this month's spending - the same treatment `onSalaryDay` gets
+    //     further down. The budget already held the rent back, so nothing is
+    //     taken twice.
+    // One that names a commitment which no longer exists matches nothing here,
+    // and stays ordinary spending where it was paid.
+    if (p.kind === 'bank') {
+      const deferred = (t) => Boolean(t.forNextMonth) && t.commitmentId === item.id;
+      for (const t of entries.filter(deferred)) {
+        if (claimed.has(t.id)) continue;
+        claimed.add(t.id);
+        claimedBy.set(t.id, `${b.label} (next month)`);
+      }
+      entries = entries.filter((t) => !deferred(t));
+      entries = [...pool.filter(inRange(previousMonthStart, previousMonthEnd)).filter(deferred), ...entries];
+    }
     if (dated && p.carriedOut) {
       // Paid on this month's salary day: next month's. Not this month's
       // commitment, and not spending either.
@@ -668,7 +716,25 @@ export async function computeFreeToSpend(now = new Date()) {
   );
   const cardGross = cardWindow.reduce((s, t) => s + (t.direction === 'credit' ? -t.amount : t.amount), 0);
   const cardSpent = cardGross - sum(cardCommitmentCharges);
-  const spentThisCycle = cardSpent + bankSpent;
+  // Work costs paid back this month, into a bank or cash account. Taken off
+  // spending, on the day they arrive. Not into a card: those credits are
+  // already inside cardGross above, and counting them again would pay the
+  // same refund out twice.
+  const houseIds = new Set(accounts.filter((a) => a.type !== 'card').map((a) => a.id));
+  // Every account of the house, cards included: the hotel was swiped on one.
+  const houseAccountIds = new Set(accounts.map((a) => a.id));
+  const settlementsIn = transactions.filter(
+    (t) =>
+      t.isSettlement &&
+      t.direction === 'credit' &&
+      !t.isTransfer &&
+      (houseIds.has(t.accountId) || t.accountId === 'cash') &&
+      t.date >= windowStart &&
+      t.date <= spendEnd &&
+      t.date <= today
+  );
+  const reimbursedThisMonth = settlementsIn.reduce((s, t) => s + t.amount, 0);
+  const spentThisCycle = cardSpent + bankSpent - reimbursedThisMonth;
   // The same spending, laid out by day, for the burn drawing on Summary
   // (js/charts.js). Every step is a real dated payment; whatever has no date
   // of its own - a bill billed but not imported yet, a card payment made in
@@ -677,6 +743,9 @@ export async function computeFreeToSpend(now = new Date()) {
   // shows, and no day claims spending that did not happen on it.
   const datedSpends = [
     ...bankSpends.map((t) => ({ date: t.date, amount: t.direction === 'debit' ? t.amount : -t.amount })),
+    // Money paid back steps the line down on the day it arrived, so the line
+    // still ends on the figure the hero shows.
+    ...settlementsIn.map((t) => ({ date: t.date, amount: -t.amount })),
     ...cards.flatMap((c) =>
       transactions
         .filter((t) => t.accountId === c.account.id && !t.isTransfer && !claimed.has(t.id) && (!c.cycleStart || t.date > c.cycleStart) && t.date <= today)
@@ -929,6 +998,10 @@ export async function computeFreeToSpend(now = new Date()) {
     bankBeyondPlan,
     bankCommitmentPayments,
     spentThisCycle,
+    // Work costs paid back this month (already taken off spentThisCycle), and
+    // what is still owed back over all time. See js/reimbursable.js.
+    reimbursedThisMonth,
+    reimbursable: reimbursableTally(transactions.filter((t) => houseAccountIds.has(t.accountId) || t.accountId === 'cash')),
     // Cumulative spending, one figure per day gone by. See above.
     spendDays,
     spendByDay,

@@ -117,7 +117,14 @@ export async function saveAlert(item, edits) {
     // alert shared twice is caught.
     alertKey,
     alertRef: parsed.ok ? parsed.ref : null,
+    // NEW, for History's same-day order: the bank's own time on the alert
+    // ("23:23") where it gave one, and when it was saved.
+    // (Dropped if you changed the date on the confirm card: the time belonged
+    // to the bank's date, not yours.)
+    time: parsed.ok && parsed.time && parsed.date === edits.date ? parsed.time : undefined,
+    createdAt: Date.now(),
   };
+  if (transaction.time === undefined) delete transaction.time;
   if (edits.commitmentId) transaction.commitmentId = edits.commitmentId;
   if (edits.paysCardId) transaction.paysCardId = edits.paysCardId;
   // Your call on transfer-or-not sticks, and automatic detection won't undo it.
@@ -133,7 +140,11 @@ export async function saveAlert(item, edits) {
     // screen opened - a sync or statement import may have updated it since,
     // and writing the old copy back would undo that.
     const account = await get('accounts', edits.accountId);
-    if (account && account.last4 !== parsed.last4) {
+    // Not when another account already ends in these digits: picking the bank
+    // account for a card alert once is a correction for that alert, and
+    // remembering it would send every later alert from that card there too.
+    const owned = (await getAll('accounts')).some((a) => a.id !== edits.accountId && a.last4 === parsed.last4);
+    if (account && account.last4 !== parsed.last4 && !owned) {
       const links = new Set(account.linkedLast4s || []);
       if (!links.has(parsed.last4)) {
         links.add(parsed.last4);

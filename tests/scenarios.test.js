@@ -15,6 +15,8 @@ import { notesFor } from '../js/whats-new.js';
 import { isSetAside } from '../js/commitments.js';
 import { matchCategoryForDescription, learnFromAssignment, applyLearnedCategories } from '../js/merchant-rules.js';
 import { APP_VERSION } from '../js/version.js';
+import { endOfMonthNoon } from '../js/views/summary.js';
+import { addToInbox, pendingAlerts, saveAlert } from '../js/alert-inbox.js';
 
 // Salary ₹1,00,000; commitments: EMI ₹40,000 (bank), rent ₹20,000 (bank),
 // ATM ₹10,000 (bank), Netflix ₹649 (card), Metro ₹1,000 (cash); ₹5,000 saved.
@@ -1231,4 +1233,154 @@ test('left to spend still counts a card spend the day it happens', async () => {
   // Asserted on cardSpent, not on free: seedBasics has no commitments, and
   // Kawach deliberately refuses to show a spendable figure until it has some.
   equal(after.cardSpent - before.cardSpent, rupees(4000), 'spent after the statement day, counted the same day');
+});
+
+// --- A wrong pick on the confirm card is a correction, not a rule --------------
+test('confirming a card alert against the wrong account does not link the card to it', async () => {
+  await seedBasics();
+  await put('accounts', { id: 'bank2', label: 'Savings', type: 'bank', issuer: 'B', last4: '1150' });
+  await put('accounts', { id: 'sw', label: 'Swiggy card', type: 'card', issuer: 'B', last4: '6671', billingCycleDay: 25 });
+  await addToInbox('Spent Rs.614 On HDFC Bank Card 6671 At SWIGGY FOOD On 2026-09-29:23:23:25');
+  const [item] = await pendingAlerts();
+  // The person taps Save with the savings account selected by mistake.
+  await saveAlert(item, { accountId: 'bank2', date: '2026-09-29', description: 'SWIGGY FOOD', amount: 61400, direction: 'debit' });
+  const bank = (await getAll('accounts')).find((a) => a.id === 'bank2');
+  equal(bank.linkedLast4s || [], [], 'the card number is not remembered against the bank account');
+});
+
+test('a card number nobody owns is still linked when you confirm it', async () => {
+  await seedBasics();
+  await put('accounts', { id: 'reissued', label: 'Old card', type: 'card', issuer: 'B', last4: '1111', billingCycleDay: 25 });
+  await addToInbox('Spent Rs.50 On HDFC Bank Card 7777 At CHAI On 2026-09-29:10:00:00');
+  const [item] = await pendingAlerts();
+  await saveAlert(item, { accountId: 'reissued', date: '2026-09-29', description: 'CHAI', amount: 5000, direction: 'debit' });
+  const card = (await getAll('accounts')).find((a) => a.id === 'reissued');
+  equal(card.linkedLast4s, ['7777'], 'a reissued card number is learned');
+});
+
+// --- Reimbursable: a work cost you front, and the money coming back -----------
+// The owner's own scenario, as written: the hotel is swiped on 26 Sep and paid
+// back on 15 Oct. Four gates, and none of them may move the other months.
+//   1. Swiping it takes it off September's budget like any spend.
+//   2. "Owed back" survives the new month - it is a debt, not a month's figure.
+//   3. The company's money adds capacity to OCTOBER only; September is untouched.
+//   4. Once settled the tally is nothing.
+async function seedReimbursable() {
+  await seedBasics({ keep: 0 });
+  await put('recurring', commitment({ id: 'rent', label: 'Rent', amount: 10000, dayOfMonth: 5 }));
+}
+const hotel = () => txn({ id: 'hotel', accountId: 'card', date: '2026-09-26', amount: 15000, rawDescription: 'HOTEL STAY', isReimbursable: true });
+const payback = (extra = {}) => txn({ id: 'payback', accountId: 'bank', date: '2026-10-15', amount: 15000, direction: 'credit', rawDescription: 'NEFT-ACME LTD-REIMB', isSettlement: true, ...extra });
+
+test('reimbursable gates 1-4: the owner\'s scenario, month by month', async () => {
+  await seedReimbursable();
+  await putAll('transactions', [txn({ id: 'groceries', accountId: 'bank', date: '2026-09-20', amount: 20000, rawDescription: 'UPI-GROCER' })]);
+
+  const sep25 = await computeFreeToSpend(day('2026-09-25'));
+  equal(sep25.free, sep25.limit - rupees(20000), 'before the hotel: budget less the 20,000 spent');
+
+  // Gate 1.
+  await putAll('transactions', [hotel()]);
+  const sep26 = await computeFreeToSpend(day('2026-09-26'));
+  equal(sep25.free - sep26.free, rupees(15000), 'gate 1: the hotel comes off September like any spend');
+  equal(sep26.reimbursable.owed, rupees(15000), 'and is owed back');
+
+  // Gate 2.
+  const oct1 = await computeFreeToSpend(day('2026-10-01'));
+  equal(oct1.spentThisCycle, 0, 'a new month starts at nothing spent');
+  equal(oct1.free, oct1.limit, 'with its whole budget');
+  equal(oct1.reimbursable.owed, rupees(15000), 'gate 2: what is owed back is still owed on 1 Oct');
+
+  // Gate 3.
+  await putAll('transactions', [payback()]);
+  const oct15 = await computeFreeToSpend(day('2026-10-15'));
+  equal(oct15.free, oct15.limit + rupees(15000), 'gate 3: the money back is 15,000 of October capacity');
+  const sep30 = await computeFreeToSpend(day('2026-09-30'));
+  equal(sep30.free, sep26.free, 'gate 3: September is exactly as it was');
+
+  // Gate 4.
+  equal(oct15.reimbursable.owed, 0, 'gate 4: nothing left to claim');
+});
+
+test('a part payment leaves the rest owed, and more than owed never goes negative', async () => {
+  await seedReimbursable();
+  await putAll('transactions', [hotel(), payback({ amount: 10000 })]);
+  equal((await computeFreeToSpend(day('2026-10-15'))).reimbursable.owed, rupees(5000), 'part paid back');
+  await putAll('transactions', [payback({ id: 'extra', amount: 9000 })]);
+  equal((await computeFreeToSpend(day('2026-10-16'))).reimbursable.owed, 0, 'over-paid is not a debt the other way');
+});
+
+test('money back on a card is counted once, not twice', async () => {
+  await seedReimbursable();
+  // Card credits already come off card spending; the new rule must not add a second.
+  await putAll('transactions', [hotel(), payback({ accountId: 'card' })]);
+  const f = await computeFreeToSpend(day('2026-10-15'));
+  equal(f.free, f.limit + rupees(15000), 'once');
+});
+
+test('a big reimbursement near payday is not mistaken for the salary', async () => {
+  await seedReimbursable();
+  await putAll('transactions', [payback({ id: 'big', date: '2026-09-29', amount: 60000 })]);
+  const f = await computeFreeToSpend(day('2026-09-29'));
+  ok(!f.salary.alreadyIn, 'a work reimbursement is not payday');
+});
+
+// --- A bill paid on the 30th for next month -----------------------------------
+// Rent is due on the 5th and you pay it on 30 Sep, while September is ending.
+// Flagged "apply to next month's commitments" it is October's rent: not
+// September's spending, and already paid when October opens - counted once.
+async function seedMonthEnd() {
+  await seedBasics({ keep: 0 });
+  // A mid-month payday, so the automatic salary-day rule has nothing to do with it.
+  await put('settings', { id: 'salaryDay', value: 15 });
+  await put('recurring', commitment({ id: 'rent', label: 'Rent', amount: 10000, dayOfMonth: 5 }));
+}
+const rentOn30th = (extra = {}) =>
+  txn({ id: 'rentpay', accountId: 'bank', date: '2026-09-30', amount: 10000, rawDescription: 'NEFT-LANDLORD', commitmentId: 'rent', ...extra });
+const rentRow = (f) => f.tracker.find((t) => t.label === 'Rent');
+
+test('flagged for next month: not September spending, already paid in October, counted once', async () => {
+  await seedMonthEnd();
+  await putAll('transactions', [rentOn30th({ forNextMonth: true })]);
+  const sep = await computeFreeToSpend(day('2026-09-30'));
+  equal(sep.spentThisCycle, 0, 'September is not charged for October\'s rent');
+  equal(rentRow(sep).used, 0, 'and September\'s own rent has not been paid by it');
+  const oct = await computeFreeToSpend(day('2026-10-01'));
+  equal(oct.spentThisCycle, 0, 'October does not count it as spending either');
+  equal(oct.free, oct.limit, 'the budget already holds the rent back: nothing is taken twice');
+  equal([rentRow(oct).status, rentRow(oct).used], ['paid', rupees(10000)], 'October knows the rent is handled');
+});
+
+test('not flagged: the same payment is September\'s rent, and October\'s is still due', async () => {
+  await seedMonthEnd();
+  await putAll('transactions', [rentOn30th()]);
+  const sep = await computeFreeToSpend(day('2026-09-30'));
+  equal(rentRow(sep).used, rupees(10000), 'it paid September\'s');
+  const oct = await computeFreeToSpend(day('2026-10-01'));
+  equal(rentRow(oct).used, 0, 'so October\'s has not been paid');
+});
+
+test('flagged for a commitment that is gone: it is ordinary spending, never lost', async () => {
+  await seedMonthEnd();
+  await putAll('transactions', [rentOn30th({ forNextMonth: true, commitmentId: 'deleted-one' })]);
+  const sep = await computeFreeToSpend(day('2026-09-30'));
+  equal(sep.spentThisCycle, rupees(10000), 'with nothing to apply it to, it counts where it was paid');
+});
+
+// --- The 1st of the month: yesterday is still there ---------------------------
+// Paid on the 30th, opened on the 1st. This month starts clean, as it must; the
+// month bar's back arrow shows September as it closed, with the 30th in it.
+test('on the 1st, the old month still reads what it did when it closed', async () => {
+  await seedBasics({ keep: 0 });
+  await put('recurring', commitment({ id: 'rent', label: 'Rent', amount: 10000, dayOfMonth: 5 }));
+  await putAll('transactions', [
+    txn({ id: 'early', accountId: 'bank', date: '2026-09-10', amount: 4000, rawDescription: 'UPI-GROCER' }),
+    txn({ id: 'late', accountId: 'bank', date: '2026-09-30', amount: 6000, rawDescription: 'UPI-FURNITURE' }),
+  ]);
+  const october = await computeFreeToSpend(day('2026-10-01'));
+  equal(october.spentThisCycle, 0, 'October opens clean');
+  const september = await computeFreeToSpend(endOfMonthNoon('2026-09'));
+  equal(september.spentThisCycle, rupees(10000), 'September shows both, the payment of the 30th included');
+  equal(september.free, september.limit - rupees(10000), 'and what was left when it closed');
+  equal(september.cycleKey, '2026-09-30', 'for the month ending on the 30th');
 });

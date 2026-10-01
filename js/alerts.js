@@ -8,12 +8,17 @@
 // without being shown to you first.
 
 const AMOUNT = String.raw`([\d,]+(?:\.\d{1,2})?)`;
+
+// Banks hide the front of a card or account number as "XX6671", "x6671" or
+// "*6671", and some leave it off. Four digits are always the ones that count.
+const MASK = String.raw`[xX*•]*`;
+
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 
 const FORMATS = [
   {
     id: 'hdfc-card-spend',
-    re: new RegExp(String.raw`Spent\s+Rs\.?\s*${AMOUNT}\s+On\s+HDFC\s+Bank\s+Card\s+(\d{4})\s+At\s+(.+?)\s+On\s+(\d{4})-(\d{2})-(\d{2}):(\d{2}:\d{2})(?::\d{2})?`, 'i'),
+    re: new RegExp(String.raw`Spent\s+Rs\.?\s*${AMOUNT}\s+On\s+HDFC\s+Bank\s+Card\s+${MASK}(\d{4})\s+At\s+(.+?)\s+On\s+(\d{4})-(\d{2})-(\d{2}):(\d{2}:\d{2})(?::\d{2})?`, 'i'),
     build: (m) => ({
       kind: 'card-spend',
       bank: 'HDFC',
@@ -43,7 +48,7 @@ const FORMATS = [
   },
   {
     id: 'hdfc-upi-sent',
-    re: new RegExp(String.raw`Sent\s+Rs\.?\s*${AMOUNT}\s+From\s+HDFC\s+Bank\s+A\/C\s+\*?(\d{4})\s+To\s+(.+?)\s+On\s+(\d{2})\/(\d{2})\/(\d{2})\s+Ref\s+(\d+)`, 'i'),
+    re: new RegExp(String.raw`Sent\s+Rs\.?\s*${AMOUNT}\s+From\s+HDFC\s+Bank\s+A\/C\s+${MASK}(\d{4})\s+To\s+(.+?)\s+On\s+(\d{2})\/(\d{2})\/(\d{2})\s+Ref\s+(\d+)`, 'i'),
     build: (m) => ({
       kind: 'upi-sent',
       bank: 'HDFC',
@@ -58,7 +63,7 @@ const FORMATS = [
   },
   {
     id: 'hdfc-upi-credit',
-    re: new RegExp(String.raw`Rs\.?\s*${AMOUNT}\s+credited\s+to\s+HDFC\s+Bank\s+A\/c\s+(?:XX|\*)?(\d{4})\s+on\s+(\d{2})-(\d{2})-(\d{2})\s+from\s+VPA\s+(\S+)\s+\(UPI\s+(\d+)\)`, 'i'),
+    re: new RegExp(String.raw`Rs\.?\s*${AMOUNT}\s+credited\s+to\s+HDFC\s+Bank\s+A\/c\s+${MASK}(\d{4})\s+on\s+(\d{2})-(\d{2})-(\d{2})\s+from\s+VPA\s+(\S+)\s+\(UPI\s+(\d+)\)`, 'i'),
     build: (m) => ({
       kind: 'upi-credit',
       bank: 'HDFC',
@@ -73,7 +78,7 @@ const FORMATS = [
   },
   {
     id: 'icici-card-spend',
-    re: new RegExp(String.raw`INR\s+${AMOUNT}\s+spent\s+using\s+ICICI\s+Bank\s+Card\s+XX(\d{4})\s+on\s+(\d{2})-([A-Za-z]{3})-(\d{2})\s+on\s+(.+?)\.\s+Avl\s+Limit`, 'i'),
+    re: new RegExp(String.raw`INR\s+${AMOUNT}\s+spent\s+using\s+ICICI\s+Bank\s+Card\s+${MASK}(\d{4})\s+on\s+(\d{2})-([A-Za-z]{3})-(\d{2})\s+on\s+(.+?)\.\s+Avl\s+Limit`, 'i'),
     build: (m) => ({
       kind: 'card-spend',
       bank: 'ICICI',
@@ -172,8 +177,7 @@ function parseGeneric(raw) {
   const debitWords = /\b(debited|spent|sent|withdrawn|withdrawal|paid|purchase|used\s+for|trf\s+to)\b/i.test(raw);
   const direction = creditWords && !debitWords ? 'credit' : debitWords && !creditWords ? 'debit' : null;
 
-  // Account or card digits: "A/c no. XX1234", "AC X1234", "Card ending 1234".
-  const digits = raw.match(/\b(?:card|a\/c|acct|account|ac)\b[^\d]{0,24}?(?:ending(?:\s+with)?\s*|[x*]+)?(\d{4})\b/i);
+  const digits = findDigits(raw);
   const isCard = /\bcard\b/i.test(raw);
   const isDebitCard = /\bdebit\s+card\b|\bDC\s+\d{4}\b/i.test(raw);
 
@@ -192,10 +196,14 @@ function parseGeneric(raw) {
   return finish({
     kind: 'unknown',
     bank: bankName(raw),
-    instrument: isDebitCard ? 'debit-card' : isCard ? 'card' : digits ? 'account' : null,
+    // What the digits belong to is read from the word they follow, not from
+    // any "card" elsewhere in the message: "debited from A/c 1150 ... Card
+    // 6671" is a bank account at 1150, and calling it a card would send it
+    // looking for a card ending 1150.
+    instrument: isDebitCard ? 'debit-card' : digits ? digits.instrument || (isCard ? 'card' : 'account') : isCard ? 'card' : null,
     direction,
     amount,
-    last4: digits ? digits[1] : null,
+    last4: digits ? digits.last4 : null,
     party: party || null,
     date: findDate(raw),
     time: null,
@@ -205,6 +213,31 @@ function parseGeneric(raw) {
     // A payment arriving on a card is the bill being paid, not income.
     billPayment: /received\s+towards|payment\s+(?:of\s+)?(?:Rs\.?|INR)?.*received|thank\s+you\s+for\s+(?:your\s+)?payment/i.test(raw),
   });
+}
+
+// The four digits that name a card or account in an alert.
+//
+// They must come straight after the word that says what they are - Card, CC,
+// A/c and so on - allowing only the things banks really put there: "no.",
+// "ending in", and a masked front ("XX", "X", "*", or "4000XXXXXXXX"). The
+// old pattern let up to 24 characters of anything sit in between, which read
+// the amount in "Credit Card Bill of Rs.1234 paid" as a card ending 1234.
+//
+// The first label in the message wins, and `instrument` says which kind it
+// was. A bare "ending in 6671" with no label is accepted last.
+const DIGIT_LABEL = String.raw`\b(credit\s+card|debit\s+card|card|cc|dc|a\/c|acct?|account|ac)\b`;
+const DIGIT_TAIL = String.raw`[\s:.\-(#]*(?:(?:no|number|num)\.?[\s:.\-(#]*)?(?:ending(?:\s+(?:in|with))?[\s:.\-(#]*)?(?:\d{0,6}[xX*•]+|[xX*•]*)(\d{4})(?!\d)`;
+
+export function findDigits(raw) {
+  const text = String(raw || '');
+  const labelled = text.match(new RegExp(DIGIT_LABEL + DIGIT_TAIL, 'i'));
+  if (labelled) {
+    const word = labelled[1].toLowerCase().replace(/\s+/g, ' ');
+    const instrument = word === 'debit card' || word === 'dc' ? 'debit-card' : /card|cc/.test(word) ? 'card' : 'account';
+    return { last4: labelled[2], instrument };
+  }
+  const bare = text.match(new RegExp(String.raw`\bending(?:\s+(?:in|with))?[\s:.\-(#]*` + String.raw`(?:\d{0,6}[xX*•]+|[xX*•]*)(\d{4})(?!\d)`, 'i'));
+  return bare ? { last4: bare[1], instrument: null } : null;
 }
 
 function finish(p) {
@@ -246,16 +279,39 @@ export function alertFingerprint(p) {
   return [p.bank || '', p.instrument || '', p.last4 || '', p.direction || '', p.amount, p.date || '', p.time || '', p.ref || ''].join('|');
 }
 
+// Which account an alert belongs to. The order is the point:
+//
+//   1. The exact last four digits, on an account of the right kind.
+//   2. A link you made once ("this number is that account") - only for digits
+//      no account owns outright, such as a reissued card or a debit card.
+//   3. A debit card's digits, found on the bank's own statement rows.
+//
+// The bank's name ("HDFC") is never used to choose, because a person's HDFC
+// savings account and HDFC card share it. It only breaks a tie when two
+// accounts end in the same four digits, and then only between those two.
 export function resolveAccount(p, accounts, transactions) {
   if (!p.last4) return null;
-
-  // An account you pointed this card at once before.
-  const linked = accounts.find((a) => Array.isArray(a.linkedLast4s) && a.linkedLast4s.includes(p.last4));
-  if (linked) return linked;
 
   const wantType = p.instrument === 'card' ? 'card' : p.instrument === 'account' ? 'bank' : null;
   const byDigits = accounts.filter((a) => a.last4 === p.last4 && (!wantType || a.type === wantType));
   if (byDigits.length === 1) return byDigits[0];
+  if (byDigits.length > 1 && p.bank) {
+    const bank = p.bank.toLowerCase();
+    const sameBank = byDigits.filter((a) => `${a.issuer || ''} ${a.label || ''}`.toLowerCase().includes(bank));
+    if (sameBank.length === 1) return sameBank[0];
+  }
+  // Two accounts, same digits, no way to tell: ask rather than guess.
+  if (byDigits.length > 1) return null;
+
+  // A link made when you confirmed an alert by hand. It used to be checked
+  // first, so one wrong pick (the bank account chosen for a card alert) was
+  // remembered for good and then beat the card that really ends in those
+  // digits. Now it only speaks for digits nothing owns, and only for the
+  // kind of thing the alert is about.
+  const linked = accounts.find(
+    (a) => Array.isArray(a.linkedLast4s) && a.linkedLast4s.includes(p.last4) && (!wantType || a.type === wantType)
+  );
+  if (linked) return linked;
 
   // A debit card's number isn't the account's, but the bank's own statement
   // prints it on every ATM and card row ("ATW-400000XXXXXX1234-..."), which
@@ -333,8 +389,10 @@ function findDate(raw) {
 // exact formats above; the others are read here until real alerts from them
 // have been checked and given formats of their own.
 function bankName(text) {
-  // A UPI id names the other person's bank ("swiggy@icici"), not yours.
-  const raw = text.replace(/@\S+/g, ' ');
+  // A UPI id names the other person's bank ("swiggy@icici"), not yours - and
+  // so can the front of it ("hdfc.shop@okaxis"). Both halves go, so a Kotak
+  // account paying hdfc.shop@icici is still read as Kotak.
+  const raw = text.replace(/\S+@\S+/g, ' ');
   if (/HDFC/i.test(raw)) return 'HDFC';
   if (/ICICI/i.test(raw)) return 'ICICI';
   if (/\bSBI\b|State\s+Bank/i.test(raw)) return 'SBI';

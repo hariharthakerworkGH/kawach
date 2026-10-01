@@ -6,14 +6,15 @@ import { nextOccurrence } from '../js/frequency.js';
 import { passwordErrorKind } from '../js/pdf-text.js';
 import { sameTransaction, findDuplicates } from '../js/duplicates.js';
 import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments } from '../js/commitments.js';
-import { searchHit } from '../js/views/transactions.js';
+import { searchHit, newestFirst } from '../js/views/transactions.js';
+import { reimbursableTally, tidyFlags } from '../js/reimbursable.js';
 import { versionStatus } from '../js/version.js';
 import { cardPosition, bankBalance, statementDayFixes } from '../js/account-metrics.js';
 import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance } from '../js/appearance.js';
 import { looksLikeCardPayment } from '../js/transfers.js';
 import { spendingMonthOf } from '../js/spending-month.js';
-import { parseAlert, splitAlerts } from '../js/alerts.js';
+import { parseAlert, splitAlerts, resolveAccount, findDigits } from '../js/alerts.js';
 import * as hdfcList from '../js/parsers/hdfc-card-current-text.js';
 import * as csvParser from '../js/parsers/csv.js';
 import { dataSafety } from '../js/views/settings.js';
@@ -28,7 +29,7 @@ import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, spendingPulse, cashRiver } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
-import { spentLine } from '../js/views/summary.js';
+import { spentLine, spendingHero, cashSplit, monthsWithData, endOfMonthNoon } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -541,6 +542,79 @@ test('bank alerts: an SMS is read and two pasted together are split', () => {
   ok(p.ok, 'alert read');
   equal([p.direction, p.last4, p.date], ['debit', '4321', '2026-09-12']);
   equal(splitAlerts(`${sms}\n\n${sms.replace('413.00', '99.00')}`).length, 2);
+});
+
+// --- Which account an alert belongs to ----------------------------------------
+// One person, one bank: an HDFC savings account, an HDFC card and an ICICI card
+// that happens to end in the same four digits.
+const ALERT_ACCOUNTS = [
+  { id: 'bank', type: 'bank', issuer: 'HDFC Bank', label: 'BNK HDFC 1150', last4: '1150' },
+  { id: 'swiggy', type: 'card', issuer: 'HDFC Bank', label: 'CC SWIGGY 6671', last4: '6671' },
+  { id: 'icici', type: 'card', issuer: 'ICICI Bank', label: 'CC ICICI 6671', last4: '6671' },
+  { id: 'upi', type: 'card', issuer: 'HDFC Bank', label: 'CC UPI 9332', last4: '9332' },
+];
+const resolve = (sms, accounts = ALERT_ACCOUNTS) => {
+  const p = parseAlert(sms);
+  return { p, account: p.ok ? resolveAccount(p, accounts, []) : null };
+};
+
+test('alert: the Swiggy card SMS is Rs.614, SWIGGY FOOD, and the card ending 6671', () => {
+  const sms = 'Spent Rs.614 On HDFC Bank Card 6671 At SWIGGY FOOD On 2026-09-29:23:23:25.Not You? To Block+Reissue Call 18002586161/SMS BLOCK CC 6671 to 7308080808';
+  // The HDFC savings account is on the list too: the word "HDFC" must not pull it in.
+  const { p, account } = resolve(sms, ALERT_ACCOUNTS.filter((a) => a.id !== 'icici'));
+  equal([p.amount, p.party, p.last4, p.instrument, p.date], [61400, 'SWIGGY FOOD', '6671', 'card', '2026-09-29']);
+  equal(account && account.id, 'swiggy');
+});
+
+test('alert: exact digits beat a link made earlier, and a wrong pick is not remembered as one', () => {
+  const poisoned = ALERT_ACCOUNTS.filter((a) => a.id !== 'icici').map((a) => (a.id === 'bank' ? { ...a, linkedLast4s: ['6671'] } : a));
+  const { account } = resolve('Spent Rs.614 On HDFC Bank Card 6671 At SWIGGY FOOD On 2026-09-29:23:23:25', poisoned);
+  equal(account && account.id, 'swiggy', 'the card that ends 6671 wins over a link to the bank account');
+  // A link is still honoured for digits no account owns (a reissued card).
+  const reissued = [{ id: 'old', type: 'card', last4: '1111', linkedLast4s: ['7777'] }];
+  equal(resolve('Spent Rs.50 On HDFC Bank Card 7777 At CHAI On 2026-09-29:10:00:00', reissued).account.id, 'old');
+});
+
+test('alert: masked digits are read however the bank writes them', () => {
+  for (const [text, want] of [
+    ['Rs 250 spent on HDFC Bank Card XX6671 at ZOMATO on 12-09-26', '6671'],
+    ['Rs.250.00 debited via Credit Card X6671 at ZOMATO on 12-09-26', '6671'],
+    ['Rs.250.00 debited on CC 6671 at ZOMATO on 12-09-26', '6671'],
+    ['Rs.250.00 spent on Card 4000XXXXXXXX6671 at ZOMATO on 12-09-26', '6671'],
+    ['Rs.250.00 spent on your card ending in 6671 at ZOMATO on 12-09-26', '6671'],
+    ['Rs.250.00 debited from A/c no. XX1150 on 12-09-26', '1150'],
+  ]) {
+    equal(parseAlert(text).last4, want, text);
+  }
+  // The exact formats take a mask too: the digits are never lost to it.
+  equal(parseAlert('Spent Rs.614 On HDFC Bank Card XX6671 At SWIGGY On 2026-09-29:23:23:25').format, 'hdfc-card-spend');
+});
+
+test('alert: an amount is never read as card digits', () => {
+  const p = parseAlert('Credit Card Bill of Rs.1234 paid on 12-09-26');
+  equal([p.amount, p.last4], [123400, null]);
+  equal(findDigits('Rs.5000 charged, Card Rs.1234'), null);
+});
+
+test('alert: a UPI id does not decide the bank, and a card on UPI stays the card', () => {
+  const kotak = parseAlert('Sent Rs.250.00 from Kotak Bank AC X1234 to hdfc.shop@icici on 12-09-26.UPI Ref 425612345678');
+  equal([kotak.bank, kotak.last4], ['Kotak', '1234']);
+  // A RuPay credit card used on UPI: the card, not the HDFC savings account.
+  const { p, account } = resolve('Rs.703.00 debited from HDFC Bank RuPay Credit Card XX9332 to VPA mab.037326013450048@axisb on 29-09-26');
+  equal([p.instrument, p.last4], ['card', '9332']);
+  equal(account && account.id, 'upi');
+});
+
+test('alert: the kind of account comes from the word the digits follow', () => {
+  const p = parseAlert('Rs.500 debited from A/c XX1150 for payment to Card XX6671 on 12-09-26');
+  equal([p.instrument, p.last4], ['account', '1150']);
+});
+
+test('alert: two accounts ending alike are told apart by bank only, never guessed', () => {
+  equal(resolve('Spent Rs.614 On HDFC Bank Card 6671 At SWIGGY On 2026-09-29:23:23:25').account.id, 'swiggy');
+  equal(resolve('INR 614.00 spent using ICICI Bank Card XX6671 on 29-Sep-26 on SWIGGY. Avl Limit INR 1,00,000').account.id, 'icici');
+  // No bank in the message and two candidates: ask, do not pick one.
+  equal(resolve('Rs.614 debited on Card 6671 at SWIGGY on 29-09-26').account, null);
 });
 
 test('SBI, Axis and Kotak alerts are read by the general reader', () => {
@@ -1242,4 +1316,81 @@ test('a download that failed is not a new version waiting', async () => {
   const none = await versionStatus(store({ 'share-inbox': [] }));
   equal(none.cached, null, 'no version cache, nothing to say');
   equal(none.stale, false, 'and nothing claimed');
+});
+
+// --- History's order within a day, and the reimbursable tally ------------------
+test('History: payments on one day run latest to oldest, whatever order they arrive in', () => {
+  const at = (h, m) => new Date(2026, 8, 29, h, m).getTime();
+  const rows = [
+    { id: 'a', date: '2026-09-29', time: '09:10' },
+    { id: 'b', date: '2026-09-29', createdAt: at(18, 30) },
+    { id: 'c', date: '2026-09-29', time: '23:23' },
+    { id: 'd', date: '2026-09-30' },
+    { id: 'e', date: '2026-09-29' },
+    { id: 'f', date: '2026-09-29', createdAt: new Date(2026, 9, 5, 12, 0).getTime() },
+  ];
+  const order = (list) => [...list].sort(newestFirst).map((t) => t.id);
+  // The next day first; then the bank's 23:23, the 18:30 entry, the 09:10 alert;
+  // the two with no time of their own after those, the later-recorded first.
+  equal(order(rows), ['d', 'c', 'b', 'a', 'f', 'e']);
+  equal(order([...rows].reverse()), order(rows), 'the same whichever way round they are handed over');
+});
+
+test('owed back: flagged payments out less flagged payments in, never below nothing', () => {
+  const t = (fields) => ({ id: Math.random().toString(36), isTransfer: false, ...fields });
+  const rows = [
+    t({ direction: 'debit', amount: rupees(15000), isReimbursable: true }),
+    t({ direction: 'debit', amount: rupees(999), isReimbursable: true, isTransfer: true }),
+    t({ direction: 'debit', amount: rupees(500) }),
+    t({ direction: 'credit', amount: rupees(10000), isSettlement: true }),
+    t({ direction: 'credit', amount: rupees(2000) }),
+  ];
+  equal(reimbursableTally(rows), { out: rupees(15000), back: rupees(10000), owed: rupees(5000) });
+  equal(reimbursableTally([...rows, t({ direction: 'credit', amount: rupees(9000), isSettlement: true })]).owed, 0);
+});
+
+test('switching Spent to Received drops the flag that no longer fits', () => {
+  const t = tidyFlags({ direction: 'credit', isReimbursable: true, isSettlement: true });
+  equal([t.isReimbursable, t.isSettlement], [undefined, true]);
+  const u = tidyFlags({ direction: 'debit', isReimbursable: true, isSettlement: true });
+  equal([u.isReimbursable, u.isSettlement], [true, undefined]);
+});
+
+test('the spent line says when money was paid back, and stays quiet when none was', () => {
+  ok(spentLine(rupees(5000), rupees(90000), rupees(15000)).includes('after ₹15,000 paid back'));
+  ok(!spentLine(rupees(5000), rupees(90000)).includes('paid back'));
+});
+
+// --- The month bar and the bank-cash split ---------------------------------------
+test('month bar: from the first month with a payment through this one, nothing before or after', () => {
+  const tx = (date) => ({ date });
+  equal(monthsWithData([tx('2026-08-14'), tx('2026-10-01')], '2026-10-20'), ['2026-08', '2026-09', '2026-10']);
+  equal(monthsWithData([], '2026-10-20'), ['2026-10'], 'no payments yet: just this month');
+  equal(monthsWithData([tx('2025-11-02')], '2026-02-03'), ['2025-11', '2025-12', '2026-01', '2026-02'], 'across a year end');
+});
+
+test('month bar: a finished month is worked out as of its last day, noon, in any month length', () => {
+  equal(endOfMonthNoon('2026-09').getDate(), 30);
+  equal(endOfMonthNoon('2026-02').getDate(), 28);
+  equal(endOfMonthNoon('2028-02').getDate(), 29);
+  equal(endOfMonthNoon('2026-12').getMonth(), 11);
+  equal(endOfMonthNoon('2026-09').getHours(), 12);
+});
+
+test('bank cash split: cash is kept apart from card bills it cannot cover', () => {
+  equal(cashSplit({ bank: rupees(82457), totals: { unpaidBills: rupees(10000) } }), { available: rupees(72457), reserved: rupees(10000), beyond: 0 });
+  equal(cashSplit({ bank: rupees(5000), totals: { unpaidBills: rupees(12000) } }), { available: 0, reserved: rupees(5000), beyond: rupees(7000) });
+  equal(cashSplit({ bank: rupees(82457), totals: { unpaidBills: 81 } }).reserved, 0, 'a rounding leftover under ₹10 is not a bill');
+  equal(cashSplit({ bank: -100, totals: { unpaidBills: 0 } }), { available: 0, reserved: 0, beyond: 0 }, 'an overdrawn bank is not cash');
+});
+
+test('a finished month\'s hero says it is final and never prints "null"', () => {
+  const f = {
+    cycleKey: '2026-09-30', cycleStart: '2026-09-01', free: rupees(55000), level: 'ok', limit: rupees(85000), used: 0.35,
+    spentThisCycle: rupees(30000), spendDays: [], daysIntoCycle: 30, daysToClose: 1, bankShortfall: 0, perDay: 0, crossesOn: null,
+  };
+  const html = spendingHero(f, 'full', 'Final for September');
+  ok(html.includes('Final for September'));
+  ok(!/null|undefined/.test(html), 'no stray null or undefined in the page');
+  ok(!html.includes('a day until'), 'no pace line for a month that is over');
 });
