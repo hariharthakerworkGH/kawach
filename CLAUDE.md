@@ -95,15 +95,22 @@ Periods:
   keep reading the spending window and never `cardPeriod`, or an August card
   spend lands in September.
 - **Work costs you front** (`isReimbursable` on a payment out, `isSettlement`
-  on the payment in that settles it; js/reimbursable.js) are spent like any
-  other payment the month they are paid. The refund comes off the month it
-  ARRIVES, never the month it was spent, so a past month is not rewritten.
-  A refund landing on a card is already netted with the card's credits and is
-  not taken off twice. What is still owed back is an all-time tally, never a
-  month's figure, and it hides itself at nothing. A settlement is never read
-  as the salary landing. Paying a card bill from Accounts records one
-  exact-amount debit (`paysCardId`, `paysStatement`) and marks the bill paid;
-  Mark unpaid removes that debit again.
+  on the payment in that settles it; js/reimbursable.js) are NOT spending:
+  money you will be paid back is not money you spent. They are shown and
+  followed (owed back, this month's work costs, the bank check) but never come
+  off "Left to spend", and are never matched to a household commitment. The
+  refund only clears what is owed back; it adds no room, because the cost took
+  none (4.16 counted the cost and gave the room back on refund; changed in
+  4.18 at the owner's request). What is owed back is an all-time tally, and
+  the part of it sitting inside "owed on cards" is reported as
+  `refundInBankCheck` so the bank check can say how much of what it subtracts
+  is coming back - said, never silently added, since money not arrived is
+  never counted. A settlement is never read as the salary landing. Paying a
+  card bill from Accounts records one exact-amount debit (`paysCardId`,
+  `paysStatement`) and marks the bill paid; Mark unpaid removes that debit.
+- **A card commitment's payment only comes off a month's card spending if it
+  was made in that month.** The commitment belongs to the card cycle, which can
+  start before the 1st; the spending it comes off is the calendar month's.
 - **The bank check and the tracker answer "was this paid?" the same way**
   (`isPaymentFor`, js/commitments.js): a payment tagged to a commitment is it,
   one tagged to another or marked "Not this" is not, otherwise its words or

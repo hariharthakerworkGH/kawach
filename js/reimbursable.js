@@ -24,6 +24,28 @@ export function reimbursableTally(transactions) {
   return { out, back, owed: Math.max(0, out - back) };
 }
 
+// The work costs still waiting to be paid back, oldest first.
+//
+// A refund is nearly always for the earliest claim, so what has come back is
+// taken off the oldest costs first, and a cost that was only part refunded
+// keeps its remainder. Each entry is { transaction, amount }: the cost, and how
+// much of it is still owed. This is what lets the app say a refund is LATE -
+// which needs a cost, not just a total - and it always adds up to the same
+// owed figure as reimbursableTally().
+export function unsettledCosts(transactions) {
+  const costs = transactions
+    .filter((t) => !t.isTransfer && t.direction === 'debit' && t.isReimbursable)
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : String(a.id) < String(b.id) ? -1 : 1));
+  let back = transactions.filter((t) => !t.isTransfer && t.direction === 'credit' && t.isSettlement).reduce((s, t) => s + t.amount, 0);
+  const waiting = [];
+  for (const t of costs) {
+    const covered = Math.min(back, t.amount);
+    back -= covered;
+    if (covered < t.amount) waiting.push({ transaction: t, amount: t.amount - covered });
+  }
+  return waiting;
+}
+
 // The flag that fits the way the money went. Switching a payment from Spent
 // to Received (or back) must not leave the other flag behind, or a credit
 // would quietly count as something it is not.

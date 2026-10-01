@@ -7,7 +7,7 @@ import { findDuplicates } from './duplicates.js';
 import { isLoanAccount, loanCommitment, loanPosition, assignLoanPayments } from './loans.js';
 import { isPfAccount, pfPosition } from './pf.js';
 import { businessPlan, businessMonth } from './business.js';
-import { reimbursableTally } from './reimbursable.js';
+import { reimbursableTally, unsettledCosts } from './reimbursable.js';
 
 // THE RULE - how much you can spend this month (the 1st to the last day).
 //
@@ -19,17 +19,22 @@ import { reimbursableTally } from './reimbursable.js';
 //   Spent this month  = card spends this month (refunds and cashback taken
 //                       off) + bank spends (UPI and the rest)
 //                     − payments that are one of the fixed commitments
-//                     − work costs paid back this month (see below)
 //   Left to spend     = budget − spent
 //
-// Work costs you front (isReimbursable) are spent like anything else the
-// month they are paid: swiping a ₹15,000 hotel takes ₹15,000 off that month.
-// The refund (isSettlement) is money coming back, and it comes off the month
-// it ARRIVES, never the month it was spent - September's figure is not
-// rewritten in October. A refund landing on a card is already netted with the
-// card's other credits, so only one into a bank or cash account is taken off
-// here. What is still owed back is a separate, all-time figure
-// (js/reimbursable.js) and never touches the budget.
+// Work costs you front (isReimbursable) are NOT spending. Money you will be
+// paid back is not money you spent, so a hotel for work that goes on your card
+// is shown, followed and put in the bank check, but never comes off "Left to
+// spend". (4.16 counted it and gave the room back when the refund arrived; the
+// owner asked for it the other way round, because for the weeks in between the
+// screen said less was safe than really was.) The refund (isSettlement) then
+// only clears what is owed back. It adds no room, because the cost never took
+// any - counting both would pay the same money out twice. A work cost is also
+// never taken for one of your household commitments, whatever its size.
+// What is owed back is an all-time figure (js/reimbursable.js), and the part
+// of it that sits inside "owed on cards" below is reported as
+// refundInBankCheck, so the bank check can say how much of what it subtracts
+// is coming back. The bank check itself still never counts money that has not
+// arrived.
 //
 // A bank payment can be flagged "apply to next month's commitments"
 // (forNextMonth, with the commitment it pays). Rent sent on the 30th for the
@@ -172,6 +177,10 @@ export async function computeFreeToSpend(now = new Date()) {
   const transactions = duplicateIds.size ? allTransactions.filter((t) => !duplicateIds.has(t.id)) : allTransactions;
 
   const today = isoLocal(now);
+  // A cost you will be refunded for (a hotel for work), and that refund
+  // arriving. Neither is part of your own spending: see the header.
+  const isWorkCost = (t) => t.direction === 'debit' && t.isReimbursable === true && !t.isTransfer;
+  const isRefund = (t) => t.direction === 'credit' && t.isSettlement === true && !t.isTransfer;
   // What the month is planned on. For a business owner that is worked out
   // from what came home; for everyone else it is the amount set on Plan.
   // A business on the side adds what it brings home (moved over from its
@@ -586,7 +595,7 @@ export async function computeFreeToSpend(now = new Date()) {
     const item = b.item;
     const p = periodOf(item);
     const matcher = commitmentMatcher(item);
-    const tagged = transactions.filter((t) => t.commitmentId === item.id && t.direction === 'debit');
+    const tagged = transactions.filter((t) => t.commitmentId === item.id && t.direction === 'debit' && !isWorkCost(t));
     // A commitment paid from one named bank account only looks at that one.
     const onItsAccount = holdingIds.has(item.accountId) ? accountPool.filter((t) => t.accountId === item.accountId) : accountPool;
     const pool = [...onItsAccount.filter((t) => !t.commitmentId || t.commitmentId === item.id), ...tagged.filter((t) => !onItsAccount.includes(t))];
@@ -653,7 +662,13 @@ export async function computeFreeToSpend(now = new Date()) {
       if (onSalaryDay) continue; // last month's money, never this period's spending
       if (cardIds.has(t.accountId)) {
         // Only the planned part comes off the card's spending; the rest stays.
-        b.charges.card += portion;
+        // And only when the payment is in the month being added up: a card
+        // commitment belongs to the card CYCLE, which can start before the
+        // 1st, but the card spending it comes off is the calendar month's. A
+        // payment on 28 Sep for a cycle that runs 26 Sep to 25 Oct was never in
+        // October's total, and taking it off anyway understated October by that
+        // much. (It was claimed above, so it is not counted as spending either.)
+        if (t.date >= windowStart && t.date <= spendEnd) b.charges.card += portion;
       } else {
         // A bank payment is taken out whole, and the part beyond the plan put
         // back as spending (₹20,000 of ATM cash on top of ₹10,000 against
@@ -667,12 +682,15 @@ export async function computeFreeToSpend(now = new Date()) {
   // an EMI can leave a savings account. What counts as this month's SPENDING
   // is still only the bank accounts (bankWindow below).
   const holdingIds = new Set([...bankIds, ...savingsAccounts.map((a) => a.id)]);
-  const bankPool = transactions.filter((t) => holdingIds.has(t.accountId) && !looksLikeCardPayment(t, 'bank'));
+  // A work cost you will be refunded for is never one of your own commitments
+  // (a client dinner is not "Food", whatever its size), so it is left out of
+  // what commitments are matched against as well as out of spending.
+  const bankPool = transactions.filter((t) => holdingIds.has(t.accountId) && !looksLikeCardPayment(t, 'bank') && !isWorkCost(t));
   for (const b of budgetItems) {
     // Same rule as above for what has already been paid: an allowance is
     // drawn down by any card, a named bill only by its own.
     const cardPool = transactions.filter(
-      (t) => !t.isTransfer && (isSetAside(b.item) ? cardIds.has(t.accountId) : t.accountId === b.item.accountId)
+      (t) => !t.isTransfer && !isWorkCost(t) && (isSetAside(b.item) ? cardIds.has(t.accountId) : t.accountId === b.item.accountId)
     );
     matchedTo(b, b.paidBy === 'card' ? cardPool : bankPool);
   }
@@ -711,30 +729,53 @@ export async function computeFreeToSpend(now = new Date()) {
   // cardPeriod: cardPeriod now follows the card cycle again, and reading it
   // here would quietly put an August card spend into September.
   const inCardMonth = (t) => t.date >= windowStart && t.date <= spendEnd && t.date <= today;
+  // Work costs and their refunds are both left out: the cost was never yours to
+  // spend, and the refund must not be credited back for a cost that never came
+  // off (a refund landing on a card would otherwise net against card spending).
   const cardWindow = transactions.filter(
-    (t) => cardIds.has(t.accountId) && !t.isTransfer && !loanEmiIds.has(t.id) && inCardMonth(t)
+    (t) => cardIds.has(t.accountId) && !t.isTransfer && !isWorkCost(t) && !isRefund(t) && !loanEmiIds.has(t.id) && inCardMonth(t)
   );
   const cardGross = cardWindow.reduce((s, t) => s + (t.direction === 'credit' ? -t.amount : t.amount), 0);
   const cardSpent = cardGross - sum(cardCommitmentCharges);
-  // Work costs paid back this month, into a bank or cash account. Taken off
-  // spending, on the day they arrive. Not into a card: those credits are
-  // already inside cardGross above, and counting them again would pay the
-  // same refund out twice.
-  const houseIds = new Set(accounts.filter((a) => a.type !== 'card').map((a) => a.id));
-  // Every account of the house, cards included: the hotel was swiped on one.
+  const spentThisCycle = cardSpent + bankSpent;
+
+  // Work costs: shown and followed, never spent. Every account of the house,
+  // cards included, since the hotel was swiped on one.
   const houseAccountIds = new Set(accounts.map((a) => a.id));
-  const settlementsIn = transactions.filter(
-    (t) =>
-      t.isSettlement &&
-      t.direction === 'credit' &&
-      !t.isTransfer &&
-      (houseIds.has(t.accountId) || t.accountId === 'cash') &&
-      t.date >= windowStart &&
-      t.date <= spendEnd &&
-      t.date <= today
+  const ownedByHouse = (t) => houseAccountIds.has(t.accountId) || t.accountId === 'cash';
+  // This month's work costs, for the line on Summary that says they were not counted.
+  const workCostsThisMonth = transactions
+    .filter((t) => isWorkCost(t) && ownedByHouse(t) && t.date >= windowStart && t.date <= spendEnd && t.date <= today)
+    .reduce((s, t) => s + t.amount, 0);
+  const owedBack = reimbursableTally(transactions.filter(ownedByHouse));
+  // How much of what the bank check subtracts for cards is a cost you will be
+  // refunded for: this cycle's work costs on a card, which are inside "owed on
+  // cards" below, less what has already come back. Costs from an earlier cycle
+  // are on a bill already, so are left out - the check is never told it has
+  // more than it can be sure of.
+  const workCostsOnCards = cards.reduce(
+    (sumSoFar, c) =>
+      sumSoFar +
+      transactions
+        .filter((t) => isWorkCost(t) && t.accountId === c.account.id && t.date > (c.cycleStart || monthStart) && t.date <= today)
+        .reduce((s, t) => s + t.amount, 0),
+    0
   );
-  const reimbursedThisMonth = settlementsIn.reduce((s, t) => s + t.amount, 0);
-  const spentThisCycle = cardSpent + bankSpent - reimbursedThisMonth;
+  const refundInBankCheck = Math.min(owedBack.owed, workCostsOnCards);
+  // A work cost on a card is due back by that card's statement: the cycle it
+  // was charged in, which is how the owner expects employers to pay. Past that
+  // statement, still unpaid, it is late - reported so it can be said plainly
+  // instead of sitting among the figures as a hopeful number. Oldest first
+  // (see unsettledCosts). A cost paid from the bank has no statement, so is
+  // never called late: nothing says when it should have arrived.
+  const late = unsettledCosts(transactions.filter(ownedByHouse))
+    .map((u) => {
+      const card = cards.find((c) => c.account.id === u.transaction.accountId);
+      const day = card && statementDay(card.account, importBatches);
+      return day ? { amount: u.amount, dueBy: nextOccurrence(day, dateOf(u.transaction.date)) } : null;
+    })
+    .filter((x) => x && x.dueBy < today);
+  const refundOverdue = late.length ? { amount: late.reduce((s, x) => s + x.amount, 0), since: late.map((x) => x.dueBy).sort()[0] } : null;
   // The same spending, laid out by day, for the burn drawing on Summary
   // (js/charts.js). Every step is a real dated payment; whatever has no date
   // of its own - a bill billed but not imported yet, a card payment made in
@@ -743,12 +784,9 @@ export async function computeFreeToSpend(now = new Date()) {
   // shows, and no day claims spending that did not happen on it.
   const datedSpends = [
     ...bankSpends.map((t) => ({ date: t.date, amount: t.direction === 'debit' ? t.amount : -t.amount })),
-    // Money paid back steps the line down on the day it arrived, so the line
-    // still ends on the figure the hero shows.
-    ...settlementsIn.map((t) => ({ date: t.date, amount: -t.amount })),
     ...cards.flatMap((c) =>
       transactions
-        .filter((t) => t.accountId === c.account.id && !t.isTransfer && !claimed.has(t.id) && (!c.cycleStart || t.date > c.cycleStart) && t.date <= today)
+        .filter((t) => t.accountId === c.account.id && !t.isTransfer && !isWorkCost(t) && !isRefund(t) && !claimed.has(t.id) && (!c.cycleStart || t.date > c.cycleStart) && t.date <= today)
         .map((t) => ({ date: t.date, amount: t.direction === 'debit' ? t.amount : -t.amount }))
     ),
   ].filter((e) => e.date >= windowStart && e.date <= today);
@@ -998,10 +1036,14 @@ export async function computeFreeToSpend(now = new Date()) {
     bankBeyondPlan,
     bankCommitmentPayments,
     spentThisCycle,
-    // Work costs paid back this month (already taken off spentThisCycle), and
-    // what is still owed back over all time. See js/reimbursable.js.
-    reimbursedThisMonth,
-    reimbursable: reimbursableTally(transactions.filter((t) => houseAccountIds.has(t.accountId) || t.accountId === 'cash')),
+    // Work costs are not spending (see the header). This month's, shown so the
+    // person can see they were left out; what is still owed back over all
+    // time (js/reimbursable.js); and how much of what the bank check takes off
+    // for cards is such a cost.
+    workCostsThisMonth,
+    reimbursable: owedBack,
+    refundInBankCheck,
+    refundOverdue,
     // Cumulative spending, one figure per day gone by. See above.
     spendDays,
     spendByDay,

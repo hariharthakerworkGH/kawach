@@ -29,7 +29,7 @@ import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, spendingPulse, cashRiver } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
-import { spentLine, spendingHero, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards } from '../js/views/summary.js';
+import { spentLine, spendingHero, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -1356,9 +1356,13 @@ test('switching Spent to Received drops the flag that no longer fits', () => {
   equal([u.isReimbursable, u.isSettlement], [true, undefined]);
 });
 
-test('the spent line says when money was paid back, and stays quiet when none was', () => {
-  ok(spentLine(rupees(5000), rupees(90000), rupees(15000)).includes('after ₹15,000 paid back'));
-  ok(!spentLine(rupees(5000), rupees(90000)).includes('paid back'));
+test('the bank card says what it would read if the work costs are paid back, only when there is a shortfall to speak of', () => {
+  const f = { bankAfterBills: -rupees(24906), refundInBankCheck: rupees(23540) };
+  equal(ifRefunded(f), { refund: rupees(23540), after: -rupees(1366) }, 'short by 24,906, 23,540 coming back: short by 1,366');
+  equal(ifRefunded({ ...f, refundInBankCheck: rupees(30000) }).after, rupees(5094), 'more coming back than the gap: covered');
+  equal(ifRefunded({ ...f, refundInBankCheck: 0 }), null, 'nothing coming back: nothing to show');
+  equal(ifRefunded({ ...f, bankAfterBills: rupees(500) }), null, 'no shortfall: nothing to show');
+  equal(ifRefunded({ refundInBankCheck: 1 }), null, 'no bank check at all: nothing to show');
 });
 
 // --- The month bar and the bank-cash split ---------------------------------------

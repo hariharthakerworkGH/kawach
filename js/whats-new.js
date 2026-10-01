@@ -12,6 +12,27 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.18',
+    items: [
+      {
+        icon: 'tag',
+        title: 'Money you will be paid back is not money you spent',
+        text: 'A work cost you mark as Reimbursable no longer comes off what you can spend. It is shown as owed back by your employer, and when the refund arrives you mark it and the owed amount comes down. It adds no spending room, because the cost never took any.',
+        guide: [{ view: 'summary', target: '.summary-owed', text: 'Owed back by employer: what you are still waiting to be paid back for work.' }],
+      },
+      {
+        icon: 'alert',
+        title: 'Two figures when the bank looks short',
+        text: 'Under “after salary and bills” the bank card now also says what it would read if your employer pays back what is owed. The cautious figure stays on top. If a refund is still not back after its card’s statement date, it says so.',
+      },
+      {
+        icon: 'summary',
+        title: 'This month’s card spending was too low',
+        text: 'A card payment towards a commitment made at the end of last month was being taken off this month’s card spending, though it was never in it. That made this month look cheaper than it was, and on the first days of a month it could even go below nothing. Fixed.',
+      },
+    ],
+  },
+  {
     version: '4.17.3',
     items: [
       {
