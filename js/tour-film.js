@@ -57,7 +57,7 @@ const LAND = {
   away: { x: 1210, y: 500, s: 0.8, ry: -26, rx: 6, z: -160 },
   act3: { x: 1170, y: 465, s: 0.9 },
   center: { x: 800, y: 455, s: 0.9 },
-  zoom: { x: 800, y: 430, s: 3.6 },
+  zoom: { x: 800, y: 440, s: 2.0 },
   heroF: { x: 470, y: 290, s: 1.3 },
   tiles: { x: 470, y0: 480, dy: 76, w: 440 },
   chips: [{ x: 860, y: 250, s: 1.55 }, { x: 1320, y: 300, s: 1.55 }],
@@ -90,7 +90,7 @@ const PORT = {
   away: { x: 450, y: 1250, s: 0.8, rx: 14, z: -120 },
   act3: { x: 450, y: 1130, s: 0.88 },
   center: { x: 450, y: 860, s: 1 },
-  zoom: { x: 450, y: 800, s: 3.2 },
+  zoom: { x: 450, y: 820, s: 2.0 },
   heroF: { x: 450, y: 470, s: 1.18 },
   tiles: { x: 450, y0: 665, dy: 74, w: 440 },
   chips: [{ x: 250, y: 560, s: 1.4 }, { x: 650, y: 620, s: 1.4 }],
@@ -188,8 +188,8 @@ function phoneMarkup() {
                   <b>${rupees(28437)}</b>
                 </div>
                 <span class="tf-link" data-tap="mark" data-a="markLink">Mark bill paid</span>
-                <div class="tf-panel" data-a="panel">
-                  <div class="tf-panel-inner">
+                <div class="tf-panel">
+                  <div class="tf-panel-inner" data-a="panelIn">
                     <span class="k-label">Paid from</span>
                     <div class="tf-picker">${brandMark('Salary account', { size: 'sm' })}Salary account</div>
                     <div class="tf-sms">Paste the bank's message (optional)</div>
@@ -222,11 +222,11 @@ function phoneMarkup() {
 
           <section class="tf-view tf-ui k" data-a="v-history">
             <div class="tf-day"><span>Today</span><span class="out" data-n="today"></span></div>
-            <div class="tf-hist" data-a="hist1">
-              <div class="tf-new" data-a="newRow">${histRow('Client lunch', 'Food', `2:45 pm <span class="hist-tag">Owed back</span>`, rupees(2450), ' tf-new-row')}</div>
+            <div class="tf-hist-clip" data-a="hist1"><div class="tf-hist" data-a="histIn">
+              ${histRow('Client lunch', 'Food', `2:45 pm <span class="hist-tag">Owed back</span>`, rupees(2450), ' tf-new-row')}
               ${histRow('Annapurna Tiffins', 'Food', '1:10 pm', rupees(180))}
               ${histRow('Metro card top-up', 'Metro', '9:02 am', rupees(500))}
-            </div>
+            </div></div>
             <div class="tf-day" style="margin-top:16px"><span>Yesterday</span><span class="out">${rupees(1240)}</span></div>
             <div class="tf-hist" data-a="hist2">${histRow('Fresh Basket', 'Groceries', '7:30 pm', rupees(1240))}</div>
           </section>
@@ -275,7 +275,7 @@ function stageMarkup() {
       <div class="tf-ring" data-a="ring4"></div>
     </div>
 
-    <canvas class="tf-canvas" data-a="canvas" width="${F.W}" height="${F.H}"></canvas>
+    <canvas class="tf-canvas" data-a="canvas" width="${F.W / 2}" height="${F.H / 2}"></canvas>
 
     <div class="tf-layer">
       <div class="tf-horizon" data-a="horizon" style="top:${hl.h1.y + hl.h1.size * (1.02 * (hl.h1.lines || 1) + 0.6)}px"></div>
@@ -417,13 +417,12 @@ function ring(el, at, p) {
 // A screen's comings and goings, the way the app swaps them.
 function screen(name, spans) {
   for (const el of [$(`v-${name}`), $(`h-${name}`)]) {
-    const frames = [[0, { opacity: 0, transform: 'translateX(28px)', visibility: 'hidden' }]];
+    const frames = [[0, { opacity: 0, transform: 'translateX(28px)' }]];
     for (const [from, to] of spans) {
-      frames.push([from, { opacity: 0, transform: 'translateX(28px)', visibility: 'visible' }, EX]);
+      frames.push([from, { opacity: 0, transform: 'translateX(28px)' }, EX]);
       frames.push([from + 0.45, { opacity: 1, transform: 'translateX(0px)' }]);
       frames.push([to, { opacity: 1, transform: 'translateX(0px)' }, IN]);
-      frames.push([to + 0.2, { opacity: 0, transform: 'translateX(-18px)', visibility: 'visible' }]);
-      frames.push([to + 0.21, { visibility: 'hidden' }]);
+      frames.push([to + 0.2, { opacity: 0, transform: 'translateX(-18px)' }]);
     }
     track(el, frames);
   }
@@ -486,15 +485,19 @@ function build() {
   const away2 = { ...F.away, ry: F.land ? -16 : 0, rx: F.land ? 4 : 10 };
   const fanPose = F.land ? { ...H, ry: -14, rx: 3 } : F.away;
   const fanPose2 = F.land ? { ...H, ry: -8, rx: 2 } : { ...F.away, rx: 8 };
-  const hidden = { ...H, y: H.y + (F.land ? 160 : 260), z: -1800, s: H.s * 0.8, rx: 38, ry: -48, rz: 6 };
+  // Far, but not too far, and the push-in at 35s not too close: the browser
+  // draws a moving layer at one size for its whole animation, and a huge
+  // range of sizes left the phone's text soft at its normal size.
+  const hidden = { ...H, y: H.y + (F.land ? 120 : 200), z: -700, s: H.s * 0.85, rx: 30, ry: -40, rz: 5 };
   // At the end the phone shrinks into the spot the shield is drawn on.
   const spin = { ...F.center, y: F.shieldEnd.y + 90, ry: -24, rx: 10, s: F.center.s * 0.5 };
   const gone = { x: F.shieldEnd.x, y: F.shieldEnd.y, ry: 0, rx: 0, s: 0.05 };
-  const P = (p, o = 1, b = 0) => ({ transform: PT(p), opacity: o, filter: `blur(${b}px)` });
+  // Transform and opacity only: those two the graphics chip moves by itself.
+  const P = (p, o = 1) => ({ transform: PT(p), opacity: o });
 
   // ---- the camera, which is to say the phone -----------------------------
   track($('phone'), [
-    [7.0, P(hidden, 0, 14), EX],
+    [7.0, P(hidden, 0), EX],
     [8.9, P(home34)],
     [11.0, P(home34b), IO],
     [11.9, P(H)],
@@ -507,8 +510,8 @@ function build() {
     [26.3, P(act3t2), IO],
     [26.9, P(F.act3)],
     [34.8, P(F.act3), IN],
-    [35.5, P(F.zoom, 1, 6), LIN],
-    [35.55, P(F.zoom, 1, 6), EX],
+    [35.5, P(F.zoom, 0), LIN],
+    [35.55, P({ ...H, s: H.s * 0.8 }, 0), EX],
     [36.5, P(home34)],
     [39.3, P(home34b), IO],
     [39.8, P(H)],
@@ -534,7 +537,7 @@ function build() {
   screen('accounts', [[23.9, 35.5]]);
   screen('add', [[35.5, 47.6]]);
   screen('history', [[47.6, 53.3]]);
-  track($('boot'), [[9.0, { opacity: 1, visibility: 'visible' }, IO], [9.6, { opacity: 0 }], [9.61, { visibility: 'hidden' }]]);
+  track($('boot'), [[9.0, { opacity: 1 }, IO], [9.6, { opacity: 0 }]]);
   track($('boot').firstElementChild, [
     [7.6, { transform: 'scale(0.6)', opacity: 0 }, EX],
     [8.6, { transform: 'scale(1)', opacity: 1 }, LIN],
@@ -543,8 +546,9 @@ function build() {
   ]);
 
   // ---- inside the phone ------------------------------------------------------
-  const panelHeight = $('panel').firstElementChild.offsetHeight;
-  track($('panel'), [[27.55, { height: '0px' }, EX], [28.2, { height: `${panelHeight}px` }], [29.6, { height: `${panelHeight}px` }, IO], [30.0, { height: '0px' }]]);
+  // The panel and the new History row slide into place rather than grow:
+  // growing makes the browser lay the page out again on every frame.
+  track($('panelIn'), [[27.55, { transform: 'translateY(-101%)' }, EX], [28.2, { transform: 'translateY(0%)' }], [29.6, { transform: 'translateY(0%)' }, IO], [30.0, { transform: 'translateY(-101%)' }]]);
   track($('markLink'), [[29.6, { opacity: 1 }, LIN], [29.8, { opacity: 0 }]]);
   track($('due'), [[31.6, { opacity: 1 }, LIN], [31.8, { opacity: 0 }]]);
   track($('paid'), [[31.7, { opacity: 0, transform: 'scale(0.9)' }, SP], [32.1, { opacity: 1, transform: 'scale(1)' }]]);
@@ -556,7 +560,7 @@ function build() {
     [44.6, { opacity: 1, transform: 'translate(-50%, 0px)' }, IN],
     [45.0, { opacity: 0, transform: 'translate(-50%, 0px)' }],
   ]);
-  track($('newRow'), [[48.2, { height: '0px', opacity: 0 }, EX], [48.8, { height: '64px', opacity: 1 }]]);
+  track($('histIn'), [[48.2, { transform: 'translateY(-64px)' }, EX], [48.8, { transform: 'translateY(0px)' }]]);
 
   // ---- act 0: the promise ----------------------------------------------------
   track($('horizon'), [[0.25, { transform: 'scaleX(0)', opacity: 1 }, EX], [1.3, { transform: 'scaleX(1)' }], [2.7, { transform: 'scaleX(1)', opacity: 1 }, IN], [3.3, { transform: 'scaleX(1.15)', opacity: 0 }]]);
@@ -626,15 +630,18 @@ function build() {
     [20.1, { opacity: 1, transform: T(a1) }, LIN],
     [20.2, { opacity: 0 }],
   ]);
-  track(meterF, [[15.4, { width: '0%' }, EX], [16.3, { width: '52%' }]]);
+  // The bar fills by stretching, not by changing width: a width animation
+  // makes the browser lay the page out on every frame of the film.
+  meterF.style.transformOrigin = 'left center';
+  track(meterF, [[15.4, { transform: 'scaleX(0)' }, EX], [16.3, { transform: 'scaleX(1)' }]]);
   dim(hero, 12.15, 20.05, 0.08);
   [13.0, 13.8, 14.6, 15.4].forEach((at, i) => {
     const p = { x: F.tiles.x, y: F.tiles.y0 + i * F.tiles.dy };
     track($(`tile${i}`), [
-      [at, { opacity: 0, transform: T(p, { z: -500, s: 0.8, rx: 35 }), filter: 'blur(12px)' }, EX],
-      [at + 0.8, { opacity: 1, transform: T(p), filter: 'blur(0px)' }],
-      [16.2 + i * 0.04, { opacity: 1, transform: T(p), filter: 'blur(0px)' }, IN],
-      [16.6 + i * 0.04, { opacity: 0, transform: T(hf, { z: 40, s: 0.25 }), filter: 'blur(6px)' }],
+      [at, { opacity: 0, transform: T(p, { z: -500, s: 0.8, rx: 35 }) }, EX],
+      [at + 0.8, { opacity: 1, transform: T(p) }],
+      [16.2 + i * 0.04, { opacity: 1, transform: T(p) }, IN],
+      [16.6 + i * 0.04, { opacity: 0, transform: T(hf, { z: 40, s: 0.25 }) }],
     ]);
   });
   ring($('ring1'), 16.65, hf);
@@ -705,11 +712,11 @@ function build() {
   ]);
   [['pocket', F.pocket, 41.1], ['lock', F.lock, 41.4]].forEach(([name, p, at]) => {
     track($(name), [
-      [at, { opacity: 0, transform: T(p, { z: -400, s: 0.8, rx: 30 }), filter: 'blur(10px)' }, EX],
-      [at + 0.75, { opacity: 1, transform: T(p), filter: 'blur(0px)' }],
+      [at, { opacity: 0, transform: T(p, { z: -400, s: 0.8, rx: 30 }) }, EX],
+      [at + 0.75, { opacity: 1, transform: T(p) }],
       ...(name === 'pocket' ? [[41.95, { transform: T(p) }, SP], [42.2, { transform: T(p, { z: 50, s: 1.06 }) }, IO], [42.6, { transform: T(p) }]] : []),
-      [46.6, { opacity: 1, transform: T(p), filter: 'blur(0px)' }, IN],
-      [47.1, { opacity: 0, transform: T(p, { z: -300, s: 0.85 }), filter: 'blur(4px)' }],
+      [46.6, { opacity: 1, transform: T(p) }, IN],
+      [47.1, { opacity: 0, transform: T(p, { z: -300, s: 0.85 }) }],
     ]);
   });
   ring($('ring3'), 41.95, F.pocket);
@@ -738,9 +745,10 @@ function build() {
   ring($('ring4'), 55.25, F.shieldEnd);
   track($('rays'), [[55.3, { opacity: 0, transform: AT(F.shieldEnd, 0.6, 0) }, EX], [56.4, { opacity: 1, transform: AT(F.shieldEnd, 1, 20) }, LIN], [60, { opacity: 0.8, transform: AT(F.shieldEnd, 1.05, 52) }]]);
   reveal($('end'), 56.4, 61, { stagger: 0.09 });
-  track($('word'), [[57.0, { letterSpacing: '0.62em', textIndent: '0.62em' }, EX], [58.4, { letterSpacing: '0.24em', textIndent: '0.24em' }]]);
+  // The letters close in from wide apart, each one moved on its own.
   [...'KAWACH'].forEach((_, i) => {
-    track($(`wl${i}`), [[57.0 + i * 0.07, { opacity: 0, transform: 'translateY(40px)', filter: 'blur(12px)' }, EX], [57.9 + i * 0.07, { opacity: 1, transform: 'translateY(0px)', filter: 'blur(0px)' }]]);
+    const dx = (i - 2.5) * 0.38 * F.word.size;
+    track($(`wl${i}`), [[57.0 + i * 0.07, { opacity: 0, transform: `translate(${dx}px, 40px)` }, EX], [58.3, { opacity: 1, transform: 'translate(0px, 0px)' }]]);
   });
   track($('rule'), [[57.8, { transform: 'scaleX(0)' }, EX], [58.6, { transform: 'scaleX(1)' }]]);
   track($('url'), [[58.0, { opacity: 0, transform: 'translateY(10px)' }, EX], [58.7, { opacity: 1, transform: 'translateY(0px)' }]]);
@@ -768,6 +776,13 @@ function build() {
   finger = $('finger');
   screenEl = stage.querySelector('.tf-screen');
   ctx = $('canvas').getContext('2d');
+  // Drawn at half size and stretched: soft points of light look the same,
+  // and a quarter of the pixels is a quarter of the work each frame.
+  ctx.setTransform(0.5, 0, 0, 0.5, 0, 0);
+  canvasEmpty = true;
+  fingerStyle = '';
+  shownSecond = -1;
+  findTaps();
 }
 
 // ---- numbers, typing and switches, worked out from the moment ----------------
@@ -813,20 +828,26 @@ let screenEl = null;
 let ctx = null;
 
 function setFigures(s) {
+  // Counting figures change at most thirty times a second: each change
+  // redraws the card it sits on, and the eye cannot tell the difference.
+  const counted = Math.floor(s * 30) / 30;
   for (const [key, value] of Object.entries(FIGURES)) {
-    const text = value(s);
+    const text = value(counted);
     for (const el of nodes[key] || []) if (el.textContent !== text) el.textContent = text;
   }
-  for (const el of nodes.toggle || []) el.setAttribute('aria-checked', String(s >= 40.95));
+  const on = String(s >= 40.95);
+  for (const el of nodes.toggle || []) if (el.getAttribute('aria-checked') !== on) el.setAttribute('aria-checked', on);
   const c1 = s >= 35.5 && s < 38.5 && (s > 37.2 && s < 38.3 ? true : blink(s));
   const c2 = s >= 38.5 && s < 40.1 && (s < 39.7 ? true : blink(s));
-  for (const el of nodes.caret1 || []) el.style.opacity = c1 ? '1' : '0';
-  for (const el of nodes.caret2 || []) el.style.opacity = c2 ? '1' : '0';
+  for (const el of nodes.caret1 || []) if (el.style.opacity !== (c1 ? '1' : '0')) el.style.opacity = c1 ? '1' : '0';
+  for (const el of nodes.caret2 || []) if (el.style.opacity !== (c2 ? '1' : '0')) el.style.opacity = c2 ? '1' : '0';
 }
 
 // ---- the fingertip -----------------------------------------------------------------
 
 const TAPS = [[23.7, 'nav-accounts'], [27.4, 'mark'], [29.35, 'confirm'], [40.2, 'food'], [40.95, 'toggle'], [43.0, 'save'], [47.45, 'nav-history']];
+let tapAt = {};
+let fingerStyle = '';
 
 // Where an element sits inside the phone's screen, ignoring the camera, which
 // moves the screen and the fingertip together.
@@ -840,20 +861,32 @@ function centre(el) {
   return [x, y];
 }
 
+// Worked out once, when the film is built: reading positions while it plays
+// would make the browser stop and lay the page out again every frame.
+function findTaps() {
+  tapAt = {};
+  for (const [at, name] of TAPS) {
+    seekAll(at * 1000);
+    tapAt[name] = centre(stage.querySelector(`[data-tap="${name}"]`));
+  }
+}
+
 function placeFinger(s) {
   const tap = TAPS.find(([at]) => s > at - 0.8 && s < at + 0.5);
-  if (!tap) {
-    finger.style.opacity = '0';
-    return;
+  let style = 'opacity:0';
+  if (tap) {
+    const [at, name] = tap;
+    const [x, y] = tapAt[name];
+    const lead = Math.max(0, Math.min(1, (at - s) / 0.6));
+    const ease = lead * lead;
+    const opacity = s < at ? Math.min(1, (s - (at - 0.8)) / 0.2) : Math.max(0, 1 - (s - at) / 0.5);
+    const pressed = Math.abs(s - at) < 0.12 ? 0.78 : 1;
+    style = `opacity:${opacity.toFixed(3)};transform:translate(${(x + ease * 40).toFixed(1)}px, ${(y + ease * 64).toFixed(1)}px) scale(${pressed})`;
   }
-  const [at, name] = tap;
-  const [x, y] = centre(stage.querySelector(`[data-tap="${name}"]`));
-  const lead = Math.max(0, Math.min(1, (at - s) / 0.6));
-  const ease = lead * lead;
-  const opacity = s < at ? Math.min(1, (s - (at - 0.8)) / 0.2) : Math.max(0, 1 - (s - at) / 0.5);
-  const pressed = Math.abs(s - at) < 0.12 ? 0.78 : 1;
-  finger.style.opacity = String(opacity);
-  finger.style.transform = `translate(${x + ease * 40}px, ${y + ease * 64}px) scale(${pressed})`;
+  if (style !== fingerStyle) {
+    fingerStyle = style;
+    finger.style.cssText = style;
+  }
 }
 
 // ---- particles, drawn from the moment ---------------------------------------------
@@ -867,10 +900,14 @@ function seeded(seed) {
   };
 }
 const rnd = seeded(7);
-const STARS = Array.from({ length: 260 }, () => ({ x: rnd() * 2 - 1, y: rnd() * 2 - 1, z: rnd() }));
-const DUST = Array.from({ length: 70 }, () => ({ x: rnd(), y: rnd(), vx: rnd() - 0.5, vy: rnd() * 0.6 + 0.2, r: rnd() * 1.6 + 0.5, p: rnd() * 6.283 }));
-const BURST = Array.from({ length: 170 }, () => ({ a: rnd() * 6.283, v: 0.3 + rnd() * 0.7, r: rnd() * 2 + 0.6 }));
-const FLOW = Array.from({ length: 90 }, () => ({ d: rnd(), j: rnd() * 2 - 1, r: rnd() * 1.6 + 1 }));
+const STARS = Array.from({ length: 220 }, () => ({ x: rnd() * 2 - 1, y: rnd() * 2 - 1, z: rnd() }));
+const BURST = Array.from({ length: 150 }, () => ({ a: rnd() * 6.283, v: 0.3 + rnd() * 0.7, r: rnd() * 2 + 0.6 }));
+const FLOW = Array.from({ length: 80 }, () => ({ d: rnd(), j: rnd() * 2 - 1, r: rnd() * 1.6 + 1 }));
+
+// The canvas is only drawn while it has something on it; the rest of the
+// time it is left alone, cleared once.
+const PARTICLES = [[0.5, 3.85], [30.3, 32.1], [55.2, 57.6]];
+let canvasEmpty = true;
 
 function dot(x, y, r, a) {
   if (a <= 0.003) return;
@@ -886,11 +923,17 @@ function dot(x, y, r, a) {
 
 function draw(s) {
   const { W, H } = F;
+  if (!PARTICLES.some(([a, b]) => s > a && s < b)) {
+    if (!canvasEmpty) ctx.clearRect(0, 0, W, H);
+    canvasEmpty = true;
+    return;
+  }
+  canvasEmpty = false;
   ctx.clearRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'lighter';
 
   // A field of points rushing past, which falls into one: the shield.
-  if (s > 0.5 && s < 3.85) {
+  if (s < 3.85) {
     const env = smooth(0.5, 1.4, s) * (1 - smooth(3.55, 3.85, s));
     const pull = smooth(2.85, 3.6, s);
     const k = Math.max(W, H) * 0.18;
@@ -901,16 +944,6 @@ function draw(s) {
       const x = px + (F.shield.x - px) * pull;
       const y = py + (F.shield.y - py) * pull;
       dot(x, y, (1.15 - z) * 2 * (1 - pull * 0.4), env * (1 - z) * 1.1);
-    }
-  }
-
-  // Dust in the light, for the rest of the film.
-  if (s > 7.5 && s < 59.5) {
-    const env = smooth(7.5, 9.5, s) * (1 - smooth(58.5, 59.5, s));
-    for (const d of DUST) {
-      const x = (((d.x * W + s * d.vx * 14) % W) + W) % W;
-      const y = (((d.y * H - s * d.vy * 16) % H) + H) % H;
-      dot(x, y, d.r, (0.1 + 0.08 * Math.sin(s * 1.3 + d.p)) * env);
     }
   }
 
@@ -932,7 +965,7 @@ function draw(s) {
   }
 
   // The phone goes, and everything flies out from where it was.
-  if (s > 55.2 && s < 57.6) {
+  if (s > 55.2) {
     const t = s - 55.2;
     const c = F.shieldEnd;
     const reach = Math.max(W, H) * 0.6;
@@ -943,7 +976,7 @@ function draw(s) {
   }
 }
 
-// Film grain: one tile of noise, moved every 24th of a second.
+// Film grain: one tile of noise, which the stylesheet moves about.
 let grainURL = '';
 function grainImage() {
   if (!grainURL) {
@@ -967,15 +1000,28 @@ function grainImage() {
 }
 
 // ---- the clock ----------------------------------------------------------------------
+//
+// Playing hands the film to the browser: every animation is started on the
+// page's own timeline at the same instant, so the moving parts are drawn by
+// the graphics chip and stay smooth however busy the page is. Only the
+// numbers, the fingertip and the particles are worked out here, once a frame,
+// from the moment the animations say it is. Pausing or scrubbing holds every
+// animation at one moment again. (Setting each animation's time by hand on
+// every frame, as 4.20 did, made the browser redraw the whole film each
+// frame, and on a phone it stuttered.)
 
 let now = 0;
 let playing = false;
-let lastFrame = 0;
+let resumeOnReturn = false;
+let shownSecond = -1;
 
 const clockText = (ms) => {
   const secs = Math.floor(ms / 1000);
   return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
 };
+
+const clamp = (ms) => Math.max(0, Math.min(LENGTH, ms));
+const currentMs = () => clamp(animations.length && animations[0].currentTime != null ? animations[0].currentTime : now);
 
 function pickFormat() {
   const frame = stage.parentElement;
@@ -989,58 +1035,92 @@ function fit() {
   if (stage.style.transform !== transform) stage.style.transform = transform;
 }
 
-function show(ms) {
-  // The space changed shape (a phone turned, a window resized): rebuild
-  // the film for the other stage, at the same moment.
-  const format = pickFormat();
-  if (format !== F) {
-    F = format;
-    build();
-  }
-  fit();
-  now = Math.max(0, Math.min(LENGTH, ms));
+// What the browser does not draw by itself, at time ms.
+function paint(ms) {
+  now = clamp(ms);
   const s = now / 1000;
-  seekAll(now);
   setFigures(s);
   placeFinger(s);
   draw(s);
-  const f = Math.floor(s * 24);
-  $('grain').style.transform = `translate(${(f * 37) % 180}px, ${(f * 91) % 180}px)`;
   scrub.value = String(Math.round(now));
-  timeText.textContent = `${clockText(now)} / ${clockText(LENGTH)}`;
-}
-
-function setPlaying(on) {
-  playing = on;
-  playBtn.innerHTML = icon(on ? 'pause' : 'play');
-  playBtn.setAttribute('aria-label', on ? 'Pause' : 'Play');
-  if (on) {
-    if (now >= LENGTH) show(0);
-    lastFrame = performance.now();
-    requestAnimationFrame(tick);
+  const second = Math.floor(now / 1000);
+  if (second !== shownSecond) {
+    shownSecond = second;
+    timeText.textContent = `${clockText(now)} / ${clockText(LENGTH)}`;
   }
 }
 
-function tick(time) {
+// Hold everything at one moment.
+function show(ms) {
+  const t = clamp(ms);
+  seekAll(t);
+  paint(t);
+}
+
+function setPlaying(on) {
+  if (on) {
+    let from = currentMs();
+    if (from >= LENGTH) from = 0;
+    seekAll(from);
+    const start = document.timeline.currentTime - from;
+    for (const a of animations) a.startTime = start;
+    playing = true;
+    paint(from);
+    requestAnimationFrame(tick);
+  } else {
+    const t = currentMs();
+    playing = false;
+    for (const a of animations) a.pause();
+    show(t);
+  }
+  playBtn.innerHTML = icon(on ? 'pause' : 'play');
+  playBtn.setAttribute('aria-label', on ? 'Pause' : 'Play');
+}
+
+function tick() {
   if (!playing) return;
-  // A tab put away and brought back skips no part of the film.
-  const step = Math.min(100, time - lastFrame);
-  lastFrame = time;
-  show(now + step);
-  if (now >= LENGTH) setPlaying(false);
+  const t = currentMs();
+  paint(t);
+  if (t >= LENGTH) setPlaying(false);
   else requestAnimationFrame(tick);
+}
+
+// The box changed shape (a phone turned, a window resized): fit it, or
+// rebuild the film for the other stage at the same moment.
+function reframe() {
+  if (!animations.length) return;
+  const format = pickFormat();
+  if (format === F) {
+    fit();
+    return;
+  }
+  const wasPlaying = playing;
+  const t = currentMs();
+  if (wasPlaying) setPlaying(false);
+  F = format;
+  build();
+  show(t);
+  if (wasPlaying) setPlaying(true);
 }
 
 playBtn.addEventListener('click', () => setPlaying(!playing));
 scrub.addEventListener('input', () => {
-  setPlaying(false);
+  if (playing) setPlaying(false);
   show(Number(scrub.value));
 });
 // Its own box, not the window: inside the welcome page or the app the frame
 // settles after the page has loaded, and the window never says so.
-new ResizeObserver(() => {
-  if (animations.length && !playing) show(now);
-}).observe(stage.parentElement);
+new ResizeObserver(reframe).observe(stage.parentElement);
+// Put away mid-film, it waits where it was rather than playing to nobody.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && playing) {
+    resumeOnReturn = true;
+    setPlaying(false);
+  } else if (!document.hidden && resumeOnReturn) {
+    resumeOnReturn = false;
+    setPlaying(true);
+  }
+});
 document.addEventListener('keydown', (e) => {
   if (e.key === ' ' && e.target === document.body) {
     e.preventDefault();
@@ -1060,4 +1140,4 @@ document.fonts.ready.then(() => {
 });
 
 // For checking frames by hand: tourFilm.show(31000).
-window.tourFilm = { show, length: LENGTH, squeezed };
+window.tourFilm = { show, length: LENGTH, squeezed, play: () => setPlaying(true), pause: () => setPlaying(false), time: currentMs };

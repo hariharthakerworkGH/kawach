@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.20.1',
+    items: [
+      {
+        icon: 'play',
+        title: 'The tour plays smoothly',
+        text: 'The one-minute tour no longer stutters: your phone now moves it with its graphics chip instead of redrawing every frame.',
+      },
+    ],
+  },
+  {
     version: '4.20',
     items: [
       {

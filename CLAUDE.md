@@ -189,7 +189,13 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   straight on at those moments. Every moving part is one paused Web
   Animation over the full minute, set by one clock, and the canvas
   particles, typing and numbers are worked out from the same moment, so
-  scrubbing and playing show the same frame. `?t=31000` opens on a moment,
+  scrubbing and playing show the same frame. Playing hands the animations
+  to the browser (all started on the page timeline at one instant) so the
+  graphics chip moves them; setting their time by hand each frame made 4.20
+  stutter. So keep every moving part to transform and opacity: no blur,
+  backdrop blur, blend modes, reflections, or width/height/letter-spacing
+  animations, all of which make the page redraw or lay out each frame.
+  `?t=31000` opens on a moment,
   `?autoplay=0` waits on the poster frame, and reduced motion never starts
   by itself. It does not read the real views, so change it by hand when a
   screen it shows changes. No brand logos: the app bundles none

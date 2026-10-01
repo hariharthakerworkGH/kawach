@@ -48,6 +48,7 @@
     overflow: hidden;
     background: #04060c;
     transform-origin: center center;
+    contain: strict;
   }
   .tf-layer { position: absolute; inset: 0; pointer-events: none; }
   .tf-world { position: absolute; inset: 0; perspective: 2400px; perspective-origin: 50% 45%; pointer-events: none; }
@@ -74,7 +75,14 @@
     -webkit-mask: radial-gradient(closest-side, #000 12%, transparent 72%);
     mask: radial-gradient(closest-side, #000 12%, transparent 72%);
   }
-  .tf-grain { position: absolute; inset: -200px; opacity: 0.07; mix-blend-mode: overlay; }
+  /* Grain is a plain faint layer that the graphics chip slides about: blending
+     it into the picture meant repainting the whole film every frame. */
+  .tf-grain { position: absolute; inset: -200px; opacity: 0.045; animation: tf-grain 0.5s steps(6) infinite; will-change: transform; }
+  @keyframes tf-grain {
+    0% { transform: translate(0, 0); } 20% { transform: translate(-60px, 40px); } 40% { transform: translate(50px, -70px); }
+    60% { transform: translate(-30px, -30px); } 80% { transform: translate(70px, 60px); } 100% { transform: translate(0, 0); }
+  }
+  @media (prefers-reduced-motion: reduce) { .tf-grain { animation: none; } }
   .tf-vignette { position: absolute; inset: 0; background: radial-gradient(120% 95% at 50% 46%, transparent 55%, oklch(0% 0 0 / 0.7)); }
   .tf-black { position: absolute; inset: 0; background: #000; }
   .tf-ring {
@@ -136,7 +144,6 @@
       inset 0 0 0 5px #0a0b0f,
       0 70px 120px -30px oklch(0% 0 0 / 0.9),
       0 0 0 1px oklch(0% 0 0 / 0.6);
-    -webkit-box-reflect: below 26px linear-gradient(transparent 74%, oklch(100% 0 0 / 0.1));
   }
   .tf-device::before { content: ""; position: absolute; right: -4px; top: 210px; width: 5px; height: 104px; border-radius: 3px; background: linear-gradient(90deg, #2a2d35, #5b606c); }
   .tf-device::after { content: ""; position: absolute; left: -4px; top: 170px; width: 5px; height: 64px; border-radius: 3px; background: linear-gradient(90deg, #5b606c, #2a2d35); box-shadow: 0 86px 0 0 #3d414b; }
@@ -168,12 +175,14 @@
   }
   .tf-nav-btn { display: grid; justify-items: center; gap: 4px; font-size: 10.5px; color: var(--k-text-3); position: relative; }
   .tf-nav-btn .icon { width: 22px; height: 22px; }
-  .tf-nav-on { position: absolute; inset: 0; display: grid; justify-items: center; gap: 4px; color: var(--k-accent); }
+  .tf-nav-on { position: absolute; inset: 0; display: grid; justify-items: center; gap: 4px; color: var(--k-accent); opacity: 0; }
   .tf-boot { position: absolute; inset: 0; display: grid; place-items: center; background: #07090f; z-index: 25; }
   .tf-boot img { width: 116px; height: 116px; filter: drop-shadow(0 0 30px oklch(78% 0.14 220 / 0.6)); }
 
   /* ---- the app's parts, at this size (in the phone and lifted out) ------ */
-  .tf-ui .hero { margin: 0 0 14px; padding: 22px 22px 20px; }
+  /* No frosted glass in the film: blurring what is behind a moving card is
+     the most expensive thing a browser can be asked to do each frame. */
+  .tf-ui .hero { margin: 0 0 14px; padding: 22px 22px 20px; -webkit-backdrop-filter: none; backdrop-filter: none; background-color: var(--k-surface-elev); }
   .tf-ui .hero-amount { font-size: 54px; }
   .tf-ui .hero-under { display: flex; gap: 26px; margin: 12px 6px 0; }
   .tf-ui .summary-owed { flex-wrap: nowrap; gap: 22px; margin-top: 20px; }
@@ -186,15 +195,15 @@
   .tf-ui .k-row__value { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
   .tf-list { border-radius: 20px; background: var(--k-surface); padding: 2px 14px; }
   .tf-list .tf-bill + .k-row { border-top: 1px solid var(--k-hairline); }
-  .tf-bill { border-top: 1px solid var(--k-hairline); padding: 12px 0 14px; font-size: 14px; }
+  .tf-bill { position: relative; border-top: 1px solid var(--k-hairline); padding: 12px 0 14px; font-size: 14px; }
   .tf-bill-line { display: flex; justify-content: space-between; align-items: center; color: var(--k-text-2); position: relative; height: 22px; }
   .tf-bill-line > span { position: absolute; left: 0; top: 0; display: inline-flex; align-items: center; gap: 6px; }
   .tf-bill-line > b { margin-left: auto; font-weight: 650; color: var(--k-text); font-variant-numeric: tabular-nums; }
   .tf-paid { color: var(--k-positive); }
   .tf-paid .icon { width: 17px; height: 17px; }
   .tf-link { display: inline-block; margin-top: 10px; color: var(--k-accent); font-weight: 600; font-size: 14px; }
-  .tf-panel { overflow: hidden; height: 0; }
-  .tf-panel-inner { padding: 14px 0 2px; display: grid; gap: 10px; }
+  .tf-panel { position: absolute; left: -14px; right: -14px; top: 100%; z-index: 3; overflow: hidden; border-radius: 0 0 20px 20px; }
+  .tf-panel-inner { padding: 14px 14px 16px; display: grid; gap: 10px; background: var(--k-surface); box-shadow: inset 0 1px 0 var(--k-hairline); }
   .tf-ui .k-label { font-size: 13px; color: var(--k-text-3); }
   .tf-picker { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 12px; background: var(--k-surface-elev); font-size: 14.5px; font-weight: 600; }
   .tf-picker .k-brand { width: 28px; height: 28px; border-radius: 8px; font-size: 11px; }
@@ -225,13 +234,13 @@
   .tf-hist .hist-name { font-size: 15.5px; font-weight: 600; }
   .tf-hist .hist-sub { font-size: 12.5px; color: var(--k-text-3); display: flex; gap: 6px; align-items: center; }
   .tf-hist .txn-amount { font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; }
-  .tf-new { height: 0; overflow: hidden; }
+  .tf-hist-clip { border-radius: 20px; overflow: hidden; }
   .tf-new-row { border-bottom: 1px solid var(--k-hairline); }
   .tf-glow { position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 1.5px var(--k-accent), 0 0 26px color-mix(in oklch, var(--k-cyan) 45%, transparent); pointer-events: none; }
   .tf-finger {
     position: absolute; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%;
     background: oklch(100% 0 0 / 0.3); box-shadow: 0 0 0 2px oklch(100% 0 0 / 0.8), 0 8px 20px oklch(0% 0 0 / 0.45);
-    opacity: 0; z-index: 40; pointer-events: none;
+    opacity: 0; z-index: 40; pointer-events: none; will-change: transform, opacity;
   }
 
   /* ---- things lifted out of the phone, and things beside it ------------- */
@@ -284,7 +293,7 @@
   .tf-card-sheen { position: absolute; inset: -40%; background: linear-gradient(110deg, transparent 40%, oklch(100% 0 0 / 0.22) 48%, transparent 56%); pointer-events: none; }
   .tf-stamp {
     position: absolute; left: 50%; top: 50%; display: flex; gap: 10px; align-items: center;
-    padding: 10px 22px; border-radius: 999px; font-size: 26px; font-weight: 800; letter-spacing: 0.18em; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    padding: 10px 22px; border-radius: 999px; font-size: 26px; font-weight: 800; letter-spacing: 0.18em;
     color: oklch(92% 0.14 155); background: oklch(55% 0.15 155 / 0.35); box-shadow: inset 0 0 0 2px oklch(80% 0.17 155), 0 0 30px oklch(70% 0.17 155 / 0.5);
   }
   .tf-stamp .icon { width: 26px; height: 26px; }
