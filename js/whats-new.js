@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.20',
+    items: [
+      {
+        icon: 'play',
+        title: 'The tour, remade',
+        text: 'A new one-minute film of Kawach: what is left to spend worked out in front of you, a card bill paid from your bank, and a work cost set aside until your employer pays it back. It plays without internet, wide on a computer and tall on a phone.',
+        guide: [{ view: 'settings', target: '#watch-tour', text: 'Watch the new tour here.' }],
+      },
+    ],
+  },
+  {
     version: '4.19',
     items: [
       {
