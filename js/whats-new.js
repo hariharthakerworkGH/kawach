@@ -12,6 +12,21 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.17.1',
+    items: [
+      {
+        icon: 'summary',
+        title: 'One opening, not two',
+        text: 'Android shows Kawach’s icon while the app starts. The opening now begins as that same icon, in the same place, and becomes the glowing shield from there, instead of going dark and drawing a different one.',
+      },
+      {
+        icon: 'alert',
+        title: 'Updates arrive on their own',
+        text: 'Kawach now checks for a new version every time you come back to it, not only when it restarts. When one is waiting as you open the app, the opening stays a moment while it downloads and you land straight in the new version.',
+      },
+    ],
+  },
+  {
     version: '4.17',
     items: [
       {
