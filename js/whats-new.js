@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.18.1',
+    items: [
+      {
+        icon: 'check',
+        title: 'Upcoming clears as you pay',
+        text: 'The Upcoming list on Summary now drops what is already paid or skipped this month, shows only what is left of a part payment, and marks anything past its date as late. When everything for the month is done, it goes.',
+        guide: [{ view: 'summary', target: '#upcoming-section', text: 'Upcoming now shows only what is still to pay this month.' }],
+      },
+    ],
+  },
+  {
     version: '4.18',
     items: [
       {

@@ -29,7 +29,7 @@ import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, spendingPulse, cashRiver } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
-import { spentLine, spendingHero, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded } from '../js/views/summary.js';
+import { spentLine, spendingHero, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -1432,4 +1432,40 @@ test('History: a payment saved before times were kept is ordered by when it was 
   // A payment typed in on the 2nd for the 1st has no time of day, whatever its updatedAt says.
   const later = { id: 'l', date: '2026-10-01', updatedAt: new Date(2026, 9, 2, 12, 0).getTime() };
   equal([later, ...old].sort(newestFirst).map((t) => t.id), ['b', 'a', 'c', 'l']);
+});
+
+// --- The Upcoming list clears as the month's commitments are done ----------------
+// It listed every fixed commitment with its next due date and never asked whether
+// this month's payment had been made, skipped or marked paid, so a paid rent and
+// a paid EMI sat there until the day after. The commitments list below already
+// knows; Upcoming now reads the same answer.
+test('Upcoming shows what is still to pay, and drops what is paid, skipped or not yet due to change', () => {
+  const fixed = [
+    { id: 'rent', label: 'Rent', amount: rupees(40000), frequency: 'monthly', dayOfMonth: 1 },
+    { id: 'emi', label: 'Home Loan EMI', amount: rupees(68000), frequency: 'monthly', dayOfMonth: 1 },
+    { id: 'lic', label: 'LIC', amount: rupees(17500), frequency: 'monthly', dayOfMonth: 1 },
+    { id: 'sub', label: 'Subscription', amount: rupees(1999), frequency: 'monthly', dayOfMonth: 5 },
+    { id: 'bill', label: 'Bill', amount: rupees(5000), frequency: 'monthly', dayOfMonth: 3 },
+    { id: 'part', label: 'Part paid', amount: rupees(10000), frequency: 'monthly', dayOfMonth: 20 },
+  ];
+  const tracker = [
+    { id: 'rent', status: 'paid', due: '2026-10-01' },
+    { id: 'emi', status: 'paid', due: '2026-10-01' },
+    { id: 'lic', status: 'skipped' },
+    { id: 'sub', status: 'due', due: '2026-10-05' },
+    { id: 'bill', status: 'late', due: '2026-10-03' },
+    { id: 'part', status: 'part', due: '2026-10-20', left: rupees(4000) },
+  ];
+  const rows = upcomingCommitments(fixed, tracker, '2026-10-04');
+  equal(rows.map((r) => r.id), ['bill', 'sub', 'part'], 'paid and skipped are gone; the rest are in date order');
+  equal(rows.find((r) => r.id === 'bill').late, true, 'one past its date and unpaid says so');
+  equal(rows.find((r) => r.id === 'part').amount, rupees(4000), 'a part payment shows only what is left');
+  equal(upcomingCommitments(fixed, tracker.map((t) => ({ ...t, status: 'paid' })), '2026-10-04'), [], 'everything done: nothing upcoming');
+});
+
+test('Upcoming still lists a yearly commitment, and anything the commitments list does not follow', () => {
+  const yearly = { id: 'ins', label: 'Insurance', amount: rupees(30000), frequency: 'yearly', dayOfMonth: 15 };
+  const untracked = { id: 'cashbill', label: 'Cash bill', amount: rupees(900), frequency: 'monthly', dayOfMonth: 9 };
+  const rows = upcomingCommitments([yearly, untracked], [{ id: 'other', status: 'paid' }], '2026-10-04');
+  equal(rows.map((r) => r.id).sort(), ['cashbill', 'ins'], 'no way to tell they are done, so they stay');
 });
