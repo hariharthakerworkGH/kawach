@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.17.2',
+    items: [
+      {
+        icon: 'summary',
+        title: 'The opening lines up with Android’s',
+        text: 'The shield on the opening now sits exactly where Android’s icon was, at the same size, so the hand-over no longer shows two shields one above the other.',
+      },
+    ],
+  },
+  {
     version: '4.17.1',
     items: [
       {

@@ -66,18 +66,10 @@
     }
   } catch (e) {}
 
-  // Lined up with Android's own launch screen. Android centres the icon on
-  // the whole screen; an installed app's page starts below the status bar,
-  // so its middle is lower by half that bar. Moving the mark up by the same
-  // amount puts it exactly where Android's icon was. Installed only - in a
-  // browser there is no launch screen to meet - and never by more than 30px,
-  // in case the browser reports something unexpected.
-  try {
-    if (window.matchMedia && matchMedia('(display-mode: standalone)').matches) {
-      var dy = (screen.height - innerHeight) / 2;
-      if (dy > 0) document.documentElement.style.setProperty('--boot-dy', -Math.min(30, dy) + 'px');
-    }
-  } catch (e) {}
+  // (4.17.1 moved the opening's mark up by half the status bar here, on the
+  // theory that the page starts below it. The owner's screenshot of the
+  // hand-over proved otherwise: the mark sat 29px above Android's icon - the
+  // nudge itself, capped at 30 - and without it lines up. Removed in 4.17.2.)
 </script>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icons/kawach.svg" type="image/svg+xml">
@@ -160,14 +152,15 @@
   }
 
   /* The mark is the only thing in the middle - the name hangs below it - so
-     it sits dead centre, where Android put the icon. --boot-dy is set in the
-     head when installed: half the status bar, which Android's screen covers
-     and this page does not. 246px matches the icon on Android's launch
-     screen (it is drawn in dp, which is CSS px on a phone). */
+     it sits dead centre, which is where Android puts the icon. No nudge: on
+     the owner's phone the page fills the screen Android's launch screen
+     fills, and the two centres meet as they are (4.17.1 nudged it up and
+     that was the gap seen at the hand-over). 242px is measured from the same
+     screenshot: Android's shield and this one at the same width (it is drawn
+     in dp, which is CSS px on a phone). */
   .boot-art {
     position: relative;
-    width: min(246px, 64vw); aspect-ratio: 1;
-    transform: translateY(var(--boot-dy, 0px));
+    width: min(242px, 64vw); aspect-ratio: 1;
   }
   .boot-art svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 
