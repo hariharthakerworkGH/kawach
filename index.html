@@ -55,6 +55,29 @@
     if (a.text === 'large' || a.text === 'largest') r.setAttribute('data-text', a.text);
     if (a.density === 'compact') r.setAttribute('data-density', 'compact');
   } catch (e) {}
+
+  // The opening, carried on rather than started again. When a new version
+  // took over during the opening, the page reloads behind it; this page then
+  // opens on the opening's resting frame, so it reads as one opening, not two.
+  try {
+    if (sessionStorage.getItem('kawach-boot-resume')) {
+      sessionStorage.removeItem('kawach-boot-resume');
+      document.documentElement.classList.add('boot-resumed');
+    }
+  } catch (e) {}
+
+  // Lined up with Android's own launch screen. Android centres the icon on
+  // the whole screen; an installed app's page starts below the status bar,
+  // so its middle is lower by half that bar. Moving the mark up by the same
+  // amount puts it exactly where Android's icon was. Installed only - in a
+  // browser there is no launch screen to meet - and never by more than 30px,
+  // in case the browser reports something unexpected.
+  try {
+    if (window.matchMedia && matchMedia('(display-mode: standalone)').matches) {
+      var dy = (screen.height - innerHeight) / 2;
+      if (dy > 0) document.documentElement.style.setProperty('--boot-dy', -Math.min(30, dy) + 'px');
+    }
+  } catch (e) {}
 </script>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icons/kawach.svg" type="image/svg+xml">
@@ -70,61 +93,65 @@
      the migration is under way the rest of the app is untouched by it. -->
 <link rel="stylesheet" href="./css/dna.css">
 <style>
-  /* The opening (4.17). Inline so it is on screen in the first frame, before
-     any module has loaded - the moment it exists to fill.
+  /* The opening (4.17.1). Inline so it is on screen in the first frame.
 
-     The old one cut out instead of fading. Its failsafe ran `boot-out` with a
-     3.6s delay, and the script "faded" it by setting the SAME animation again
-     with no delay. A browser re-times the animation it is already running
-     rather than starting a new one, so at 2.1s it found a 420ms fade already
-     2.1s in - finished - and dropped it to nothing in one frame. Here the
-     failsafe and the exit are two different mechanisms (a keyframe animation
-     and a transition), and the exit switches the failsafe off.
+     One element from the first frame to the last. An installed app on Android
+     opens on Android's own launch screen first - the app icon on the
+     manifest's background colour - and only then the page. 4.17 opened on
+     black and drew the mark from nothing, so the icon vanished and a second,
+     different logo was drawn: two things, one after the other. Now the
+     page's first frame IS that launch screen - the same colour (#07090f, the
+     manifest's background_color), the same glass shield, the same size, in
+     the same place - and it changes from there instead of starting over:
+       - a line of light traces the shield's edge, down both sides at once;
+       - the glass body dissolves behind it, leaving the shield as a line;
+       - the rupee stays exactly where it is the whole time;
+       - a glow comes up, the name tracks in below, it rests, and it fades.
 
-     What moves, and how:
-       - transform and opacity only, for everything that moves while the app
-         is starting underneath: the settle, the glow, the letters, the exit.
-         Those run on the compositor and keep their frames even when the main
-         thread is busy;
-       - the one exception is the line drawing itself (stroke-dashoffset),
-         which is painted. It is kept as cheap as a paint can be - a plain
-         stroke, no gradient and no filter - and the glow that would make it
-         expensive is a separate, already-blurred layer that only fades in.
+     The old exit cut out instead of fading (the same animation re-timed by
+     the script; see 4.17). The exit is a transition that switches the
+     failsafe off, so nothing can re-time it.
 
-     The easing, in plain terms. cubic-bezier(x1, y1, x2, y2) is a curve from
-     (0,0) to (1,1) where x is time and y is how far along the motion is; the
-     two control points set how it leaves and how it arrives.
-       --ease-draw (0.65, 0, 0.35, 1): y1 = 0 holds it at rest for the first
-         stretch, it is fastest in the middle, and y2 = 1 brings it to rest
-         again - a pen that lifts off and sets down, never a jolt at either end.
-       --ease-out  (0.22, 1, 0.36, 1): y1 = 1 gives it almost all its speed at
-         once and spends the rest slowing down - things arrive and settle
-         rather than stopping dead. Used for everything that appears.
-       --ease-exit (0.4, 0, 0.2, 1): a short, gentle start and a long, soft
-         finish, so the fade never snaps at either end.
+     Everything that moves is transform or opacity on its own layer, which
+     keeps its frames while the app starts underneath - except the traced
+     edge (stroke-dashoffset), kept to one plain stroke with no gradient or
+     filter so its repaint is as small as a repaint can be. The glass icon and
+     the glow are each blurred or filtered ONCE and then only fade.
 
-     Timeline: darkness to 150ms; the shield draws from its top down both
-     sides at once, 150-1150ms; the rupee is written 700-1280ms; the glow
-     comes up 1000-1900ms; the name spreads into place from about 850ms; then
-     it rests, and fades from 2.5s. */
+     Easing - cubic-bezier(x1, y1, x2, y2) is a curve from (0,0) to (1,1),
+     time across and progress up; the control points set how it leaves and
+     how it arrives:
+       --ease-draw (0.65, 0, 0.35, 1): at rest at both ends, fastest in the
+         middle - a pen that lifts off and sets down, never a jolt.
+       --ease-out  (0.22, 1, 0.36, 1): nearly all its speed at once, then a
+         long slowing - things arrive and settle instead of stopping dead.
+       --ease-exit (0.4, 0, 0.2, 1): a gentle start and a long soft finish,
+         so a fade never snaps at either end.
+
+     Timeline: the icon, from frame 0; the edge traces 200-1100ms; the glass
+     dissolves 450-1350ms; the glow comes up 700-1600ms; the name tracks in
+     from about 850ms; a rest; the fade from 2.5s (held while a new version
+     downloads, up to 10s - see the script at the end of this file). */
   .boot {
     --boot-ink: #47d0f8;   /* the app's cyan, its highlight on a dark screen */
-    --boot-mark: #d6f6ff;  /* the rupee: the same cyan, nearly white */
+    --boot-mark: #e8fbff;  /* the rupee, as on the icon */
     --ease-draw: cubic-bezier(0.65, 0, 0.35, 1);
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     --ease-exit: cubic-bezier(0.4, 0, 0.2, 1);
     position: fixed; inset: 0; z-index: 9999;
     display: grid; place-items: center;
-    background: #000;
-    /* The failsafe. If no script runs at all, the opening still clears itself
-       at 4.6s, so a broken module can never leave someone staring at a shield.
-       The script switches it off when it starts its own fade. */
-    animation: boot-failsafe 450ms var(--ease-exit) 4600ms forwards;
+    /* manifest.webmanifest background_color: the colour Android's launch
+       screen is drawn in, so there is no change of colour at the hand-over. */
+    background: #07090f;
+    /* The failsafe: if no script runs at all, the opening still clears
+       itself. Later than the script's own limit for a download (10s), plus
+       the moment it may wait for the reload onto it. */
+    animation: boot-failsafe 450ms var(--ease-exit) 12000ms forwards;
   }
   @keyframes boot-failsafe { to { opacity: 0; visibility: hidden; } }
 
-  /* The exit: a transition, not an animation, so nothing can re-time it.
-     Taps go through to the app from the first moment of the fade. */
+  /* The exit: a transition, so nothing can re-time it. Taps reach the app
+     from the first moment of the fade. */
   .boot.is-leaving {
     animation: none;
     opacity: 0;
@@ -132,74 +159,92 @@
     transition: opacity 450ms var(--ease-exit);
   }
 
-  /* The whole mark settles in: a little under size and transparent, to rest. */
-  .boot-stage {
-    display: grid; justify-items: center; gap: 26px;
-    animation: boot-settle 1150ms var(--ease-out) 150ms both;
-    will-change: transform, opacity;
+  /* The mark is the only thing in the middle - the name hangs below it - so
+     it sits dead centre, where Android put the icon. --boot-dy is set in the
+     head when installed: half the status bar, which Android's screen covers
+     and this page does not. 246px matches the icon on Android's launch
+     screen (it is drawn in dp, which is CSS px on a phone). */
+  .boot-art {
+    position: relative;
+    width: min(246px, 64vw); aspect-ratio: 1;
+    transform: translateY(var(--boot-dy, 0px));
   }
-  @keyframes boot-settle { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
-
-  /* Kept big: an earlier opening was found too small to register. */
-  .boot-art { position: relative; width: min(260px, 64vw); aspect-ratio: 1; }
   .boot-art svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 
-  /* The glow: the same lines, blurred once, faded in once they are drawn.
-     Only its opacity changes, so the blur is worked out a single time. */
-  .boot-glow { filter: blur(9px); opacity: 0; animation: boot-glow 900ms var(--ease-out) 1000ms forwards; will-change: opacity; }
+  /* 1. The icon as Android shows it: glass body, lit edge, rupee. Here from
+        the first frame, then dissolving. */
+  .boot-icon { animation: boot-fade-out 900ms var(--ease-exit) 450ms forwards; will-change: opacity; }
+  @keyframes boot-fade-out { to { opacity: 0; } }
+
+  /* 2. The glow: the finished line mark, blurred once, faded in. */
+  .boot-glow { filter: blur(9px); opacity: 0; animation: boot-glow 900ms var(--ease-out) 700ms forwards; will-change: opacity; }
   @keyframes boot-glow { to { opacity: 0.8; } }
 
-  /* The lines. pathLength="1" makes every path one unit long, so a dash of 1
-     with a gap of 2 covers it exactly, and an offset just past 1 hides it.
-     The gap is wider than the path and the offset is 1.01 rather than 1 for a
-     reason: with round caps, a dash ending exactly at the start of a path is
-     drawn as a dot. The old opening showed three of them before writing the
-     rupee. Opacity also holds each line at nothing until its own draw begins. */
-  .boot-line {
+  /* 3. The line mark. The edge is traced: pathLength="1" makes each path one
+        unit long, so a dash of 1 with a gap of 2 covers it exactly and an
+        offset just past 1 hides it. 1.01 and the wide gap, not 1, because
+        with round caps a dash ending exactly at a path's start is drawn as a
+        dot. The rupee is not traced - it is already on the icon, so it simply
+        stays, in the same place and weight, from the first frame to the last. */
+  .boot-line { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .boot-edge {
     stroke: var(--boot-ink); stroke-width: 2.4;
-    stroke-linecap: round; stroke-linejoin: round;
     stroke-dasharray: 1 2; stroke-dashoffset: 1.01;
+    animation: boot-trace 900ms var(--ease-draw) 200ms both;
   }
-  .boot-edge { animation: boot-draw 1000ms var(--ease-draw) 150ms both; }
-  .boot-sym { stroke: var(--boot-mark); stroke-width: 4.4; animation: boot-draw 420ms var(--ease-out) both; }
-  .boot-sym:nth-of-type(3) { animation-delay: 700ms; }
-  .boot-sym:nth-of-type(4) { animation-delay: 780ms; }
-  .boot-sym:nth-of-type(5) { animation-delay: 860ms; }
-  @keyframes boot-draw {
+  @keyframes boot-trace {
     0% { stroke-dashoffset: 1.01; opacity: 0; }
     1% { opacity: 1; }
     100% { stroke-dashoffset: 0; opacity: 1; }
   }
+  .boot-sym { stroke: var(--boot-mark); stroke-width: 6.6; }
 
-  /* The name. The tracking widens by moving the letters, not by changing
-     letter-spacing: each letter starts pulled toward the middle by its
-     distance from it (--d, in letters) and slides out to its place, which
-     reads exactly as the spacing opening up - but it is a transform, so
-     nothing is laid out again. All six move together, on the same curve:
-     because each one's distance is proportional to --d, the gaps between them
-     stay equal at every moment, which is what makes it read as tracking.
-     (Staggering them was tried and split the word in two mid-way.) */
+  /* The name, below the mark without moving it. The tracking opens by moving
+     the letters, not by changing letter-spacing: each starts pulled toward
+     the middle by its distance from it (--d) and slides out to its place, all
+     together on one curve, so the gaps stay equal at every moment - which is
+     what makes it read as tracking. It is a transform, so nothing is laid out
+     again. The script starts it once Geist has loaded, so the letters never
+     arrive in a stand-in font and jump. */
   .boot-word {
-    display: flex; gap: 0.34em; margin: 0;
+    position: absolute; left: -40%; right: -40%; top: calc(100% + 18px);
+    display: flex; justify-content: center; gap: 0.34em; margin: 0;
     font: 600 clamp(20px, 6.4vw, 26px)/1 "Geist", -apple-system, "Segoe UI", Roboto, sans-serif;
     text-transform: uppercase;
     color: #e6f6fb;
   }
   .boot-word span { opacity: 0; }
-  /* Started by the script once the typeface is in, so the letters never
-     arrive in a stand-in font and jump when Geist turns up. */
   .boot.is-type .boot-word span { animation: boot-letter 760ms var(--ease-out) forwards; }
   @keyframes boot-letter {
     from { opacity: 0; transform: translateX(calc(var(--d) * -0.42em)); }
     to { opacity: 1; transform: none; }
   }
 
-  /* Motion the person has asked not to see: everything is simply there, and
-     the opening still leaves on time, with a shorter fade. */
+  /* Said only if a new version is still downloading when the opening would
+     have left, so a longer opening never looks like a frozen one. */
+  .boot-note {
+    position: absolute; left: -40%; right: -40%; top: calc(100% + 66px);
+    margin: 0; text-align: center;
+    font: 500 13px/1.3 "Geist", -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: rgba(214, 246, 255, 0.62);
+    opacity: 0; transition: opacity 400ms var(--ease-out);
+  }
+  .boot.is-updating .boot-note { opacity: 1; }
+
+  /* After a reload for a new version: straight to the resting frame, which is
+     what was on screen a moment before, then the fade. Each rule names .boot
+     so it outranks the ones that start the motion, whatever classes are on. */
+  .boot-resumed .boot .boot-icon { animation: none; opacity: 0; }
+  .boot-resumed .boot .boot-edge { animation: none; stroke-dashoffset: 0; }
+  .boot-resumed .boot .boot-glow { animation: none; opacity: 0.8; }
+  .boot-resumed .boot .boot-word span { animation: none; opacity: 1; transform: none; }
+
+  /* Motion the person has asked not to see: no tracing and no sliding. The
+     icon still gives way to the line mark, but as a fade, which is not
+     motion; the opening still leaves on time. */
   @media (prefers-reduced-motion: reduce) {
-    .boot-stage, .boot-glow, .boot-edge, .boot-sym, .boot.is-type .boot-word span { animation: none; }
-    .boot-line { stroke-dashoffset: 0; }
-    .boot-glow { opacity: 0.8; }
+    .boot-edge { animation: none; stroke-dashoffset: 0; }
+    .boot.is-type .boot-word span { animation: none; }
     .boot-word span { opacity: 1; }
     .boot.is-leaving { transition-duration: 200ms; }
   }
@@ -207,29 +252,62 @@
 </head>
 <body>
 <!-- The opening. It leaves through the script at the end of this file, and by
-     its own failsafe if that never runs. Kawach's own mark - the shield and the
-     rupee of the home-screen icon - drawn as lines, so the opening and the
-     installed icon are one thing. -->
+     its own failsafe if that never runs. It begins as Kawach's icon - exactly
+     what Android's launch screen has just shown - and becomes the line mark,
+     so the hand-over from Android to the app is one continuous thing. -->
 <div id="boot" class="boot" aria-hidden="true">
-  <div class="boot-stage">
-    <div class="boot-art">
-      <!-- The glow: the finished mark, blurred, behind the sharp one. -->
-      <svg class="boot-glow" viewBox="0 0 100 100" fill="none" stroke="#47d0f8" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z"/>
-        <path d="M38 34h24M38 45h24M44 34c11 0 11 20 0 20h-5l17 17" stroke="#d6f6ff" stroke-width="5"/>
-      </svg>
-      <!-- The mark. The shield is two halves that start together at the top
-           and meet at the point, so it closes symmetrically; then the rupee is
-           written in the order a hand writes it. -->
-      <svg class="boot-mark" viewBox="0 0 100 100" fill="none">
-        <path class="boot-line boot-edge" pathLength="1" d="M50 12L20 22V48C20 68 33 82 50 89"/>
-        <path class="boot-line boot-edge" pathLength="1" d="M50 12L80 22V48C80 68 67 82 50 89"/>
-        <path class="boot-line boot-sym" pathLength="1" d="M38 34h24"/>
-        <path class="boot-line boot-sym" pathLength="1" d="M38 45h24"/>
-        <path class="boot-line boot-sym" pathLength="1" d="M44 34c11 0 11 20 0 20h-5l17 17"/>
-      </svg>
-    </div>
+  <div class="boot-art">
+    <!-- The icon (icons/kawach.svg, without its square plate): glass body,
+         lit edge, rupee. -->
+    <svg class="boot-icon" viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="bkBody" x1="0.1" y1="0" x2="0.7" y2="1">
+          <stop offset="0" stop-color="#47d0f8" stop-opacity="0.42"/>
+          <stop offset="0.5" stop-color="#2b7fb8" stop-opacity="0.26"/>
+          <stop offset="1" stop-color="#7c5cf0" stop-opacity="0.18"/>
+        </linearGradient>
+        <linearGradient id="bkEdge" x1="0" y1="0" x2="0.4" y2="1">
+          <stop offset="0" stop-color="#cdf5ff" stop-opacity="0.98"/>
+          <stop offset="0.4" stop-color="#47d0f8" stop-opacity="0.8"/>
+          <stop offset="1" stop-color="#47d0f8" stop-opacity="0.34"/>
+        </linearGradient>
+        <linearGradient id="bkSheen" x1="0" y1="0" x2="0.2" y2="1">
+          <stop offset="0" stop-color="#ffffff" stop-opacity="0.3"/>
+          <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.03"/>
+          <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+        </linearGradient>
+        <filter id="bkGlow" x="-45%" y="-45%" width="190%" height="190%">
+          <feGaussianBlur stdDeviation="3.2" result="b"/>
+          <feComponentTransfer in="b" result="g"><feFuncA type="linear" slope="0.52"/></feComponentTransfer>
+          <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <clipPath id="bkClip"><path d="M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z"/></clipPath>
+      </defs>
+      <g filter="url(#bkGlow)">
+        <path d="M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z" fill="url(#bkBody)"/>
+        <g clip-path="url(#bkClip)"><ellipse cx="33" cy="24" rx="33" ry="25" fill="url(#bkSheen)"/></g>
+        <path d="M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z" fill="none" stroke="url(#bkEdge)" stroke-width="2.9"/>
+        <!-- Its rupee, with the icon's soft halo. The line mark's rupee sits
+             exactly on top of it, so as this layer dissolves only the halo
+             goes, and the glow layer below brings it back. -->
+        <path d="M38 34h24M38 45h24M44 34c11 0 11 20 0 20h-5l17 17" fill="none" stroke="#e8fbff" stroke-width="6.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </svg>
+    <!-- The glow: the finished line mark, blurred, behind the sharp one. -->
+    <svg class="boot-glow" viewBox="0 0 100 100" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z" stroke="#47d0f8" stroke-width="3.2"/>
+      <path d="M38 34h24M38 45h24M44 34c11 0 11 20 0 20h-5l17 17" stroke="#d6f6ff" stroke-width="7"/>
+    </svg>
+    <!-- The line mark. The edge is two halves that start together at the top
+         and meet at the point. The rupee is the icon's own, in the same place
+         and weight, so it never leaves the screen. -->
+    <svg class="boot-mark" viewBox="0 0 100 100">
+      <path class="boot-line boot-edge" pathLength="1" d="M50 12L20 22V48C20 68 33 82 50 89"/>
+      <path class="boot-line boot-edge" pathLength="1" d="M50 12L80 22V48C80 68 67 82 50 89"/>
+      <path class="boot-line boot-sym" d="M38 34h24M38 45h24M44 34c11 0 11 20 0 20h-5l17 17"/>
+    </svg>
     <p class="boot-word"><span style="--d:-2.5">K</span><span style="--d:-1.5">a</span><span style="--d:-0.5">w</span><span style="--d:0.5">a</span><span style="--d:1.5">c</span><span style="--d:2.5">h</span></p>
+    <p class="boot-note">Updating to the latest version</p>
   </div>
 </div>
 <header class="app-header">
@@ -265,48 +343,119 @@
 </nav>
 <script type="module" src="./js/app.js"></script>
 <script>
+  // Always on the latest version, and when the opening leaves.
+  //
+  // How a new version arrives: sw.js downloads every file of it, takes over
+  // straight away (skipWaiting + clients.claim), and js/app.js reloads the page
+  // onto it the moment it does - on a screen where that is safe and nothing is
+  // being typed. That part already worked. What made updates slow was the
+  // asking: the browser only asks the server for a new version when the page
+  // is LOADED, and opening Kawach from recent apps usually brings back the
+  // page still in memory rather than loading it. So an update could wait days
+  // for a real restart. Now it asks every time the app comes back on screen.
+  (function () {
+    if (!('serviceWorker' in navigator)) return;
+    var lastAsked = 0;
+    function ask() {
+      // Once every 30 seconds at most: flicking between apps should not mean
+      // a request to the server each time.
+      if (Date.now() - lastAsked < 30000) return;
+      lastAsked = Date.now();
+      navigator.serviceWorker.getRegistration().then(function (reg) {
+        if (reg) return reg.update();
+      }).catch(function () {});
+    }
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') ask();
+    });
+    ask();
+  })();
+
   // When the opening leaves, and taking it out of the page.
   //
-  // It fades at 2.5s - the mark is finished by about 1.5s, so it rests for a
-  // full second first, long enough to register. It only goes once a screen has
-  // actually drawn underneath, so the fade never uncovers an empty page; and
-  // whatever happens it goes by 4s, ahead of the CSS failsafe at 4.6s.
+  // It fades at 2.5s: the mark has settled by about 1.6s, so it rests for
+  // about a second first. It only goes once a screen has drawn underneath,
+  // and by 4s whatever happens - unless a new version is downloading, when it
+  // stays (up to 10s, with a line saying so) so that the reload onto the new
+  // version happens behind it. The page that loads then opens on the resting
+  // frame (see the head), so the person sees one opening.
   //
-  // performance.now() is time since the page began, which is the clock the
-  // CSS animations above run on, so 2,500 here is 2,500 there.
-  //
-  // Readiness is checked on a timer rather than each animation frame: frames
-  // stop altogether in a tab opened in the background, and this must still
-  // run there. It asks the document afresh each time, because showView() in
-  // js/app.js REPLACES #view-container rather than filling it.
+  // performance.now() is time since this page began, the clock the CSS
+  // animations above run on. Readiness is checked on a timer, not each frame:
+  // frames stop altogether in a tab opened in the background.
   (function () {
     var boot = document.getElementById('boot');
     if (!boot) return;
-    var HOLD = 2500;
+    var resumed = document.documentElement.classList.contains('boot-resumed');
+    var HOLD = resumed ? 400 : 2500;
     var CAP = 4000;
+    // A new version is about 95 files, the PDF reader among them, so on a
+    // slow connection it can take a while. Long enough for most, not so long
+    // that anyone is kept waiting on a bad day; past it, this version opens
+    // and the new one is taken the next time.
+    var UPDATE_CAP = 10000;
     var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     var FADE = reduced ? 200 : 450; // matches the transition in the CSS
     var leaving = false;
+    var updating = false;
+    // The new version has taken over and the reload onto it is on its way.
+    // The opening must not start leaving in that moment, or the old app shows
+    // for a split second before the reload - a second opening in all but name.
+    var handingOver = false;
 
-    // The name: started once Geist has loaded (or after 1.1s regardless), and
-    // never before 850ms, so it comes in as the rupee is finished.
-    var typeface = document.fonts && document.fonts.load
-      ? document.fonts.load('600 24px "Geist"').catch(function () {})
-      : Promise.resolve();
-    Promise.race([typeface, new Promise(function (r) { setTimeout(r, 1100); })]).then(function () {
-      setTimeout(function () { boot.classList.add('is-type'); }, Math.max(0, 850 - performance.now()));
-    });
+    // The name: once Geist has loaded (or after 1.1s regardless), and never
+    // before 850ms. Not on a resumed page: it is already showing.
+    if (!resumed) {
+      var typeface = document.fonts && document.fonts.load
+        ? document.fonts.load('600 24px "Geist"').catch(function () {})
+        : Promise.resolve();
+      Promise.race([typeface, new Promise(function (r) { setTimeout(r, 1100); })]).then(function () {
+        setTimeout(function () { boot.classList.add('is-type'); }, Math.max(0, 850 - performance.now()));
+      });
+    }
+
+    // A new version on its way while the opening is up. Only when a version
+    // is already running (a first visit has nothing to be newer than), and
+    // never on a page that has just reloaded for one.
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller && !resumed) {
+      navigator.serviceWorker.getRegistration().then(function (reg) {
+        if (!reg) return;
+        function watch(worker) {
+          if (!worker) return;
+          updating = true;
+          worker.addEventListener('statechange', function () {
+            // A download that failed: carry on with this version.
+            if (worker.state === 'redundant') updating = false;
+          });
+        }
+        watch(reg.installing || reg.waiting);
+        reg.addEventListener('updatefound', function () { watch(reg.installing); });
+      }).catch(function () {});
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!updating) return;
+        // The new version has taken over and app.js reloads onto it now. The
+        // next page carries the opening on from its resting frame. If no
+        // reload comes (app.js judged it unsafe), let the opening go as
+        // normal and take the note back.
+        try { sessionStorage.setItem('kawach-boot-resume', '1'); } catch (e) {}
+        handingOver = true;
+        setTimeout(function () {
+          try { sessionStorage.removeItem('kawach-boot-resume'); } catch (e) {}
+          handingOver = false;
+          updating = false;
+        }, 1500);
+      });
+    }
 
     function drawn() {
       var main = document.getElementById('view-container');
       return !!(main && main.firstElementChild);
     }
 
-    // Out of the document once it is invisible, so nothing can sit on top of
-    // the app or keep a layer alive. transitionend is the signal; the timer is
-    // there because that event never comes in some cases - a 0ms fade, a tab
-    // in the background, a style the browser decided not to animate - and an
-    // invisible overlay left in place would still be in the way.
+    // Out of the document once it is invisible. transitionend is the signal;
+    // the timer covers the cases where that event never comes - a 0ms fade, a
+    // tab in the background - since an invisible overlay left in place would
+    // still be in the way.
     function unmount() {
       if (boot.parentNode) boot.parentNode.removeChild(boot);
     }
@@ -323,6 +472,11 @@
 
     var timer = setInterval(function () {
       var t = performance.now();
+      if (handingOver) return;
+      if (updating && t < UPDATE_CAP) {
+        if (t >= HOLD) boot.classList.add('is-updating');
+        return;
+      }
       if ((t >= HOLD && drawn()) || t >= CAP) leave();
     }, 50);
   })();
