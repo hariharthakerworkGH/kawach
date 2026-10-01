@@ -3144,3 +3144,34 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 @media (prefers-reduced-motion: reduce) {
   .k .add-form .btn-primary.is-saved::after { animation: none; opacity: 0; }
 }
+
+/* ---- Accounts: status dots, cards flipping in, a bill paid (4.24) -------
+ * The bill line carries a dot in its own colour: cyan due, amber due within
+ * three days, red overdue (both pulse three times, then stop), green paid.
+ * A savings pot says once that it never counts as spendable. The cards flip
+ * up as the screen arrives, and a bill just paid glows its card green. */
+.k .bill-when { display: inline-flex; align-items: center; gap: var(--k-2); }
+.k .bill-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--k-cyan); box-shadow: 0 0 10px color-mix(in oklch, var(--k-cyan) 60%, transparent); }
+.k .bill-urgent .bill-dot { background: var(--k-warning); box-shadow: 0 0 10px color-mix(in oklch, var(--k-warning) 60%, transparent); animation: bill-pulse 1.6s ease-in-out 3; }
+.k .bill-overdue .bill-dot { background: var(--k-negative); box-shadow: 0 0 10px color-mix(in oklch, var(--k-negative) 60%, transparent); animation: bill-pulse 1.6s ease-in-out 3; }
+.k .bill-paid { color: var(--k-positive); }
+.k .bill-paid .bill-dot { background: var(--k-positive); box-shadow: 0 0 10px color-mix(in oklch, var(--k-positive) 60%, transparent); }
+@keyframes bill-pulse { 50% { transform: scale(1.5); box-shadow: 0 0 0 5px transparent, 0 0 16px currentColor; } }
+.k .acc-state { display: flex; align-items: center; gap: var(--k-2); margin: 0; padding: 0 var(--k-4) var(--k-3); font-size: var(--k-label); }
+.k .acc-state--saved { color: var(--k-violet); }
+.k .acc-state--saved .bill-dot { background: var(--k-violet); box-shadow: 0 0 10px color-mix(in oklch, var(--k-violet) 60%, transparent); }
+.is-arriving .account-block { animation: acc-flip 520ms var(--k-ease) both; transform-origin: top center; }
+.is-arriving .account-block:nth-child(2) { animation-delay: 60ms; }
+.is-arriving .account-block:nth-child(3) { animation-delay: 120ms; }
+.is-arriving .account-block:nth-child(4) { animation-delay: 180ms; }
+.is-arriving .account-block:nth-child(5) { animation-delay: 240ms; }
+.is-arriving .account-block:nth-child(n + 6) { animation-delay: 300ms; }
+@keyframes acc-flip { from { opacity: 0; transform: perspective(700px) rotateX(-12deg) translateY(8px); } }
+.k .account-block.just-paid { border-radius: var(--k-r-lg); animation: just-paid 1.8s var(--k-ease) both; }
+@keyframes just-paid {
+  0%, 30% { box-shadow: 0 0 0 1.5px var(--k-positive), 0 0 26px color-mix(in oklch, var(--k-positive) 40%, transparent); }
+  100% { box-shadow: 0 0 0 1.5px transparent, 0 0 26px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k .bill-urgent .bill-dot, .k .bill-overdue .bill-dot { animation: none; }
+}

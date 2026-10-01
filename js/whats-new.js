@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.24',
+    items: [
+      {
+        icon: 'accounts',
+        title: "Accounts at a glance",
+        text: "Each card's bill line now has a coloured dot: amber when it is due within three days, red when it is overdue, green once paid. Savings say they never count as money to spend. Paying a bill shows your bank balance counting down.",
+        guide: [{ view: 'accounts', target: '.bill-when', text: "Amber: due soon. Red: overdue. Green: paid." }],
+      },
+    ],
+  },
+  {
     version: '4.23',
     items: [
       {
