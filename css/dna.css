@@ -3239,3 +3239,35 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 @media (prefers-reduced-motion: reduce) {
   .k .hist-day.is-picked .hist-day-card { animation: none; }
 }
+
+/* ---- Coach: the hub and the answer card (4.27) ---------------------------
+ * Kawach's mark in two rings that draw once as the screen arrives (nothing
+ * keeps spinning). "Can I afford this?" answers with its verdict as a
+ * coloured pill, a bar for how much of what is left the purchase takes, and
+ * the sums counting to their figures. */
+.k .coach-hub { width: 112px; height: 112px; margin: var(--k-2) auto 0; }
+.k .coach-hub svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.k .coach-hub circle { fill: none; stroke-linecap: round; }
+.k .coach-hub__track { stroke: color-mix(in oklch, var(--k-text) 6%, transparent); stroke-width: 3; }
+.k .coach-hub__arc { stroke-dasharray: 72 100; }
+.k .coach-hub__arc--outer { stroke: var(--k-cyan); stroke-width: 3; filter: drop-shadow(0 0 5px color-mix(in oklch, var(--k-cyan) 55%, transparent)); }
+.k .coach-hub__arc--inner { stroke: var(--k-violet); stroke-width: 2.5; stroke-dasharray: 46 100; }
+.k .coach-hub g path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.k .coach-hub__shield { stroke: var(--k-cyan); stroke-width: 3; filter: drop-shadow(0 0 6px color-mix(in oklch, var(--k-cyan) 60%, transparent)); }
+.k .coach-hub__rupee { stroke: var(--k-text); stroke-width: 6.6; }
+.k .coach-hub__note { margin: var(--k-2) 0 var(--k-3); text-align: center; font-size: var(--k-caption); color: var(--k-cyan); letter-spacing: 0.04em; }
+.is-arriving .coach-hub__arc--outer { animation: hub-draw-outer 1.1s var(--k-ease) 120ms both; }
+.is-arriving .coach-hub__arc--inner { animation: hub-draw-inner 1.1s var(--k-ease) 260ms both; }
+@keyframes hub-draw-outer { from { stroke-dasharray: 0 100; } }
+@keyframes hub-draw-inner { from { stroke-dasharray: 0 100; } }
+.k .coach-verdict.coach-pill { display: inline-flex; align-items: center; gap: var(--k-2); padding: 6px 12px; border-radius: 999px; font-size: var(--k-caption); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: color-mix(in oklch, currentColor 12%, transparent); border: 1px solid color-mix(in oklch, currentColor 40%, transparent); animation: pill-in 420ms var(--k-ease) both; }
+.k .coach-pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+@keyframes pill-in { from { opacity: 0; transform: scale(0.85); } }
+.k .coach-share { height: 10px; margin: var(--k-3) 0 var(--k-2); border-radius: 5px; background: color-mix(in oklch, var(--k-text) 7%, transparent); overflow: hidden; }
+.k .coach-share i { display: block; height: 100%; border-radius: 5px; background: var(--k-positive); transform-origin: left center; animation: grow-x 800ms var(--k-ease) 200ms both; }
+.k .coach-share--warn i { background: var(--k-warning); box-shadow: 0 0 12px color-mix(in oklch, var(--k-warning) 50%, transparent); }
+.k .coach-share--bad i { background: var(--k-negative); box-shadow: 0 0 12px color-mix(in oklch, var(--k-negative) 50%, transparent); }
+.k .coach-answer { animation: summary-rise 480ms var(--k-ease) both; }
+@media (prefers-reduced-motion: reduce) {
+  .k .coach-verdict.coach-pill, .k .coach-share i, .k .coach-answer { animation: none; }
+}

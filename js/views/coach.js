@@ -4,7 +4,7 @@ import { isoLocal } from '../frequency.js';
 import { categoryStyle } from '../category-style.js';
 import { financialSnapshot, affordability, savingsPlan, whereToCut, observations } from '../planner.js';
 import { redraw } from '../redraw.js';
-import { escapeHtml, hero, sectionHead, emptyState } from '../ui.js';
+import { escapeHtml, hero, sectionHead, emptyState, shapeLike } from '../ui.js';
 
 // The planning screen: you pick a question, it answers with your own numbers.
 //
@@ -29,6 +29,7 @@ export async function render(container) {
     ${heroTemplate(snapshot)}
 
     ${sectionHead('Ask about your money')}
+    ${hub()}
     <div class="coach-questions">
       ${questionBtn('afford', icon('wallet'), 'Can I afford this?')}
       ${questionBtn('goal', icon('flag'), 'Help me save for something')}
@@ -164,6 +165,7 @@ function wirePanel(container, s, cash) {
         return;
       }
       target.innerHTML = affordAnswer(cash, affordability(cash, Math.round(raw * 100)));
+      countIn(target);
     };
     affordGo.addEventListener('click', run);
     container.querySelector('#afford-amount').addEventListener('keydown', (e) => {
@@ -204,11 +206,12 @@ function affordAnswer(s, a) {
 
   return `
     <div class="coach-answer">
-      <p class="coach-verdict ${tone}">${verdict}</p>
+      <p class="coach-verdict coach-pill ${tone}">${verdict}</p>
+      ${shareBar(a.amount, s.leftToSpend, tone)}
       <div class="totals-card">
-        <div class="totals-row"><span>Left to spend${until}</span><span>${formatCurrency(s.leftToSpend)}</span></div>
-        <div class="totals-row"><span>This purchase</span><span class="out">-${formatCurrency(a.amount)}</span></div>
-        <div class="totals-row net"><span>Left after it</span><span class="${a.after < 0 ? 'out' : 'in'}">${formatCurrency(a.after)}</span></div>
+        <div class="totals-row"><span>Left to spend${until}</span><span data-count>${formatCurrency(s.leftToSpend)}</span></div>
+        <div class="totals-row"><span>This purchase</span><span class="out" data-count>-${formatCurrency(a.amount)}</span></div>
+        <div class="totals-row net"><span>Left after it</span><span class="${a.after < 0 ? 'out' : 'in'}" data-count>${formatCurrency(a.after)}</span></div>
       </div>
       <p class="recap-line">${
         !a.canAfford
@@ -223,6 +226,53 @@ function affordAnswer(s, a) {
       }</p>
     </div>
   `;
+}
+
+// Kawach's mark in two rings that draw once as the screen arrives, and then
+// sit still: the answers below are worked out here, on the phone.
+function hub() {
+  return `<div class="coach-hub" aria-hidden="true">
+      <svg viewBox="0 0 150 150">
+        <circle class="coach-hub__track" cx="75" cy="75" r="70"/>
+        <circle class="coach-hub__arc coach-hub__arc--outer" cx="75" cy="75" r="70" pathLength="100" transform="rotate(-90 75 75)"/>
+        <circle class="coach-hub__arc coach-hub__arc--inner" cx="75" cy="75" r="60" pathLength="100" transform="rotate(90 75 75)"/>
+        <g transform="translate(40 37) scale(0.7)">
+          <path class="coach-hub__shield" d="M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z"/>
+          <path class="coach-hub__rupee" d="M38 34h24M38 45h24M44 34c11 0 11 20 0 20h-5l17 17"/>
+        </g>
+      </svg>
+    </div>
+    <p class="coach-hub__note">Worked out on your phone</p>`;
+}
+
+// How much of what is left the purchase would take: amber when it is tight,
+// red when it is more than there is (and then the bar is simply full).
+function shareBar(amount, left, tone) {
+  const share = left > 0 ? Math.min(1, amount / left) : 1;
+  return `<div class="coach-share coach-share--${tone}" role="img" aria-label="Takes ${Math.round(share * 100)}% of what is left"><i style="width:${(share * 100).toFixed(1)}%"></i></div>`;
+}
+
+// The sums count up to their figures once, as the answer arrives. The real
+// figure is always what is left on screen; nothing moves for reduced motion.
+function countIn(root) {
+  if (document.hidden || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  for (const el of root.querySelectorAll('[data-count]')) {
+    const final = el.textContent;
+    const run = final.match(/[\d,]+/);
+    const target = run ? Number(run[0].replace(/,/g, '')) : 0;
+    if (!target) continue;
+    const start = performance.now();
+    const paint = (now) => {
+      const t = Math.min(1, (now - start) / 700);
+      el.textContent = t >= 1 ? final : shapeLike(final, Math.round(target * (1 - (1 - t) ** 3)));
+      if (t < 1) requestAnimationFrame(paint);
+    };
+    el.textContent = shapeLike(final, 0);
+    requestAnimationFrame(paint);
+    setTimeout(() => {
+      el.textContent = final;
+    }, 1100);
+  }
 }
 
 function goalAnswer(s, plan) {
