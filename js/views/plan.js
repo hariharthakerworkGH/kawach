@@ -4,7 +4,7 @@ import { formatCurrency, formatRupees, ordinal, formatDateNice, formatMonthYear 
 import { detectRecurring } from '../recurring.js';
 import { categoryStyle } from '../category-style.js';
 import { getBudgets, setBudget, budgetStatusForMonth } from '../budgets.js';
-import { DEFAULT_KEEP_IN_BANK } from '../free-to-spend.js';
+import { DEFAULT_KEEP_IN_BANK, computeFreeToSpend } from '../free-to-spend.js';
 import { currentMonthKey } from '../spending-month.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequencyShort, hasDueDate, toMonthly, toYearly, isoLocal } from '../frequency.js';
 import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder, isSetAside, duplicateCommitments } from '../commitments.js';
@@ -122,6 +122,20 @@ export async function render(container) {
   const keep = Math.max(0, Number(keepInBank) || 0);
   const budget = disposable != null ? disposable + sideExtra + cashTotal - keep : null;
 
+  // NEW (4.25): this month at a glance - what must go out on its day, and
+  // what is left of each set-aside - read from the one calculation every
+  // screen reads (its per-commitment tracker), never worked out again here.
+  // If it cannot be had, Plan simply goes without the section.
+  let tracker = [];
+  if (!inBusiness) {
+    try {
+      tracker = (await computeFreeToSpend()).tracker || [];
+    } catch {
+      tracker = [];
+    }
+  }
+  const thisMonth = inBusiness ? '' : monthStrip(tracker, [...fixed, ...loanItems], now) + flexBars(tracker);
+
   // `k-plan` scopes the rules for classes this screen shares with Summary,
   // so styling a commitment row here cannot reach across and restyle one
   // there.
@@ -179,6 +193,7 @@ export async function render(container) {
     </section>`
     }
 
+    ${thisMonth ? `${sectionHead('This month')}<div class="totals-card plan-month">${thisMonth}</div>` : ''}
     ${
       // How much of the month is spoken for, from the same figures the hero
       // above is made of. No second calculation.
@@ -653,6 +668,72 @@ export async function render(container) {
       redraw(container, () => render(container));
     });
   });
+}
+
+/* This month's must-go-outs on their days: a bar on the day each one is
+ * due, taller for more money, bright while it is still to pay, dim once it is
+ * paid, red when it is late, with today marked. A name is written over a bar
+ * only when there is room for it; every bar says its name and amount to a
+ * screen reader. Exported so the rules can be tested. */
+export function monthStrip(tracker, items, now = new Date()) {
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const rows = tracker
+    .filter((t) => !t.setAside && !t.variable && t.status !== 'untracked' && byId.get(t.id)?.dayOfMonth)
+    .map((t) => ({ t, day: Math.min(byId.get(t.id).dayOfMonth, 31) }))
+    .sort((a, b) => a.day - b.day);
+  if (!rows.length) return '';
+  const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const x = (d) => 22 + ((Math.min(d, days) - 1) / (days - 1)) * 276;
+  const top = Math.max(...rows.map((r) => r.t.amount));
+  const axis = 104;
+  let lastLabel = -99;
+  // Two due on the same day stand side by side rather than one over the other.
+  const sameDay = (d) => rows.filter((r) => r.day === d);
+  const bars = rows
+    .map(({ t, day }) => {
+      const group = sameDay(day);
+      const cx = x(day) + (group.findIndex((r) => r.t === t) - (group.length - 1) / 2) * 11;
+      const h = 12 + Math.sqrt(Math.max(0, t.amount) / top) * 58;
+      const state = t.status === 'paid' ? 'paid' : t.status === 'late' ? 'late' : 'due';
+      const said = `${t.label}, ${formatRupees(t.amount)} on the ${ordinal(day)}: ${state === 'paid' ? 'paid' : state === 'late' ? 'late' : 'still to pay'}`;
+      const name = escapeHtml(t.label.split(/\s+/)[0].slice(0, 9));
+      const room = cx - lastLabel >= 34;
+      if (room) lastLabel = cx;
+      return `<g class="plan-strip__bar is-${state}"><title>${escapeHtml(said)}</title>
+          <rect x="${(cx - 5).toFixed(1)}" y="${(axis - h).toFixed(1)}" width="10" height="${h.toFixed(1)}" rx="3"/>
+          ${room ? `<text x="${cx.toFixed(1)}" y="${(axis - h - 6).toFixed(1)}">${name}</text>` : ''}
+        </g>`;
+    })
+    .join('');
+  const today = now.getDate();
+  const ticks = [1, 8, 15, 22, days].map((d) => `<text class="plan-strip__tick" x="${x(d).toFixed(1)}" y="${axis + 16}">${d}</text>`).join('');
+  return `<figure class="plan-strip">
+      <svg viewBox="0 0 320 124" role="img" aria-label="This month's must-go-outs on their days">
+        <line class="plan-strip__axis" x1="10" y1="${axis}" x2="310" y2="${axis}"/>
+        <line class="plan-strip__today" x1="${x(today).toFixed(1)}" y1="10" x2="${x(today).toFixed(1)}" y2="${axis + 4}"/>
+        <text class="plan-strip__today-label" x="${x(today).toFixed(1)}" y="8">Today</text>
+        ${bars}${ticks}
+      </svg>
+      <figcaption class="plan-strip__key"><span class="is-due">Still to pay</span><span class="is-paid">Paid</span>${rows.some((r) => r.t.status === 'late') ? '<span class="is-late">Late</span>' : ''}</figcaption>
+    </figure>`;
+}
+
+/* What is left of each set-aside this month, as a bar that fills as it is
+ * spent: amber when the pace takes it over, red once it is over. */
+export function flexBars(tracker) {
+  const rows = tracker.filter((t) => t.setAside && t.status !== 'untracked' && t.amount > 0);
+  if (!rows.length) return '';
+  return `<div class="plan-flex">${rows
+    .map((t) => {
+      const used = Math.max(0, Math.min(1, t.used / t.amount));
+      const tone = t.status === 'over' ? 'is-over' : t.status === 'heading-over' ? 'is-warn' : '';
+      const left = t.left >= 0 ? `${formatRupees(t.left)} left of ${formatRupees(t.amount)}` : `${formatRupees(-t.left)} over ${formatRupees(t.amount)}`;
+      return `<div class="plan-flex__row ${tone}">
+          <div class="plan-flex__top"><span class="plan-flex__name">${escapeHtml(t.label)}</span><span class="plan-flex__left">${left}</span></div>
+          <div class="plan-flex__track"><i style="width:${(used * 100).toFixed(1)}%"></i></div>
+        </div>`;
+    })
+    .join('')}</div>`;
 }
 
 function budgetCard(b) {
