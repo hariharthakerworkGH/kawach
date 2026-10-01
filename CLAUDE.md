@@ -178,19 +178,23 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   card has a statement day yet, and never the month the next salary pays for.
 - The tour is a page of the app, not a video: `tour.html` with
   `js/tour-film.js`, played over the app from Setup and Settings (`js/tour.js`,
-  in an iframe) and on the welcome page. It is drawn live from the app's own
-  stylesheets, icons and `formatRupees`, with made-up figures that add up, so
-  it is kept offline with everything else and cannot drift far from the real
-  screens - but it does not read the real views, so change it by hand when a
-  screen it shows changes. Sixty seconds, silent: the promises (zero tracking,
-  zero sign-ups, works offline), Summary's sum, the owed figures, paying a
-  card bill on Accounts, adding a Reimbursable (Work) cost, History, and the
-  close. Every moving part is one paused Web Animation over the full minute,
-  set to the same moment by one clock, so scrubbing and playing show the same
-  frame; `?t=31000` opens on a moment (for stills), `?autoplay=0` waits on
-  the poster frame, and reduced motion never starts by itself. No brand
-  logos: the app bundles none (js/brand.js), so neither does the tour. A
-  first visit in a browser (not installed, nothing set up) goes to
+  in an iframe) and on the welcome page. It is a sixty-second launch film,
+  silent, built from the app's own stylesheets, icons and `formatRupees`
+  with example figures that add up and say "Example figures" on screen. Two
+  stages: 1600 x 900 when its box is wide, 900 x 1600 when tall, each with
+  its own layout (`LAND`/`PORT`), rebuilt if the box changes shape. The phone
+  is the camera; pieces of the app (the Left to spend card, the owed
+  figures, the bank row, History rows) are lifted out of it as copies,
+  measured from the phone at the moment they leave, so the phone must face
+  straight on at those moments. Every moving part is one paused Web
+  Animation over the full minute, set by one clock, and the canvas
+  particles, typing and numbers are worked out from the same moment, so
+  scrubbing and playing show the same frame. `?t=31000` opens on a moment,
+  `?autoplay=0` waits on the poster frame, and reduced motion never starts
+  by itself. It does not read the real views, so change it by hand when a
+  screen it shows changes. No brand logos: the app bundles none
+  (js/brand.js), and the card in it is drawn with no bank or network mark.
+  A first visit in a browser (not installed, nothing set up) goes to
   `welcome.html` once.
 - `sw.js` service worker: `CACHE_NAME` must match `APP_VERSION` in
   `js/version.js`, and `APP_SHELL` must list every js file, both stylesheets
