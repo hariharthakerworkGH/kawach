@@ -3175,3 +3175,46 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 @media (prefers-reduced-motion: reduce) {
   .k .bill-urgent .bill-dot, .k .bill-overdue .bill-dot { animation: none; }
 }
+
+/* ---- Plan: this month at a glance (4.25) --------------------------------
+ * The month's must-go-outs on their days (bright still to pay, dim paid, red
+ * late) and a bar for each set-aside filling as it is spent. The budget bar,
+ * the day bars and the set-aside bars grow in as the screen arrives. */
+.k .plan-month { padding: var(--k-4) var(--k-4) var(--k-3); }
+.k .plan-strip { margin: 0; }
+.k .plan-strip svg { display: block; width: 100%; height: auto; overflow: visible; }
+.k .plan-strip__axis { stroke: color-mix(in oklch, var(--k-text) 18%, transparent); stroke-width: 1.2; }
+.k .plan-strip__today { stroke: var(--k-cyan); stroke-width: 1.2; stroke-dasharray: 3 4; }
+.k .plan-strip__today-label { fill: var(--k-cyan); font-size: 8.5px; font-weight: 700; letter-spacing: 0.06em; text-anchor: middle; text-transform: uppercase; }
+.k .plan-strip__tick { fill: var(--k-text-3); font-size: 8.5px; text-anchor: middle; font-variant-numeric: tabular-nums; }
+.k .plan-strip__bar text { font-size: 8px; font-weight: 700; text-anchor: middle; letter-spacing: 0.03em; }
+.k .plan-strip__bar.is-due rect { fill: var(--k-cyan); filter: drop-shadow(0 0 4px color-mix(in oklch, var(--k-cyan) 60%, transparent)); }
+.k .plan-strip__bar.is-due text { fill: var(--k-cyan); }
+.k .plan-strip__bar.is-paid rect { fill: color-mix(in oklch, var(--k-text) 20%, transparent); }
+.k .plan-strip__bar.is-paid text { fill: var(--k-text-3); }
+.k .plan-strip__bar.is-late rect { fill: var(--k-negative); filter: drop-shadow(0 0 4px color-mix(in oklch, var(--k-negative) 60%, transparent)); }
+.k .plan-strip__bar.is-late text { fill: var(--k-negative); }
+.k .plan-strip__key { display: flex; gap: var(--k-4); margin-top: var(--k-2); font-size: var(--k-caption); color: var(--k-text-3); }
+.k .plan-strip__key span::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 2px; vertical-align: 0; }
+.k .plan-strip__key .is-due::before { background: var(--k-cyan); }
+.k .plan-strip__key .is-paid::before { background: color-mix(in oklch, var(--k-text) 20%, transparent); }
+.k .plan-strip__key .is-late::before { background: var(--k-negative); }
+.k .plan-flex { margin-top: var(--k-4); border-top: 1px solid var(--k-hairline); }
+.k .plan-flex__row { padding: var(--k-3) 0; }
+.k .plan-flex__row + .plan-flex__row { border-top: 1px solid var(--k-hairline); }
+.k .plan-flex__top { display: flex; justify-content: space-between; gap: var(--k-3); align-items: baseline; }
+.k .plan-flex__name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k .plan-flex__left { flex: none; font-size: var(--k-caption); color: var(--k-text-2); font-variant-numeric: tabular-nums; }
+.k .plan-flex__track { height: 8px; margin-top: var(--k-2); border-radius: 4px; background: color-mix(in oklch, var(--k-text) 7%, transparent); overflow: hidden; }
+.k .plan-flex__track i { display: block; height: 100%; border-radius: 4px; background: var(--k-positive); box-shadow: 0 0 10px color-mix(in oklch, var(--k-positive) 45%, transparent); transform-origin: left center; }
+.k .plan-flex__row.is-warn .plan-flex__track i { background: var(--k-warning); }
+.k .plan-flex__row.is-over .plan-flex__track i { background: var(--k-negative); }
+.k .plan-flex__row.is-over .plan-flex__left { color: var(--k-negative); }
+.is-arriving .plan-strip__bar rect { transform-box: fill-box; transform-origin: bottom center; animation: grow-up 640ms var(--k-ease) both; }
+.is-arriving .plan-strip__bar:nth-of-type(2) rect { animation-delay: 60ms; }
+.is-arriving .plan-strip__bar:nth-of-type(3) rect { animation-delay: 120ms; }
+.is-arriving .plan-strip__bar:nth-of-type(n + 4) rect { animation-delay: 180ms; }
+.is-arriving .plan-flex__track i { animation: grow-x 760ms var(--k-ease) 260ms both; }
+.is-arriving .committed-bar i { transform-origin: left center; animation: grow-x 700ms var(--k-ease) 120ms both; }
+@keyframes grow-up { from { transform: scaleY(0); } }
+@keyframes grow-x { from { transform: scaleX(0); } }

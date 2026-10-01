@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.25',
+    items: [
+      {
+        icon: 'plan',
+        title: "This month on Plan",
+        text: "Plan now shows this month at a glance: each payment that must go out on its day, bright while still to pay, dim once paid, red if late, with today marked. Under it, how much is left of each amount you set aside.",
+        guide: [{ view: 'plan', target: '.plan-month', text: "Bright: still to pay. Dim: paid. Red: late." }],
+      },
+    ],
+  },
+  {
     version: '4.24',
     items: [
       {

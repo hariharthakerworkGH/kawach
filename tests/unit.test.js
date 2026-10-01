@@ -18,6 +18,7 @@ import { parseAlert, splitAlerts, resolveAccount, findDigits } from '../js/alert
 import * as hdfcList from '../js/parsers/hdfc-card-current-text.js';
 import * as csvParser from '../js/parsers/csv.js';
 import { dataSafety } from '../js/views/settings.js';
+import { monthStrip, flexBars } from '../js/views/plan.js';
 import { loanPayments, payFasterPlan, loanPosition, assignLoanPayments, loanHistory } from '../js/loans.js';
 import * as sbiLoan from '../js/parsers/sbi-loan.js';
 import * as sbiSavings from '../js/parsers/sbi-savings.js';
@@ -1415,6 +1416,29 @@ test('the Summary ring: arcs for budget spent and month gone, coloured by the bu
   ok(spendingHero(base, 'full', 'Final for September').includes('stroke-dasharray="100.0 100"'), 'a finished month has its month ring full');
   ok(!spendingHero(base, 'plain').includes('hero-ring'), 'the plain look has no ring');
   ok(!spendingHero({ ...base, used: 0 }, 'full').includes('hero-ring__spent'), 'nothing spent draws no arc (not a dot)');
+});
+test("Plan's month: must-go-outs on their days by state, and what is left of each set-aside", () => {
+  const items = [{ id: 'rent', dayOfMonth: 5 }, { id: 'emi', dayOfMonth: 10 }, { id: 'phone', dayOfMonth: 20 }, { id: 'loan-a', dayOfMonth: 2 }];
+  const tracker = [
+    { id: 'rent', label: 'Rent', amount: rupees(12000), used: rupees(12000), left: 0, status: 'paid' },
+    { id: 'emi', label: 'Car EMI', amount: rupees(8000), used: 0, left: rupees(8000), status: 'late' },
+    { id: 'phone', label: 'Phone', amount: rupees(500), used: 0, left: rupees(500), status: 'due' },
+    { id: 'loan-a', label: 'Home loan', amount: rupees(20000), used: 0, left: 0, status: 'untracked' },
+    { id: 'food', label: 'Groceries', amount: rupees(6000), used: rupees(4500), left: rupees(1500), setAside: true, status: 'heading-over' },
+    { id: 'fuel', label: 'Fuel', amount: rupees(3000), used: rupees(3600), left: -rupees(600), setAside: true, status: 'over' },
+    { id: 'gift', label: 'Gifts', amount: rupees(1000), used: 0, left: rupees(1000), setAside: true, status: 'untracked' },
+  ];
+  const strip = monthStrip(tracker, items, new Date(2026, 9, 14));
+  equal((strip.match(/plan-strip__bar /g) || []).length, 3, 'one bar for each must-go-out that is tracked; set-asides and untracked ones are not on it');
+  ok(strip.includes('is-paid') && strip.includes('is-late') && strip.includes('is-due'), 'each bar says paid, late or still to pay');
+  ok(strip.includes('Car EMI, ₹8,000 on the 10th: late'), 'and says it in words too');
+  ok(strip.includes('class="is-late">Late'), 'the key names late only when something is');
+  ok(!monthStrip(tracker.slice(0, 1).map((t) => ({ ...t, status: 'due' })), items, new Date(2026, 9, 14)).includes('class="is-late"'), 'and leaves it out when nothing is');
+  equal(monthStrip([], items), '', 'no must-go-outs, no strip');
+  const flex = flexBars(tracker);
+  ok(flex.includes('₹1,500 left of ₹6,000') && flex.includes('is-warn'), 'a set-aside heading over is amber, with what is left');
+  ok(flex.includes('₹600 over ₹3,000') && flex.includes('is-over') && flex.includes('width:100.0%'), 'one that is over is red, full, and says by how much');
+  ok(!flex.includes('Gifts'), 'an untracked set-aside is left out');
 });
 // --- From the owner's report of 1 Oct: what the Summary said, and was not true -----
 test('a red headline that is only the bank being short does not say "almost all used"', () => {
