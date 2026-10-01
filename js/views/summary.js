@@ -32,7 +32,62 @@ let currentRange = 'this-month';
 // The space on screen: 'home' or a business's id (js/business.js).
 let space = 'home';
 
+// NEW: the month the top of Summary is showing. null is this month; otherwise
+// the 'YYYY-MM' of a month already over, opened with the arrows in the month
+// bar so what you spent on the 30th is still there to look at on the 1st.
+//
+// The calendar month stays the unit (nothing about the rules changes): a past
+// month is simply worked out again as of its last day, which is exactly what
+// the screen read when that month ended. Leaving Summary forgets it, so the
+// screen always opens on this month. (app.js builds a new container for every
+// arrival and reuses it for a redraw, so a different container means arriving.)
+let viewMonth = null;
+let shownIn = null;
+
+// The months that can be opened: the first month with any payment in it,
+// through this one. Always at least this month.
+export function monthsWithData(transactions, todayIso) {
+  const thisKey = todayIso.slice(0, 7);
+  const first = transactions.reduce((m, t) => (t.date && t.date.slice(0, 7) < m ? t.date.slice(0, 7) : m), thisKey);
+  const out = [];
+  let [y, m] = first.split('-').map(Number);
+  while (`${y}-${String(m).padStart(2, '0')}` <= thisKey) {
+    out.push(`${y}-${String(m).padStart(2, '0')}`);
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+  return out;
+}
+
+// Noon on the last day of a month: "today", for working a finished month out
+// as it stood when it ended. Noon, so no time zone can move the date.
+export function endOfMonthNoon(key) {
+  const [y, m] = key.split('-').map(Number);
+  return new Date(y, m, 0, 12);
+}
+
+// "< October 2026 >": the same bar History uses, so it is already familiar.
+// The arrows stop at the first month with data and at this month.
+function monthNav(key, months) {
+  const at = months.indexOf(key);
+  const [y, m] = key.split('-').map(Number);
+  return `<nav class="hist-month summary-month" aria-label="Month on screen">
+      <button type="button" class="icon-btn hist-step" id="sum-month-prev" aria-label="Month before" ${at <= 0 ? 'disabled' : ''}>${icon('back')}</button>
+      <span class="hist-month-name" aria-live="polite">${MONTH_NAMES[m - 1]} ${y}</span>
+      <button type="button" class="icon-btn hist-step" id="sum-month-next" aria-label="Month after" ${at >= months.length - 1 ? 'disabled' : ''}>${icon('forward')}</button>
+    </nav>`;
+}
+
 export async function render(container) {
+  // NEW: arriving on Summary always starts on this month; only a redraw of
+  // the screen already showing keeps the month you stepped back to.
+  if (container !== shownIn) {
+    viewMonth = null;
+    shownIn = container;
+  }
   const list = await businesses();
   space = await activeSpace();
   // Summary is the first screen on the new visual system, docs/KAWACH-DESIGN-DNA.md.
@@ -44,7 +99,9 @@ export async function render(container) {
     ${list.length ? spaceToggle(list, space) : ''}
     <div id="dashboard"></div>
     ${
-      space !== 'home'
+      // A finished month shows only its own figures; the This month / Last
+      // month breakdown below belongs to the month that is running.
+      space !== 'home' || viewMonth
         ? ''
         : `<div class="segmented">
       <button type="button" class="seg-btn ${currentRange === 'this-month' ? 'active' : ''}" data-range="this-month">This month</button>
@@ -191,6 +248,42 @@ const addDaysIso = (from, days) => {
 async function renderDashboard(container) {
   if (space !== 'home') return renderBusinessDashboard(container);
   const dashboardEl = container.querySelector('#dashboard');
+
+  // NEW: the month bar, and a finished month on screen.
+  const todayIso = isoLocal(new Date());
+  const thisKey = todayIso.slice(0, 7);
+  const months = monthsWithData(await getAll('transactions'), todayIso);
+  // A month that has gone from the data (payments deleted) or is no longer in
+  // the past falls back to this month.
+  if (viewMonth && (!months.includes(viewMonth) || viewMonth >= thisKey)) {
+    viewMonth = null;
+    return redraw(container, () => render(container));
+  }
+  const wireMonthNav = () => {
+    const step = (delta) => {
+      const next = months[months.indexOf(viewMonth || thisKey) + delta];
+      if (!next) return;
+      viewMonth = next === thisKey ? null : next;
+      redraw(container, () => render(container));
+    };
+    dashboardEl.querySelector('#sum-month-prev').addEventListener('click', () => step(-1));
+    dashboardEl.querySelector('#sum-month-next').addEventListener('click', () => step(1));
+  };
+
+  if (viewMonth) {
+    // As the month stood on its last day: the Spent and Left to spend that
+    // were true when it closed, payments of the 30th and 31st included.
+    const past = { key: viewMonth, name: MONTH_NAMES[Number(viewMonth.slice(5, 7)) - 1] };
+    const done = await computeFreeToSpend(endOfMonthNoon(viewMonth));
+    dashboardEl.innerHTML = `${monthNav(viewMonth, months)}${renderSpendingLimit(done, { past })}
+      <button type="button" class="btn-secondary btn-block" id="sum-month-payments">See ${past.name}'s payments</button>`;
+    wireMonthNav();
+    dashboardEl.querySelector('#sum-month-payments').addEventListener('click', () => {
+      container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'transactions', month: past.key } }));
+    });
+    return;
+  }
+
   const [transactions, fts, install, list] = await Promise.all([getAll('transactions'), computeFreeToSpend(), installCard(), businesses()]);
   // Anyone with business income has tax dates to keep.
   const tax = taxCard(taxDates(isoLocal(new Date()), { business: list.length > 0 || fts.incomeKind === 'business' }));
@@ -200,6 +293,7 @@ async function renderDashboard(container) {
   // then the detail (design.md section 15).
   const commitments = renderCommitmentTracker(fts);
   dashboardEl.innerHTML = [
+    monthNav(thisKey, months),
     renderSpendingLimit(fts),
     renderBankCard(fts),
     renderDueSoon(fts),
@@ -211,6 +305,8 @@ async function renderDashboard(container) {
     // The invitation to install comes last: it is not part of the answer.
     install,
   ].join('');
+
+  wireMonthNav();
 
   // The set-aside figure opens the list that explains it, rather than being
   // a number with nowhere to go.
@@ -336,22 +432,55 @@ const breakdownLine = (label, amount, sign, note = '') =>
  * most likely to be staring at. Past the budget it says "against" instead,
  * which stays true however far past it goes.
  */
-export function spentLine(spent, limit) {
+// CHANGED: an optional third figure, the work costs paid back this month. When
+// there are any, "spent" says so, because the number is then lower than what
+// went out and a bare "-₹15,000 spent" would read as a mistake.
+export function spentLine(spent, limit, paidBack = 0) {
   const over = spent > limit;
+  const after = paidBack > 0 ? `, after ${formatRupees(paidBack)} paid back` : '';
   return `<div class="stat stat-wide">
         <span class="stat-v">${formatRupees(spent)}${over ? '' : ` <span class="stat-of">of</span> ${formatRupees(limit)}`}</span>
-        <span class="stat-k">${over ? `spent against ${formatRupees(limit)}` : 'spent'}</span>
+        <span class="stat-k">${over ? `spent against ${formatRupees(limit)}` : 'spent'}${after}</span>
       </div>`;
 }
 
-export function spendingHero(f, look = 'full') {
+// NEW: what is owed, in two plain figures. Card debt is every card's bill not
+// yet paid plus what has been spent since the last statement - the same two
+// numbers the bank check already subtracts, added up, and nothing else. It
+// does not touch "Left to spend". Money the employer still owes back is shown
+// only while there is some: at nothing it disappears rather than saying "0".
+function renderOwed(f) {
+  const onCards = Math.max(0, ((f.totals && f.totals.owedCards) || 0) + ((f.totals && f.totals.unpaidBills) || 0));
+  const employer = (f.reimbursable && f.reimbursable.owed) || 0;
+  if (!f.cards.length && !employer) return '';
+  return `<div class="hero-under summary-owed">
+      ${
+        f.cards.length
+          ? `<div class="stat"><span class="stat-v">${formatRupees(onCards)}</span><span class="stat-k">Owed on cards</span></div>`
+          : ''
+      }
+      ${
+        employer
+          ? `<div class="stat"><span class="stat-v">${formatRupees(employer)}</span><span class="stat-k">Owed back by employer</span></div>`
+          : ''
+      }
+    </div>`;
+}
+
+// CHANGED: an optional `statusText` replaces the pace line. A finished month
+// has no pace to speak of: "About ₹2,724 a day until 30 Sep" is meaningless on
+// 1 Oct, so it says "Final for September" instead.
+export function spendingHero(f, look = 'full', statusText = null) {
   const until = formatDateNice(f.cycleKey);
   const pct = f.limit > 0 ? Math.min(100, Math.round(f.used * 100)) : 100;
   // The pace picture. When it can draw, it says everything the meter said and
   // more, so the meter goes: the same fact three ways is noise (design.md
   // section 9). Too early in the month, or nothing spent yet, and the meter
   // is the picture instead.
-  const burn = burnLine({ totals: f.spendDays, budget: f.limit, days: f.daysIntoCycle + f.daysToClose - 1, shortfall: f.bankShortfall });
+  // A finished month has no pace to project ("heading for ₹30,000 ... under
+  // today's pace" is about a month still running), so it gets the plain
+  // used-up bar below instead of the pace drawing.
+  const burn = statusText != null ? null : burnLine({ totals: f.spendDays, budget: f.limit, days: f.daysIntoCycle + f.daysToClose - 1, shortfall: f.bankShortfall });
   const meter = burn || !(f.spentThisCycle > 0) ? null : { pct, tone: f.level === 'ok' ? '' : f.level === 'warning' ? 'warn' : 'over' };
   return hero({
     label: 'Left to spend',
@@ -360,26 +489,30 @@ export function spendingHero(f, look = 'full') {
     negative: f.free < 0,
     level: f.level,
     meter: look === 'full' ? meter : null,
-    chart: look === 'full' ? burn : '',
-    status: look === 'plain' ? '' : escapeHtml(spendingStatus(f)),
+    // `burn` is null for a finished month; an empty string, never "null".
+    chart: look === 'full' ? burn || '' : '',
+    status: look === 'plain' ? '' : escapeHtml(statusText != null ? statusText : spendingStatus(f)),
   });
 }
 
 // The headline: what's left to spend, then the bank. Numbers first; the sums
 // behind them are one tap away.
-function renderSpendingLimit(f) {
+// `opts.past` is set for a month that is over ({ key, name }): the same
+// figures, worked out as of its last day, without anything that is about now.
+function renderSpendingLimit(f, opts = {}) {
+  const owed = opts.past ? '' : renderOwed(f);
   if (!f.monthlyIncome || !f.salary.setUp) {
     const ask = f.incomeKind === 'business' ? 'what the house needs a month' : `your ${incomeWords(f.incomeKind).noun} and the day it arrives`;
-    return `<div class="totals-card"><p class="muted-note">Add ${ask} on Plan to see what you can spend.</p></div>`;
+    return `<div class="totals-card"><p class="muted-note">Add ${ask} on Plan to see what you can spend.</p></div>${owed}`;
   }
   if (f.noCommitments) {
     return `<div class="hero level-warning">
         <p class="hero-label">Left to spend</p>
         <p class="hero-amount">-</p>
         <p class="hero-sub">Add your fixed commitments on Plan first - without them your whole income looks free.</p>
-      </div>`;
+      </div>${owed}`;
   }
-  return renderCardsHero(f);
+  return renderCardsHero(f, opts);
 }
 
 // One short line under the headline number.
@@ -448,32 +581,53 @@ function moneyShape(f) {
   const meter = radialMeter({ committed, income });
   const pulse = spendingPulse({ days: f.spendByDay || [], today: f.today });
 
-  // What the money you hold is already promised to.
+  // Your bank cash, and how much of it a card bill will take.
   //
   // This was meant to be "money you hold against room left on your cards",
   // but a card's credit limit is not in the data model anywhere - the app
   // never asks for it and no statement reader takes it - so that half would
   // have had to be invented. It is not drawn.
   //
-  // The honest version of the same question: of the money actually in the
-  // accounts, how much is already claimed by card bills that have been
+  // The honest version of the same question: of the cash actually in the
+  // bank, how much is already spoken for by card bills that have been
   // raised? Both figures are real, and together they are one total split in
-  // two, which is what a ring can show without lying.
-  const held = Math.max(0, f.bank || 0);
-  const claimed = Math.min(held, (f.totals && f.totals.unpaidBills) || 0);
+  // two, which is what a ring can show without lying. Cash is never mixed
+  // with card debt: debt a bank balance cannot cover is said apart, below.
+  const cash = cashSplit(f);
   const sources = allocationRing({
     slices: [
-      { label: 'Not yet claimed', amount: Math.max(0, held - claimed) },
-      { label: 'Claimed by card bills', amount: claimed },
+      { label: 'Available bank cash', amount: cash.available },
+      { label: 'Reserved for card bills', amount: cash.reserved },
     ],
-    caption: 'Of the money in your accounts, this much is already owed on cards. A card limit is not money and is not counted.',
+    caption: cash.beyond > 0 ? `Card bills are ${formatRupees(cash.beyond)} more than your bank cash.` : '',
   });
+  // With no cash to split but bills it cannot pay, the sentence still stands.
+  const shortOnly = !sources && cash.beyond > 0 ? `<p class="muted-note">Card bills are ${formatRupees(cash.beyond)} more than your bank cash.</p>` : '';
 
-  if (!meter && !pulse && !sources) return '';
+  if (!meter && !pulse && !sources && !shortOnly) return '';
   return `
     ${meter ? `<section class="summary-viz"><h3 class="summary-viz__head">Before you decide anything</h3>${meter}</section>` : ''}
     ${pulse ? `<section class="summary-viz"><h3 class="summary-viz__head">When it goes</h3>${pulse}</section>` : ''}
-    ${sources ? `<section class="summary-viz"><h3 class="summary-viz__head">What the money you hold is promised to</h3>${sources}</section>` : ''}`;
+    ${sources || shortOnly ? `<section class="summary-viz"><h3 class="summary-viz__head">Your bank cash</h3>${sources || shortOnly}</section>` : ''}`;
+}
+
+// CHANGED: the old labels - "Not yet claimed", "Claimed by card bills" -
+// asked you to work out who was claiming what. These say what the money is.
+//
+//   available  cash in the bank that no card bill needs
+//   reserved   cash a billed, unpaid card bill will take
+//   beyond     billed card bills the bank cash cannot cover
+//
+// A "bill" under ₹10 is a rounding leftover between spends and the payment
+// that settled them, not something owed (the same rule free-to-spend.js
+// applies to estimated bills), and used to show as "Claimed by card bills ₹1".
+// Exported so it can be tested.
+export function cashSplit(f) {
+  const held = Math.max(0, f.bank || 0);
+  const billed = (f.totals && f.totals.unpaidBills) || 0;
+  const owed = billed >= 1000 ? billed : 0;
+  const reserved = Math.min(held, owed);
+  return { available: held - reserved, reserved, beyond: owed - reserved };
 }
 
 function spendingStatus(f) {
@@ -495,8 +649,12 @@ function incomeLine(f) {
 
 const monthShort = (month) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(month.slice(5, 7)) - 1];
 
-function renderCardsHero(f) {
+function renderCardsHero(f, { past = null } = {}) {
   const line = breakdownLine;
+  // A month that is over reads its own figures and nothing about the present:
+  // no pace, no warnings, no bank check - those are about what happens next,
+  // and for a closed month nothing does.
+  const shown = past ? { ...f, level: f.free < 0 ? 'over' : 'ok', bankShortfall: 0, crossesOn: null } : f;
   // What must go out (rent, EMIs) and what can move (food, fun): the wiggle
   // room in the month, marked on each commitment on Plan.
   const mustItems = f.budgetItems.filter((b) => !b.item.flexible);
@@ -508,11 +666,16 @@ function renderCardsHero(f) {
           .join('')}`
       : '';
 
-  return spendingHero(f, appearance('summary')) + `
+  return spendingHero(shown, appearance('summary'), past ? `Final for ${past.name}` : null) + `
     <div class="hero-under">
-      ${spentLine(f.spentThisCycle, f.limit)}
-      ${stillSetAside(f)}
+      ${spentLine(f.spentThisCycle, f.limit, f.reimbursedThisMonth)}
+      ${past ? '' : stillSetAside(f)}
     </div>
+    ${
+      // NEW: owed on cards, and owed back by the employer while any is -
+      // straight under the spent figure, where the other numbers are.
+      past ? '' : renderOwed(f)
+    }
     ${(() => {
       const card = Math.max(0, f.cardSpent || 0);
       const bank = Math.max(0, f.bankSpent || 0);
@@ -529,8 +692,8 @@ function renderCardsHero(f) {
         <span class="split-k"><span class="split-dot split-dot--bank"></span>From the bank <strong>${formatRupees(bank)}</strong></span>
       </div>`;
     })()}
-    ${insightCard(f)}
-    ${moneyShape(f)}
+    ${past ? '' : insightCard(f)}
+    ${past ? '' : moneyShape(f)}
       <details class="fts-breakdown hero-work">
         <summary>Budget breakdown</summary>
         <div class="totals-card">
@@ -546,6 +709,7 @@ function renderCardsHero(f) {
             .join('')}
           ${f.cardCommitmentCharges.map((c) => line(escapeHtml(c.label), c.amount, '+', 'commitment, already in the budget')).join('')}
           ${line('Bank spending', f.bankSpent, '-', `UPI and more, ${formatDateNice(f.bankMonthStart)} to ${formatDateNice(f.bankMonthEnd)}`)}
+          ${f.reimbursedThisMonth ? line('Paid back by employer', f.reimbursedThisMonth, '+', 'this month') : ''}
           ${biggestSpends(f)}
           ${(f.returned || [])
             .map(
@@ -557,7 +721,7 @@ function renderCardsHero(f) {
             .join('')}
           <div class="totals-row net"><span>Left to spend</span><span>${formatRupees(f.free)}</span></div>
         </div>
-        ${f.notes.map((n) => `<p class="muted-note">${escapeHtml(n)}</p>`).join('')}
+        ${past ? '' : f.notes.map((n) => `<p class="muted-note">${escapeHtml(n)}</p>`).join('')}
       </details>`;
 }
 

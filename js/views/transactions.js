@@ -7,11 +7,12 @@ import { isSplit, categorySlices, needsCategory, splitTotal } from '../splits.js
 import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
-import { commitmentField, cardPaymentField } from './add.js';
+import { commitmentField, cardPaymentField, isMonthEnd } from './add.js';
 import { looksLikeCardPayment } from '../transfers.js';
 import { isoLocal } from '../frequency.js';
 import { icon } from '../icons.js';
-import { categoriesFor, activeSpace, accountInSpace } from '../business.js';
+import { categoriesFor, activeSpace, accountInSpace, isBusinessAccount } from '../business.js';
+import { tidyFlags } from '../reimbursable.js';
 import { inOutBars, cashRiver } from '../charts.js';
 import { appearance } from '../appearance.js';
 import { escapeHtml, escapeAttr, emptyState } from '../ui.js';
@@ -82,7 +83,9 @@ export async function render(container, params = {}) {
   filters.search = params.search || '';
   filters.accountId = params.accountId || '';
   filters.categoryId = params.filter === 'uncategorized' ? 'uncategorized' : params.categoryId || '';
-  filters.month = thisMonth();
+  // A month asked for by another screen (Summary's "See September's payments")
+  // opens on that month, if it is a real one and not in the future.
+  filters.month = /^\d{4}-\d{2}$/.test(params.month || '') && params.month <= thisMonth() ? params.month : thisMonth();
   // Opened for one account (from Accounts): its latest month, so an account
   // with nothing yet this month doesn't open on an empty page.
   if (filters.accountId) {
@@ -311,7 +314,42 @@ function matching() {
       if (needle && !searchHit(t, needle)) return false;
       return true;
     })
-    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    .sort(newestFirst);
+}
+
+// FIXED: this used to compare dates only, so payments sharing a day kept
+// whatever order the database handed them back in (random ids), and a payment
+// added a minute ago could sit below one from the morning.
+//
+// Within a day, latest first, by the time of day it happened:
+//   - the bank's own time, where an alert carried one (`time`, "23:23");
+//   - otherwise the moment it was recorded (`createdAt`), counted only when
+//     that was the same day - a payment typed in later for an earlier day has
+//     no time of day to speak of;
+//   - rows with neither (statement imports, anything from before this change)
+//     sit at the bottom of their day, then by when they were recorded, then by
+//     id, so the order is the same every time the screen is drawn.
+// Every step compares one fixed value, so this is a proper ordering and never
+// shuffles. Exported so it can be tested.
+export function newestFirst(a, b) {
+  if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+  const ta = secondOfDay(a);
+  const tb = secondOfDay(b);
+  if (ta !== tb) return tb - ta;
+  const ca = a.createdAt || 0;
+  const cb = b.createdAt || 0;
+  if (ca !== cb) return cb - ca;
+  return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
+}
+
+function secondOfDay(t) {
+  const m = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(t.time || '');
+  if (m) return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3] || 0);
+  if (t.createdAt) {
+    const d = new Date(t.createdAt);
+    if (isoLocal(d) === t.date) return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+  }
+  return -1;
 }
 
 // Money in and out, leaving out money moved between your own accounts.
@@ -449,7 +487,7 @@ function rowTemplate(t) {
   const sign = t.direction === 'credit' ? '+' : '−';
   // Money moved between your own accounts is neither in nor out: grey.
   const tone = t.isTransfer ? 'muted' : t.direction === 'credit' ? 'in' : 'out';
-  const sub = [account ? escapeHtml(account.label) : '', t.isTransfer ? 'moved' : '', split ? 'split' : ''].filter(Boolean).join(' · ');
+  const sub = subHtml(t);
   return `
     <div class="hist-row ${isOpen ? 'open' : ''} ${selected.has(t.id) ? 'selected' : ''}" data-id="${t.id}">
       <div class="hist-line">
@@ -466,6 +504,27 @@ function rowTemplate(t) {
       ${isOpen ? expandedTemplate(t) : ''}
     </div>
   `;
+}
+
+// The small line under a payment's name. Pulled out of rowTemplate so the Edit
+// panel can refresh it in place when a work flag is ticked.
+//
+// NEW: a quiet tag for a work cost still to be claimed, and for the money that
+// settled one. Not shown on money moved between your own accounts, which the
+// totals ignore too.
+function subHtml(t) {
+  const account = cache.accounts.find((a) => a.id === t.accountId);
+  const workTag = t.isTransfer
+    ? ''
+    : t.direction === 'debit' && t.isReimbursable
+      ? '<span class="hist-tag">Owed back</span>'
+      : t.direction === 'credit' && t.isSettlement
+        ? '<span class="hist-tag hist-tag--in">Paid back</span>'
+        : '';
+  const text = [account ? escapeHtml(account.label) : '', t.isTransfer ? 'moved' : '', isSplit(t) ? 'split' : ''].filter(Boolean).join(' · ');
+  // With a tag, the words go in their own box so that on a narrow screen it is
+  // the account name that is cut short, never the tag.
+  return workTag ? `<span class="hist-sub-text">${text}</span>${workTag}` : text;
 }
 
 // The categories that fit a payment's account: business or home.
@@ -515,6 +574,8 @@ function expandedTemplate(t) {
         </div>
         <input type="text" class="rv-field rv-desc" data-field="rawDescription" value="${escapeAttr(t.rawDescription)}" aria-label="Description">
         <input type="number" step="0.01" class="rv-field rv-amount-input" data-field="amount" value="${(t.amount / 100).toFixed(2)}" aria-label="Amount">
+        ${workFlagField(t)}
+        ${nextMonthField(t)}
       </details>
       <div class="hist-actions">
         <button type="button" class="link-btn txn-split-btn">${split ? 'Edit split' : 'Split'}</button>
@@ -523,6 +584,34 @@ function expandedTemplate(t) {
       </div>
     </div>
   `;
+}
+
+// NEW: the work-cost checkbox in a payment's Edit panel. It reads the saved
+// flag, so what was ticked when the payment was added is ticked here, and
+// saving writes the same field back. Money out can be Reimbursable; money in
+// can settle one. Neither is offered on money moved between your own accounts
+// or on a business account, where the app would ignore the flag anyway.
+function workFlagField(t) {
+  const account = cache.accounts.find((a) => a.id === t.accountId);
+  if (t.isTransfer || (account && isBusinessAccount(account))) return '';
+  const debit = t.direction === 'debit';
+  const field = debit ? 'isReimbursable' : 'isSettlement';
+  return `<label class="hist-flag">
+      <input type="checkbox" class="rv-field" data-field="${field}" ${t[field] ? 'checked' : ''}>
+      <span>${debit ? 'Reimbursable (Work)' : 'Settles a reimbursement'}</span>
+    </label>`;
+}
+
+// NEW: "Apply to next month's commitments" for a bank payment made in the last
+// two days of a month. It needs a commitment to apply to, so it is greyed out
+// until one is chosen above (handleChange keeps that in step).
+function nextMonthField(t) {
+  const account = cache.accounts.find((a) => a.id === t.accountId);
+  if (t.direction !== 'debit' || t.isTransfer || !account || account.type === 'card' || isBusinessAccount(account) || !isMonthEnd(t.date)) return '';
+  return `<label class="hist-flag">
+      <input type="checkbox" class="rv-field" data-field="forNextMonth" ${t.forNextMonth ? 'checked' : ''} ${t.commitmentId ? '' : 'disabled'}>
+      <span>Apply to next month's commitments</span>
+    </label>`;
 }
 
 // A bank payment that could be a credit card bill: worded like one (CRED, CC
@@ -618,6 +707,20 @@ async function handleChange(e, container) {
     return;
   }
 
+  // NEW: a ticked box saves the flag; unticked removes it, so a payment that
+  // was never flagged carries no field at all. Saved on 'change' only: a
+  // checkbox also fires 'input', which would save twice.
+  if (field === 'isReimbursable' || field === 'isSettlement' || field === 'forNextMonth') {
+    if (e.type !== 'change') return;
+    if (e.target.checked) t[field] = true;
+    else delete t[field];
+    await put('transactions', t);
+    // Refreshed in place, so the Edit panel stays open under the finger.
+    const subEl = rowEl.querySelector('.hist-sub');
+    if (subEl) subEl.innerHTML = subHtml(t);
+    return;
+  }
+
   if (field === 'paysCardId') {
     const paysCardId = e.target.value || null;
     if (paysCardId) {
@@ -641,8 +744,16 @@ async function handleChange(e, container) {
       if (t.notCommitmentIds) t.notCommitmentIds = t.notCommitmentIds.filter((id) => id !== commitmentId);
     } else {
       delete t.commitmentId;
+      // "Next month" has to say which commitment; without one it goes.
+      delete t.forNextMonth;
     }
     await put('transactions', t);
+    // The next-month box follows the choice, in place.
+    const nextBox = rowEl.querySelector('input[data-field="forNextMonth"]');
+    if (nextBox) {
+      nextBox.disabled = !t.commitmentId;
+      if (!t.commitmentId) nextBox.checked = false;
+    }
     showToast(commitmentId ? 'Counts towards that commitment' : 'The app will work it out');
     return;
   }
@@ -657,6 +768,12 @@ async function handleChange(e, container) {
   } else if (field === 'date') {
     if (!e.target.value) return;
     t.date = e.target.value;
+    // Moved out of the month's last days, "next month" no longer fits.
+    if (t.forNextMonth && !isMonthEnd(t.date)) {
+      delete t.forNextMonth;
+      const nextBox = rowEl.querySelector('input[data-field="forNextMonth"]');
+      if (nextBox) nextBox.checked = false;
+    }
   } else if (field === 'rawDescription') {
     t.rawDescription = e.target.value;
     const nameEl = rowEl.querySelector('.hist-name');
@@ -793,6 +910,9 @@ async function handleClick(e, container) {
   const dirBtn = e.target.closest('.rv-dir');
   if (dirBtn) {
     t.direction = dirBtn.dataset.dir;
+    // NEW: Spent to Received (or back) drops the flag that no longer fits, so
+    // a refund never stays marked "Reimbursable".
+    tidyFlags(t);
     await put('transactions', t);
     renderList(container);
   }

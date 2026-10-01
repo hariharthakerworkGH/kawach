@@ -2928,3 +2928,91 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 /* Marks the pair that is actually costing something: both were typed in, so
    both are already coming out of the budget. */
 .k .dupe-flag { font-size: var(--k-caption); font-weight: 400; letter-spacing: var(--k-track-caption); text-transform: uppercase; color: var(--k-warning); margin-left: var(--k-2); }
+
+/* --- Reimbursable, card bills and what is owed (4.16) ------------------
+   Every value is a token; nothing here is a raw colour or size. */
+
+/* A card's bill is one line: when it is due on the left, the exact amount on
+   the right. It wraps only if a very narrow screen forces it to. */
+.k .bill-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--k-1) var(--k-3);
+  padding: var(--k-2) 0 0;
+  font-size: var(--k-label);
+}
+.k .bill-when { flex: 1 1 auto; min-width: 0; color: var(--k-text-2); }
+.k .bill-when.bill-urgent { color: var(--k-warning); font-weight: var(--k-w-fig); }
+.k .bill-when.bill-overdue { color: var(--k-negative); font-weight: var(--k-w-fig); }
+.k .bill-amount { flex: none; font-size: var(--k-value-sm); font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.k .bill-amount.in { color: var(--k-positive); }
+
+/* "Mark bill paid": a link, right-aligned, still a 44px target. */
+.k .bill-actions { display: flex; justify-content: flex-end; }
+.k .bill-actions .link-btn {
+  min-height: var(--k-tap);
+  margin: 0;
+  padding: 0 var(--k-1);
+  color: var(--k-accent);
+  font-size: var(--k-label);
+}
+
+/* The panel behind it: no pane of its own (a pane inside a pane stacks the
+   glass), just a hairline and room. */
+.k .bill-pay { padding: var(--k-3) 0 var(--k-2); border-top: 1px solid var(--k-hairline); }
+.k .bill-pay .k-field { margin-bottom: var(--k-3); }
+.k .bill-pay textarea.k-input { min-height: 72px; padding: var(--k-3) var(--k-4); resize: vertical; line-height: 1.4; }
+.k .bill-pay-note { margin: 0 0 var(--k-3); font-size: var(--k-label); color: var(--k-warning); }
+.k .bill-pay-note:empty { display: none; }
+.k .bill-pay .k-btn { width: 100%; }
+
+/* Summary: the two owed figures, in the row of supporting numbers. */
+.k .summary-owed { display: flex; flex-wrap: wrap; gap: var(--k-3) var(--k-8); }
+
+/* History: a small tag on a payment still to be claimed from an employer, and
+   on the money that settled one. Quiet - it sits in the line that already
+   says which account it was. */
+.k .hist-tag {
+  display: inline-block;
+  margin-left: var(--k-1);
+  padding: 0 var(--k-2);
+  border: 1px solid color-mix(in oklch, var(--k-text-3) 45%, transparent);
+  border-radius: var(--k-r-pill);
+  font-size: var(--k-caption);
+  line-height: 1.5;
+  letter-spacing: var(--k-track-caption);
+  text-transform: uppercase;
+  color: var(--k-text-2);
+  white-space: nowrap;
+}
+.k .hist-tag--in { border-color: color-mix(in oklch, var(--k-positive) 50%, transparent); color: var(--k-positive); }
+
+/* With a tag on the line, the words and the tag sit side by side: the words
+   give way (and are cut with an ellipsis), the tag never does. */
+.k .hist-sub:has(.hist-tag) { display: flex; align-items: center; gap: var(--k-1); }
+.k .hist-sub-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k .hist-sub:has(.hist-tag) .hist-tag { flex: none; margin-left: 0; }
+
+/* The work-cost checkbox in a payment's Edit panel. */
+.k .hist-flag {
+  display: flex;
+  align-items: center;
+  gap: var(--k-3);
+  min-height: var(--k-tap);
+  font-size: var(--k-label);
+  color: var(--k-text-2);
+}
+.k .hist-flag input { width: 22px; height: 22px; margin: 0; flex: none; accent-color: var(--k-accent); }
+
+/* --- Month bar on Summary (4.16) --------------------------------------
+   The History month bar again, so it is already familiar. High contrast:
+   the arrows are full ink, not the muted grey History uses, because here
+   they are the way back to what was spent yesterday. */
+.k .summary-month { margin: var(--k-1) 0 var(--k-2); }
+.k .summary-month .hist-step { color: var(--k-text); }
+
+/* A switch that is not available yet (the next-month one, until a
+   commitment is chosen). */
+.k .k-toggle:disabled { opacity: 0.4; cursor: not-allowed; }

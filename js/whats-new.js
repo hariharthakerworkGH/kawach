@@ -12,6 +12,50 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.16',
+    items: [
+      {
+        icon: 'summary',
+        title: 'Go back to last month from Summary',
+        text: 'The arrows at the top of Summary step back through the months, so what you spent on the 30th is still there on the 1st. A finished month shows its Spent and Left to spend as they stood when it closed. Summary always opens on this month.',
+        guide: [{ view: 'summary', target: '.summary-month', text: 'Tap the arrow to see a finished month. This month always opens first.' }],
+      },
+      {
+        icon: 'card',
+        title: 'Paying a card bill takes it from an account',
+        text: 'Mark bill paid now asks which account the money came from and takes the exact amount out of it, paise included, so your balance and the bill agree. Mark unpaid puts it back. Pasting the bank’s message is optional.',
+        guide: [{ view: 'accounts', target: '.bill-pay-open', text: 'Tap Mark bill paid, choose the account it came from, and Confirm.' }],
+      },
+      {
+        icon: 'tag',
+        title: 'Work costs you get paid back',
+        text: 'Mark a payment Reimbursable (Work) when you add or edit it, and mark the money coming back as settling it. Summary shows what your employer still owes you until it is paid. The money back counts in the month it arrives, and past months stay as they were.',
+        guide: [{ view: 'add', target: '.k-add-more > summary', text: 'Under More: Reimbursable (Work) for a cost, or Settles a reimbursement for the money coming back.' }],
+      },
+      {
+        icon: 'alert',
+        title: 'Rent paid early for next month',
+        text: 'Paid rent or an EMI on the 30th for next month? Choose its commitment and switch on Apply to next month’s commitments. It is not counted against the month ending, and the new month already knows it is paid.',
+        guide: [{ view: 'add', target: '.k-add-more > summary', text: 'On the last two days of a month, More offers Apply to next month’s commitments once you choose the commitment.' }],
+      },
+      {
+        icon: 'summary',
+        title: 'Plainer words for your bank cash',
+        text: 'The chart on Summary now says Available bank cash and Reserved for card bills. Card bills your bank cash cannot cover are said on a line of their own, and a bill of a few paise no longer shows up at all.',
+      },
+      {
+        icon: 'card',
+        title: 'Bank alerts land on the right card',
+        text: 'An alert now goes to the account whose last four digits it names, even if you once chose a different one for those digits. Messages that say CC, or show a long masked number, are read too, and an amount is never mistaken for card digits.',
+      },
+      {
+        icon: 'file',
+        title: 'Latest payment first, within a day',
+        text: 'On History, payments on the same day now run latest first. Older ones from before this version keep a steady order but have no time to sort by.',
+      },
+    ],
+  },
+  {
     version: '4.15.1',
     items: [
       {

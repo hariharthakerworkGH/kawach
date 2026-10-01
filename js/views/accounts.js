@@ -16,6 +16,10 @@ import { allocationRing } from '../charts.js';
 import { appearance } from '../appearance.js';
 import { displayName } from './transactions.js';
 import { escapeHtml, escapeAttr, emptyState, hero, moneyTone } from '../ui.js';
+// NEW for the bill-payment panel: reading a pasted bank SMS or email, and
+// saying what happened.
+import { parseAlert, alertFingerprint } from '../alerts.js';
+import { showToast } from '../toast.js';
 
 // null = form closed, 'new' = adding, otherwise the id being edited
 let editing = null;
@@ -43,12 +47,18 @@ let space = 'home';
 // so a redraw (Edit, Reorder, a sync) doesn't fold them shut.
 const opened = new Set();
 
-// The phone's back button closes an open form (or reordering) first, before
-// it leaves the screen.
+// NEW: the card whose "Mark bill paid" panel is open (one at a time), and the
+// accounts a bill can be paid from: banks, cash and savings of this lane.
+let payingBill = null;
+let payFrom = [];
+
+// The phone's back button closes an open form (or reordering, or the bill
+// panel) first, before it leaves the screen.
 export function onBack() {
-  if (!shownIn || !shownIn.isConnected || (editing === null && !reordering)) return false;
+  if (!shownIn || !shownIn.isConnected || (editing === null && !reordering && !payingBill)) return false;
   editing = null;
   reordering = false;
+  payingBill = null;
   redraw(shownIn, () => render(shownIn));
   return true;
 }
@@ -64,6 +74,9 @@ export async function render(container) {
   const transactions = duplicateIds.size ? allTransactions.filter((t) => !duplicateIds.has(t.id)) : allTransactions;
 
   accountLabels = new Map(accounts.map((a) => [a.id, a.label]));
+  // NEW: where a card bill can be paid from. Not a fixed deposit inside a
+  // savings account, and only this lane's accounts.
+  payFrom = accounts.filter((a) => ['bank', 'cash', 'savings'].includes(a.type) && !a.depositOf && accountInSpace(space)(a));
   const ids = new Set(accounts.map((a) => a.id));
   const isInsideParent = (a) => a.depositOf && ids.has(a.depositOf);
   depositsOf = new Map();
@@ -190,10 +203,107 @@ export async function render(container) {
 
   container.querySelectorAll('.account-form').forEach((form) => wireForm(form, container, accounts, transactions));
 
+  // CHANGED: "Mark bill paid" no longer just flips a flag. It opens a small
+  // panel asking where the money came from, because a bill paid is also money
+  // gone from an account - flipping the flag alone left that account's balance
+  // and the card's bill telling two different stories.
+  container.querySelectorAll('.bill-pay-open').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      payingBill = payingBill === btn.dataset.id ? null : btn.dataset.id;
+      redraw(container, () => render(container));
+    });
+  });
+
+  // Confirm: one exact-amount payment out of the account you picked, and the
+  // card's bill marked paid. The card's own "payment received" is not written
+  // here: it arrives with the card's next list or statement, and the app
+  // already pairs the two (js/free-to-spend.js, bank-only payments), so
+  // writing both sides would count the payment twice when the card's side
+  // turns up.
+  container.querySelectorAll('.bill-pay').forEach((form) => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const card = accounts.find((a) => a.id === form.dataset.id);
+      const bill = card && cardBillDue(card);
+      const note = form.querySelector('.bill-pay-note');
+      if (!bill || bill.paid) return;
+      const sourceId = form.querySelector('.bill-pay-source').value;
+      if (!sourceId) {
+        note.textContent = 'Choose the account it was paid from.';
+        return;
+      }
+      const today = isoLocal(new Date());
+      let date = today;
+      let fromMessage = {};
+      // The pasted message is optional. When there is one it has to agree with
+      // the bill to the paisa - otherwise it is shown, never silently used or
+      // silently dropped.
+      const text = form.querySelector('.bill-pay-text').value.trim();
+      if (text) {
+        const read = parseAlert(text);
+        if (!read.ok) {
+          note.textContent = `${read.reason} Clear it to carry on without it.`;
+          return;
+        }
+        if (read.direction === 'credit' || read.amount !== bill.amount) {
+          note.textContent = `That message says ${formatCurrency(read.amount)}${read.direction === 'credit' ? ' coming in' : ''}, and the bill is ${formatCurrency(bill.amount)}. Clear it, or paste the right one.`;
+          return;
+        }
+        if (read.date && read.date <= today) date = read.date;
+        // Kept so the bank's statement can recognise this exact payment later.
+        fromMessage = { alertKey: alertFingerprint(read), alertRef: read.ref || null, ...(read.time && read.date === date ? { time: read.time } : {}) };
+      }
+      // Tapping Confirm twice (or on two devices) must not pay a bill twice.
+      const key = statementKey(card);
+      if (!transactions.some((t) => t.paysStatement === key)) {
+        await put('transactions', {
+          id: newId(),
+          accountId: sourceId,
+          date,
+          rawDescription: `Card bill · ${cardName(card)}`,
+          // The statement's own figure, to the paisa: never rounded.
+          amount: bill.amount,
+          direction: 'debit',
+          categoryId: null,
+          source: 'manual',
+          importBatchId: null,
+          // Money moved to pay a card is not spending, and that is a decision
+          // made here, so nothing automatic undoes it.
+          isTransfer: true,
+          transferManual: true,
+          paysCardId: card.id,
+          paysStatement: key,
+          notes: null,
+          createdAt: Date.now(),
+          ...fromMessage,
+        });
+      }
+      const fresh = (await getAll('accounts')).find((a) => a.id === card.id) || card;
+      await put('accounts', { ...fresh, statementDuePaid: true });
+      payingBill = null;
+      showToast(`${cardName(card)} bill paid`);
+      redraw(container, () => render(container));
+    });
+  });
+
+  // Mark unpaid takes back what Mark paid did. If the payment was recorded
+  // here, it goes too, or the account would stay short of money that never
+  // left it.
   container.querySelectorAll('.bill-toggle-paid').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const account = accounts.find((a) => a.id === btn.dataset.id);
-      account.statementDuePaid = !account.statementDuePaid;
+      const recorded = transactions.filter((t) => t.paysStatement === statementKey(account));
+      if (recorded.length) {
+        const sure = await askConfirm({
+          title: 'Mark this bill unpaid?',
+          message: `The ${formatCurrency(recorded.reduce((s, t) => s + t.amount, 0))} payment recorded for it is removed too.`,
+          confirmLabel: 'Mark unpaid',
+          danger: true,
+        });
+        if (!sure) return;
+        for (const t of recorded) await remove('transactions', t.id);
+      }
+      account.statementDuePaid = false;
       await put('accounts', account);
       redraw(container, () => render(container));
     });
@@ -592,7 +702,7 @@ function accountRow(account, { meta = '', value = '', tone = '', canOpen = false
   const body = `
       ${mark}
       <span class="k-row__body">
-        <span class="k-row__title" title="${escapeAttr(account.label)}">${escapeHtml(account.label)}</span>
+        <span class="k-row__title" title="${escapeAttr(shownName(account))}">${escapeHtml(shownName(account))}</span>
         ${meta ? `<span class="k-row__meta">${meta}</span>` : ''}
       </span>`;
 
@@ -760,7 +870,11 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
                   // dates the Summary shows for it.
                   `${formatDateNice(dayAfter(position.lastClose))} to ${formatDateNice(position.cycleClose)}`
                 : `since ${since ? formatDateNice(since) : 'the cycle began'}`
-            }${day ? ` · bills on the ${ordinal(day)}` : ' · import a statement to set its cycle'}`,
+            }${
+              // CHANGED: "bills on the 25th" is dropped. The cycle's end date
+              // is already on the line, so it said the same thing twice.
+              day ? '' : ' · import a statement to set its cycle'
+            }`,
             value: formatRupees(cycleSpend),
             tone: moneyTone(cycleSpend),
             canOpen: true,
@@ -1053,28 +1167,70 @@ function months(n) {
   const rest = n % 12;
   return [years ? `${years}y` : '', rest ? `${rest}m` : ''].filter(Boolean).join(' ') || '0m';
 }
+// NEW: a card's name without the "CC " the label is saved with. Only what is
+// shown changes; the saved label (and so everything that finds a card by it)
+// stays as it was.
+const cardName = (account) => String(account.label || '').replace(/^CC\s+/i, '').trim() || String(account.label || '');
+const shownName = (account) => (account.type === 'card' ? cardName(account) : account.label);
+
+// Which statement a recorded payment belongs to, so Mark unpaid can find it
+// and Confirm cannot record it twice.
+const statementKey = (account) => `${account.id}|${account.statementPeriodEnd || account.statementDueDate || ''}`;
+
+// CHANGED: the bill is one line - when it is due and the minimum on the left,
+// the exact amount on the right (paise kept: ₹37,262.13, never ₹37,262) - and
+// "Mark bill paid" a quiet link under it, right-aligned, instead of a button.
 function renderBill(bill, account) {
   if (!bill) return '';
   if (bill.paid) {
     return `
-      <div class="account-headline in">${formatCurrency(bill.amount)} <span class="bill-tag">paid</span></div>
-      <div class="muted-note">bill from ${formatDateNice(account.statementPeriodEnd)}</div>
-      <button type="button" class="btn-tiny bill-toggle-paid" data-id="${account.id}">Mark unpaid</button>
+      <div class="bill-line">
+        <span class="bill-when">Paid${account.statementPeriodEnd ? ` · bill of ${formatDateNice(account.statementPeriodEnd)}` : ''}</span>
+        <span class="bill-amount in">${formatCurrency(bill.amount)}</span>
+      </div>
+      <div class="bill-actions"><button type="button" class="link-btn bill-toggle-paid" data-id="${account.id}">Mark unpaid</button></div>
     `;
   }
-  const urgency = bill.daysLeft == null ? '' : bill.daysLeft < 0 ? 'overdue' : bill.daysLeft <= 3 ? 'urgent' : '';
-  const when =
-    bill.daysLeft == null
-      ? `due ${bill.dueDate ? formatDateNice(bill.dueDate) : 'date unknown'}`
-      : bill.daysLeft < 0
-        ? `overdue by ${Math.abs(bill.daysLeft)} day${Math.abs(bill.daysLeft) === 1 ? '' : 's'}`
-        : bill.daysLeft === 0
-          ? 'due today'
-          : `due in ${bill.daysLeft} day${bill.daysLeft === 1 ? '' : 's'} (${formatDateNice(bill.dueDate)})`;
+  const overdue = bill.daysLeft != null && bill.daysLeft < 0;
+  const urgency = overdue ? 'overdue' : bill.daysLeft != null && bill.daysLeft <= 3 ? 'urgent' : '';
+  // "Due 15 Oct · Min ₹820". Past its date it says Overdue instead, in red,
+  // once, rather than counting the days.
+  const when = `${bill.dueDate ? `${overdue ? 'Overdue' : 'Due'} ${formatDateNice(bill.dueDate)}` : 'Due date unknown'}${
+    bill.minimum != null ? ` · Min ${formatCurrency(bill.minimum)}` : ''
+  }`;
+  const open = payingBill === account.id;
   return `
-    <div class="totals-row"><span>Bill<br><span class="muted-note ${urgency ? 'bill-' + urgency : ''}">${when}${bill.minimum != null ? ` · min ${formatCurrency(bill.minimum)}` : ''}</span></span><span class="out">${formatCurrency(bill.amount)}</span></div>
-    <button type="button" class="btn-tiny bill-toggle-paid" data-id="${account.id}">Mark bill paid</button>
+    <div class="bill-line">
+      <span class="bill-when ${urgency ? 'bill-' + urgency : ''}">${when}</span>
+      <span class="bill-amount out">${formatCurrency(bill.amount)}</span>
+    </div>
+    <div class="bill-actions"><button type="button" class="link-btn bill-pay-open" data-id="${account.id}" aria-expanded="${open}">Mark bill paid</button></div>
+    ${open ? billPanel(account) : ''}
   `;
+}
+
+// The inline panel behind "Mark bill paid": where it was paid from, the bank's
+// message if there is one, and Confirm. Nothing is saved until Confirm.
+function billPanel(account) {
+  if (!payFrom.length) {
+    return `<div class="bill-pay"><p class="muted-note">Add the account it is paid from first.</p></div>`;
+  }
+  return `
+    <form class="bill-pay" data-id="${account.id}" novalidate>
+      <label class="k-field field">
+        <span class="k-label">Paid from</span>
+        <select class="k-select bill-pay-source">
+          <option value="">Choose an account</option>
+          ${payFrom.map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}
+        </select>
+      </label>
+      <label class="k-field field">
+        <span class="k-label">Bank SMS or email text (optional)</span>
+        <textarea class="k-input bill-pay-text" rows="3" spellcheck="false" autocomplete="off"></textarea>
+      </label>
+      <p class="bill-pay-note" role="status" aria-live="polite"></p>
+      <button type="submit" class="k-btn k-btn--primary">Confirm</button>
+    </form>`;
 }
 
 // The provident fund's own settings. The opening balance is typed in because

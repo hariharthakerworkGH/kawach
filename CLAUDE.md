@@ -94,6 +94,16 @@ Periods:
   built from the same two variables - and 4.15 put it back. `inCardMonth` must
   keep reading the spending window and never `cardPeriod`, or an August card
   spend lands in September.
+- **Work costs you front** (`isReimbursable` on a payment out, `isSettlement`
+  on the payment in that settles it; js/reimbursable.js) are spent like any
+  other payment the month they are paid. The refund comes off the month it
+  ARRIVES, never the month it was spent, so a past month is not rewritten.
+  A refund landing on a card is already netted with the card's credits and is
+  not taken off twice. What is still owed back is an all-time tally, never a
+  month's figure, and it hides itself at nothing. A settlement is never read
+  as the salary landing. Paying a card bill from Accounts records one
+  exact-amount debit (`paysCardId`, `paysStatement`) and marks the bill paid;
+  Mark unpaid removes that debit again.
 - **A set-aside on a card is drawn down by any card.** "Entertainment, 10,000
   a month" is an allowance, not a bill, so paying for a film with a different
   card still spends it (`isSetAside` decides). A **must be paid** item on a
