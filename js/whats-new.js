@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.17',
+    items: [
+      {
+        icon: 'summary',
+        title: 'A smoother opening',
+        text: 'The shield now draws itself in, the rupee is written onto it, and the name settles in underneath before everything fades into the app. The old one cut out instead of fading, and showed three stray dots before the rupee appeared.',
+      },
+    ],
+  },
+  {
     version: '4.16.1',
     items: [
       {
