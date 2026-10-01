@@ -176,22 +176,22 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   (`statementDayFixes` corrects a saved day that disagrees).
 - The spending period is the calendar month for everyone, whether or not a
   card has a statement day yet, and never the month the next salary pays for.
-- The tour (`media/kawach-tour.mp4`, 20s, 1080x1920) plays from Setup, Settings
-  (`js/tour.js`) and the welcome page. It is **silent** - no score, no sound
-  effects - because it has to make sense with the sound off and the noise was
-  the part nobody liked. Nine scenes: the salary lands, most of it is gone by
-  the 9th, "Where did it go?", the subtraction that leaves 30,101, and then two
-  real screens - a month going well and the same month gone wrong - before the
-  shield closes on "Nothing leaves your phone". Those two screens are genuine
-  captures of the published app, not mockups, so the film cannot quietly drift
-  away from the product. Colours are the `css/dna.css` tokens as oklch. Frame 0
-  is the poster, because players and social sites grab frame 0 and ignore
-  everything else. The service worker never caches `media/`. Re-render it when
-  a screen it shows changes. A first visit in a browser (not installed, nothing set up)
-  goes to `welcome.html` once. It is built with Hyperframes and kept outside
-  the repository, in `expense-tracker-versions/brag-output` (the composition,
-  the plan and the share copy); `tools/tour` holds the older hand-rolled
-  renderer and the script that captures the two screens from the live site.
+- The tour is a page of the app, not a video: `tour.html` with
+  `js/tour-film.js`, played over the app from Setup and Settings (`js/tour.js`,
+  in an iframe) and on the welcome page. It is drawn live from the app's own
+  stylesheets, icons and `formatRupees`, with made-up figures that add up, so
+  it is kept offline with everything else and cannot drift far from the real
+  screens - but it does not read the real views, so change it by hand when a
+  screen it shows changes. Sixty seconds, silent: the promises (zero tracking,
+  zero sign-ups, works offline), Summary's sum, the owed figures, paying a
+  card bill on Accounts, adding a Reimbursable (Work) cost, History, and the
+  close. Every moving part is one paused Web Animation over the full minute,
+  set to the same moment by one clock, so scrubbing and playing show the same
+  frame; `?t=31000` opens on a moment (for stills), `?autoplay=0` waits on
+  the poster frame, and reduced motion never starts by itself. No brand
+  logos: the app bundles none (js/brand.js), so neither does the tour. A
+  first visit in a browser (not installed, nothing set up) goes to
+  `welcome.html` once.
 - `sw.js` service worker: `CACHE_NAME` must match `APP_VERSION` in
   `js/version.js`, and `APP_SHELL` must list every js file, both stylesheets
   and the font, or the app breaks offline.

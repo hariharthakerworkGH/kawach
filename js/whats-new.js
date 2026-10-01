@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.19',
+    items: [
+      {
+        icon: 'play',
+        title: 'A new one-minute tour',
+        text: 'The tour now shows the app as it is today: what is left to spend, paying a card bill, and marking a work cost your employer pays back. It is drawn by the app itself, so it plays without internet and you can pause it or drag to any moment.',
+        guide: [{ view: 'settings', target: '#watch-tour', text: 'The tour is here whenever you want to watch it again.' }],
+      },
+    ],
+  },
+  {
     version: '4.18.1',
     items: [
       {

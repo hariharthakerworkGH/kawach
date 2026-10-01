@@ -2584,7 +2584,9 @@ details:has(> .muted-note:last-child) + .bank-card,
 .tour-video {
   display: block;
   width: 100%;
+  aspect-ratio: 400 / 876;
   max-height: 80vh;
+  border: 0;
   border-radius: var(--radius-lg);
   background: var(--bg);
 }

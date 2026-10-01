@@ -5,7 +5,7 @@
 // counter, not the version people see). The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v133';
+const CACHE_NAME = 'expense-tracker-v134';
 
 const APP_SHELL = [
   './',
@@ -76,6 +76,8 @@ const APP_SHELL = [
   './js/parsers/csv.js',
   './js/parsers/any-bank.js',
   './js/tour.js',
+  './js/tour-film.js',
+  './tour.html',
   './js/business.js',
   './js/brand.js',
   './js/calendar.js',
@@ -172,10 +174,6 @@ self.addEventListener('fetch', (event) => {
   // of your gist it ever fetched, so changes from your other device never
   // arrived and each device overwrote the gist with a merge against old data.
   if (url.origin !== self.location.origin) return;
-
-  // The tour video streams straight from the network in pieces, and is never
-  // kept: eleven megabytes on every phone for a single watch.
-  if (url.pathname.includes('/media/')) return;
 
   // Anything that is not part of the app itself goes to the network and is
   // never kept, so a page outside the app is never frozen at the copy someone
