@@ -99,7 +99,13 @@
 
   /* ---- the shield ------------------------------------------------------- */
   .tf-shield { position: absolute; left: 0; top: 0; width: 240px; height: 240px; margin: -120px 0 0 -120px; }
-  .tf-shield svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 28px oklch(78% 0.14 220 / 0.55)); }
+  /* The mark, drawn exactly as the app's opening draws it (index.html .boot). */
+  .tf-m { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .tf-shield .tf-m-glow { filter: blur(9px); }
+  .tf-m-edge { fill: none; stroke: #47d0f8; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 2; stroke-dashoffset: 1.01; }
+  .tf-m-sym { fill: none; stroke: #e8fbff; stroke-width: 6.6; stroke-linecap: round; stroke-linejoin: round; }
+  .tf-mark-word { display: flex; justify-content: center; gap: 0.34em; margin: 0; font-weight: 600; line-height: 1; text-transform: uppercase; color: #e6f6fb; }
+  .tf-mark-word span { display: inline-block; }
 
   /* ---- words ------------------------------------------------------------ */
   .tf-hl { position: absolute; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; color: var(--k-text); }
@@ -123,8 +129,7 @@
     box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--k-cyan) 55%, transparent);
   }
   .tf-prom-ic .icon { width: 0.55em; height: 0.55em; }
-  .tf-word { position: absolute; left: 0; right: 0; text-align: center; font-weight: 800; letter-spacing: 0.24em; text-indent: 0.24em; }
-  .tf-word span { display: inline-block; }
+  .tf-word { position: absolute; left: 0; right: 0; }
   .tf-rule { position: absolute; height: 2px; background: linear-gradient(90deg, transparent, var(--k-accent), transparent); transform-origin: center; }
   .tf-url { position: absolute; left: 0; right: 0; text-align: center; font-size: 22px; letter-spacing: 0.12em; color: var(--k-text-2); }
 
@@ -136,7 +141,7 @@
   .tf-ch-track { position: absolute; left: 0; right: 0; bottom: -14px; height: 2px; background: oklch(100% 0 0 / 0.1); border-radius: 2px; overflow: hidden; }
   .tf-ch-track i { display: block; height: 100%; width: 100%; background: var(--k-accent); transform-origin: left center; }
   .tf-bug { position: absolute; display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; letter-spacing: 0.16em; }
-  .tf-bug img { width: 30px; height: 30px; }
+  .tf-bug svg { width: 30px; height: 30px; overflow: visible; }
   .tf-note { position: absolute; font-size: 14px; letter-spacing: 0.08em; color: var(--k-text-3); }
 
   /* ---- the phone -------------------------------------------------------- */
@@ -182,7 +187,9 @@
   .tf-nav-btn .icon { width: 22px; height: 22px; }
   .tf-nav-on { position: absolute; inset: 0; display: grid; justify-items: center; gap: 4px; color: var(--k-accent); opacity: 0; }
   .tf-boot { position: absolute; inset: 0; display: grid; place-items: center; background: #07090f; z-index: 25; }
-  .tf-boot img { width: 116px; height: 116px; filter: drop-shadow(0 0 30px oklch(78% 0.14 220 / 0.6)); }
+  .tf-boot-art { position: relative; width: 116px; height: 116px; }
+  .tf-boot .tf-m-glow { filter: blur(4.3px); }
+  .tf-boot-word { position: absolute; left: -60%; right: -60%; top: calc(100% + 9px); font-size: 13px; }
 
   /* ---- the app's parts, at this size (in the phone and lifted out) ------ */
   /* No frosted glass in the film: blurring what is behind a moving card is

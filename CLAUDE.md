@@ -196,7 +196,10 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   can be shown at any moment exactly. Two stages: 1600 x 900 when its box is
   wide, 900 x 1600 when tall (the video uses the tall one). Pieces lifted out
   of the phone are measured from it at the moment they leave, so the phone
-  must face straight on then. No brand logos: the app bundles none
+  must face straight on then. Kawach's mark in the film (`markMarkup`,
+  `drawMark`) is the app's opening in index.html (`.boot`): the same paths,
+  colours, weights, glow and timings, and the name set as it is there; change
+  one and the other must follow. No brand logos: the app bundles none
   (js/brand.js), and the card in it is drawn with no bank or network mark.
   Re-render the video when a screen it shows changes. A first visit in a
   browser (not installed, nothing set up) goes to `welcome.html` once.

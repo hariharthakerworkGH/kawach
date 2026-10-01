@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.20.3',
+    items: [
+      {
+        icon: 'play',
+        title: 'The tour opens like the app',
+        text: 'The Kawach logo in the tour now draws itself exactly as it does when you open the app.',
+      },
+    ],
+  },
+  {
     version: '4.20.2',
     items: [
       {
