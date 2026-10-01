@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.21',
+    items: [
+      {
+        icon: 'play',
+        title: 'A new tour, screen by screen',
+        text: 'A faster, fuller tour: Summary, Add, Accounts, Plan, History and Coach in a minute and a half, each showing how to read what is on it.',
+        guide: [{ view: 'settings', target: '#watch-tour', text: 'The new tour is here.' }],
+      },
+    ],
+  },
+  {
     version: '4.20.3',
     items: [
       {
