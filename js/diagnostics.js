@@ -167,6 +167,16 @@ export async function buildDiagnosticReport(now = new Date()) {
       commitmentId: t.commitmentId ? idFor('r', t.commitmentId) : undefined,
       paysCardId: t.paysCardId ? idFor('a', t.paysCardId) : undefined,
       notCommitmentIds: Array.isArray(t.notCommitmentIds) ? t.notCommitmentIds.map((id) => idFor('r', id)) : undefined,
+      // Yes/no flags and times only - what a report needs to check the work
+      // costs (4.16), a bill paid for next month, a card bill paid from
+      // Accounts, and the order of a day's payments, none of which could be
+      // seen in a report before. "paysStatement" is a card id and a date.
+      isReimbursable: t.isReimbursable === true ? true : undefined,
+      isSettlement: t.isSettlement === true ? true : undefined,
+      forNextMonth: t.forNextMonth === true ? true : undefined,
+      paysStatement: t.paysStatement ? `${idFor('a', String(t.paysStatement).split('|')[0])}|${String(t.paysStatement).split('|')[1] || ''}` : undefined,
+      time: t.time || undefined,
+      createdAt: t.createdAt || undefined,
       updatedAt: t.updatedAt || null,
     })),
     // What the app showed, so a report can be checked against the screenshot.
@@ -182,7 +192,39 @@ export async function buildDiagnosticReport(now = new Date()) {
       level: figures.level,
       bankLevel: figures.bankLevel,
       duplicates: (figures.duplicates || []).length,
-      tracker: (figures.tracker || []).map((t) => ({ label: redact(t.label), status: t.status, amount: t.amount, used: t.used, matches: t.matches.length, notThis: (t.notThis || []).length })),
+      tracker: (figures.tracker || []).map((t) => ({
+        label: redact(t.label),
+        status: t.status,
+        amount: t.amount,
+        used: t.used,
+        matches: t.matches.length,
+        notThis: (t.notThis || []).length,
+        // How a flexible commitment stands, and what is held back from it
+        // once the month is over budget (the "Stop" amounts on Summary).
+        setAside: t.setAside === true,
+        period: t.period,
+        left: t.left,
+        stop: t.stop ? { safe: t.stop.safe, holdBack: t.stop.holdBack } : undefined,
+      })),
+      // The working behind the numbers, so the bank check can be followed
+      // line by line (it was once wrong by a rent counted twice, and the
+      // report did not carry enough to see why without loading all of it).
+      spentOnCards: figures.cardSpent,
+      spentFromBank: figures.bankSpent,
+      reimbursedThisMonth: figures.reimbursedThisMonth,
+      owedBackByEmployer: figures.reimbursable ? figures.reimbursable.owed : 0,
+      perDay: figures.perDay,
+      owedOnCards: figures.totals ? figures.totals.owedCards : null,
+      billedUnpaid: figures.totals ? figures.totals.unpaidBills : null,
+      cardCommitmentsToCome: figures.totals ? figures.totals.upcoming : null,
+      salaryDates: figures.salary ? figures.salary.dates : [],
+      // The detail is only amounts and dates ("due 1 Oct", "through the
+      // month"), so it is kept as it is: redacting it would rename the numbers.
+      bankDueBeforeSalary: (figures.bankBeforeSalary || []).map((x) => ({ label: redact(x.label), amount: x.amount, detail: x.detail })),
+      cardBillsBeforeSalary: (figures.billsBeforeSalary || []).map((x) => ({ amount: x.amount, detail: x.detail })),
+      cardBillsToPay: (figures.cardBills || []).map((x) => ({ amount: x.amount, detail: x.detail })),
+      cardCommitmentsStillToCharge: (figures.cardUpcoming || []).map((x) => ({ label: redact(x.label), amount: x.amount })),
+      nextSalaryFunds: (figures.fundedMonths || []).map((m) => ({ payday: m.payday, salary: m.amount, commitments: m.total })),
     },
   };
 }

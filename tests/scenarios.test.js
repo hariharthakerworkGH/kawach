@@ -1440,3 +1440,26 @@ test('a payment you marked "not this" is not counted as the rent either', async 
   const f = await computeFreeToSpend(day('2026-10-01'));
   ok(rentLine(f), 'you said it was not the rent');
 });
+
+test('the diagnostic report carries the work-cost and next-month flags, and the bank check\'s working', async () => {
+  await seedMonth();
+  await put('recurring', commitment({ id: 'rentx', label: 'Rent', amount: 20000, dayOfMonth: 1 }));
+  await putAll('transactions', [
+    txn({ id: 'hotelx', accountId: 'card', date: '2026-09-12', amount: 15000, rawDescription: 'HOTEL SECRETNAME', isReimbursable: true, createdAt: 1790000000000 }),
+    txn({ id: 'backx', accountId: 'bank', date: '2026-09-14', amount: 5000, direction: 'credit', rawDescription: 'NEFT FIRM', isSettlement: true, time: '10:30' }),
+    txn({ id: 'rentpayx', accountId: 'bank', date: '2026-09-15', amount: 20000, rawDescription: 'NEFT LANDLORD', commitmentId: 'rentx', forNextMonth: true }),
+  ]);
+  const report = await buildDiagnosticReport(day('2026-09-16'));
+  const byAmount = (n) => report.transactions.find((t) => t.amount === rupees(n));
+  equal([byAmount(15000).isReimbursable, byAmount(15000).createdAt], [true, 1790000000000], 'a flagged cost, and when it was recorded');
+  equal([byAmount(5000).isSettlement, byAmount(5000).time], [true, '10:30'], 'a settlement, and its time');
+  equal(byAmount(20000).forNextMonth, true, 'a payment for next month');
+  equal(byAmount(20000).commitmentId, report.recurring.find((r) => r.label === 'Rent').id, 'and the commitment it was for, as the same neutral id');
+  const f = report.figures;
+  equal(f.owedBackByEmployer, rupees(10000), 'what is still owed back');
+  ok(Array.isArray(f.bankDueBeforeSalary) && Array.isArray(f.cardBillsToPay), 'the bank check lists its lines');
+  ok(typeof f.spentOnCards === 'number' && typeof f.spentFromBank === 'number', 'and where the spending was');
+  ok(!JSON.stringify(report).includes('SECRETNAME'), 'still nothing a person would recognise');
+  const row = f.tracker.find((t) => t.amount === rupees(20000));
+  ok(row && 'setAside' in row && 'left' in row, 'each commitment says how much of it is left');
+});
