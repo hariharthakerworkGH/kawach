@@ -12,6 +12,27 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.16.1',
+    items: [
+      {
+        icon: 'alert',
+        title: 'A paid bill is no longer counted again',
+        text: 'If you tied a payment to a commitment, the bank check still listed that commitment as unpaid, so the same rent came off your bank twice and the shortfall looked far bigger than it was. The check now follows what you told it, including “Not this”.',
+      },
+      {
+        icon: 'summary',
+        title: 'Summary says what is true when the bank is short',
+        text: 'A red headline over a barely touched budget used to read “almost all used”. It now says the bank is short. A card bill of a few paise no longer shows as an unpaid bill either.',
+      },
+      {
+        icon: 'file',
+        title: 'Payments in the order they happened',
+        text: 'Older payments are ordered by when they were saved, an alert keeps the time it arrived, and changing a payment no longer moves it to the top of its day. Open a payment, then Edit, to set its Time.',
+        guide: [{ view: 'transactions', target: '.hist-main', text: 'Tap a payment, open Edit, and use Time to put it where it belongs in the day.' }],
+      },
+    ],
+  },
+  {
     version: '4.16',
     items: [
       {

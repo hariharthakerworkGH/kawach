@@ -104,6 +104,10 @@ Periods:
   as the salary landing. Paying a card bill from Accounts records one
   exact-amount debit (`paysCardId`, `paysStatement`) and marks the bill paid;
   Mark unpaid removes that debit again.
+- **The bank check and the tracker answer "was this paid?" the same way**
+  (`isPaymentFor`, js/commitments.js): a payment tagged to a commitment is it,
+  one tagged to another or marked "Not this" is not, otherwise its words or
+  amount. They once disagreed, and a tagged rent came off the bank twice.
 - **A set-aside on a card is drawn down by any card.** "Entertainment, 10,000
   a month" is an allowance, not a bill, so paying for a film with a different
   card still spends it (`isSetAside` decides). A **must be paid** item on a

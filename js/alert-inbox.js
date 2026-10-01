@@ -122,7 +122,10 @@ export async function saveAlert(item, edits) {
     // (Dropped if you changed the date on the confirm card: the time belonged
     // to the bank's date, not yours.)
     time: parsed.ok && parsed.time && parsed.date === edits.date ? parsed.time : undefined,
-    createdAt: Date.now(),
+    // When the alert reached the app, not when you got round to tapping Save:
+    // a morning's alerts saved together at lunch still sit in the order they
+    // came. (Never later than now.)
+    createdAt: Math.min(item.receivedAt || Date.now(), Date.now()),
   };
   if (transaction.time === undefined) delete transaction.time;
   if (edits.commitmentId) transaction.commitmentId = edits.commitmentId;

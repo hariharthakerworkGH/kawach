@@ -29,7 +29,7 @@ import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, spendingPulse, cashRiver } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
-import { spentLine, spendingHero, cashSplit, monthsWithData, endOfMonthNoon } from '../js/views/summary.js';
+import { spentLine, spendingHero, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -1393,4 +1393,39 @@ test('a finished month\'s hero says it is final and never prints "null"', () => 
   ok(html.includes('Final for September'));
   ok(!/null|undefined/.test(html), 'no stray null or undefined in the page');
   ok(!html.includes('a day until'), 'no pace line for a month that is over');
+});
+
+// --- From the owner's report of 1 Oct: what the Summary said, and was not true -----
+test('a red headline that is only the bank being short does not say "almost all used"', () => {
+  // 21% of the budget spent, the bank short after salary: free-to-spend lifts the level to critical.
+  const f = { level: 'critical', cycleKey: '2026-10-31', used: 0.21, perDay: rupees(247), crossesOn: null, free: rupees(7666) };
+  const said = spendingStatus(f);
+  ok(!said.includes('almost all used'), said);
+  ok(said.includes('Bank is short'), said);
+  equal(spendingStatus({ ...f, used: 0.95 }), 'Critical - almost all used', 'and when it really is nearly all used, it still says so');
+  ok(spendingStatus({ ...f, crossesOn: '2026-10-12' }).includes('runs out'), 'a pace that runs out is said as that');
+});
+
+test('a card "bill" of a few paise is not a bill', () => {
+  equal(billedOnCards({ totals: { unpaidBills: 81 } }), 0, '81 paise: a rounding leftover');
+  equal(billedOnCards({ totals: { unpaidBills: 999 } }), 0, 'under ₹10');
+  equal(billedOnCards({ totals: { unpaidBills: 1000 } }), 1000, '₹10 and up is');
+  equal(billedOnCards({}), 0);
+});
+
+test('History: a payment saved before times were kept is ordered by when it was saved, and a typed time wins', () => {
+  const at = (h, m) => new Date(2026, 9, 1, h, m).getTime();
+  // None has a time or createdAt: only updatedAt, the way the owner's rows were.
+  const old = [
+    { id: 'a', date: '2026-10-01', updatedAt: at(9, 52) },
+    { id: 'b', date: '2026-10-01', updatedAt: at(11, 9) },
+    { id: 'c', date: '2026-10-01', updatedAt: at(4, 54) },
+  ];
+  equal([...old].sort(newestFirst).map((t) => t.id), ['b', 'a', 'c']);
+  // One edited since, so its updatedAt is late; a time typed in puts it back where it was.
+  const fixed = [...old.slice(0, 2), { id: 'x', date: '2026-10-01', updatedAt: at(11, 18), time: '07:30' }];
+  equal([...fixed].sort(newestFirst).map((t) => t.id), ['b', 'a', 'x']);
+  // A payment typed in on the 2nd for the 1st has no time of day, whatever its updatedAt says.
+  const later = { id: 'l', date: '2026-10-01', updatedAt: new Date(2026, 9, 2, 12, 0).getTime() };
+  equal([later, ...old].sort(newestFirst).map((t) => t.id), ['b', 'a', 'c', 'l']);
 });
