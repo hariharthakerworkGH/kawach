@@ -1,6 +1,6 @@
 import { getAll, put, remove } from '../db.js';
 import { learnFromAssignment } from '../merchant-rules.js';
-import { formatCurrency, formatRupees, formatMonthYear } from '../format.js';
+import { formatCurrency, formatRupees, formatMonthYear, formatDateNice } from '../format.js';
 import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
 import { isSplit, categorySlices, needsCategory, splitTotal } from '../splits.js';
@@ -108,6 +108,7 @@ export async function render(container, params = {}) {
       ${sixMonthCharts(lastSixMonths(transactions), appearance('history'))}
     </section>
     <div class="hero-under" id="hist-stats"></div>
+    <div id="hist-days"></div>
     <div class="hist-top">
       <input type="search" id="txn-search" class="hist-search" placeholder="Search words or an amount" value="${escapeAttr(filters.search)}" aria-label="Search all months">
       <button type="button" id="txn-select" class="btn-secondary hist-select-btn">Change many</button>
@@ -237,6 +238,18 @@ export async function render(container, params = {}) {
     }
     selected.clear();
     renderList(container);
+  });
+
+  // A day on the chart takes you to that day in the list.
+  container.querySelector('#hist-days').addEventListener('click', (e) => {
+    const bar = e.target.closest('[data-day]');
+    const day = bar && container.querySelector(`.hist-day[data-day="${bar.dataset.day}"]`);
+    if (!day) return;
+    const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    day.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
+    day.classList.remove('is-picked');
+    void day.offsetWidth;
+    day.classList.add('is-picked');
   });
 
   const listEl = container.querySelector('#txn-list');
@@ -420,6 +433,7 @@ function renderList(container) {
     heroEl.className = 'hero';
     statsEl.innerHTML = '';
   }
+  container.querySelector('#hist-days').innerHTML = across ? '' : dayChart(rows, filters.month);
   container.querySelector('#txn-count').textContent = rows.length
     ? net > 0
       ? 'More came in than went out.'
@@ -478,12 +492,41 @@ function groupTemplate(rows, across) {
     }
     const net = list.filter((t) => !t.isTransfer).reduce((s, t) => s + (t.direction === 'credit' ? t.amount : -t.amount), 0);
     html += `
-      <div class="hist-day">
+      <div class="hist-day" data-day="${day}">
         <div class="hist-day-head"><span>${dayLabel(day)}</span>${net ? `<span class="${net > 0 ? 'in' : 'out'}">${net > 0 ? '+' : '−'}${formatRupees(Math.abs(net))}</span>` : ''}</div>
         <div class="hist-day-card">${list.map(rowTemplate).join('')}</div>
       </div>`;
   }
   return html;
+}
+
+// The month day by day: a bar for what went out each day (money moved between
+// your own accounts left out, as in the totals), the biggest day named under
+// it. A bar is a button that takes you to that day in the list. Nothing went
+// out, no chart. Exported so it can be tested.
+export function dayChart(rows, month) {
+  const [y, m] = month.split('-').map(Number);
+  const days = new Date(y, m, 0).getDate();
+  const out = new Array(days).fill(0);
+  for (const t of rows) {
+    if (t.direction !== 'debit' || t.isTransfer || t.date.slice(0, 7) !== month) continue;
+    out[Number(t.date.slice(8, 10)) - 1] += t.amount;
+  }
+  const top = Math.max(...out);
+  if (top <= 0) return '';
+  const big = out.indexOf(top);
+  const iso = (i) => `${month}-${String(i + 1).padStart(2, '0')}`;
+  const bars = out
+    .map((v, i) =>
+      v > 0
+        ? `<button type="button" class="hist-days__bar${i === big ? ' is-top' : ''}" data-day="${iso(i)}" style="--h:${Math.max(6, (v / top) * 100).toFixed(1)}%;--i:${i}" aria-label="${formatDateNice(iso(i))}: ${formatRupees(v)} out"></button>`
+        : '<i class="hist-days__none"></i>',
+    )
+    .join('');
+  return `<div class="hist-days">
+      <div class="hist-days__bars">${bars}</div>
+      <p class="hist-days__top">Biggest day <strong>${formatRupees(top)}</strong> on ${formatDateNice(iso(big))}</p>
+    </div>`;
 }
 
 function groupBy(rows, keyOf) {

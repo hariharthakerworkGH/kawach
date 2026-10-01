@@ -6,7 +6,7 @@ import { nextOccurrence } from '../js/frequency.js';
 import { passwordErrorKind } from '../js/pdf-text.js';
 import { sameTransaction, findDuplicates } from '../js/duplicates.js';
 import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments } from '../js/commitments.js';
-import { searchHit, newestFirst } from '../js/views/transactions.js';
+import { searchHit, newestFirst, dayChart } from '../js/views/transactions.js';
 import { reimbursableTally, tidyFlags } from '../js/reimbursable.js';
 import { versionStatus } from '../js/version.js';
 import { cardPosition, bankBalance, statementDayFixes } from '../js/account-metrics.js';
@@ -1439,6 +1439,21 @@ test("Plan's month: must-go-outs on their days by state, and what is left of eac
   ok(flex.includes('₹1,500 left of ₹6,000') && flex.includes('is-warn'), 'a set-aside heading over is amber, with what is left');
   ok(flex.includes('₹600 over ₹3,000') && flex.includes('is-over') && flex.includes('width:100.0%'), 'one that is over is red, full, and says by how much');
   ok(!flex.includes('Gifts'), 'an untracked set-aside is left out');
+});
+test("History's day chart: what went out each day, moves between your own accounts left out", () => {
+  const rows = [
+    { date: '2026-09-03', direction: 'debit', amount: rupees(400) },
+    { date: '2026-09-03', direction: 'debit', amount: rupees(200) },
+    { date: '2026-09-25', direction: 'debit', amount: rupees(4200) },
+    { date: '2026-09-10', direction: 'debit', amount: rupees(90000), isTransfer: true },
+    { date: '2026-09-01', direction: 'credit', amount: rupees(50000) },
+  ];
+  const html = dayChart(rows, '2026-09');
+  equal((html.match(/class="hist-days__bar[ "]/g) || []).length, 2, 'a bar for each day something went out');
+  equal((html.match(/hist-days__none/g) || []).length, 28, 'and a stub for each of the other 28 days of September');
+  ok(html.includes('data-day="2026-09-03"') && html.includes('₹600 out'), 'a day adds up all it paid out');
+  ok(html.includes('Biggest day <strong>₹4,200</strong> on 25 Sep'), 'the biggest day is named, not the money moved to savings');
+  equal(dayChart(rows.slice(3), '2026-09'), '', 'a month with nothing going out has no chart');
 });
 // --- From the owner's report of 1 Oct: what the Summary said, and was not true -----
 test('a red headline that is only the bank being short does not say "almost all used"', () => {
