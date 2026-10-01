@@ -11,6 +11,8 @@ const PATHS = {
   summary: '<path d="M5 20v-7"/><path d="M12 20V5"/><path d="M19 20v-11"/><path d="M3 20h18"/>',
   plan: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
   add: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+  play: '<path d="M8 5l11 7-11 7z"/>',
+  pause: '<path d="M9 5v14"/><path d="M15 5v14"/>',
   coach: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
   accounts: '<path d="M3 21h18"/><path d="M5 21V10"/><path d="M19 21V10"/><path d="M9.5 21V10"/><path d="M14.5 21V10"/><path d="M2 10h20L12 3z"/>',
   history: '<path d="M8.5 6H21"/><path d="M8.5 12H21"/><path d="M8.5 18H21"/><path d="M3.5 6h.01"/><path d="M3.5 12h.01"/><path d="M3.5 18h.01"/>',

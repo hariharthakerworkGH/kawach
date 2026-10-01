@@ -116,7 +116,7 @@
   li { margin: var(--space-3xs) 0; }
   li strong { color: var(--text); }
   .card p { margin: 0; }
-  video { display: block; width: 100%; border-radius: var(--radius-lg); background: var(--surface); }
+  .tour { display: block; width: 100%; aspect-ratio: 400 / 876; max-height: 86vh; border: 0; border-radius: var(--radius-lg); background: #000; }
   .small { font-size: 0.85rem; color: var(--text-muted); margin-top: var(--space-lg); }
   [hidden] { display: none !important; }
 </style>
@@ -133,7 +133,7 @@
   <a class="open" id="open" href="./">Open Kawach</a>
 
   <h2 id="tour">See how it works</h2>
-  <video src="./media/kawach-tour.mp4" poster="./media/kawach-tour.jpg" controls playsinline preload="none"></video>
+  <iframe class="tour" src="./tour.html?autoplay=0" title="Kawach in one minute" loading="lazy"></iframe>
 
   <h2>Put it on your home screen</h2>
   <div class="card">
