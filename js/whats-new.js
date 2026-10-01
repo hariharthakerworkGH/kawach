@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.17.3',
+    items: [
+      {
+        icon: 'file',
+        title: 'A fuller diagnostic report',
+        text: 'The report you can save from Settings now shows how the bank check was worked out, the work-cost and next-month flags, and what is left of each flexible commitment. Names and numbers are still hidden.',
+      },
+    ],
+  },
+  {
     version: '4.17.2',
     items: [
       {
