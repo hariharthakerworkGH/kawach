@@ -176,33 +176,32 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   (`statementDayFixes` corrects a saved day that disagrees).
 - The spending period is the calendar month for everyone, whether or not a
   card has a statement day yet, and never the month the next salary pays for.
-- The tour is a sixty-second video, `media/kawach-tour.mp4` (1080 x 1920,
-  H.264, silent) with `media/kawach-tour.jpg` as its poster, played over the
-  app from Setup and Settings (`js/tour.js`) and on the welcome page. The
-  service worker never caches `media/`, so it needs a connection. The video
-  is rendered from the film's source, `tour.html` with `js/tour-film.js`,
-  which is drawn from the app's own stylesheets, icons and `formatRupees`
-  with example figures that add up ("Example figures" is on screen). 4.20
-  played that page live and phones stuttered and dropped parts of the
-  picture: dozens of moving 3D layers at that size are more than a phone's
-  graphics can draw reliably, while every phone plays a video smoothly. So
-  change the film in tour.html/tour-film.js and re-render the video; the
-  renderer is kept outside the repository, in
-  `expense-tracker-versions/tools/tour-video` (headless Edge opens
-  `tour.html?capture=1` at 1080 x 1920, seeks each frame with
-  `tourFilm.show(ms)`, encodes with the browser's own H.264 encoder and
-  writes the MP4 itself; no ffmpeg needed). The film is a function of time:
-  every moving part is one paused Web Animation over the minute, so a frame
-  can be shown at any moment exactly. Two stages: 1600 x 900 when its box is
-  wide, 900 x 1600 when tall (the video uses the tall one). Pieces lifted out
-  of the phone are measured from it at the moment they leave, so the phone
-  must face straight on then. Kawach's mark in the film (`markMarkup`,
-  `drawMark`) is the app's opening in index.html (`.boot`): the same paths,
-  colours, weights, glow and timings, and the name set as it is there; change
-  one and the other must follow. No brand logos: the app bundles none
-  (js/brand.js), and the card in it is drawn with no bank or network mark.
-  Re-render the video when a screen it shows changes. A first visit in a
-  browser (not installed, nothing set up) goes to `welcome.html` once.
+- The tour is a 96-second video, `media/kawach-tour.mp4` (1080 x 1920,
+  60 fps, H.264, silent) with `media/kawach-tour.jpg` as its poster, played
+  over the app from Setup and Settings (`js/tour.js`) and on the welcome page.
+  The service worker never caches `media/`, so it needs a connection. Phones
+  play a video smoothly; drawing the film live made them stutter and drop
+  parts of the picture (4.20), so the film is rendered, never played live.
+  The film's source is `tour.html` with `js/tour-film.js` (player and
+  renderer) and `js/film/` (`kit.js`: springs, glass panels, text, callouts,
+  the mark; `scenes.js`: the timeline). It is one canvas and every frame is
+  `drawFrame(ctx, t)`, a pure function of time, so a frame is exact however it
+  is reached. Eight scenes: the opening, then one per screen in the nav's
+  order (Summary, Add, Accounts, Plan, History, Coach), then the close. It
+  shows what each screen really does, with example figures that agree with
+  each other ("Example figures" is on screen); it makes no claim the app does
+  not keep (Coach is arithmetic, never "AI"). Kawach's mark in it
+  (`drawMark`, `markState`, `drawWord` in kit.js) is the app's opening in
+  index.html (`.boot`): the same paths, colours, weights, glow and timings;
+  change one and the other must follow. No brand logos: the app bundles none
+  (js/brand.js). To re-render after a change, serve `_work` on port 5313 and
+  run `node render-canvas.mjs <out.mp4> <poster.jpg> 60 2600000 13` from
+  `expense-tracker-versions/tools/tour-video` (headless Edge calls
+  `tourFilm.render()`, which encodes each canvas frame with the browser's own
+  H.264 encoder; the script writes the MP4; no ffmpeg needed). `stills.mjs`
+  takes exact frames for checking, `playcheck.mjs` proves the MP4 plays.
+  `tour.html?t=31.4` opens the film on a moment. A first visit in a browser
+  (not installed, nothing set up) goes to `welcome.html` once.
 
 - `sw.js` service worker: `CACHE_NAME` must match `APP_VERSION` in
   `js/version.js`, and `APP_SHELL` must list every js file, both stylesheets

@@ -1,6 +1,6 @@
-// The tour: a minute of what the app is for, played over the app as a video.
-// The film itself is tour.html (js/tour-film.js), drawn from the app's own
-// stylesheets; media/kawach-tour.mp4 is that film rendered a frame at a time,
+// The tour: a minute and a half of what the app is for, played over the app as
+// a video. The film itself is tour.html (js/tour-film.js, js/film/*), drawn on
+// one canvas; media/kawach-tour.mp4 is that film rendered a frame at a time,
 // because drawing it live made phones stutter and drop parts of the picture,
 // and every phone plays a video smoothly with its own decoder. It is served
 // from the app's own address, never a video site, so watching it tells

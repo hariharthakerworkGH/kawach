@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
   <!-- The same promise as every other page: nothing is fetched from, or sent
-     to, anywhere but this address. The tour is drawn live from the app's own
-     stylesheets and icons, so it needs no video file and works offline. -->
+     to, anywhere but this address. The film is drawn by js/tour-film.js on
+     one canvas, with the app's own typeface and icons. -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self';
@@ -18,316 +18,46 @@
   ">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kawach tour</title>
-<meta name="description" content="Kawach in one minute: what's left to spend, card bills, and work costs you get paid back for.">
+<meta name="description" content="Kawach in ninety seconds: what's safe to spend, adding a payment, accounts, the month's plan, history and Coach.">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="./icons/kawach.svg" type="image/svg+xml">
-<link rel="stylesheet" href="./css/tokens.css">
-<link rel="stylesheet" href="./css/style.css">
-<link rel="stylesheet" href="./css/dna.css">
 <style>
-  /* A cinema: black, nothing scrolls, the film fills it. */
+  @font-face {
+    font-family: "Geist";
+    src: url("./fonts/Geist-Variable.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: block;
+  }
   html, body { height: 100%; }
-  body.tf-body {
+  body {
     margin: 0;
-    padding: 0;
     overflow: hidden;
     background: #000;
-    font-family: var(--k-font);
-    color: var(--k-text);
-    -webkit-font-smoothing: antialiased;
+    color: #f2f4f8;
+    font-family: Geist, system-ui, sans-serif;
   }
-
-  /* The film is drawn on a fixed stage, 1600 x 900 on a wide screen and
-     900 x 1600 on a tall one, and scaled to fit. Every position in the
-     script means the same thing on a phone and on a monitor. */
-  .tf-frame { position: fixed; inset: 0 0 52px; overflow: hidden; background: #000; }
-  .tf-stage {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    overflow: hidden;
-    background: #04060c;
-    transform-origin: center center;
-    contain: strict;
-  }
-  .tf-layer { position: absolute; inset: 0; pointer-events: none; }
-  .tf-world { position: absolute; inset: 0; perspective: 2400px; perspective-origin: 50% 45%; pointer-events: none; }
-  .tf-world > * { position: absolute; left: 0; top: 0; }
-
-  /* ---- light ---------------------------------------------------------- */
-  .tf-blob { position: absolute; left: 0; top: 0; width: 1300px; height: 1300px; margin: -650px 0 0 -650px; border-radius: 50%; }
-  .tf-blob-a { background: radial-gradient(closest-side, color-mix(in oklch, var(--k-cyan) 30%, transparent), transparent); }
-  .tf-blob-b { background: radial-gradient(closest-side, color-mix(in oklch, var(--k-violet) 32%, transparent), transparent); }
-  .tf-blob-c { background: radial-gradient(closest-side, color-mix(in oklch, var(--k-positive) 26%, transparent), transparent); }
-  .tf-horizon {
-    position: absolute; left: 10%; right: 10%; height: 2px; top: 50%;
-    background: linear-gradient(90deg, transparent, var(--k-cyan) 30%, #e8fbff 50%, var(--k-cyan) 70%, transparent);
-    box-shadow: 0 0 24px 2px color-mix(in oklch, var(--k-cyan) 60%, transparent);
-  }
-  .tf-canvas { position: absolute; inset: 0; }
-  .tf-flash {
-    position: absolute; left: 0; top: 0; width: 1600px; height: 1600px; margin: -800px 0 0 -800px;
-    background: radial-gradient(closest-side, oklch(97% 0.03 220 / 0.95), oklch(80% 0.13 220 / 0.3) 28%, transparent 72%);
-  }
-  .tf-rays {
-    position: absolute; left: 0; top: 0; width: 1500px; height: 1500px; margin: -750px 0 0 -750px; border-radius: 50%;
-    background: repeating-conic-gradient(from 0deg, oklch(80% 0.13 220 / 0.16) 0deg 2.5deg, transparent 2.5deg 11deg);
-    -webkit-mask: radial-gradient(closest-side, #000 12%, transparent 72%);
-    mask: radial-gradient(closest-side, #000 12%, transparent 72%);
-  }
-  /* Grain is a plain faint layer that the graphics chip slides about: blending
-     it into the picture meant repainting the whole film every frame. */
-  .tf-grain { position: absolute; inset: -200px; opacity: 0.045; animation: tf-grain 0.5s steps(6) infinite; will-change: transform; }
-  @keyframes tf-grain {
-    0% { transform: translate(0, 0); } 20% { transform: translate(-60px, 40px); } 40% { transform: translate(50px, -70px); }
-    60% { transform: translate(-30px, -30px); } 80% { transform: translate(70px, 60px); } 100% { transform: translate(0, 0); }
-  }
-  @media (prefers-reduced-motion: reduce) { .tf-grain { animation: none; } }
-  /* Rendering the video (?capture=1): the stage fills the window, and nothing
-     moves by the wall clock, since every frame is taken at a set moment. */
-  .is-capture .tf-frame { inset: 0; }
-  .is-capture .tf-controls, .is-capture .tf-grain { display: none; }
-  .is-capture *, .is-capture *::before, .is-capture *::after { transition: none !important; }
-  .tf-vignette { position: absolute; inset: 0; background: radial-gradient(120% 95% at 50% 46%, transparent 55%, oklch(0% 0 0 / 0.7)); }
-  .tf-black { position: absolute; inset: 0; background: #000; }
-  .tf-ring {
-    position: absolute; left: 0; top: 0; width: 220px; height: 220px; margin: -110px 0 0 -110px; border-radius: 50%;
-    border: 2px solid var(--k-accent);
-    box-shadow: 0 0 30px color-mix(in oklch, var(--k-cyan) 70%, transparent), inset 0 0 30px color-mix(in oklch, var(--k-cyan) 40%, transparent);
-  }
-  .tf-ring.is-green { border-color: var(--k-positive); box-shadow: 0 0 30px color-mix(in oklch, var(--k-positive) 70%, transparent); }
-
-  /* ---- the shield ------------------------------------------------------- */
-  .tf-shield { position: absolute; left: 0; top: 0; width: 240px; height: 240px; margin: -120px 0 0 -120px; }
-  /* The mark, drawn exactly as the app's opening draws it (index.html .boot). */
-  .tf-m { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-  .tf-shield .tf-m-glow { filter: blur(9px); }
-  .tf-m-edge { fill: none; stroke: #47d0f8; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 2; stroke-dashoffset: 1.01; }
-  .tf-m-sym { fill: none; stroke: #e8fbff; stroke-width: 6.6; stroke-linecap: round; stroke-linejoin: round; }
-  .tf-mark-word { display: flex; justify-content: center; gap: 0.34em; margin: 0; font-weight: 600; line-height: 1; text-transform: uppercase; color: #e6f6fb; }
-  .tf-mark-word span { display: inline-block; }
-
-  /* ---- words ------------------------------------------------------------ */
-  .tf-hl { position: absolute; font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; color: var(--k-text); }
-  .tf-hl .w { display: inline-block; overflow: hidden; vertical-align: top; padding: 0.05em 0.03em 0.14em; margin: -0.05em -0.03em -0.14em; }
-  .tf-hl .wi { display: inline-block; }
-  .tf-hl .acc .wi, .tf-acc {
-    background: linear-gradient(100deg, oklch(88% 0.12 210), var(--k-cyan) 40%, var(--k-violet));
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  .tf-hl .dim .wi { color: var(--k-text-3); }
-  .tf-eyebrow { display: flex; align-items: center; gap: 16px; font-size: 18px; font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase; color: var(--k-text-2); margin-bottom: 18px; }
-  .tf-eyebrow i { display: block; width: 64px; height: 2px; background: var(--k-accent); transform-origin: left center; box-shadow: 0 0 12px var(--k-cyan); }
-  .tf-hl.is-center .tf-eyebrow { justify-content: center; }
-  .tf-title { font-size: 1.55em; font-weight: 800; letter-spacing: -0.055em; }
-  .tf-sub { font-size: 0.32em; font-weight: 450; letter-spacing: -0.01em; color: var(--k-text-2); margin-top: 24px; line-height: 1.35; }
-  .tf-prom { display: flex; align-items: center; gap: 0.3em; }
-  .tf-hl.is-center .tf-prom { justify-content: center; }
-  .tf-prom-ic {
-    display: grid; place-items: center; flex: none; width: 1.02em; height: 1.02em; border-radius: 50%;
-    background: color-mix(in oklch, var(--k-cyan) 16%, transparent); color: var(--k-accent);
-    box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--k-cyan) 55%, transparent);
-  }
-  .tf-prom-ic .icon { width: 0.55em; height: 0.55em; }
-  .tf-word { position: absolute; left: 0; right: 0; }
-  .tf-rule { position: absolute; height: 2px; background: linear-gradient(90deg, transparent, var(--k-accent), transparent); transform-origin: center; }
-  .tf-url { position: absolute; left: 0; right: 0; text-align: center; font-size: 22px; letter-spacing: 0.12em; color: var(--k-text-2); }
-
-  /* Chapter marks, the corner lockup and the honest footnote. */
-  .tf-chapter { position: absolute; display: flex; align-items: center; gap: 16px; font-size: 15px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--k-text-2); font-weight: 600; }
-  .tf-ch-num { position: relative; width: 34px; height: 22px; color: var(--k-accent); font-variant-numeric: tabular-nums; }
-  .tf-ch-num span, .tf-ch-text span { position: absolute; left: 0; top: 0; white-space: nowrap; }
-  .tf-ch-text { position: relative; width: 260px; height: 22px; }
-  .tf-ch-track { position: absolute; left: 0; right: 0; bottom: -14px; height: 2px; background: oklch(100% 0 0 / 0.1); border-radius: 2px; overflow: hidden; }
-  .tf-ch-track i { display: block; height: 100%; width: 100%; background: var(--k-accent); transform-origin: left center; }
-  .tf-bug { position: absolute; display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; letter-spacing: 0.16em; }
-  .tf-bug svg { width: 30px; height: 30px; overflow: visible; }
-  .tf-note { position: absolute; font-size: 14px; letter-spacing: 0.08em; color: var(--k-text-3); }
-
-  /* ---- the phone -------------------------------------------------------- */
-  .tf-phone { width: 384px; height: 804px; margin: -402px 0 0 -192px; }
-  .tf-device {
-    position: absolute; inset: 0; border-radius: 62px; padding: 12px; box-sizing: border-box;
-    background: linear-gradient(140deg, #6b7180 0%, #262a33 18%, #444955 46%, #1b1e25 74%, #5c626e 100%);
-    box-shadow:
-      inset 0 0 0 1.5px oklch(100% 0 0 / 0.22),
-      inset 0 0 0 5px #0a0b0f,
-      0 70px 120px -30px oklch(0% 0 0 / 0.9),
-      0 0 0 1px oklch(0% 0 0 / 0.6);
-  }
-  .tf-device::before { content: ""; position: absolute; right: -4px; top: 210px; width: 5px; height: 104px; border-radius: 3px; background: linear-gradient(90deg, #2a2d35, #5b606c); }
-  .tf-device::after { content: ""; position: absolute; left: -4px; top: 170px; width: 5px; height: 64px; border-radius: 3px; background: linear-gradient(90deg, #5b606c, #2a2d35); box-shadow: 0 86px 0 0 #3d414b; }
-  .tf-screen { position: relative; width: 360px; height: 780px; border-radius: 50px; overflow: hidden; background: var(--k-bg); isolation: isolate; }
-  .tf-screen::before {
-    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    background:
-      radial-gradient(70% 40% at 15% 0%, color-mix(in oklch, var(--k-cyan) 12%, transparent), transparent 70%),
-      radial-gradient(60% 40% at 95% 6%, color-mix(in oklch, var(--k-violet) 12%, transparent), transparent 72%);
-  }
-  .tf-island { position: absolute; top: 12px; left: 50%; width: 112px; height: 33px; margin-left: -56px; border-radius: 20px; background: #000; z-index: 30; }
-  .tf-status { position: absolute; top: 18px; left: 34px; right: 30px; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 650; z-index: 29; }
-  .tf-batt { width: 26px; height: 12px; border-radius: 4px; border: 1.5px solid oklch(100% 0 0 / 0.6); position: relative; box-sizing: border-box; }
-  .tf-batt::after { content: ""; position: absolute; inset: 1.5px 6px 1.5px 1.5px; border-radius: 2px; background: var(--k-text); }
-  .tf-glare { position: absolute; inset: -30%; z-index: 35; pointer-events: none; background: linear-gradient(105deg, transparent 42%, oklch(100% 0 0 / 0.16) 48%, oklch(100% 0 0 / 0.05) 52%, transparent 58%); }
-  .tf-head {
-    position: absolute; top: 0; left: 0; right: 0; height: 100px; padding: 56px 22px 0; box-sizing: border-box;
-    display: flex; align-items: center; justify-content: space-between;
-    font-size: 23px; font-weight: 700; letter-spacing: -0.02em; z-index: 20;
-  }
-  .tf-head-title { position: relative; height: 28px; flex: 1; }
-  .tf-head-title span { position: absolute; left: 0; top: 0; }
-  .tf-head .icon { width: 22px; height: 22px; color: var(--k-text-2); }
-  .tf-view { position: absolute; top: 100px; left: 0; right: 0; bottom: 80px; padding: 8px 18px 0; overflow: hidden; box-sizing: border-box; z-index: 1; }
-  .tf-nav {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 80px; z-index: 20;
-    display: grid; grid-template-columns: repeat(6, 1fr); padding: 8px 6px 22px; box-sizing: border-box;
-    background: color-mix(in oklch, var(--k-bg-elev) 94%, transparent); border-top: 1px solid var(--k-hairline);
-  }
-  .tf-nav-btn { display: grid; justify-items: center; gap: 4px; font-size: 10.5px; color: var(--k-text-3); position: relative; }
-  .tf-nav-btn .icon { width: 22px; height: 22px; }
-  .tf-nav-on { position: absolute; inset: 0; display: grid; justify-items: center; gap: 4px; color: var(--k-accent); opacity: 0; }
-  .tf-boot { position: absolute; inset: 0; display: grid; place-items: center; background: #07090f; z-index: 25; }
-  .tf-boot-art { position: relative; width: 116px; height: 116px; }
-  .tf-boot .tf-m-glow { filter: blur(4.3px); }
-  .tf-boot-word { position: absolute; left: -60%; right: -60%; top: calc(100% + 9px); font-size: 13px; }
-
-  /* ---- the app's parts, at this size (in the phone and lifted out) ------ */
-  /* No frosted glass in the film: blurring what is behind a moving card is
-     the most expensive thing a browser can be asked to do each frame. */
-  .tf-ui .hero { margin: 0 0 14px; padding: 22px 22px 20px; -webkit-backdrop-filter: none; backdrop-filter: none; background-color: var(--k-surface-elev); }
-  .tf-ui .hero-amount { font-size: 54px; }
-  .tf-ui .hero-under { display: flex; gap: 26px; margin: 12px 6px 0; }
-  .tf-ui .summary-owed { flex-wrap: nowrap; gap: 22px; margin-top: 20px; }
-  .tf-ui .stat { position: relative; border-radius: 14px; padding: 8px 10px; margin: -8px -10px; }
-  .tf-ui .stat-v { font-size: 22px; }
-  .tf-ui .k-row { padding: 14px 0; gap: 12px; display: flex; align-items: center; }
-  .tf-ui .k-row__body { flex: 1; min-width: 0; display: grid; }
-  .tf-ui .k-row__title { font-size: 16px; font-weight: 600; }
-  .tf-ui .k-row__meta { font-size: 13px; color: var(--k-text-3); }
-  .tf-ui .k-row__value { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
-  .tf-list { border-radius: 20px; background: var(--k-surface); padding: 2px 14px; }
-  .tf-list .tf-bill + .k-row { border-top: 1px solid var(--k-hairline); }
-  .tf-bill { position: relative; border-top: 1px solid var(--k-hairline); padding: 12px 0 14px; font-size: 14px; }
-  .tf-bill-line { display: flex; justify-content: space-between; align-items: center; color: var(--k-text-2); position: relative; height: 22px; }
-  .tf-bill-line > span { position: absolute; left: 0; top: 0; display: inline-flex; align-items: center; gap: 6px; }
-  .tf-bill-line > b { margin-left: auto; font-weight: 650; color: var(--k-text); font-variant-numeric: tabular-nums; }
-  .tf-paid { color: var(--k-positive); }
-  .tf-paid .icon { width: 17px; height: 17px; }
-  .tf-link { display: inline-block; margin-top: 10px; color: var(--k-accent); font-weight: 600; font-size: 14px; }
-  .tf-panel { position: absolute; left: -14px; right: -14px; top: 100%; z-index: 3; overflow: hidden; border-radius: 0 0 20px 20px; }
-  .tf-panel-inner { padding: 14px 14px 16px; display: grid; gap: 10px; background: var(--k-surface); box-shadow: inset 0 1px 0 var(--k-hairline); }
-  .tf-ui .k-label { font-size: 13px; color: var(--k-text-3); }
-  .tf-picker { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 12px; background: var(--k-surface-elev); font-size: 14.5px; font-weight: 600; }
-  .tf-picker .k-brand { width: 28px; height: 28px; border-radius: 8px; font-size: 11px; }
-  .tf-sms { padding: 11px 12px; border-radius: 12px; background: var(--k-surface-elev); color: var(--k-text-3); font-size: 13px; }
-  .tf-panel .k-btn { width: 100%; justify-content: center; }
-  .tf-amount { font-size: 56px; font-weight: 800; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; min-height: 64px; }
-  .tf-caret { display: inline-block; width: 2.5px; height: 0.85em; margin-left: 4px; vertical-align: -0.06em; background: var(--k-accent); }
-  .tf-add-field { margin-top: 14px; display: grid; gap: 6px; }
-  .tf-add-field .k-input { font-size: 15px; min-height: 24px; }
-  .tf-chips { display: flex; gap: 8px; margin-top: 14px; }
-  .tf-chip { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; background: var(--k-surface); font-size: 13.5px; color: var(--k-text-2); }
-  .tf-chip .icon { width: 16px; height: 16px; }
-  .tf-chip-on { position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1.5px var(--k-accent); }
-  .tf-ui .k-switch-row { margin-top: 16px; padding: 14px 16px; border-radius: 18px; background: var(--k-surface); display: flex; align-items: center; gap: 12px; position: relative; }
-  .tf-ui .k-switch-row__text { flex: 1; display: grid; font-size: 15px; font-weight: 600; }
-  .tf-ui .k-switch-row__sub { font-size: 12.5px; font-weight: 400; color: var(--k-text-3); }
-  .tf-save { margin-top: 18px; width: 100%; justify-content: center; }
-  .tf-toast {
-    position: absolute; left: 50%; bottom: 96px; padding: 11px 18px; border-radius: 999px; background: var(--k-surface-hero);
-    font-size: 14px; font-weight: 600; white-space: nowrap; display: inline-flex; gap: 8px; align-items: center; z-index: 22;
-  }
-  .tf-toast .icon { width: 17px; height: 17px; color: var(--k-positive); }
-  .tf-day { display: flex; justify-content: space-between; font-size: 13px; color: var(--k-text-3); margin: 4px 4px 8px; }
-  .tf-hist { border-radius: 20px; background: var(--k-surface); padding: 0 14px; overflow: hidden; }
-  .tf-hist .hist-row { display: flex; align-items: center; gap: 12px; height: 64px; box-sizing: border-box; }
-  .tf-hist .cat-chip { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; flex: none; }
-  .tf-hist .hist-text { flex: 1; min-width: 0; display: grid; }
-  .tf-hist .hist-name { font-size: 15.5px; font-weight: 600; }
-  .tf-hist .hist-sub { font-size: 12.5px; color: var(--k-text-3); display: flex; gap: 6px; align-items: center; }
-  .tf-hist .txn-amount { font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; }
-  .tf-hist-clip { border-radius: 20px; overflow: hidden; }
-  .tf-new-row { border-bottom: 1px solid var(--k-hairline); }
-  .tf-glow { position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 1.5px var(--k-accent), 0 0 26px color-mix(in oklch, var(--k-cyan) 45%, transparent); pointer-events: none; }
-  .tf-finger {
-    position: absolute; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%;
-    background: oklch(100% 0 0 / 0.3); box-shadow: 0 0 0 2px oklch(100% 0 0 / 0.8), 0 8px 20px oklch(0% 0 0 / 0.45);
-    opacity: 0; z-index: 40; pointer-events: none; will-change: transform, opacity;
-  }
-
-  /* ---- things lifted out of the phone, and things beside it ------------- */
-  .tf-float { border-radius: 26px; box-shadow: 0 70px 100px -40px oklch(0% 0 0 / 0.95); }
-  .tf-float.is-row, .tf-float.is-chip {
-    background: linear-gradient(180deg, var(--k-surface-hero), var(--k-surface-elev));
-    border: 1px solid var(--k-border-subtle); border-radius: 20px; padding: 0 16px;
-    box-shadow: 0 50px 90px -30px oklch(0% 0 0 / 0.95), inset 0 1px 0 oklch(100% 0 0 / 0.1);
-  }
-  .tf-float.is-chip { padding: 14px 18px; }
-  .tf-float.is-chip .stat { margin: 0; padding: 0; }
-  .tf-float .tf-glow { display: none; }
-  .tf-tile, .tf-pocket {
-    display: flex; justify-content: space-between; align-items: center; gap: 24px; box-sizing: border-box;
-    padding: 18px 24px; border-radius: 20px; white-space: nowrap; font-size: 21px; font-weight: 600; color: var(--k-text-2);
-    background: linear-gradient(180deg, color-mix(in oklch, var(--k-surface-hero) 92%, transparent), color-mix(in oklch, var(--k-surface) 92%, transparent));
-    border: 1px solid var(--k-border-subtle);
-    box-shadow: 0 40px 80px -30px oklch(0% 0 0 / 0.9), inset 0 1px 0 oklch(100% 0 0 / 0.1);
-  }
-  .tf-tile b { color: var(--k-text); font-weight: 700; font-variant-numeric: tabular-nums; }
-  .tf-pocket { display: grid; gap: 6px; justify-items: start; padding: 22px 26px; font-size: 17px; }
-  .tf-pocket b { font-size: 46px; font-weight: 800; letter-spacing: -0.035em; color: var(--k-text); font-variant-numeric: tabular-nums; }
-  .tf-pocket em { font-style: normal; display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; font-size: 14px; color: var(--k-positive); background: color-mix(in oklch, var(--k-positive) 14%, transparent); }
-  .tf-pocket em .icon { width: 15px; height: 15px; }
-  .tf-receipt { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 18px; font-size: 17px; font-weight: 600; white-space: nowrap; background: var(--k-surface-hero); border: 1px solid var(--k-border-subtle); box-shadow: 0 30px 60px -20px oklch(0% 0 0 / 0.9); }
-  .tf-receipt .cat-chip { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex: none; }
-  .tf-receipt b { font-variant-numeric: tabular-nums; }
-  .tf-giant { font-size: 330px; font-weight: 800; letter-spacing: -0.06em; white-space: nowrap; color: transparent; -webkit-text-stroke: 2px color-mix(in oklch, var(--k-cyan) 50%, transparent); }
-
-  /* A card, drawn here: no bank's or network's mark, just a card. */
-  .tf-card {
-    width: 380px; height: 240px; border-radius: 22px; padding: 26px 28px; box-sizing: border-box; color: #fff; overflow: hidden;
-    display: flex; flex-direction: column; justify-content: space-between;
-    background:
-      radial-gradient(110% 90% at 0% 0%, oklch(62% 0.19 290 / 0.85), transparent 58%),
-      radial-gradient(90% 80% at 100% 100%, oklch(55% 0.16 215 / 0.6), transparent 60%),
-      linear-gradient(135deg, oklch(36% 0.15 282), oklch(20% 0.08 265));
-    box-shadow: 0 60px 100px -30px oklch(0% 0 0 / 0.95), inset 0 1px 0 oklch(100% 0 0 / 0.3), inset 0 0 0 1px oklch(100% 0 0 / 0.1);
-  }
-  .tf-card::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(115deg, oklch(100% 0 0 / 0.035) 0 1px, transparent 1px 9px); pointer-events: none; }
-  .tf-card-top { display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 600; letter-spacing: 0.04em; opacity: 0.9; }
-  .tf-chipm { width: 50px; height: 38px; border-radius: 8px; background: linear-gradient(135deg, #f1e2b0, #b8955a 50%, #e8cf8f); position: relative; box-shadow: inset 0 0 0 1px oklch(0% 0 0 / 0.2); }
-  .tf-chipm::before { content: ""; position: absolute; inset: 9px 0; border-top: 1px solid oklch(0% 0 0 / 0.25); border-bottom: 1px solid oklch(0% 0 0 / 0.25); }
-  .tf-chipm::after { content: ""; position: absolute; inset: 0 17px; border-left: 1px solid oklch(0% 0 0 / 0.25); border-right: 1px solid oklch(0% 0 0 / 0.25); }
-  .tf-card-num { font-size: 21px; letter-spacing: 0.16em; font-variant-numeric: tabular-nums; opacity: 0.92; }
-  .tf-card-due { display: flex; justify-content: space-between; align-items: flex-end; }
-  .tf-card-due small { display: block; position: relative; width: 150px; height: 18px; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.75; }
-  .tf-card-due small span { position: absolute; left: 0; top: 0; white-space: nowrap; }
-  .tf-card-due b { font-size: 30px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-  .tf-card-sheen { position: absolute; inset: -40%; background: linear-gradient(110deg, transparent 40%, oklch(100% 0 0 / 0.22) 48%, transparent 56%); pointer-events: none; }
-  .tf-stamp {
-    position: absolute; left: 50%; top: 50%; display: flex; gap: 10px; align-items: center;
-    padding: 10px 22px; border-radius: 999px; font-size: 26px; font-weight: 800; letter-spacing: 0.18em;
-    color: oklch(92% 0.14 155); background: oklch(55% 0.15 155 / 0.35); box-shadow: inset 0 0 0 2px oklch(80% 0.17 155), 0 0 30px oklch(70% 0.17 155 / 0.5);
-  }
-  .tf-stamp .icon { width: 26px; height: 26px; }
-
-  /* ---- play, pause and the scrubber ------------------------------------- */
+  /* The film fills the space above the controls, letterboxed in black. */
+  .tf-frame { position: fixed; inset: 0 0 52px; display: grid; place-items: center; overflow: hidden; }
+  canvas { display: block; background: #05070c; }
   .tf-controls {
     position: fixed; left: 0; right: 0; bottom: 0; height: 52px;
     display: flex; align-items: center; gap: 12px; padding: 0 16px; box-sizing: border-box; background: #000;
   }
-  .tf-btn { width: 38px; height: 38px; border: 0; border-radius: 50%; display: grid; place-items: center; background: oklch(100% 0 0 / 0.1); color: var(--k-text); cursor: pointer; flex: none; }
+  .tf-btn { width: 38px; height: 38px; border: 0; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.1); color: #f2f4f8; cursor: pointer; flex: none; }
   .tf-btn svg { width: 17px; height: 17px; }
-  .tf-btn:focus-visible, .tf-scrub:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 2px; }
-  .tf-scrub { flex: 1; min-width: 0; accent-color: var(--k-accent); }
-  .tf-time { font-size: 13px; color: var(--k-text-2); font-variant-numeric: tabular-nums; min-width: 72px; text-align: right; }
+  .tf-btn:focus-visible, .tf-scrub:focus-visible { outline: 2px solid #47d0f8; outline-offset: 2px; }
+  .tf-scrub { flex: 1; min-width: 0; accent-color: #47d0f8; }
+  .tf-time { font-size: 13px; color: #aab0bd; font-variant-numeric: tabular-nums; min-width: 72px; text-align: right; }
+  .is-capture .tf-controls { display: none; }
 </style>
 </head>
-<body class="tf-body">
-<div class="tf-frame"><div class="tf-stage" id="stage" role="img" aria-label="A one-minute film of Kawach, with example figures"></div></div>
+<body>
+<div class="tf-frame"><canvas id="stage" role="img" aria-label="A ninety-second film of Kawach, with example figures"></canvas></div>
 <div class="tf-controls">
-  <button type="button" class="tf-btn" id="tf-play" aria-label="Pause"></button>
-  <input type="range" class="tf-scrub" id="tf-scrub" min="0" max="60000" step="100" value="0" aria-label="Position in the tour">
-  <span class="tf-time" id="tf-time">0:00 / 1:00</span>
+  <button type="button" class="tf-btn" id="tf-play" aria-label="Play"></button>
+  <input type="range" class="tf-scrub" id="tf-scrub" min="0" max="96000" step="10" value="0" aria-label="Position in the tour">
+  <span class="tf-time" id="tf-time">0:00 / 1:36</span>
 </div>
 <script type="module" src="./js/tour-film.js"></script>
 </body>
