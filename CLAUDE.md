@@ -176,32 +176,31 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   (`statementDayFixes` corrects a saved day that disagrees).
 - The spending period is the calendar month for everyone, whether or not a
   card has a statement day yet, and never the month the next salary pays for.
-- The tour is a page of the app, not a video: `tour.html` with
-  `js/tour-film.js`, played over the app from Setup and Settings (`js/tour.js`,
-  in an iframe) and on the welcome page. It is a sixty-second launch film,
-  silent, built from the app's own stylesheets, icons and `formatRupees`
-  with example figures that add up and say "Example figures" on screen. Two
-  stages: 1600 x 900 when its box is wide, 900 x 1600 when tall, each with
-  its own layout (`LAND`/`PORT`), rebuilt if the box changes shape. The phone
-  is the camera; pieces of the app (the Left to spend card, the owed
-  figures, the bank row, History rows) are lifted out of it as copies,
-  measured from the phone at the moment they leave, so the phone must face
-  straight on at those moments. Every moving part is one paused Web
-  Animation over the full minute, set by one clock, and the canvas
-  particles, typing and numbers are worked out from the same moment, so
-  scrubbing and playing show the same frame. Playing hands the animations
-  to the browser (all started on the page timeline at one instant) so the
-  graphics chip moves them; setting their time by hand each frame made 4.20
-  stutter. So keep every moving part to transform and opacity: no blur,
-  backdrop blur, blend modes, reflections, or width/height/letter-spacing
-  animations, all of which make the page redraw or lay out each frame.
-  `?t=31000` opens on a moment,
-  `?autoplay=0` waits on the poster frame, and reduced motion never starts
-  by itself. It does not read the real views, so change it by hand when a
-  screen it shows changes. No brand logos: the app bundles none
+- The tour is a sixty-second video, `media/kawach-tour.mp4` (1080 x 1920,
+  H.264, silent) with `media/kawach-tour.jpg` as its poster, played over the
+  app from Setup and Settings (`js/tour.js`) and on the welcome page. The
+  service worker never caches `media/`, so it needs a connection. The video
+  is rendered from the film's source, `tour.html` with `js/tour-film.js`,
+  which is drawn from the app's own stylesheets, icons and `formatRupees`
+  with example figures that add up ("Example figures" is on screen). 4.20
+  played that page live and phones stuttered and dropped parts of the
+  picture: dozens of moving 3D layers at that size are more than a phone's
+  graphics can draw reliably, while every phone plays a video smoothly. So
+  change the film in tour.html/tour-film.js and re-render the video; the
+  renderer is kept outside the repository, in
+  `expense-tracker-versions/tools/tour-video` (headless Edge opens
+  `tour.html?capture=1` at 1080 x 1920, seeks each frame with
+  `tourFilm.show(ms)`, encodes with the browser's own H.264 encoder and
+  writes the MP4 itself; no ffmpeg needed). The film is a function of time:
+  every moving part is one paused Web Animation over the minute, so a frame
+  can be shown at any moment exactly. Two stages: 1600 x 900 when its box is
+  wide, 900 x 1600 when tall (the video uses the tall one). Pieces lifted out
+  of the phone are measured from it at the moment they leave, so the phone
+  must face straight on then. No brand logos: the app bundles none
   (js/brand.js), and the card in it is drawn with no bank or network mark.
-  A first visit in a browser (not installed, nothing set up) goes to
-  `welcome.html` once.
+  Re-render the video when a screen it shows changes. A first visit in a
+  browser (not installed, nothing set up) goes to `welcome.html` once.
+
 - `sw.js` service worker: `CACHE_NAME` must match `APP_VERSION` in
   `js/version.js`, and `APP_SHELL` must list every js file, both stylesheets
   and the font, or the app breaks offline.

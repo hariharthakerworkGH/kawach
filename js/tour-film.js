@@ -39,7 +39,12 @@ const embedded = window.parent !== window;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 // ?t=31000 opens on that moment and waits, for a still to share or check.
 const startAt = Number(params.get('t')) || 0;
-const autoplay = params.get('autoplay') !== '0' && !startAt && !reduceMotion;
+// ?capture=1: the film alone, filling the window, nothing moving by the
+// wall clock. This is how media/kawach-tour.mp4 is rendered, a frame at a
+// time, so the video phones play is exactly this film.
+const capture = params.has('capture');
+if (capture) document.body.classList.add('is-capture');
+const autoplay = params.get('autoplay') !== '0' && !startAt && !reduceMotion && !capture;
 
 const stage = document.getElementById('stage');
 const playBtn = document.getElementById('tf-play');

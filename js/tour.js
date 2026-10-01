@@ -1,11 +1,16 @@
-// The tour: a minute of what the app is for, played over the app. It is a
-// page of the app itself (tour.html, js/tour-film.js), drawn live from the
-// app's own stylesheets with made-up figures, so it is kept for offline use
-// like every other screen and asks nothing of the network.
+// The tour: a minute of what the app is for, played over the app as a video.
+// The film itself is tour.html (js/tour-film.js), drawn from the app's own
+// stylesheets; media/kawach-tour.mp4 is that film rendered a frame at a time,
+// because drawing it live made phones stutter and drop parts of the picture,
+// and every phone plays a video smoothly with its own decoder. It is served
+// from the app's own address, never a video site, so watching it tells
+// nobody anything, and it is not kept for offline use: a video is too big to
+// store on every phone for one viewing.
 import { icon } from './icons.js';
 import { showToast } from './toast.js';
 
-const TOUR_PAGE = './tour.html';
+const TOUR_VIDEO = './media/kawach-tour.mp4';
+const TOUR_POSTER = './media/kawach-tour.jpg';
 const SHARE_URL = 'https://getkawach.com/welcome.html';
 
 export function playTour() {
@@ -14,30 +19,27 @@ export function playTour() {
   backdrop.innerHTML = `
     <div class="tour-box" role="dialog" aria-modal="true" aria-label="Kawach in one minute">
       <button type="button" class="icon-btn tour-close" aria-label="Close">${icon('close')}</button>
-      <iframe class="tour-video" src="${TOUR_PAGE}" title="Kawach in one minute"></iframe>
+      <video class="tour-video" src="${TOUR_VIDEO}" poster="${TOUR_POSTER}" controls autoplay playsinline preload="auto"></video>
+      <p class="muted-note tour-offline" hidden>The tour needs an internet connection.</p>
     </div>
   `;
-  const frame = backdrop.querySelector('iframe');
+  const video = backdrop.querySelector('video');
   const close = () => {
+    video.pause();
     document.removeEventListener('keydown', onKey);
-    window.removeEventListener('message', onMessage);
     backdrop.remove();
   };
   const onKey = (e) => {
     if (e.key === 'Escape') close();
   };
-  // Escape pressed inside the tour reaches the tour, not this page; it says so.
-  const onMessage = (e) => {
-    if (e.origin === location.origin && e.source === frame.contentWindow && e.data === 'kawach-tour-close') close();
-  };
-  // Focus inside the tour, so Space plays and pauses straight away.
-  frame.addEventListener('load', () => frame.contentWindow.focus());
+  video.addEventListener('error', () => {
+    backdrop.querySelector('.tour-offline').hidden = false;
+  });
   backdrop.querySelector('.tour-close').addEventListener('click', close);
   backdrop.addEventListener('click', (e) => {
     if (e.target === backdrop) close();
   });
   document.addEventListener('keydown', onKey);
-  window.addEventListener('message', onMessage);
   document.body.appendChild(backdrop);
 }
 
