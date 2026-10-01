@@ -378,7 +378,7 @@ async function renderDashboard(container) {
   });
 
   await renderAttention(container, transactions, fts);
-  await renderUpcoming(container);
+  await renderUpcoming(container, fts);
   notifySpendingLevel(fts);
 }
 
@@ -1365,11 +1365,40 @@ async function renderAttention(container, transactions, fts = null) {
   });
 }
 
-async function renderUpcoming(container) {
+// CHANGED: which fixed commitments are still upcoming. This used to be every
+// one of them with its next due date, so rent paid this morning and an EMI paid
+// on the 30th stayed on the list - and a skipped one too - until the date had
+// passed. The commitments list below already works out, for each, whether this
+// month's payment is paid, skipped, part paid or still to come; this reads that
+// same answer, so the two never disagree:
+//   - paid or skipped this period: gone;
+//   - part paid: what is left, not the whole;
+//   - still to come, or late: shown, late ones say so.
+// A commitment that is not monthly (a yearly premium) or that the list does not
+// follow (paid in cash) has no "this month" to be done, so it keeps showing with
+// its next date: better listed once too often than hidden while still owed.
+// Exported so it can be tested.
+export function upcomingCommitments(fixed, tracker, today) {
+  const byId = new Map((tracker || []).map((t) => [t.id, t]));
+  return fixed
+    .flatMap((r) => {
+      const t = byId.get(r.id);
+      if (!t || frequencyOf(r) !== 'monthly') {
+        const due = nextDueDate(r.dayOfMonth);
+        return !r.endDate || due <= r.endDate ? [{ ...r, isFixedItem: true, due }] : [];
+      }
+      if (!['due', 'late', 'part', 'untracked'].includes(t.status)) return [];
+      const due = t.due || nextDueDate(r.dayOfMonth);
+      return [{ ...r, isFixedItem: true, due, late: due < today && t.status !== 'untracked', amount: t.status === 'part' && t.left > 0 ? t.left : r.amount }];
+    })
+    .sort((a, b) => (a.due < b.due ? -1 : 1));
+}
+
+async function renderUpcoming(container, knownFigures = null) {
   const el = container.querySelector('#upcoming-section');
   if (!el) return;
 
-  const [found, categories, recurring, accounts] = await Promise.all([detectRecurring(), getAll('categories'), getAll('recurring'), getAll('accounts')]);
+  const [found, categories, recurring, accounts, figures] = await Promise.all([detectRecurring(), getAll('categories'), getAll('recurring'), getAll('accounts'), knownFigures || computeFreeToSpend()]);
   const today = isoLocal(new Date());
   // Your fixed commitments first, then what the app has spotted that isn't
   // one of them yet. Spotted items can be made fixed from here.
@@ -1381,9 +1410,14 @@ async function renderUpcoming(container) {
   }
 
   const rows = [
-    ...fixed.map((r) => ({ ...r, isFixedItem: true, due: nextDueDate(r.dayOfMonth) })).filter((r) => !r.endDate || r.due <= r.endDate),
+    ...upcomingCommitments(fixed, figures.tracker, today),
     ...detected.filter((r) => !r.spread).map((r) => ({ ...r, due: nextDueDate(r.dayOfMonth) })),
   ].sort((a, b) => (a.due < b.due ? -1 : 1));
+  // Everything this month is done: nothing to list, and no empty fold.
+  if (rows.length === 0) {
+    el.innerHTML = '';
+    return;
+  }
 
   const accountName = (id) => accounts.find((a) => a.id === id)?.label;
 
@@ -1396,7 +1430,7 @@ async function renderUpcoming(container) {
             (r) => `
           <div class="upcoming-row">
             <div class="totals-row">
-              <span>${escapeHtml(r.label)}<br><span class="muted-note">${formatDateNice(r.due)}${
+              <span>${escapeHtml(r.label)}<br><span class="muted-note">${formatDateNice(r.due)}${r.late ? ' · late' : ''}${
                 r.isFixedItem ? (r.emi ? ` · ${r.emi.current} of ${r.emi.total}` : '') : ` · spotted${accountName(r.accountId) ? ` on ${escapeHtml(accountName(r.accountId))}` : ''}`
               }</span></span>
               <span>${formatCurrency(r.amount)}</span>
@@ -1420,7 +1454,7 @@ async function renderUpcoming(container) {
       const d = detected.find((r) => r.id === btn.dataset.id);
       await put('recurring', commitmentFromSuggestion(d, `fixed-${newId()}`));
       showToast('Added to your fixed commitments on Plan');
-      renderUpcoming(container);
+      renderUpcoming(container, figures);
     });
   });
 
@@ -1429,7 +1463,7 @@ async function renderUpcoming(container) {
       const rec = detected.find((r) => r.id === btn.dataset.id);
       rec.active = false;
       await put('recurring', rec);
-      renderUpcoming(container);
+      renderUpcoming(container, figures);
     });
   });
 }
