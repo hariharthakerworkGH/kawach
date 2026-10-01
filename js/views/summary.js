@@ -432,18 +432,25 @@ const breakdownLine = (label, amount, sign, note = '') =>
  * most likely to be staring at. Past the budget it says "against" instead,
  * which stays true however far past it goes.
  */
-// CHANGED: an optional third figure, the work costs paid back this month. When
-// there are any, "spent" says so, because the number is then lower than what
-// went out and a bare "-₹15,000 spent" would read as a mistake.
-export function spentLine(spent, limit, paidBack = 0) {
+export function spentLine(spent, limit) {
   const over = spent > limit;
-  const after = paidBack > 0 ? `, after ${formatRupees(paidBack)} paid back` : '';
   return `<div class="stat stat-wide">
         <span class="stat-v">${formatRupees(spent)}${over ? '' : ` <span class="stat-of">of</span> ${formatRupees(limit)}`}</span>
-        <span class="stat-k">${over ? `spent against ${formatRupees(limit)}` : 'spent'}${after}</span>
+        <span class="stat-k">${over ? `spent against ${formatRupees(limit)}` : 'spent'}</span>
       </div>`;
 }
 
+// NEW (4.18): a work cost you will be refunded for is inside "owed on cards",
+// which the bank check subtracts in full, because money that has not arrived is
+// never counted. This is the other half of the picture: how much of it is
+// coming back, and what the bank check would read once it has. Shown beside the
+// cautious figure, never in place of it. Null when there is nothing to show -
+// no shortfall, or nothing coming back.
+export function ifRefunded(f) {
+  const refund = f.refundInBankCheck || 0;
+  if (f.bankAfterBills == null || !(f.bankAfterBills < 0) || refund <= 0) return null;
+  return { refund, after: f.bankAfterBills + refund };
+}
 // NEW: what is owed, in two plain figures. Card debt is every card's bill not
 // yet paid plus what has been spent since the last statement - the same two
 // numbers the bank check already subtracts, added up, and nothing else. It
@@ -461,7 +468,7 @@ function renderOwed(f) {
       }
       ${
         employer
-          ? `<div class="stat"><span class="stat-v">${formatRupees(employer)}</span><span class="stat-k">Owed back by employer</span></div>`
+          ? `<div class="stat"><span class="stat-v">${formatRupees(employer)}</span><span class="stat-k">Owed back by employer</span>${f.refundOverdue ? `<span class="stat-sub">${formatRupees(f.refundOverdue.amount)} late, since ${formatDateNice(f.refundOverdue.since)}</span>` : ''}</div>`
           : ''
       }
     </div>`;
@@ -546,9 +553,9 @@ function insightCard(f) {
   if (f.bankShortfall > 0) {
     tone = 'k-context--alert';
     title = billed > 0 ? 'Card bill is still unpaid' : 'Money owed is more than the bank can cover';
-    body = billed > 0
+    body = (billed > 0
       ? `${formatRupees(billed)} is still unpaid on cards. ${salaryPending ? `After salary on ${formatDateNice(payday)}` : 'After salary'} and other bills, your bank is projected ${formatRupees(f.bankShortfall)} short.`
-      : `${salaryPending ? `After salary on ${formatDateNice(payday)}` : 'After salary'} and other bills, your bank is projected ${formatRupees(f.bankShortfall)} short.`;
+      : `${salaryPending ? `After salary on ${formatDateNice(payday)}` : 'After salary'} and other bills, your bank is projected ${formatRupees(f.bankShortfall)} short.`);
   } else if (salaryPending && billed > 0) {
     tone = 'k-context--attention';
     title = 'Card bill is still unpaid';
@@ -685,7 +692,7 @@ function renderCardsHero(f, { past = null } = {}) {
 
   return spendingHero(shown, appearance('summary'), past ? `Final for ${past.name}` : null) + `
     <div class="hero-under">
-      ${spentLine(f.spentThisCycle, f.limit, f.reimbursedThisMonth)}
+      ${spentLine(f.spentThisCycle, f.limit)}
       ${past ? '' : stillSetAside(f)}
     </div>
     ${
@@ -726,7 +733,13 @@ function renderCardsHero(f, { past = null } = {}) {
             .join('')}
           ${f.cardCommitmentCharges.map((c) => line(escapeHtml(c.label), c.amount, '+', 'commitment, already in the budget')).join('')}
           ${line('Bank spending', f.bankSpent, '-', `UPI and more, ${formatDateNice(f.bankMonthStart)} to ${formatDateNice(f.bankMonthEnd)}`)}
-          ${f.reimbursedThisMonth ? line('Paid back by employer', f.reimbursedThisMonth, '+', 'this month') : ''}
+          ${
+            // Shown so you can see they were left out, never counted: money you
+            // will be paid back is not money you spent.
+            f.workCostsThisMonth
+              ? `<div class="totals-row sub"><span class="muted-note">Work costs this month, owed back by your employer · not counted</span><span class="muted-note">${formatRupees(f.workCostsThisMonth)}</span></div>`
+              : ''
+          }
           ${biggestSpends(f)}
           ${(f.returned || [])
             .map(
@@ -901,6 +914,19 @@ function renderBankCard(f) {
         <div><span class="hero-label">In bank</span><p class="bank-amount">${formatRupees(f.bank)}</p></div>
         <div class="bank-after"><span class="hero-label">${incomeWords(f.incomeKind).afterBank}</span><p class="bank-amount small ${tone}">${formatRupees(f.bankAfterBills)}</p></div>
       </div>
+      ${
+        // The cautious figure above is what is in hand. This is the same check
+        // if what is owed back for work arrives, and says so when it is late.
+        (() => {
+          const w = ifRefunded(f);
+          const late = f.refundOverdue;
+          return `${
+            w
+              ? `<div class="bank-refund"><span class="muted-note">If your employer pays back ${formatRupees(w.refund)}</span><span class="${w.after < 0 ? 'out' : 'in'}">${formatRupees(w.after)}</span></div>`
+              : ''
+          }${late ? `<p class="bank-late muted-note">${formatRupees(late.amount)} from your employer is late: it was due back by the ${formatDateNice(late.since)} statement.</p>` : ''}`;
+        })()
+      }
       <details class="fts-breakdown">
         <summary>Bank breakdown</summary>
         ${perAccount}

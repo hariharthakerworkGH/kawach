@@ -1259,17 +1259,20 @@ test('a card number nobody owns is still linked when you confirm it', async () =
 });
 
 // --- Reimbursable: a work cost you front, and the money coming back -----------
-// The owner's own scenario, as written: the hotel is swiped on 26 Sep and paid
-// back on 15 Oct. Four gates, and none of them may move the other months.
-//   1. Swiping it takes it off September's budget like any spend.
+// THE RULE (changed in 4.18 at the owner's request): money you will be paid back
+// is not money you spent. A work cost you flag is shown and followed - owed
+// back, and in the bank check - but never comes off what you can spend. When the
+// refund arrives it only clears what is owed; it does not add spending room,
+// because the cost never took any away.
+//   1. Swiping the hotel does not move "Left to spend".
 //   2. "Owed back" survives the new month - it is a debt, not a month's figure.
-//   3. The company's money adds capacity to OCTOBER only; September is untouched.
+//   3. The company's money changes nothing about spending, in either month.
 //   4. Once settled the tally is nothing.
 async function seedReimbursable() {
   await seedBasics({ keep: 0 });
   await put('recurring', commitment({ id: 'rent', label: 'Rent', amount: 10000, dayOfMonth: 5 }));
 }
-const hotel = () => txn({ id: 'hotel', accountId: 'card', date: '2026-09-26', amount: 15000, rawDescription: 'HOTEL STAY', isReimbursable: true });
+const hotel = (extra = {}) => txn({ id: 'hotel', accountId: 'card', date: '2026-09-26', amount: 15000, rawDescription: 'HOTEL STAY', isReimbursable: true, ...extra });
 const payback = (extra = {}) => txn({ id: 'payback', accountId: 'bank', date: '2026-10-15', amount: 15000, direction: 'credit', rawDescription: 'NEFT-ACME LTD-REIMB', isSettlement: true, ...extra });
 
 test('reimbursable gates 1-4: the owner\'s scenario, month by month', async () => {
@@ -1279,11 +1282,13 @@ test('reimbursable gates 1-4: the owner\'s scenario, month by month', async () =
   const sep25 = await computeFreeToSpend(day('2026-09-25'));
   equal(sep25.free, sep25.limit - rupees(20000), 'before the hotel: budget less the 20,000 spent');
 
-  // Gate 1.
+  // Gate 1: a cost you will be refunded for is not spending.
   await putAll('transactions', [hotel()]);
   const sep26 = await computeFreeToSpend(day('2026-09-26'));
-  equal(sep25.free - sep26.free, rupees(15000), 'gate 1: the hotel comes off September like any spend');
-  equal(sep26.reimbursable.owed, rupees(15000), 'and is owed back');
+  equal(sep26.free, sep25.free, 'gate 1: the hotel does not touch what is left to spend');
+  equal(sep26.spentThisCycle, rupees(20000), 'spent is still only the 20,000');
+  equal(sep26.reimbursable.owed, rupees(15000), 'it is owed back');
+  equal(sep26.workCostsThisMonth, rupees(15000), 'and shown as this month\'s work costs');
 
   // Gate 2.
   const oct1 = await computeFreeToSpend(day('2026-10-01'));
@@ -1291,10 +1296,10 @@ test('reimbursable gates 1-4: the owner\'s scenario, month by month', async () =
   equal(oct1.free, oct1.limit, 'with its whole budget');
   equal(oct1.reimbursable.owed, rupees(15000), 'gate 2: what is owed back is still owed on 1 Oct');
 
-  // Gate 3.
+  // Gate 3: money back clears the debt, and adds no room it never took.
   await putAll('transactions', [payback()]);
   const oct15 = await computeFreeToSpend(day('2026-10-15'));
-  equal(oct15.free, oct15.limit + rupees(15000), 'gate 3: the money back is 15,000 of October capacity');
+  equal(oct15.free, oct15.limit, 'gate 3: the refund adds nothing to October');
   const sep30 = await computeFreeToSpend(day('2026-09-30'));
   equal(sep30.free, sep26.free, 'gate 3: September is exactly as it was');
 
@@ -1310,21 +1315,110 @@ test('a part payment leaves the rest owed, and more than owed never goes negativ
   equal((await computeFreeToSpend(day('2026-10-16'))).reimbursable.owed, 0, 'over-paid is not a debt the other way');
 });
 
-test('money back on a card is counted once, not twice', async () => {
+test('a flagged cost is not spending, on a card or from the bank - and the same cost unflagged is', async () => {
   await seedReimbursable();
-  // Card credits already come off card spending; the new rule must not add a second.
-  await putAll('transactions', [hotel(), payback({ accountId: 'card' })]);
-  const f = await computeFreeToSpend(day('2026-10-15'));
-  equal(f.free, f.limit + rupees(15000), 'once');
+  const base = await computeFreeToSpend(day('2026-09-28'));
+  await putAll('transactions', [hotel({ date: '2026-09-27' }), txn({ id: 'taxi', accountId: 'bank', date: '2026-09-27', amount: 2000, rawDescription: 'UPI-CABS', isReimbursable: true })]);
+  const flagged = await computeFreeToSpend(day('2026-09-28'));
+  equal([flagged.cardSpent, flagged.bankSpent, flagged.free], [0, 0, base.free], 'neither the card nor the bank side counts it');
+  equal(flagged.workCostsThisMonth, rupees(17000));
+  await put('transactions', hotel({ date: '2026-09-27', isReimbursable: undefined }));
+  await put('transactions', txn({ id: 'taxi', accountId: 'bank', date: '2026-09-27', amount: 2000, rawDescription: 'UPI-CABS' }));
+  const plain = await computeFreeToSpend(day('2026-09-28'));
+  equal([plain.cardSpent, plain.bankSpent], [rupees(15000), rupees(2000)], 'the same payments, unflagged, are spending');
 });
 
+test('a refund never changes what you can spend, whichever account it lands in', async () => {
+  await seedReimbursable();
+  await putAll('transactions', [hotel()]);
+  const before = await computeFreeToSpend(day('2026-09-28'));
+  await putAll('transactions', [payback({ id: 'b', date: '2026-09-28' }), payback({ id: 'c', date: '2026-09-28', accountId: 'card', amount: 3000 })]);
+  const after = await computeFreeToSpend(day('2026-09-28'));
+  equal([after.spentThisCycle, after.free], [before.spentThisCycle, before.free], 'a bank refund and a card refund: spending is where it was');
+  equal(after.reimbursable.owed, 0, 'but what is owed back came down (and never below nothing)');
+});
+
+test('a work cost is not mistaken for a household commitment', async () => {
+  await seedReimbursable();
+  // Same size as the rent, a few days from its due date: it would normally be taken for it.
+  await putAll('transactions', [txn({ id: 'wk', accountId: 'bank', date: '2026-09-04', amount: 10000, rawDescription: 'NEFT-CLIENT DINNER', isReimbursable: true })]);
+  const f = await computeFreeToSpend(day('2026-09-10'));
+  equal(f.tracker.find((x) => x.label === 'Rent').used, 0, 'the rent is not paid by it');
+});
+
+test('what the bank check owes on cards that your employer will refund is said, never silently counted', async () => {
+  await seedReimbursable();
+  await putAll('transactions', [
+    hotel({ date: '2026-09-27' }),
+    // Last cycle's work cost: already on a bill that is no longer this cycle's spend.
+    hotel({ id: 'old', date: '2026-09-10', amount: 4000 }),
+  ]);
+  const f = await computeFreeToSpend(day('2026-09-28'));
+  equal(f.reimbursable.owed, rupees(19000), 'all of it is owed back');
+  equal(f.refundInBankCheck, rupees(15000), 'but only this cycle\'s card spend is inside what the bank check subtracts');
+  await putAll('transactions', [payback({ date: '2026-09-28', amount: 6000 })]);
+  equal((await computeFreeToSpend(day('2026-09-28'))).refundInBankCheck, rupees(13000), 'and a part refund comes off it');
+});
+
+// A card's work cost is due back by that card's statement - the cycle it was
+// charged in, which is the owner's own expectation. Past it, still unpaid, it is
+// LATE: said plainly, so a forgotten refund cannot sit as a hopeful number.
+test('a refund is late once its card\'s statement has been cut, and not before', async () => {
+  await seedReimbursable();
+  await putAll('transactions', [hotel({ date: '2026-09-10' })]);
+  equal((await computeFreeToSpend(day('2026-09-20'))).refundOverdue, null, 'before the statement on the 25th: not late');
+  const late = await computeFreeToSpend(day('2026-09-30')).then((f) => f.refundOverdue);
+  equal([late.amount, late.since], [rupees(15000), '2026-09-25'], 'after it: late, and since the statement day');
+  await putAll('transactions', [payback({ id: 'part', date: '2026-09-30', amount: 6000 })]);
+  equal((await computeFreeToSpend(day('2026-09-30'))).refundOverdue.amount, rupees(9000), 'a part refund leaves the rest late');
+  await putAll('transactions', [payback({ id: 'rest', date: '2026-09-30', amount: 9000 })]);
+  equal((await computeFreeToSpend(day('2026-09-30'))).refundOverdue, null, 'and once it is all back, nothing is late');
+});
+
+test('a refund is applied to the oldest cost first, so a newer cost is not called late for it', async () => {
+  await seedReimbursable();
+  await putAll('transactions', [
+    hotel({ id: 'older', date: '2026-09-10', amount: 4000 }),
+    hotel({ id: 'newer', date: '2026-09-27', amount: 15000 }),
+    payback({ id: 'for-older', date: '2026-09-28', amount: 4000 }),
+  ]);
+  const f = await computeFreeToSpend(day('2026-09-30'));
+  equal(f.reimbursable.owed, rupees(15000), 'the newer one is still owed');
+  equal(f.refundOverdue, null, 'but its statement is not cut until 25 Oct, so it is not late');
+});
+
+test('a work cost paid from the bank has no statement to be late against', async () => {
+  await seedReimbursable();
+  await putAll('transactions', [txn({ id: 'cab', accountId: 'bank', date: '2026-08-01', amount: 3000, rawDescription: 'UPI-CABS', isReimbursable: true })]);
+  equal((await computeFreeToSpend(day('2026-09-30'))).refundOverdue, null);
+});
 test('a big reimbursement near payday is not mistaken for the salary', async () => {
   await seedReimbursable();
   await putAll('transactions', [payback({ id: 'big', date: '2026-09-29', amount: 60000 })]);
   const f = await computeFreeToSpend(day('2026-09-29'));
   ok(!f.salary.alreadyIn, 'a work reimbursement is not payday');
 });
-
+// --- A card commitment paid in the cycle but not in the month ------------------
+// Spending is the calendar month; a card commitment belongs to the card CYCLE
+// (26 Sep to 25 Oct). A payment to it on 28 Sep is inside the cycle and outside
+// October. It must not be taken off October's card spending as "already in the
+// budget": it was never in October's total, so doing so understated October by
+// that amount - and once the only other card spend left (a flagged work cost),
+// it made October's spending negative. Found in the owner's own report.
+test('a card commitment paid late last month is not taken off this month\'s card spending', async () => {
+  await seedAllowance();
+  await putAll('transactions', [
+    txn({ id: 'film', accountId: 'card', date: '2026-09-28', amount: 1500, rawDescription: 'FILM LAST MONTH', categoryId: 'ent' }),
+    txn({ id: 'chai', accountId: 'card', date: '2026-10-01', amount: 380, rawDescription: 'CHAI TODAY' }),
+  ]);
+  const f = await computeFreeToSpend(day('2026-10-01'));
+  equal(f.cardSpent, rupees(380), 'October\'s card spending is October\'s alone');
+  ok(f.spentThisCycle >= 0, 'and spending never goes below nothing for want of a refund');
+  const row = f.tracker.find((x) => x.label === 'Entertainment');
+  equal(row.used, rupees(1500), 'while the allowance still counts the film in its own cycle');
+  const sep = await computeFreeToSpend(day('2026-09-30'));
+  equal(sep.cardSpent, 0, 'and September, where the film was spent, took it as part of its allowance');
+});
 // --- A bill paid on the 30th for next month -----------------------------------
 // Rent is due on the 5th and you pay it on 30 Sep, while September is ending.
 // Flagged "apply to next month's commitments" it is October's rent: not

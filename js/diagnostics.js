@@ -211,7 +211,9 @@ export async function buildDiagnosticReport(now = new Date()) {
       // report did not carry enough to see why without loading all of it).
       spentOnCards: figures.cardSpent,
       spentFromBank: figures.bankSpent,
-      reimbursedThisMonth: figures.reimbursedThisMonth,
+      workCostsThisMonth: figures.workCostsThisMonth,
+      refundInBankCheck: figures.refundInBankCheck,
+      refundOverdue: figures.refundOverdue,
       owedBackByEmployer: figures.reimbursable ? figures.reimbursable.owed : 0,
       perDay: figures.perDay,
       owedOnCards: figures.totals ? figures.totals.owedCards : null,

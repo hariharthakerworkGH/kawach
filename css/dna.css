@@ -3032,3 +3032,18 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
   color: var(--k-text);
   font: inherit;
 }
+
+/* The bank card's second figure (what it would read if the work costs are paid
+   back) and the line for a late refund; and the note under "Owed back by
+   employer". Quiet: the cautious figure above them stays the loud one. */
+.k .bank-refund {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--k-3);
+  margin: var(--k-3) 0 0;
+  font-size: var(--k-label);
+}
+.k .bank-refund span:last-child { font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.k .bank-late { margin: var(--k-2) 0 0; color: var(--k-warning); }
+.k .stat-sub { display: block; margin-top: 2px; font-size: var(--k-caption); color: var(--k-warning); }
