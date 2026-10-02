@@ -235,7 +235,10 @@ Summary's month: Peaks draws it as mountains (`monthMountains`), chosen in
 `monthWaves` by the style worn. Paint alone made the styles look alike, so
 since 5.9 each also lays out Summary's top half as its mockup does
 (`js/views/summary-looks.js`, same figures, own markup) and has its own tab
-bar and title; the other screens are still Charts' layout in their colours.
+bar and title. By 5.16 every tab is laid out per style after its mockup:
+Add regroups the same form (`arrangeAdd` in add.js), Accounts and History
+regroup and restyle theirs, Plan and Coach draw their top and month in
+`plan-looks.js` / `coachTop` in coach.js. Charts' layout never changes.
 **Every style says exactly the same things** (the owner's rule, 5.10): only
 how they look may differ. The list is in summary-looks.js's header; a card
 in a chart is always named (`cardTag`: first word and last four digits).

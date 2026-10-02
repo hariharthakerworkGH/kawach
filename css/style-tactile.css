@@ -328,3 +328,10 @@ button.tl-item { cursor: pointer; }
 :root[data-style="tactile"] .k .txn-amount { font-weight: 700; }
 :root[data-style="tactile"] .k .hist-day-card { grid-template-columns: minmax(0, 1fr); }
 :root[data-style="tactile"] .k #hist-hero .stat { flex-direction: row; }
+
+/* --- Coach, after the mockup (5.16) --------------------------------------
+ * Left at this pace on a raised card, the three figures in wells, the share
+ * of what is left as a pressed-in bar; the questions as raised rows. */
+:root[data-style="tactile"] .k-coach .coach-q { border-radius: 14px; margin-bottom: 8px; }
+:root[data-style="tactile"] .k-coach .coach-q .k-icon,
+:root[data-style="tactile"] .k-coach .coach-q [class*="k-brand"] { border-radius: 10px; background: var(--t-well); box-shadow: var(--t-well-shadow); color: var(--k-accent); }

@@ -358,3 +358,10 @@
 :root[data-style="mindora"] .k .hist-cat { border-radius: 50%; }
 :root[data-style="mindora"] .k .txn-amount { font-family: var(--m-figure); font-weight: 500; }
 :root[data-style="mindora"] .k #hist-hero .hero-under { background: none; border: 0; box-shadow: none; padding: 0; border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* --- Coach, after the mockup (5.16) --------------------------------------
+ * Left at this pace on glass with the three figures and a fine line for the
+ * share of what is left; the questions as glass rows with round icons. */
+:root[data-style="mindora"] .k-coach .coach-q { border-radius: 20px; margin-bottom: 10px; }
+:root[data-style="mindora"] .k-coach .coach-q .k-icon,
+:root[data-style="mindora"] .k-coach .coach-q [class*="k-brand"] { border-radius: 50%; color: var(--k-accent); background: var(--m-glass-strong); border: 1px solid var(--m-edge); }
