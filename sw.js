@@ -5,7 +5,7 @@
 // counter, not the version people see). The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v159';
+const CACHE_NAME = 'expense-tracker-v160';
 
 const APP_SHELL = [
   './',
@@ -19,6 +19,12 @@ const APP_SHELL = [
   './css/style-peaks.css',
   './css/style-mindora.css',
   './fonts/Geist-Variable.woff2',
+  './fonts/Inter-latin.woff2',
+  './fonts/Inter-latin-ext.woff2',
+  './fonts/DMSans-latin.woff2',
+  './fonts/DMSans-latin-ext.woff2',
+  './fonts/CormorantGaramond-Italic-latin.woff2',
+  './fonts/CormorantGaramond-Italic-latin-ext.woff2',
   './js/app.js',
   './js/swipe.js',
   './js/appearance.js',

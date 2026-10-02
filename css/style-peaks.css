@@ -194,3 +194,29 @@ button.pk-card { cursor: pointer; }
 :root[data-style="peaks"] .k .hero-under { padding: var(--k-4); margin-top: var(--k-3); }
 .pk-pines { width: 96px; height: 96px; bottom: -10px; }
 .pk-coming .pk-dashes { padding-right: 0; }
+
+/* --- From the reference (5.11) -------------------------------------------
+ * Its ring is thin; its week is a smooth orange line; every figure in it is
+ * thin and light, on every screen, and its rings and gauges are thin arcs
+ * in the accent over a dark track. */
+.pk-donut { stroke-width: 9; }
+.pk-wline { display: block; width: 100%; height: auto; margin-top: 4px; overflow: visible; }
+.pk-wline__area { fill: color-mix(in srgb, var(--k-grad-1a) 10%, transparent); }
+.pk-wline__l { fill: none; stroke: var(--k-grad-1a); stroke-width: 2; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--k-grad-1a) 55%, transparent)); }
+.pk-wline__dot { fill: var(--k-surface); stroke: var(--k-grad-1a); stroke-width: 1.5; }
+.pk-wline__now { fill: var(--k-grad-2a); filter: drop-shadow(0 0 4px var(--k-grad-2a)); }
+.pk-wdays { display: flex; justify-content: space-between; padding: 2px 1.5% 0; }
+.pk-wdays small { width: 12px; text-align: center; font-size: 10px; color: var(--k-text-3); }
+:root[data-style="peaks"] .hero-amount,
+:root[data-style="peaks"] .tracking-stats b,
+:root[data-style="peaks"] .k-row__value,
+:root[data-style="peaks"] .stat-v,
+:root[data-style="peaks"] .totals-row span:last-child,
+:root[data-style="peaks"] .waves__k b,
+:root[data-style="peaks"] .tracking-ring__mid b { font-weight: 300; }
+:root[data-style="peaks"] .tracking-stats small,
+:root[data-style="peaks"] .hero-label,
+:root[data-style="peaks"] .k-row__meta { letter-spacing: .02em; }
+:root[data-style="peaks"] .tracking-ring__track { stroke-width: 7; stroke: color-mix(in srgb, var(--k-text) 9%, transparent); }
+:root[data-style="peaks"] .tracking-ring__arc { stroke-width: 7; }
+:root[data-style="peaks"] .k .hero .tracking-ring__track { stroke: color-mix(in srgb, var(--p-ink) 10%, transparent); }

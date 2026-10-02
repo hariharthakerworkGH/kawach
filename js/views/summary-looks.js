@@ -137,6 +137,31 @@ export function tactileTop(f, status, month) {
 }
 
 /* --- Peaks: the pale panel with a donut, the mountains, slate cards ------ */
+// The week as the reference's smooth orange line, today's point in teal.
+function weekLine(x) {
+  const n = x.week.length;
+  if (n < 2) return weekCols(x, 'pk-cols');
+  const W = 300, H = 72;
+  const top = Math.max(1, ...x.week.map((d) => d.amount || 0));
+  const px = (i) => 10 + (i * (W - 20)) / (n - 1);
+  const py = (v) => H - 10 - (v / top) * (H - 26);
+  const pts = x.week.map((d, i) => [px(i), py(d.amount || 0)]);
+  const line = pts.reduce((d, [a, b], i) => {
+    if (!i) return `M${a.toFixed(1)} ${b.toFixed(1)}`;
+    const [qa, qb] = pts[i - 1];
+    const m = (a - qa) / 2;
+    return `${d} C${(qa + m).toFixed(1)} ${qb.toFixed(1)} ${(a - m).toFixed(1)} ${b.toFixed(1)} ${a.toFixed(1)} ${b.toFixed(1)}`;
+  }, '');
+  const [lx, ly] = pts[n - 1];
+  return `<svg class="pk-wline" viewBox="0 0 ${W} ${H}" role="img" aria-label="This week ${formatRupees(x.weekTotal)}">
+      <path class="pk-wline__area" d="${line} L${lx.toFixed(1)} ${H} L${pts[0][0].toFixed(1)} ${H} Z"/>
+      <path class="pk-wline__l" d="${line}"/>
+      ${pts.slice(0, -1).map(([a, b]) => `<circle class="pk-wline__dot" cx="${a.toFixed(1)}" cy="${b.toFixed(1)}" r="2.5"/>`).join('')}
+      <circle class="pk-wline__now" cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="4"/>
+    </svg>
+    <div class="pk-wdays">${x.week.map((d) => `<small>${dow(d.date)}</small>`).join('')}</div>`;
+}
+
 const arc = (r, a0, a1) => {
   const T = (v) => -Math.PI / 2 + v * 2 * Math.PI;
   const p = (a) => [75 + r * Math.cos(T(a)), 75 + r * Math.sin(T(a))];
@@ -174,7 +199,7 @@ export function peaksTop(f, status, month) {
       <p class="pk-status ${tone(f)}">${escapeHtml(status)}</p>
     </div>
     ${month || ''}
-    ${x.week.length ? `<div class="pk-card pk-week"><div class="pk-row"><span class="pk-lab">This week</span><span class="pk-n pk-n--s">${sup(plain(x.weekTotal))}</span></div>${weekCols(x, 'pk-cols')}</div>` : ''}
+    ${x.week.length ? `<div class="pk-card pk-week"><div class="pk-row"><span class="pk-lab">This week</span><span class="pk-n pk-n--s">${sup(plain(x.weekTotal))}</span></div>${weekLine(x)}</div>` : ''}
     ${x.cards.length ? `<div class="pk-card"><div class="pk-row"><span class="pk-lab">Owed on cards${x.bills ? ` · <span class="pk-hot">${bills(x.bills)}</span>` : ''}</span><span class="pk-n pk-n--m">${sup(plain(x.owedCards))}</span></div>
       <div class="pk-bars">${x.cards.map((c) => `<div class="pk-bar">${tagHtml(c)}<span class="pk-trk"><i style="width:${pct(c.share)}"></i></span><b>${plain(c.amount)}</b></div>`).join('')}</div></div>` : ''}
     ${x.kept || x.employer ? `<div class="pk-two">
