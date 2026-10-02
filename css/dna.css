@@ -3386,3 +3386,27 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .summary-rows.summary-strip .summary-row { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 4px; padding: 0 0 var(--k-2); min-height: 0; }
 .k .summary-rows.summary-strip .summary-row__k { display: block; }
 .k .summary-rows.summary-strip .summary-row__k small { display: block; margin-top: 2px; }
+
+/* ---- Add in the Charts style (5.1) ---------------------------------------
+ * The amount on the second gradient with a wave across it and Spent or
+ * Received as a white pill; the chosen category lit on the first gradient;
+ * Save on the first gradient. Text on a gradient takes that gradient's own
+ * ink from the colouring, so it reads in every one. */
+.k .amount-hero { position: relative; overflow: hidden; padding: var(--k-5) var(--k-5) var(--k-4); border-radius: var(--k-r-lg); background: linear-gradient(160deg, var(--k-grad-2a), var(--k-grad-2b)); box-shadow: 0 14px 30px -14px color-mix(in oklch, var(--k-grad-2b) 60%, transparent); color: var(--k-grad-2-ink); }
+.k .amount-hero::before { content: none; }
+.k .amount-hero .hero-label, .k .amount-hero .amount-prefix, .k .amount-hero .amount-input { color: var(--k-grad-2-ink); }
+.k .amount-hero .hero-label { opacity: 0.8; }
+.k .amount-hero .amount-input { font-weight: 300; }
+.k .amount-hero .amount-input::placeholder { color: var(--k-grad-2-ink); opacity: 0.45; }
+.k .amount-hero .amount-input-wrap::after { background: color-mix(in oklch, var(--k-grad-2-ink) 30%, transparent); }
+.k .amount-hero .amount-input-wrap:focus-within::after { background: var(--k-grad-2-ink); box-shadow: none; }
+.k .amount-hero .amount-wave { display: block; width: 100%; height: auto; margin: var(--k-2) 0 0; fill: none; stroke: var(--k-grad-2-ink); stroke-width: 2; opacity: 0.55; }
+.k .amount-hero .amount-wave circle { fill: var(--k-grad-2-ink); stroke: none; }
+.k .amount-hero .direction-toggle { background: rgb(255 255 255 / 0.92); border: 0; padding: 4px; box-shadow: 0 6px 14px rgb(0 0 0 / 0.15); }
+.k .amount-hero .k-seg__btn { color: #8a8a8a; font-weight: var(--k-w-strong); letter-spacing: 0.06em; text-transform: uppercase; font-size: var(--k-caption); }
+.k .amount-hero .k-seg__btn[aria-selected="true"] { background: none; color: #222; box-shadow: none; }
+.k .amount-hero .k-seg__btn + .k-seg__btn { border-left: 1px solid #ddd; border-radius: 0 999px 999px 0; }
+.k .k-picker.is-chosen { border-color: transparent; background: linear-gradient(90deg, var(--k-grad-1a), var(--k-grad-1b)); color: var(--k-grad-1-ink); }
+.k .k-picker.is-chosen::after { border-color: var(--k-grad-1-ink); }
+.k .add-form .k-btn--primary { background: linear-gradient(90deg, var(--k-grad-1a), var(--k-grad-1b)); color: var(--k-grad-1-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--k-grad-1b) 70%, transparent); }
+.k .amount-hero .amount-input { background: transparent !important; border: 0 !important; box-shadow: none !important; }

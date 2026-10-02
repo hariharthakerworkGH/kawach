@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.1',
+    items: [
+      {
+        icon: 'add',
+        title: "Add in the Charts style",
+        text: "Add now matches: the amount on a gradient card with Spent or Received beside it, the category you pick lit up, and a gradient Save.",
+        guide: [{ view: 'add', target: '.amount-hero', text: "Type the amount here." }],
+      },
+    ],
+  },
+  {
     version: '5.0',
     items: [
       {

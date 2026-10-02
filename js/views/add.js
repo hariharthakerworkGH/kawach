@@ -104,6 +104,8 @@ export async function render(container, params = {}) {
             <input id="add-amount" class="amount-input" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="0" required>
           </div>
         </label>
+        <!-- The Charts style's wave across the card: decoration only. -->
+        <svg class="amount-wave" viewBox="0 0 330 56" aria-hidden="true" focusable="false"><path d="M0 30 C20 30 20 10 40 10 C61 10 61 46 82 46 C103 46 103 8 125 8 C146 8 146 40 168 40 C189 40 189 18 210 18 C231 18 231 50 252 50 C272 50 272 12 292 12 C311 12 311 34 330 34"/><circle cx="125" cy="8" r="4.5"/></svg>
         <div class="k-seg direction-toggle" role="tablist" aria-label="Which way the money went">
           <button type="button" class="k-seg__btn dir-btn active" role="tab" aria-selected="true" data-dir="debit">Spent</button>
           <button type="button" class="k-seg__btn dir-btn" role="tab" aria-selected="false" data-dir="credit">Received</button>
@@ -261,6 +263,8 @@ export async function render(container, params = {}) {
     const name = chosen ? chosen.querySelector('.k-row__title').textContent : 'Uncategorized';
     catName.textContent = name;
     catMark.innerHTML = brandMark(name, { category: name, size: 'sm' });
+    // A category chosen lights the row (the Charts style's highlighted row).
+    openBtn.classList.toggle('is-chosen', Boolean(chosen && chosen.dataset.cat));
   };
 
   let lastFocus = null;
