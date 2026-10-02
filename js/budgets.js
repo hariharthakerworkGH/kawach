@@ -1,5 +1,6 @@
 import { getSetting, setSetting, getAll } from './db.js';
 import { categorySlices } from './splits.js';
+import { isPutAway } from './account-metrics.js';
 import { spendingMonthOf, accountMap, CYCLE_SETTING_KEY } from './spending-month.js';
 
 // Budgets are a plain map of categoryId -> monthly limit in paise, kept in the
@@ -28,13 +29,16 @@ export function monthStartISO(date = new Date()) {
 // more headroom.
 export function spendByCategoryForMonth(transactions, accounts, monthKey, cycleAware = true) {
   const byId = accountMap(accounts);
-  return tally(transactions.filter((t) => spendingMonthOf(t, byId.get(t.accountId), cycleAware) === monthKey));
+  return tally(transactions.filter((t) => spendingMonthOf(t, byId.get(t.accountId), cycleAware) === monthKey), byId);
 }
 
-function tally(rows) {
+// An account you do not spend from (a savings pot, a bank kept for EMIs and
+// FDs) is never spending, so its payments out stay out of every category: two
+// home-loan EMIs from it once read as ₹46,000 of "Transport" a month.
+function tally(rows, byId) {
   const totals = new Map();
   for (const t of rows) {
-    if (t.isTransfer || t.direction !== 'debit') continue;
+    if (t.isTransfer || t.direction !== 'debit' || isPutAway(byId.get(t.accountId) || {})) continue;
     for (const slice of categorySlices(t)) {
       const key = slice.categoryId || 'uncategorized';
       totals.set(key, (totals.get(key) || 0) + slice.amount);

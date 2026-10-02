@@ -11,6 +11,7 @@ import { showToast } from '../toast.js';
 import { displayName } from './transactions.js';
 import { isBusinessCategory, isBusinessAccount, moneyProfile } from '../business.js';
 import { categorySlices } from '../splits.js';
+import { isPutAway } from '../account-metrics.js';
 import { escapeHtml, escapeAttr } from '../ui.js';
 
 // Your categories: rename them, pick their icon, and say which sits under
@@ -475,11 +476,13 @@ let biggestSpend = 0;
 
 function spendThisMonth(transactions, accounts, lane) {
   const business = new Set(accounts.filter(isBusinessAccount).map((a) => a.id));
+  // Nothing leaving an account you do not spend from is spending (budgets.js).
+  const putAway = new Set(accounts.filter(isPutAway).map((a) => a.id));
   const month = new Date();
   const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
   const totals = new Map();
   for (const t of transactions) {
-    if (t.direction !== 'debit' || t.isTransfer || t.date.slice(0, 7) !== key) continue;
+    if (t.direction !== 'debit' || t.isTransfer || t.date.slice(0, 7) !== key || putAway.has(t.accountId)) continue;
     if (business.has(t.accountId) !== (lane === 'business')) continue;
     for (const slice of categorySlices(t)) {
       if (!slice.categoryId) continue;

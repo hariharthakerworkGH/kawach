@@ -6,6 +6,7 @@ import { categorySlices } from '../splits.js';
 import { categoryBars } from '../charts.js';
 import { spendingMonthOf, accountMap } from '../spending-month.js';
 import { cycleAwareEnabled } from '../budgets.js';
+import { isPutAway } from '../account-metrics.js';
 import { redraw } from '../redraw.js';
 import { escapeHtml, emptyState } from '../ui.js';
 
@@ -31,7 +32,8 @@ export async function render(container, params = {}) {
   // purchase after the statement day is recapped in the month it gets billed.
   const byId = accountMap(accounts);
   const spendable = transactions
-    .filter((t) => !t.isTransfer)
+    // Nothing leaving an account you do not spend from is spending (budgets.js).
+    .filter((t) => !t.isTransfer && !(t.direction === 'debit' && isPutAway(byId.get(t.accountId) || {})))
     .map((t) => ({ ...t, month: spendingMonthOf(t, byId.get(t.accountId), cycleAware) }));
 
   const months = [...new Set(spendable.map((t) => t.month))].sort().reverse();

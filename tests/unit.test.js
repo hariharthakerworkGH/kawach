@@ -22,6 +22,7 @@ import { monthStrip, flexBars } from '../js/views/plan.js';
 import { loanPayments, payFasterPlan, loanPosition, assignLoanPayments, loanHistory } from '../js/loans.js';
 import * as sbiLoan from '../js/parsers/sbi-loan.js';
 import * as sbiSavings from '../js/parsers/sbi-savings.js';
+import { spendByCategoryForMonth } from '../js/budgets.js';
 import { formatRupees, formatCurrency } from '../js/format.js';
 import { displayName } from '../js/views/transactions.js';
 import { assignStyles } from '../js/category-style.js';
@@ -889,6 +890,46 @@ test('SBI savings statement: every row, checked against its own summary, and the
   equal(rows.map((r) => Boolean(r.isTransfer)), [false, true, true, false]);
   equal([meta.reconciled, meta.statedClosingBalance, meta.accountLast4, meta.periodStart, meta.periodEnd], [true, 17000, '3344', '2026-09-01', '2026-09-18']);
   equal(meta.deposit, { kind: 'MOD', balance: rupees(37000), atMaturity: rupees(39500), asOf: '2026-09-18' });
+});
+
+test('SBI savings statement: money put into an FD by hand is moved, not spent; the EMI and a branch line stay where they belong', () => {
+  const text = `Clear Balance : 5,000.00CR
+Account Number : 11122233344
++MOD Bal : 60,000.00CR
+IFS Code : SBIN0000001
+WDL TFR FIRDFTFRREF:
+08/09/2026 08/09/2026 - 30,000.00 - 70,000.00
+111111111111111111X000001
+0000000000007 OF A PERSON AT 00001 TOWN,
+BRANCH
+DIRECT DR 0022233344455 OF
+15/09/2026 15/09/2026 A PERSON AT - 23,000.00 - 47,000.00
+00001 TOWN, BRANCH
+25/09/2026 25/09/2026 INTEREST CREDIT - - 100.00 47,100.00
+WDL TFR TO 0000000000008
+26/09/2026 26/09/2026 - 20,000.00 - 27,100.00
+OF A PERSON AT 00001 TOWN, BRANCH
+SWEEP TRF CREDT
+27/09/2026 27/09/2026 - - 20,010.00 47,110.00
+0000000000008 OF A PERSON
+Statement Summary : 01-09-2026 To 30-09-2026
+Brought Forward Dr Count Cr Count Total Debit Total Credit Closing Balance
+100,000.00CR 3 2 73,000.00 20,110.00 47,110.00CR`;
+  const { rows, meta } = sbiSavings.parse(text);
+  equal(meta.reconciled, true, 'every row read');
+  equal(rows.map((r) => Boolean(r.isTransfer)), [true, false, false, true, true], 'into the FD by hand, the EMI, interest, into a deposit it later sweeps from, the sweep back');
+  equal(rows[1].description, 'DIRECT DR 0022233344455 OF A PERSON AT 00001 TOWN, BRANCH', "the EMI keeps its branch line");
+  equal(rows[2].description, 'INTEREST CREDIT', "and the interest does not take it");
+  ok(sbiSavings.DEPOSIT_MOVE_RE.test('WDL TFR FIRDFTFRREF: 1 0000000000007 OF A PERSON') && !sbiSavings.DEPOSIT_MOVE_RE.test('DIRECT DR 0022233344455 OF A PERSON'), 'lines saved before are read the same way when the app opens');
+});
+
+test('spending by category leaves out an account you do not spend from', () => {
+  const accounts = [{ id: 'hdfc', type: 'bank' }, { id: 'sbi', type: 'bank', spending: false }];
+  const rows = [
+    { id: 'a', accountId: 'hdfc', date: '2026-09-10', direction: 'debit', amount: rupees(500), categoryId: 'food' },
+    { id: 'b', accountId: 'sbi', date: '2026-09-15', direction: 'debit', amount: rupees(23000), categoryId: 'food' },
+  ];
+  equal(spendByCategoryForMonth(rows, accounts, '2026-09', false).get('food'), rupees(500), 'the EMI from the loan account is not spending');
 });
 
 test('SBI savings statement: a row missed is caught by the summary', () => {

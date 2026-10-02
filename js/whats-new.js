@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.27.1',
+    items: [
+      {
+        icon: 'accounts',
+        title: "FD moves are no longer spending",
+        text: "Money you move from SBI into your MOD fixed deposit, and back, now counts as moved between your own accounts, not spent. Lines already saved are fixed when the app opens. Payments out of an account you don't spend from, like loan EMIs, no longer show in your category totals or Coach.",
+      },
+    ],
+  },
+  {
     version: '4.27',
     items: [
       {
