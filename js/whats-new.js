@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.19',
+    items: [
+      {
+        icon: 'summary',
+        title: "Tap a name to see what it means",
+        text: "Names with a dotted line, like A day, Kept back or At an even pace, now open one plain sentence when you tap them. It works on every screen.",
+        guide: [{ view: 'summary', target: '.explainable', text: "Tap a dotted name to see what it means." }],
+      },
+    ],
+  },
+  {
     version: '5.18',
     items: [
       {
