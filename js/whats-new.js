@@ -12,6 +12,16 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.4',
+    items: [
+      {
+        icon: 'history',
+        title: "History in the Charts style",
+        text: "History now matches: money in and out in the Charts colours, your month day by day with the biggest day lit, and rounder category marks.",
+      },
+    ],
+  },
+  {
     version: '5.3',
     items: [
       {

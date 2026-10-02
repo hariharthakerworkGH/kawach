@@ -3442,3 +3442,17 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .plan-strip__today { stroke: var(--k-grad-2a); }
 .k .plan-strip__today-label { fill: var(--k-grad-2a); }
 .k .plan-strip__key .is-due::before { background: var(--k-grad-1a); }
+
+/* ---- History in the Charts style (5.4) -----------------------------------
+ * Money in and out on the second and first gradients, the month day by day
+ * on the first gradient with the biggest day lit, the net figure in light
+ * numerals, category marks as round chips. */
+.k .bar-in { fill: var(--k-grad-2a); filter: drop-shadow(0 0 4px color-mix(in oklch, var(--k-grad-2a) 45%, transparent)); }
+.k .bar-out { fill: var(--k-grad-1a); filter: drop-shadow(0 0 4px color-mix(in oklch, var(--k-grad-1a) 45%, transparent)); }
+.k #hist-hero .hero-amount { font-weight: 300; letter-spacing: -0.035em; }
+.k .hist-days__bar { background: linear-gradient(180deg, var(--k-grad-1a), var(--k-grad-1b)); opacity: 0.55; }
+.k .hist-days__bar.is-top { opacity: 1; background: linear-gradient(180deg, var(--k-grad-1a), var(--k-grad-1b)); box-shadow: 0 0 12px color-mix(in oklch, var(--k-grad-1a) 55%, transparent); }
+.k .hist-days__top strong { color: var(--k-grad-1a); }
+.k .hist-cat { border-radius: 50%; }
+.k .hist-day.is-picked .hist-day-card { animation-name: day-picked-charts; }
+@keyframes day-picked-charts { 0%, 35% { box-shadow: 0 0 0 1.5px var(--k-grad-1a), 0 0 22px color-mix(in oklch, var(--k-grad-1a) 35%, transparent); } }
