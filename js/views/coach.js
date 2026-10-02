@@ -1,4 +1,4 @@
-import { formatCurrency, formatDateNice, formatRupees } from '../format.js';
+import { formatDateNice, formatRupees } from '../format.js';
 import { icon } from '../icons.js';
 import { isoLocal } from '../frequency.js';
 import { categoryStyle } from '../category-style.js';
@@ -90,7 +90,10 @@ function heroTemplate(snapshot) {
   const pct = c.free > 0 ? Math.min(100, Math.round((projected / c.free) * 100)) : 100;
   return hero({
     label: 'Left at this pace',
-    period: `by ${formatDateNice(c.cycleClose || c.windowEnd)}`,
+    // FIXED (5.5): the pace runs to the end of the spending month (cycleKey,
+    // the calendar month), not a card's statement day, which said 'by 25 Oct'
+    // beside 30 days left on the 2nd.
+    period: `by ${formatDateNice(c.cycleKey || c.windowEnd)}`,
     amount: pace === 0 ? '-' : formatRupees(leftAtEnd),
     negative: over,
     level: over ? 'over' : 'ok',
@@ -99,6 +102,17 @@ function heroTemplate(snapshot) {
       { label: 'Pace', value: `${formatRupees(pace)}/day` },
       { label: 'Safe', value: `${formatRupees(Math.max(0, c.perDay))}/day` },
     ],
+    // CHANGED (5.5, the Charts style): the same figures as a tracking card,
+    // one ring for how much of what is left this pace would use. Over the
+    // whole of it, it turns red like Summary's budget ring.
+    tracking: {
+      stats: [
+        { k: 'Your pace', v: `${formatRupees(pace)}/day` },
+        { k: 'Safe', v: `${formatRupees(Math.max(0, c.perDay))}/day` },
+        { k: 'Days left', v: `${c.daysToClose}` },
+      ],
+      rings: [{ value: c.free > 0 ? projected / c.free : 1, grad: 'spent', label: 'of what is left, at this pace' }],
+    },
   });
 }
 
@@ -209,18 +223,18 @@ function affordAnswer(s, a) {
       <p class="coach-verdict coach-pill ${tone}">${verdict}</p>
       ${shareBar(a.amount, s.leftToSpend, tone)}
       <div class="totals-card">
-        <div class="totals-row"><span>Left to spend${until}</span><span data-count>${formatCurrency(s.leftToSpend)}</span></div>
-        <div class="totals-row"><span>This purchase</span><span class="out" data-count>-${formatCurrency(a.amount)}</span></div>
-        <div class="totals-row net"><span>Left after it</span><span class="${a.after < 0 ? 'out' : 'in'}" data-count>${formatCurrency(a.after)}</span></div>
+        <div class="totals-row"><span>Left to spend${until}</span><span data-count>${formatRupees(s.leftToSpend)}</span></div>
+        <div class="totals-row"><span>This purchase</span><span class="out" data-count>-${formatRupees(a.amount)}</span></div>
+        <div class="totals-row net"><span>Left after it</span><span class="${a.after < 0 ? 'out' : 'in'}" data-count>${formatRupees(a.after)}</span></div>
       </div>
       <p class="recap-line">${
         !a.canAfford
-          ? `That's ${formatCurrency(-a.after)} more than is left${until}. ${
+          ? `That's ${formatRupees(-a.after)} more than is left${until}. ${
               s.daysLeft > 0 ? `You'd need to find it by cutting back elsewhere - see "Where's it going wrong?".` : ''
             }`
           : a.newPerDay != null && s.daysLeft > 0
-            ? `You'd have ${formatCurrency(a.newPerDay)} a day for the remaining ${s.daysLeft} day${s.daysLeft === 1 ? '' : 's'}${
-                a.tight ? `, down from ${formatCurrency(s.perDayAllowance)} - that's a real squeeze on your usual ${formatCurrency(s.runRate)} a day.` : '.'
+            ? `You'd have ${formatRupees(a.newPerDay)} a day for the remaining ${s.daysLeft} day${s.daysLeft === 1 ? '' : 's'}${
+                a.tight ? `, down from ${formatRupees(s.perDayAllowance)} - that's a real squeeze on your usual ${formatRupees(s.runRate)} a day.` : '.'
               }`
             : 'The month is nearly done, so this mostly comes out of next month.'
       }</p>
@@ -282,35 +296,35 @@ function goalAnswer(s, plan) {
   if (!plan.known) {
     return `
       <div class="coach-answer">
-        <p class="coach-verdict">${formatCurrency(plan.requiredPerMonth)} a month</p>
+        <p class="coach-verdict">${formatRupees(plan.requiredPerMonth)} a month</p>
         <p class="recap-line">Over ${plan.monthsLeft} month${plan.monthsLeft === 1 ? '' : 's'}. Set your income on the Plan screen and I can tell you whether that's realistic.</p>
       </div>`;
   }
 
   return `
     <div class="coach-answer">
-      <p class="coach-verdict ${plan.feasible ? 'good' : 'warn'}">${formatCurrency(plan.requiredPerMonth)} a month</p>
-      <p class="recap-line">To have ${formatCurrency(plan.target)} in ${plan.monthsLeft} month${plan.monthsLeft === 1 ? '' : 's'}.</p>
+      <p class="coach-verdict ${plan.feasible ? 'good' : 'warn'}">${formatRupees(plan.requiredPerMonth)} a month</p>
+      <p class="recap-line">To have ${formatRupees(plan.target)} in ${plan.monthsLeft} month${plan.monthsLeft === 1 ? '' : 's'}.</p>
       <div class="totals-card">
-        <div class="totals-row"><span>Budget each cycle</span><span>${formatCurrency(s.free)}</span></div>
-        <div class="totals-row"><span>You typically spend</span><span class="out">-${formatCurrency(plan.typicalVariable)}</span></div>
-        <div class="totals-row net"><span>Usually spare</span><span class="${plan.typicalSpare < 0 ? 'out' : 'in'}">${formatCurrency(plan.typicalSpare)}</span></div>
+        <div class="totals-row"><span>Budget each cycle</span><span>${formatRupees(s.free)}</span></div>
+        <div class="totals-row"><span>You typically spend</span><span class="out">-${formatRupees(plan.typicalVariable)}</span></div>
+        <div class="totals-row net"><span>Usually spare</span><span class="${plan.typicalSpare < 0 ? 'out' : 'in'}">${formatRupees(plan.typicalSpare)}</span></div>
       </div>
       ${
         plan.feasible
-          ? `<p class="recap-line">That works without changing anything - you usually have ${formatCurrency(plan.typicalSpare)} spare, which covers it.</p>`
+          ? `<p class="recap-line">That works without changing anything - you usually have ${formatRupees(plan.typicalSpare)} spare, which covers it.</p>`
           : (() => {
               const found = plan.cuts.reduce((t, c) => t + c.cut, 0);
               const covers = found >= plan.shortfall;
               return `
-                <p class="recap-line">You're ${formatCurrency(plan.shortfall)} a month short.${
+                <p class="recap-line">You're ${formatRupees(plan.shortfall)} a month short.${
                   plan.cuts.length ? ' Here\'s where that could come from:' : ''
                 }</p>
                 ${plan.cuts.length ? cutList(plan.cuts) : ''}
                 ${
                   covers
                     ? ''
-                    : `<p class="recap-line">That only finds ${formatCurrency(found)} of it. For the remaining ${formatCurrency(
+                    : `<p class="recap-line">That only finds ${formatRupees(found)} of it. For the remaining ${formatRupees(
                         plan.shortfall - found
                       )} a month you'd need to move the date, lower the target, or earn more - I'd rather say that than pretend the sums work.</p>`
                 }`;
@@ -337,7 +351,7 @@ function cutAnswer(s) {
     return `
       <div class="coach-answer">
         <p class="coach-verdict warn">I can't see enough yet</p>
-        <p class="recap-line">${formatCurrency(s.categoryAverages.uncategorized)} a month - ${Math.round(
+        <p class="recap-line">${formatRupees(s.categoryAverages.uncategorized)} a month - ${Math.round(
           s.categoryAverages.uncategorizedShare * 100
         )}% of your spending - has no category on it, so I'd only be guessing about where it's going wrong.</p>
         <button type="button" class="btn-primary" id="coach-go-sort">Sort my transactions</button>
@@ -352,7 +366,7 @@ function cutAnswer(s) {
   return `
     <div class="coach-answer">
       <p class="coach-verdict ${needed > 0 ? 'warn' : 'good'}">${
-        needed > 0 ? `Find ${formatCurrency(needed)} a month` : 'Your biggest levers'
+        needed > 0 ? `Find ${formatRupees(needed)} a month` : 'Your biggest levers'
       }</p>
       <p class="recap-line">${
         needed > 0
@@ -375,9 +389,9 @@ function cutList(cuts) {
         <div class="attention-row">
           <span class="breakdown-label">
             <span class="cat-chip" style="--chip-color:${color}">${icon}</span>
-            <span>${escapeHtml(c.name)}<br><span class="muted-note">${formatCurrency(c.average)} a month → aim for ${formatCurrency(c.newTarget)}</span></span>
+            <span>${escapeHtml(c.name)}<br><span class="muted-note">${formatRupees(c.average)} a month → aim for ${formatRupees(c.newTarget)}</span></span>
           </span>
-          <span class="fixed-row-right"><span class="out">-${formatCurrency(c.cut)}</span></span>
+          <span class="fixed-row-right"><span class="out">-${formatRupees(c.cut)}</span></span>
         </div>`;
         })
         .join('')}

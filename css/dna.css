@@ -3456,3 +3456,17 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .hist-cat { border-radius: 50%; }
 .k .hist-day.is-picked .hist-day-card { animation-name: day-picked-charts; }
 @keyframes day-picked-charts { 0%, 35% { box-shadow: 0 0 0 1.5px var(--k-grad-1a), 0 0 22px color-mix(in oklch, var(--k-grad-1a) 35%, transparent); } }
+
+/* ---- Coach in the Charts style (5.5) -------------------------------------
+ * The tracking card with one ring, the questions' marks as gradient circles,
+ * the answer's share bar on the third gradient. */
+.hero--tracking .tracking-rings:has(> :only-child) { grid-template-columns: 1fr; padding: 0 30%; }
+.hero--tracking .tracking-rings:has(> :only-child) figcaption small { max-width: 12ch; }
+.k-coach .coach-q-icon { border-radius: 50%; border: 0; color: var(--k-grad-1-ink); background: linear-gradient(160deg, var(--k-grad-1a), var(--k-grad-1b)); }
+.k-coach .coach-q:nth-child(2) .coach-q-icon { color: var(--k-grad-2-ink); background: linear-gradient(160deg, var(--k-grad-2a), var(--k-grad-2b)); }
+.k-coach .coach-q:nth-child(3) .coach-q-icon { color: var(--k-grad-3-ink); background: linear-gradient(160deg, var(--k-grad-3a), var(--k-grad-3b)); }
+.k .coach-share--good i { background: linear-gradient(90deg, var(--k-grad-2a), var(--k-grad-2b)); }
+.k .coach-share--warn i { background: linear-gradient(90deg, var(--k-grad-3a), var(--k-grad-3b)); }
+.k .coach-hub__arc--outer { stroke: var(--k-grad-1a); }
+.k .coach-hub__arc--inner { stroke: var(--k-grad-2a); }
+.k .coach-hub__shield { stroke: var(--k-grad-1a); }

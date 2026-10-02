@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.5',
+    items: [
+      {
+        icon: 'coach',
+        title: "Coach in the Charts style",
+        text: "Coach now matches: what is left at your pace, with your pace, the safe amount and the days left beside it, and a ring for how much of what's left your pace would use. Its answers are in whole rupees, and it counts to the end of the month.",
+        guide: [{ view: 'coach', target: '.hero--tracking', text: "How much of what's left your pace would use." }],
+      },
+    ],
+  },
+  {
     version: '5.4',
     items: [
       {
