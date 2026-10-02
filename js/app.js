@@ -13,7 +13,7 @@ import { keepDataSafe, isInstalled } from './install.js';
 import { signIn, rememberGoogleAccount } from './drive.js';
 import { showIfUpdated } from './whats-new.js';
 import { moneyProfile, businesses, activeSpace, setCurrentSpace, settleSpaces } from './business.js';
-import { applyTheme, applyDisplay, appearance } from './appearance.js';
+import { applyTheme, applyDisplay, appearance, chosen, setAppearance } from './appearance.js';
 import * as appearanceView from './views/appearance.js';
 import * as addView from './views/add.js';
 import * as categoriesView from './views/categories.js';
@@ -505,6 +505,13 @@ async function init() {
   // A card's cycle comes from its statements, never from a day typed in.
   const [allAccounts, importBatches] = await Promise.all([getAll('accounts'), getAll('importBatches')]);
   for (const fixed of statementDayFixes(allAccounts, importBatches)) await put('accounts', fixed);
+  // NEW (5.18): the short Summary is for people starting out. Someone who
+  // already had payments or commitments when it arrived keeps the full one
+  // they know, until they choose otherwise in How it looks.
+  if (!chosen('summary')) {
+    const [anyPayments, anyCommitments] = await Promise.all([getAll('transactions'), getAll('recurring')]);
+    if (anyPayments.length || anyCommitments.length) setAppearance('summary', 'full');
+  }
 
   syncNavHeight();
   window.addEventListener('resize', syncNavHeight);

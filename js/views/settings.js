@@ -13,6 +13,7 @@ import { CYCLE_SETTING_KEY } from '../spending-month.js';
 import { redraw } from '../redraw.js';
 import { dataIsKept } from '../install.js';
 import { playTour, shareKawach } from '../tour.js';
+import { renderVersionLine } from './summary.js';
 import { enhancePasswords, checkPair, MIN_PASSPHRASE } from '../password-field.js';
 import { moneyProfile, addBusiness, renameBusiness, removeBusiness, setBusinessGst, setCurrentSpace } from '../business.js';
 import { notesFor, openNotes } from '../whats-new.js';
@@ -127,6 +128,12 @@ export async function render(container, params = {}) {
         <div id="import-history"></div>
       </details>
 
+      <!-- NEW (5.18): the version and the update check, moved from Summary. -->
+      <div class="version-line" id="version-line">
+        <span id="version-text">Version</span>
+        <button type="button" class="icon-btn" id="version-check">Check for update</button>
+      </div>
+
       <!-- Three small things, one line. -->
       <div class="settings-foot">
         <button type="button" class="link-btn" id="whats-new-btn">What's new</button>
@@ -198,6 +205,7 @@ export async function render(container, params = {}) {
   });
   wireMoneyCard(container, profile);
   container.querySelector('#watch-tour').addEventListener('click', playTour);
+  renderVersionLine(container);
 
   container.querySelector('#run-setup').addEventListener('click', () => {
     container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'setup', restart: true } }));

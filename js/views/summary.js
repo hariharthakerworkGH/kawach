@@ -14,6 +14,7 @@ import { categorySlices, needsCategory } from '../splits.js';
 import { getBudgets, budgetStatusForMonth, cycleAwareEnabled } from '../budgets.js';
 import { spendingMonthOf, accountMap, currentMonthKey, previousMonthKey } from '../spending-month.js';
 import { appearance } from '../appearance.js';
+import { playTour } from '../tour.js';
 import { APP_VERSION, versionStatus, checkForUpdate } from '../version.js';
 import { getSyncConfig, getSyncPassphrase } from '../sync.js';
 import { dataSafety } from './settings.js';
@@ -96,13 +97,18 @@ export async function render(container) {
   // nothing has to be cleaned up on the way out. Nothing about what is
   // calculated or shown changes here: only how it looks.
   container.classList.add('k');
+  // NEW (5.18): the short version (the default for someone new) - the answer,
+  // what needs you, the month, and everything else behind one tap.
+  const short = space === 'home' && !viewMonth && shortMode();
+  container.classList.toggle('sum-short', short);
+  if (short) currentRange = 'this-month';
   container.innerHTML = `
     ${list.length ? spaceToggle(list, space) : ''}
     <div id="dashboard"></div>
     ${
       // A finished month shows only its own figures; the This month / Last
       // month breakdown below belongs to the month that is running.
-      space !== 'home' || viewMonth
+      space !== 'home' || viewMonth || short
         ? ''
         : `<div class="segmented">
       <button type="button" class="seg-btn ${currentRange === 'this-month' ? 'active' : ''}" data-range="this-month">This month</button>
@@ -139,7 +145,71 @@ export async function render(container) {
     container.querySelector('#range-apply').addEventListener('click', () => redraw(container, () => renderContent(container)));
   }
 
-  await Promise.all([renderDashboard(container), renderContent(container)]);
+  // The short version puts the breakdown inside its fold, so the fold is
+  // drawn first.
+  if (short) {
+    await renderDashboard(container);
+    await renderContent(container);
+  } else await Promise.all([renderDashboard(container), renderContent(container)]);
+}
+
+const shortMode = () => appearance('summary') === 'short';
+
+/* NEW (5.18): the first day. Until what comes in and what goes out are set
+ * there is no budget to show, so the short Summary is three steps instead of
+ * empty cards; once both are set, a slim strip asks for the payments. */
+function setupCard(s) {
+  const done = [s.income, s.commitments, s.payments].filter(Boolean).length;
+  const next = !s.income ? 1 : !s.commitments ? 2 : 3;
+  const step = (n, ok, title, sub, go, label) =>
+    `<li class="setup-step ${ok ? 'is-done' : n === next ? 'is-next' : 'is-later'}"><span class="setup-step__n">${ok ? icon('check') : n}</span><span class="setup-step__body"><b>${title}</b><small>${sub}</small></span><button type="button" class="k-btn ${!ok && n === next ? 'k-btn--primary' : 'k-btn--secondary'}" data-go="${go}">${ok ? 'Change' : label}</button></li>`;
+  return `<section class="setup-card">
+      <div><h2>Set up Kawach</h2><p class="setup-card__sub">Three steps, about five minutes. Then this screen shows what you can spend each day.</p></div>
+      <div class="setup-progress" role="progressbar" aria-label="Set up" aria-valuemin="0" aria-valuemax="3" aria-valuenow="${done}"><i style="width:${Math.max(4, Math.round((done / 3) * 100))}%"></i></div>
+      <ol class="setup-steps">
+        ${step(1, s.income, 'What comes in', 'Salary, pension, business or what the house needs', 'plan', 'Add')}
+        ${step(2, s.commitments, 'What goes out each month', 'Rent, EMIs, bills, groceries', 'plan', 'Add')}
+        ${step(3, s.payments, 'Your payments', 'Import a bank or card statement', 'import', 'Import')}
+      </ol>
+      <button type="button" class="k-btn k-btn--ghost setup-tour" id="setup-tour-btn">${icon('play')} Watch the tour, 82 seconds</button>
+    </section>`;
+}
+
+function setupStrip() {
+  return `<div class="setup-strip">
+      <div class="setup-strip__row"><span><b>2 of 3 set up.</b> Import a statement to see your spending.</span><button type="button" class="k-btn k-btn--primary" data-go="import">Import</button></div>
+      <div class="setup-progress"><i style="width:67%"></i></div>
+    </div>`;
+}
+
+function wireSetup(el, container) {
+  el.querySelectorAll('[data-go]').forEach((b) =>
+    b.addEventListener('click', () => container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: b.dataset.go } }))),
+  );
+  el.querySelector('#setup-tour-btn')?.addEventListener('click', playTour);
+}
+
+/* The answer straight under the figure, not at the foot of the card. */
+function answerFirst(html) {
+  const t = document.createElement('template');
+  t.innerHTML = html;
+  const status = t.content.querySelector('.hero-status, .tl-line, .md-line');
+  const figure = t.content.querySelector('.hero-amount, .tl-big, .md-big');
+  if (status && figure) {
+    status.classList.add('sum-answer');
+    // Red only when over the budget: the bank running short, which also
+    // raises the level, is said in Needs you.
+    if (!/^Over budget/.test(status.textContent.trim())) status.classList.remove('bad', 'caution', 'level-critical', 'level-warning');
+    figure.after(status);
+  }
+  return t.innerHTML;
+}
+
+/* The sentence under the figure in the short version. The bank running
+ * short is said once, in Needs you, so it is not also said here. */
+export function shortStatus(f) {
+  if (f.level === 'critical' && f.used < 0.9) return `About ${formatRupees(f.perDay)} a day until ${formatDateNice(f.cycleKey)}`;
+  return spendingStatus(f);
 }
 
 // --- Dashboard: net position, things needing attention, upcoming bills ---
@@ -293,19 +363,54 @@ async function renderDashboard(container) {
   // month is spoken for, what have I actually got, what needs me - and only
   // then the detail (design.md section 15).
   const commitments = renderCommitmentTracker(fts);
-  dashboardEl.innerHTML = [
-    monthNav(thisKey, months),
-    renderSpendingLimit(fts),
-    renderBankCard(fts),
-    renderDueSoon(fts),
-    '<div id="attention-section"></div>',
-    fold('Commitments', fts.tracker ? `${fts.tracker.length}` : '', commitments, false, 'commitments-fold'),
-    fold('Loans and savings', '', renderLoansSavings(fts)),
-    '<div id="upcoming-section"></div>',
-    tax,
-    // The invitation to install comes last: it is not part of the answer.
-    install,
-  ].join('');
+  if (shortMode()) {
+    const setup = { income: Boolean(fts.monthlyIncome && fts.salary.setUp), commitments: !fts.noCommitments, payments: transactions.length > 0 };
+    if (!setup.income || !setup.commitments) {
+      dashboardEl.innerHTML = setupCard(setup) + install;
+      wireSetup(dashboardEl, container);
+      wireInstallCard(dashboardEl, () => redraw(container, () => renderDashboard(container)));
+      return;
+    }
+    // The figure and its answer; what needs you; the month; then the rest,
+    // folded. The parts are marked where the top is drawn.
+    const [answer, afterAnswer = ''] = renderSpendingLimit(fts, { short: true }).split('<!--k:answer-->');
+    const [month, rest = ''] = afterAnswer.split('<!--k:month-->');
+    dashboardEl.innerHTML = [
+      setup.payments ? '' : setupStrip(),
+      monthNav(thisKey, months),
+      answerFirst(answer),
+      '<div id="attention-section"></div>',
+      month,
+      `<details class="sum-more" id="sum-more">
+        <summary><span class="sum-more__t">More about this month</span><span class="sum-more__s">This week, your cards, what is coming up, where it went</span></summary>
+        <div class="sum-more__body">
+          ${rest}
+          ${renderBankCard(fts)}
+          ${fold('Commitments', fts.tracker ? `${fts.tracker.length}` : '', commitments, false, 'commitments-fold')}
+          ${fold('Loans and savings', '', renderLoansSavings(fts))}
+          <div id="upcoming-section"></div>
+          ${tax}
+          <div id="summary-content"></div>
+        </div>
+      </details>`,
+      install,
+    ].join('');
+    wireSetup(dashboardEl, container);
+  } else {
+    dashboardEl.innerHTML = [
+      monthNav(thisKey, months),
+      renderSpendingLimit(fts),
+      renderBankCard(fts),
+      renderDueSoon(fts),
+      '<div id="attention-section"></div>',
+      fold('Commitments', fts.tracker ? `${fts.tracker.length}` : '', commitments, false, 'commitments-fold'),
+      fold('Loans and savings', '', renderLoansSavings(fts)),
+      '<div id="upcoming-section"></div>',
+      tax,
+      // The invitation to install comes last: it is not part of the answer.
+      install,
+    ].join('');
+  }
 
   wireMonthNav();
 
@@ -316,6 +421,8 @@ async function renderDashboard(container) {
     asideBtn.addEventListener('click', () => {
       const f = dashboardEl.querySelector('#commitments-fold');
       if (!f) return;
+      const more = f.closest('details.sum-more');
+      if (more) more.open = true;
       f.open = true;
       f.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     });
@@ -334,7 +441,13 @@ async function renderDashboard(container) {
     redraw(container, () => renderDashboard(container));
   };
   wireInstallCard(dashboardEl, () => redraw(container, () => renderDashboard(container)));
-  const on = (selector, handler) => dashboardEl.querySelectorAll(selector).forEach((btn) => btn.addEventListener('click', () => handler(btn)));
+  // Delegated, so a button drawn after this runs (Needs you's Mark paid)
+  // is answered too.
+  const on = (selector, handler) =>
+    dashboardEl.addEventListener('click', (e) => {
+      const btn = e.target.closest(selector);
+      if (btn && dashboardEl.contains(btn)) handler(btn);
+    });
   on('.commitment-mark-paid', (b) => toggleCycle(b.dataset.id, b.dataset.key, 'paidCycles', true, (l) => `${l} marked paid for this cycle`));
   on('.commitment-unmark', (b) => toggleCycle(b.dataset.id, b.dataset.key, 'paidCycles', false, (l) => `${l}: back to unpaid`));
   on('.commitment-skip', (b) => toggleCycle(b.dataset.id, b.dataset.key, 'skippedCycles', true, (l) => `${l} skipped this cycle`));
@@ -489,7 +602,7 @@ function renderOwed(f, { cards = true } = {}) {
 // CHANGED: an optional `statusText` replaces the pace line. A finished month
 // has no pace to speak of: "About ₹2,724 a day until 30 Sep" is meaningless on
 // 1 Oct, so it says "Final for September" instead.
-export function spendingHero(f, look = 'full', statusText = null) {
+export function spendingHero(f, look = 'full', statusText = null, said = null) {
   const until = formatDateNice(f.cycleKey);
   const pct = f.limit > 0 ? Math.min(100, Math.round(f.used * 100)) : 100;
   // The pace picture. When it can draw, it says everything the meter said and
@@ -542,7 +655,7 @@ export function spendingHero(f, look = 'full', statusText = null) {
     meter: look === 'full' ? meter : null,
     // `burn` is null for a finished month; an empty string, never "null".
     chart: look === 'full' ? burn || '' : '',
-    status: look === 'plain' ? '' : escapeHtml(statusText != null ? statusText : spendingStatus(f)),
+    status: look === 'plain' ? '' : escapeHtml(statusText != null ? statusText : said || spendingStatus(f)),
     tracking,
   });
 }
@@ -801,11 +914,12 @@ function insightCard(f) {
  * when it actually goes, and where what you hold is sitting. Each drawing
  * is handed figures the model already produced.
  */
-function moneyShape(f) {
+function moneyShape(f, { meter: withMeter = true } = {}) {
   const income = (f.monthlyIncome || 0) + (f.businessExtra || 0);
   const committed = income && f.limit != null ? income - f.limit : 0;
 
-  const meter = radialMeter({ committed, income });
+  // The short version leaves "committed" to Plan, where it is worked out.
+  const meter = withMeter ? radialMeter({ committed, income }) : '';
   const pulse = spendingPulse({ days: f.spendByDay || [], today: f.today });
 
   // Your bank cash, and how much of it a card bill will take.
@@ -885,7 +999,8 @@ const monthShort = (month) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 
 
 const LOOK_TOPS = { tactile: tactileTop, peaks: peaksTop, mindora: mindoraTop };
 
-function renderCardsHero(f, { past = null } = {}) {
+function renderCardsHero(f, opts = {}) {
+  const past = opts.past || null;
   const line = breakdownLine;
   // A month that is over reads its own figures and nothing about the present:
   // no pace, no warnings, no bank check - those are about what happens next,
@@ -908,20 +1023,21 @@ function renderCardsHero(f, { past = null } = {}) {
   // own way (summary-looks.js); a finished month and the plain look keep the
   // Charts one.
   const style = typeof document !== 'undefined' ? document.documentElement.dataset.style : '';
-  const lookTop = !past && appearance('summary') === 'full' && f.limit > 0 && LOOK_TOPS[style];
+  const short = Boolean(opts.short);
+  const lookTop = !past && ['full', 'short'].includes(appearance('summary')) && f.limit > 0 && LOOK_TOPS[style];
   const top = lookTop
-    ? lookTop(f, spendingStatus(f), style === 'peaks' ? monthMountains(f, '<div class="pk-head"><span class="pk-lab">This month</span></div>') : monthWaves(f))
-    : spendingHero(shown, appearance('summary'), past ? `Final for ${past.name}` : null) + `
-    ${past ? '' : monthWaves(f)}
+    ? lookTop(f, short ? shortStatus(f) : spendingStatus(f), style === 'peaks' ? monthMountains(f, '<div class="pk-head"><span class="pk-lab">This month</span></div>') : monthWaves(f))
+    : spendingHero(shown, short ? 'full' : appearance('summary'), past ? `Final for ${past.name}` : null, short ? shortStatus(f) : null) + `<!--k:answer-->
+    ${past ? '' : monthWaves(f)}<!--k:month-->
     ${past ? '' : weekPills(f)}
     <div class="summary-rows summary-strip">
-      ${appearance('summary') === 'full' ? '' : spentLine(f.spentThisCycle, f.limit, spendSpark(f.spendByDay))}
+      ${['full', 'short'].includes(appearance('summary')) ? '' : spentLine(f.spentThisCycle, f.limit, spendSpark(f.spendByDay))}
       ${past ? '' : stillSetAside(f)}
       ${
         // Owed on cards, and owed back by the employer while any is -
         // straight under the spent figure, where the other numbers are.
         // In the full look the cards' figure is in the columns above.
-        past ? '' : renderOwed(f, { cards: appearance('summary') !== 'full' })
+        past ? '' : renderOwed(f, { cards: !['full', 'short'].includes(appearance('summary')) })
       }
     </div>
     ${past ? '' : chartsComing(f)}`;
@@ -942,8 +1058,8 @@ function renderCardsHero(f, { past = null } = {}) {
         <span class="split-k"><span class="split-dot split-dot--bank"></span>From the bank <strong>${formatRupees(bank)}</strong></span>
       </div>`;
     })()}
-    ${past ? '' : insightCard(f)}
-    ${past ? '' : moneyShape(f)}
+    ${past || short ? '' : insightCard(f)}
+    ${past ? '' : moneyShape(f, { meter: !short })}
       <details class="fts-breakdown hero-work">
         <summary>Budget breakdown</summary>
         <div class="totals-card">
@@ -1422,8 +1538,28 @@ async function renderAttention(container, transactions, fts = null) {
   const cardPayments = fts ? fts.unassignedCardPayments || [] : [];
   const cards = accounts.filter((a) => a.type === 'card');
 
+  const short = shortMode();
   const todo = (icon, title, sub, action = '', tone = '') =>
-    `<div class="todo-row"><span class="todo-icon" aria-hidden="true">${icon}</span><span class="todo-text"><span>${title}</span>${sub ? `<span class="muted-note ${tone}">${sub}</span>` : ''}</span>${action ? `<span class="attention-actions">${action}</span>` : ''}</div>`;
+    short
+      ? `<div class="need-row ${tone}"><span class="need-row__ic" aria-hidden="true">${icon}</span><span class="need-row__t"><span>${title}</span>${sub ? `<small>${sub}</small>` : ''}</span>${action ? `<span class="need-row__go">${action}</span>` : ''}</div>`
+      : `<div class="todo-row"><span class="todo-icon" aria-hidden="true">${icon}</span><span class="todo-text"><span>${title}</span>${sub ? `<span class="muted-note ${tone}">${sub}</span>` : ''}</span>${action ? `<span class="attention-actions">${action}</span>` : ''}</div>`;
+  // NEW (5.18): in the short version, the bank running short and the
+  // commitments due in the next three days come first - said here and
+  // nowhere else on the screen.
+  const urgent = [];
+  if (short && fts) {
+    if (fts.bankShortfall > 0) {
+      const payday = fts.salary && (fts.salary.dates[0] || fts.salary.nextUnreceived);
+      urgent.push(todo(icon('alert'), `Bank will be <b>${formatRupees(fts.bankShortfall)} short</b>`, payday ? `after salary on ${formatDateNice(payday)} and bills` : 'after salary and bills', '<button type="button" class="btn-tiny" id="need-bank-why">See why</button>', 'is-alert'));
+    }
+    const today = isoLocal(new Date());
+    const soon = addDaysIso(today, 3);
+    for (const t of (fts.tracker || []).filter((x) => x.due && !x.setAside && !x.skipped && ['due', 'late', 'part'].includes(x.status) && x.due <= soon).sort((a, b) => (a.due < b.due ? -1 : 1))) {
+      const days = daysBetween(today, t.due);
+      const when = t.due < today ? 'late' : days === 0 ? 'due today' : days === 1 ? 'due tomorrow' : `due in ${days} days`;
+      urgent.push(todo(categoryStyle(t.label).icon, `<b>${escapeHtml(t.label)} ${formatRupees(t.left > 0 ? t.left : t.amount)}</b>`, when, `<button type="button" class="btn-tiny commitment-mark-paid" data-id="${t.id}" data-key="${t.cycleKey}">Mark paid</button>`, t.due < today ? 'is-alert' : 'is-soon'));
+    }
+  }
 
   const rows = [
     driveDays != null
@@ -1459,14 +1595,31 @@ async function renderAttention(container, transactions, fts = null) {
         )
       : '',
   ].filter(Boolean);
+  rows.unshift(...urgent);
 
   const unusual = anomalies.slice(0, 5);
-  if (!rows.length && !unusual.length) {
+  if (short) {
+    // Three at most; the rest one tap away, with any unusual spends.
+    const more = rows.length - 3 + (unusual.length ? 1 : 0);
+    el.innerHTML = rows.length || unusual.length
+      ? `<section class="sum-needs"><h3 class="sum-needs__head">Needs you</h3>
+          ${rows.slice(0, 3).join('')}
+          ${more > 0
+            ? `<details class="need-more"><summary>${rows.length > 3 ? `${rows.length - 3} more` : 'Unusual spends'}</summary>${rows.slice(3).join('')}${unusual
+                .map((a) => todo(icon('eye'), `${escapeHtml(a.transaction.rawDescription.slice(0, 36))} · ${formatRupees(a.transaction.amount)}`, a.reason === 'new-merchant' ? 'First time here' : `Usually ${formatRupees(a.averageAmount)}`, `<button type="button" class="btn-tiny anomaly-open" data-desc="${escapeAttr(a.transaction.rawDescription.slice(0, 24))}">Open</button><button type="button" class="icon-btn anomaly-dismiss" data-id="${a.transaction.id}" aria-label="Dismiss">${icon('close')}</button>`))
+                .join('')}</details>`
+            : ''}
+        </section>`
+      : `<p class="sum-calm">${icon('check')}<span>Nothing needs you today.</span></p>`;
+    el.querySelector('#need-bank-why')?.addEventListener('click', () => {
+      const fold = container.querySelector('#sum-more');
+      if (fold) fold.open = true;
+      container.querySelector('.bank-card')?.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    });
+  } else if (!rows.length && !unusual.length) {
     el.innerHTML = '';
     return;
-  }
-
-  el.innerHTML = `
+  } else el.innerHTML = `
     ${sectionHead('To do')}
     <div class="totals-card todo-list">
       ${rows.join('')}
@@ -1806,6 +1959,22 @@ async function renderContent(container) {
 
   const catName = (id) => (id === 'uncategorized' ? 'Uncategorized' : categories.find((c) => c.id === id)?.name || 'Uncategorized');
 
+  if (shortMode()) {
+    content.innerHTML = `
+      <details class="section-fold">
+        <summary>Where it went</summary>
+        <ul class="breakdown-list">${renderCategoryBreakdown(byCategory, catName, totalOut)}</ul>
+      </details>
+      <details class="section-fold">
+        <summary>Which account paid</summary>
+        <ul class="breakdown-list">${renderAccountBreakdown(byAccount, accounts, transactions)}</ul>
+      </details>
+      <button type="button" id="recap-link" class="btn-secondary btn-block">Month in review</button>`;
+    content.querySelector('#recap-link').addEventListener('click', () => {
+      container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'recap' } }));
+    });
+    return;
+  }
   content.innerHTML = `
     <div class="totals-card in-out">
       <div><span class="hero-label">In</span><p class="in">+${formatRupees(totalIn)}</p></div>
@@ -1837,7 +2006,7 @@ async function renderContent(container) {
 
 // Answers two questions at a glance: am I running the current code, and is my
 // data current. Both have caused confusion, and both are cheap to state.
-async function renderVersionLine(content) {
+export async function renderVersionLine(content) {
   const textEl = content.querySelector('#version-text');
   const btn = content.querySelector('#version-check');
   if (!textEl || !btn) return;
