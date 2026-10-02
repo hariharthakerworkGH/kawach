@@ -5320,3 +5320,20 @@ body::after {
   border-color: var(--accent-line);
   color: var(--text);
 }
+
+/* ---- How it looks: style and colours (4.29) -------------------------------
+ * The styles in a row, the colourings as swatch tiles two to a row: each
+ * tile is a single colour choice, small enough that pairs read better than a
+ * long list of eight. */
+.look-styles { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2xs); padding: var(--space-xs); }
+.look-style { display: grid; justify-items: center; gap: 2px; padding: var(--space-xs) 0; border-radius: var(--radius-sm); font-size: var(--text-label); font-weight: var(--weight-label); color: var(--text-muted); background: var(--surface-alt); }
+.look-style small { font-size: var(--text-micro); color: var(--text-dim); }
+.look-style.chosen { color: var(--accent-ink); background: var(--accent); font-weight: var(--weight-strong); }
+.look-style.soon { opacity: 0.7; }
+.look-swatches { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2xs); }
+.look-option.look-swatch { position: relative; display: grid; gap: 4px; align-content: start; padding: var(--space-xs); border-radius: var(--radius-md); border: 1px solid var(--border); }
+.look-option.look-swatch.chosen { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.look-option.look-swatch input { position: absolute; opacity: 0; pointer-events: none; }
+.look-dots { display: flex; gap: 4px; margin-bottom: 4px; }
+.look-dots i { width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(128 128 128 / 0.35); }
+.look-swatch .look-label { font-size: var(--text-label); font-weight: var(--weight-label); }

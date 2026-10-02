@@ -51,7 +51,13 @@
   try {
     var a = JSON.parse(localStorage.getItem('kawach-appearance')) || {};
     var r = document.documentElement;
-    if (a.theme === 'light' || a.theme === 'dark') r.setAttribute('data-theme', a.theme);
+    // The colouring (js/looks.js): 'auto' is Charts on a dark phone and
+    // burning flame light on a light one. LIGHT must match js/looks.js.
+    var LIGHT = { 'flame-light': 1 };
+    var c = a.colour || ({ light: 'flame-light', dark: 'charts' })[a.theme] || 'auto';
+    if (c === 'auto') c = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'flame-light' : 'charts';
+    r.setAttribute('data-colour', c);
+    r.setAttribute('data-theme', LIGHT[c] ? 'light' : 'dark');
     if (a.text === 'large' || a.text === 'largest') r.setAttribute('data-text', a.text);
     if (a.density === 'compact') r.setAttribute('data-density', 'compact');
   } catch (e) {}
@@ -84,6 +90,7 @@
 <!-- The new visual system. Screens opt in by carrying the `k` class; while
      the migration is under way the rest of the app is untouched by it. -->
 <link rel="stylesheet" href="./css/dna.css">
+<link rel="stylesheet" href="./css/looks.css">
 <style>
   /* The opening (4.17.1). Inline so it is on screen in the first frame.
 

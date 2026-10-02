@@ -11,7 +11,8 @@ import { reimbursableTally, tidyFlags } from '../js/reimbursable.js';
 import { versionStatus } from '../js/version.js';
 import { cardPosition, bankBalance, statementDayFixes } from '../js/account-metrics.js';
 import { currentCycleStart } from '../js/billing-cycle.js';
-import { CHOICES, appearance, setAppearance } from '../js/appearance.js';
+import { CHOICES, appearance, setAppearance, applyTheme } from '../js/appearance.js';
+import { colouringFor, COLOURINGS } from '../js/looks.js';
 import { looksLikeCardPayment } from '../js/transfers.js';
 import { spendingMonthOf } from '../js/spending-month.js';
 import { parseAlert, splitAlerts, resolveAccount, findDigits } from '../js/alerts.js';
@@ -408,15 +409,37 @@ test('a look is only saved when it is one of the offered options', () => {
   const before = localStorage.getItem(key);
   try {
     localStorage.removeItem(key);
-    ok(setAppearance('theme', 'light'));
-    equal(appearance('theme'), 'light');
-    ok(!setAppearance('theme', 'purple'));
-    equal(appearance('theme'), 'light', 'a rejected value leaves the old one alone');
+    ok(setAppearance('colour', 'flame-light'));
+    equal(appearance('colour'), 'flame-light');
+    ok(!setAppearance('colour', 'purple'));
+    equal(appearance('colour'), 'flame-light', 'a rejected value leaves the old one alone');
     ok(!setAppearance('no-such-choice', 'light'));
   } finally {
     if (before === null) localStorage.removeItem(key);
     else localStorage.setItem(key, before);
-    document.documentElement.removeAttribute('data-theme');
+    applyTheme();
+  }
+});
+
+test('colourings: follow the phone, carry over an old light or dark choice', () => {
+  equal(colouringFor('auto', false).id, 'charts', 'a dark phone gets Charts');
+  equal(colouringFor('auto', true).id, 'flame-light', 'a light phone gets burning flame light');
+  equal(colouringFor('atelier', true).id, 'atelier', 'a chosen colouring is kept whatever the phone');
+  equal(colouringFor('no-such', false).id, 'charts', 'an unknown one falls back');
+  ok(COLOURINGS.every((c) => c.mode === 'light' || c.mode === 'dark'));
+  const key = 'kawach-appearance';
+  const before = localStorage.getItem(key);
+  try {
+    localStorage.setItem(key, JSON.stringify({ theme: 'light' }));
+    equal(appearance('colour'), 'flame-light', 'always light before 4.29 is burning flame light now');
+    localStorage.setItem(key, JSON.stringify({ theme: 'dark' }));
+    equal(appearance('colour'), 'charts', 'always dark is Charts');
+    localStorage.setItem(key, JSON.stringify({ theme: 'auto' }));
+    equal(appearance('colour'), 'auto');
+  } finally {
+    if (before === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, before);
+    applyTheme();
   }
 });
 
