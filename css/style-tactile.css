@@ -118,7 +118,7 @@
 
 /* The tab bar is a well; the current tab is raised in the accent.
  * #tabs outweighs the id in dna.css's own tab rule (a :has() would work too, but costs a style recalculation on every change). */
-:root[data-style="tactile"] .bottom-nav { background: var(--t-well); border-top: 0; box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] #tabs.bottom-nav { background: var(--t-well); border-top: 0; box-shadow: var(--t-well-shadow); }
 :root[data-style="tactile"] #tabs .nav-btn.active {
   color: var(--k-accent-ink);
   background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 10%), color-mix(in srgb, var(--k-accent), black 15%));
@@ -129,3 +129,49 @@
 /* Screen titles, engraved. */
 :root[data-style="tactile"] #view-title { text-shadow: 0 -1px 0 rgb(0 0 0 / 0.7), 0 1px 0 rgb(255 255 255 / 0.08); }
 :root[data-style="tactile"][data-theme="light"] #view-title { text-shadow: 0 1px 0 rgb(255 255 255 / 0.9); }
+
+/* --- Summary's top, Tactile's own layout (5.9, summary-looks.js) ---------
+ * The mockup's instrument card: a big engraved figure, a pressed-in bar
+ * with the spent figure inside it, and a notched metal track whose thumb is
+ * today. Then plain raised rows with an outlined icon box. */
+.tl-hero { border-radius: 18px; padding: var(--k-5) var(--k-4) var(--k-4); background: var(--t-raise); box-shadow: var(--t-shadow); margin-bottom: var(--k-3); }
+.tl-k, .tl-label { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-3); }
+.tl-label { color: var(--k-text-2); padding: var(--k-3) 2px 7px; border-bottom: 1px solid var(--k-hairline); margin-bottom: var(--k-2); }
+.tl-big { margin-top: 10px; font-size: 50px; font-weight: 760; letter-spacing: -0.045em; line-height: 1; font-variant-numeric: tabular-nums; color: var(--k-text); text-shadow: 0 2px 6px rgb(0 0 0 / 0.5); }
+.tl-hero.is-negative .tl-big { color: var(--k-negative); }
+.tl-sub { margin-top: 6px; font-size: 14px; color: var(--k-text-3); }
+.tl-prog { position: relative; margin-top: 18px; height: 26px; border-radius: 13px; background: var(--t-well); box-shadow: var(--t-well-shadow), 0 0 0 1.5px var(--t-metal); overflow: hidden; }
+.tl-prog i { position: absolute; inset: 0 auto 0 0; border-radius: 13px; background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 8%), color-mix(in srgb, var(--k-accent), black 28%)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22); }
+.tl-prog i.caution { background: linear-gradient(180deg, var(--k-warning), color-mix(in srgb, var(--k-warning), black 30%)); }
+.tl-prog i.bad { background: linear-gradient(180deg, var(--k-negative), color-mix(in srgb, var(--k-negative), black 30%)); }
+.tl-prog > span { position: relative; display: flex; justify-content: space-between; align-items: center; height: 100%; padding: 0 11px; font-size: 12.5px; font-weight: 650; color: var(--k-text); text-shadow: 0 1px 2px rgb(0 0 0 / 0.5); }
+.tl-slider { position: relative; height: 30px; margin-top: 48px; }
+.tl-trk, .tl-fill { position: absolute; left: 0; top: 9px; height: 10px; border-radius: 5px; }
+.tl-trk { right: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--k-surface), white 12%), var(--k-surface)); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.7), 0 0 0 1px color-mix(in srgb, var(--k-surface), white 18%); }
+.tl-fill { background: linear-gradient(180deg, var(--k-accent), color-mix(in srgb, var(--k-accent), black 30%)); }
+.tl-thumb { position: absolute; top: 0; width: 18px; height: 28px; margin-left: -9px; border-radius: 5px; background: linear-gradient(180deg, #e3dcd5, #8e857e); box-shadow: inset 0 1px 0 #fff, 0 3px 6px rgb(0 0 0 / 0.6); }
+.tl-thumb::after { content: ""; position: absolute; left: 8px; top: 7px; width: 2px; height: 14px; background: rgb(0 0 0 / 0.25); }
+.tl-tip { position: absolute; bottom: 36px; transform: translateX(-50%); white-space: nowrap; padding: 5px 9px; border-radius: 8px; font-size: 12px; font-weight: 700; color: var(--k-text); background: var(--t-raise); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 4px 10px rgb(0 0 0 / 0.5); }
+.tl-ticks { display: flex; justify-content: space-between; padding: 0 1px; margin-top: 4px; }
+.tl-ticks i { width: 1px; height: 5px; background: var(--k-text-3); opacity: .6; }
+.tl-line { margin: 12px 0 0; font-size: 14.5px; color: var(--k-text-2); }
+.tl-line.caution { color: var(--k-warning); } .tl-line.bad { color: var(--k-negative); }
+.tl-list { display: grid; gap: 8px; margin-bottom: var(--k-3); }
+.tl-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border: 0; border-radius: 14px; font: inherit; color: var(--k-text); text-align: left; background: var(--t-raise); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 3px rgb(0 0 0 / 0.45), 0 6px 12px rgb(0 0 0 / 0.3); }
+button.tl-item { cursor: pointer; }
+.tl-ibox { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; flex: none; color: var(--k-accent); border: 1px solid color-mix(in srgb, var(--k-text) 18%, transparent); background: var(--t-well); box-shadow: var(--t-well-shadow); }
+.tl-ibox svg { width: 18px; height: 18px; }
+.tl-grow { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.tl-t { font-size: 15.5px; font-weight: 650; }
+.tl-s { font-size: 12.5px; color: var(--k-text-3); }
+.tl-v { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tl-v.tl-ok { color: var(--k-positive); } .tl-v.tl-bad { color: var(--k-negative); }
+.tl-chev { display: grid; color: var(--k-text-3); } .tl-chev svg { width: 16px; height: 16px; }
+.tl-badge { display: inline-flex; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: #fff; background: linear-gradient(180deg, color-mix(in srgb, var(--k-warning), black 10%), color-mix(in srgb, var(--k-warning), black 32%)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2); justify-self: start; }
+
+/* The tab bar floats as the mockup's dock: an inset track, the current tab a
+ * raised pill in the accent. The page ends 14px higher for it. */
+:root[data-style="tactile"] #tabs.bottom-nav { margin: 0 14px 14px; padding: 5px; border-radius: 24px; box-shadow: var(--t-well-shadow), 0 0 0 1.5px color-mix(in srgb, var(--k-text) 12%, transparent); }
+:root[data-style="tactile"] #tabs .nav-btn.active { border-radius: 18px; }
+:root[data-style="tactile"] body { padding-bottom: calc(var(--nav-height, 84px) + var(--space-lg) + 14px); }
+:root[data-style="tactile"] .app-header #view-title { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }

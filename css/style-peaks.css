@@ -73,7 +73,7 @@
 }
 
 /* The current tab: its icon in the second gradient, a short line under it. */
-:root[data-style="peaks"] .bottom-nav { background: color-mix(in srgb, var(--k-bg), black 30%); border-top: 0; }
+:root[data-style="peaks"] #tabs.bottom-nav { background: color-mix(in srgb, var(--k-bg), black 30%); border-top: 0; }
 /* #tabs outweighs the id in dna.css's own tab rule (a :has() would work too, but costs a style recalculation on every change). */
 :root[data-style="peaks"] #tabs .nav-btn.active { background: none; color: var(--k-text); position: relative; }
 :root[data-style="peaks"] #tabs .nav-btn.active .nav-icon { color: var(--k-grad-2a); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--k-grad-2a) 60%, transparent)); }
@@ -98,3 +98,63 @@
 /* Add: the chosen direction on the panel in the first accent. */
 :root[data-style="peaks"] .k .amount-hero .direction-toggle { background: color-mix(in srgb, var(--p-ink) 8%, transparent); box-shadow: none; }
 :root[data-style="peaks"] .k .amount-hero .k-seg__btn[aria-selected="true"] { background: var(--k-grad-1a); color: var(--k-accent-ink); box-shadow: 0 0 14px color-mix(in srgb, var(--k-grad-1a) 35%, transparent); }
+
+/* --- Summary's top, Peaks' own layout (5.9, summary-looks.js) ------------
+ * The mockup's pale panel: the donut of the budget (spent before this week
+ * dark, this week in the accent) beside the figures, big and light with a
+ * small raised unit. Then the mountains, two slate cards and the month's
+ * payments as dashes on a line, with pines out of the corner. */
+.pk-panel { position: relative; display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: center; padding: 18px; border-radius: 18px; margin-bottom: var(--k-3); background: var(--p-paper); color: var(--p-ink); box-shadow: 0 18px 30px -12px rgb(0 0 0 / 0.6);
+  --k-negative: color-mix(in srgb, var(--k-negative-raw, #d33) 70%, var(--p-shade)); --k-warning: color-mix(in srgb, var(--k-warning-raw, #c80) 62%, var(--p-shade)); }
+.pk-ring { position: relative; width: 150px; height: 150px; }
+.pk-donut { width: 150px; height: 150px; display: block; fill: none; stroke-width: 16; }
+.pk-donut__trk { stroke: color-mix(in srgb, var(--p-ink) 10%, var(--p-paper)); }
+.pk-donut__before { stroke: var(--p-ink); }
+.pk-donut__week { stroke: var(--k-grad-1a); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--k-grad-1a) 60%, transparent)); }
+.pk-ring__mid { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.pk-ring__mid b { font-size: 25px; font-weight: 300; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.pk-panel.is-negative .pk-ring__mid b { color: var(--k-negative); }
+.pk-ring__mid small, .pk-tiny { font-size: 11px; color: var(--p-ink-2); margin-top: 4px; }
+.pk-figs { display: grid; gap: 16px; }
+.pk-pair { display: flex; gap: 20px; }
+.pk-n { font-weight: 300; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+.pk-n sup { font-size: .38em; font-weight: 500; letter-spacing: 0; vertical-align: .9em; margin-left: 2px; opacity: .6; }
+.pk-n--l { font-size: 34px; } .pk-n--m { font-size: 26px; } .pk-n--s { font-size: 20px; }
+.pk-hot { color: color-mix(in srgb, var(--k-grad-1a) 75%, var(--p-shade)); font-weight: 650; }
+.pk-status { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--p-ink-2); }
+.pk-panel .pk-status { color: var(--p-ink-2); }
+.pk-status.caution { color: var(--k-warning); } .pk-status.bad { color: var(--k-negative); }
+.pk-lab { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--k-text-3); }
+.pk-head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 var(--k-4) var(--k-2); }
+.pk-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: var(--k-3) 0; }
+.pk-card { position: relative; display: grid; gap: 10px; align-content: start; padding: 14px; border: 0; border-radius: 14px; overflow: hidden; font: inherit; color: var(--k-text); text-align: left; background: linear-gradient(180deg, color-mix(in srgb, var(--k-surface), white 3%), var(--k-surface)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 10px 22px -10px rgb(0 0 0 / 0.6); margin-bottom: var(--k-3); }
+.pk-two .pk-card { margin: 0; }
+.pk-row { display: flex; justify-content: space-between; align-items: center; }
+.pk-good { color: var(--k-grad-2a); }
+.pk-minibars { display: flex; align-items: flex-end; gap: 6px; height: 30px; }
+.pk-minibars i { flex: 1; border-radius: 2px; background: color-mix(in srgb, var(--k-grad-1a) 30%, var(--k-surface)); }
+.pk-minibars i:first-child { background: linear-gradient(180deg, var(--k-grad-1b), var(--k-grad-1a)); box-shadow: 0 0 8px color-mix(in srgb, var(--k-grad-1a) 50%, transparent); }
+.pk-thin { height: 5px; margin-top: 12px; border-radius: 3px; background: color-mix(in srgb, var(--k-text) 10%, transparent); overflow: hidden; }
+.pk-thin i { display: block; height: 100%; border-radius: 3px; background: var(--k-grad-2a); box-shadow: 0 0 8px var(--k-grad-2a); }
+.pk-coming { min-height: 150px; }
+.pk-dashes { display: grid; gap: 10px; padding-right: 84px; }
+.pk-dash { display: grid; grid-template-columns: 74px 1fr 50px; gap: 8px; align-items: center; font-size: 11.5px; color: var(--k-text-2); }
+.pk-dash > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-ln { position: relative; height: 3px; background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--k-text) 14%, transparent) 0 6px, transparent 6px 9px); }
+.pk-ln i { position: absolute; top: -2px; height: 7px; width: 16px; margin-left: -8px; border-radius: 2px; background: var(--k-grad-1a); box-shadow: 0 0 8px color-mix(in srgb, var(--k-grad-1a) 60%, transparent); }
+.pk-ln i.late { background: var(--k-negative); }
+.pk-ln u { position: absolute; top: -6px; bottom: -6px; width: 1px; background: var(--k-grad-2a); box-shadow: 0 0 6px var(--k-grad-2a); }
+.pk-dash b { text-align: right; font-weight: 500; color: var(--k-text); font-variant-numeric: tabular-nums; }
+.pk-still { margin-top: 4px; }
+.pk-coming .pk-tiny { color: var(--k-text-3); margin-top: -6px; }
+.pk-pines { position: absolute; right: -6px; bottom: -4px; width: 140px; height: 140px; pointer-events: none; }
+.pk-pines__glow { fill: color-mix(in srgb, var(--k-grad-1a) 22%, transparent); filter: blur(14px); }
+.pk-pines__tree { fill: color-mix(in srgb, var(--k-bg), black 35%); }
+.mountains-card .pk-head { padding: 0 var(--k-4) var(--k-2); }
+.mountains-card .pk-lab { font-size: 10.5px; }
+
+/* The mockup's frame: a small, quiet title, and the tab bar as a dark dock
+ * with rounded corners, lifted off the bottom. */
+:root[data-style="peaks"] .app-header #view-title { font-size: 20px; font-weight: 650; letter-spacing: .02em; }
+:root[data-style="peaks"] #tabs.bottom-nav { margin: 0 14px 12px; border-radius: 18px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--k-text) 6%, transparent); }
+:root[data-style="peaks"] body { padding-bottom: calc(var(--nav-height, 84px) + var(--space-lg) + 12px); }
