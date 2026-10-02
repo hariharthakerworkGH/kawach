@@ -1,4 +1,5 @@
 import { getAll, put, remove, newId, getSetting, setSetting } from '../db.js';
+import { planTop, planMonth } from './plan-looks.js';
 import { icon } from '../icons.js';
 import { formatRupees, ordinal, formatDateNice, formatMonthYear } from '../format.js';
 import { detectRecurring } from '../recurring.js';
@@ -134,7 +135,16 @@ export async function render(container) {
       tracker = [];
     }
   }
-  const thisMonth = inBusiness ? '' : monthStrip(tracker, [...fixed, ...loanItems], now) + flexBars(tracker);
+  // NEW (5.14): Tactile, Peaks and Mindora draw the month and the top their
+  // own way (plan-looks.js), from the same rows and figures.
+  const style = document.documentElement.dataset.style;
+  const looks = ['tactile', 'peaks', 'mindora'].includes(style);
+  const stateOf = (t) => (t.status === 'paid' ? 'paid' : t.status === 'late' ? 'late' : 'due');
+  const thisMonth = inBusiness
+    ? ''
+    : (looks
+        ? planMonth(style, monthRows(tracker, [...fixed, ...loanItems]).map(({ t, day }) => ({ label: t.label, day, amount: t.amount, state: stateOf(t) })), now)
+        : monthStrip(tracker, [...fixed, ...loanItems], now)) + flexBars(tracker);
 
   // `k-plan` scopes the rules for classes this screen shares with Summary,
   // so styling a commitment row here cannot reach across and restyle one
@@ -148,7 +158,16 @@ export async function render(container) {
         ? ''
         : // Plan is a stat-led screen: the budget each month is what it
           // answers, and the sums behind it sit under it, not above it.
-          hero({
+          (looks && budget != null && incomeValue + sideExtra > 0
+            ? planTop(style, {
+                budget,
+                income: incomeValue + sideExtra,
+                must: mustTotal,
+                flex: flexTotal,
+                keep,
+                status: `After ${formatRupees(fixedTotal)} of commitments and ${formatRupees(keep)} saved.`,
+              })
+            : hero({
             label: '<span class="seg-dot seg-free"></span>Budget each month',
             amount: budget != null ? formatRupees(budget) : '-',
             level: budget != null && budget < 0 ? 'over' : 'ok',
@@ -179,7 +198,7 @@ export async function render(container) {
               budget == null
                 ? 'Add what comes in each month to see your budget.'
                 : `After ${formatRupees(fixedTotal)} of commitments and ${formatRupees(keep)} saved.`,
-          }) +
+          })) +
           `<section class="plan-sums k-pane k-pane--quiet">
       <h3 class="plan-sums__head">${shown ? 'Your amounts' : 'Where it comes from'}</h3>
       ${
@@ -702,11 +721,7 @@ export async function render(container) {
  * only when there is room for it; every bar says its name and amount to a
  * screen reader. Exported so the rules can be tested. */
 export function monthStrip(tracker, items, now = new Date()) {
-  const byId = new Map(items.map((i) => [i.id, i]));
-  const rows = tracker
-    .filter((t) => !t.setAside && !t.variable && t.status !== 'untracked' && byId.get(t.id)?.dayOfMonth)
-    .map((t) => ({ t, day: Math.min(byId.get(t.id).dayOfMonth, 31) }))
-    .sort((a, b) => a.day - b.day);
+  const rows = monthRows(tracker, items);
   if (!rows.length) return '';
   const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const x = (d) => 22 + ((Math.min(d, days) - 1) / (days - 1)) * 276;
@@ -742,6 +757,16 @@ export function monthStrip(tracker, items, now = new Date()) {
       </svg>
       <figcaption class="plan-strip__key"><span class="is-due">Still to pay</span><span class="is-paid">Paid</span>${rows.some((r) => r.t.status === 'late') ? '<span class="is-late">Late</span>' : ''}</figcaption>
     </figure>`;
+}
+
+/* This month's must-go-outs on their days, soonest first: what the strip
+ * above draws, and what every style draws its own way (plan-looks.js). */
+export function monthRows(tracker, items) {
+  const byId = new Map(items.map((i) => [i.id, i]));
+  return tracker
+    .filter((t) => !t.setAside && !t.variable && t.status !== 'untracked' && byId.get(t.id)?.dayOfMonth)
+    .map((t) => ({ t, day: Math.min(byId.get(t.id).dayOfMonth, 31) }))
+    .sort((a, b) => a.day - b.day);
 }
 
 /* What is left of each set-aside this month, as a bar that fills as it is

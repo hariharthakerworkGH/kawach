@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.14',
+    items: [
+      {
+        icon: 'plan',
+        title: "Plan in each style",
+        text: "In Tactile, Peaks and Mindora, Plan now shows your budget split into must go out, can flex, free and saved, and this month's payments as steps or dashes on a line, each in that style's own design.",
+        guide: [{ view: 'plan', target: '.pl-top, .hero', text: "Your budget, split into the four parts of what comes in." }],
+      },
+    ],
+  },
+  {
     version: '5.13',
     items: [
       {

@@ -5381,3 +5381,32 @@ label.look-style { position: relative; cursor: pointer; }
 :root[data-style] .k .add-row.k-switch-row .k-switch-row__text { flex: 1; }
 :root[data-style] .k .add-form ~ .k-add-sms { margin-top: var(--k-3); }
 :root[data-style] .k .accounts-actions .k-btn--ghost { font-size: 14px; }
+
+/* --- Plan in the styles (5.14, plan-looks.js): the shared bones ---------
+   The steps of the month: a row that scrolls sideways when there are many,
+   each step drawing the stretch of line to the next one (lit once paid), so
+   the line is right however many there are. */
+.pl-top { margin-bottom: var(--k-3); }
+.pl-month { margin-bottom: var(--k-3); }
+.pl-steps { display: flex; overflow-x: auto; scrollbar-width: none; padding: 6px 2px 4px; scroll-snap-type: x proximity; }
+.pl-steps::-webkit-scrollbar { display: none; }
+.pl-step { position: relative; flex: 0 0 76px; display: grid; justify-items: center; gap: 8px; text-align: center; scroll-snap-align: start; }
+.pl-step::after { content: ""; position: absolute; top: 19px; left: calc(50% + 21px); width: calc(100% - 42px); height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--k-text) 16%, transparent); }
+.pl-step:last-child::after { display: none; }
+.pl-step b { position: relative; z-index: 1; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; }
+.pl-step b svg { width: 17px; height: 17px; }
+.pl-step small { display: grid; gap: 1px; font-size: 11px; line-height: 1.25; color: var(--k-text-3); max-width: 72px; }
+.pl-step small strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; color: var(--k-text-2); }
+.pl-step small span { color: var(--k-text); font-variant-numeric: tabular-nums; }
+.pl-today { margin: 8px 2px 0; font-size: 12px; color: var(--k-text-3); }
+.pl-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-top: 12px; font-size: 13px; color: var(--k-text-2); }
+.pl-legend > span { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; }
+.pl-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; }
+.pl-legend b { font-weight: 700; color: var(--k-text); font-variant-numeric: tabular-nums; }
+.pl-legend small { color: var(--k-text-3); }
+.pl-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.pl-badges > span { height: 26px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.pl-top .is-negative { color: var(--k-negative); }
+.pl-legend em { flex-basis: 100%; font-style: normal; padding-left: 15px; }
+/* Inside Plan's own "This month" card the steps need no card of their own. */
+.plan-month .pl-month--mindora, .plan-month .pk-card.pl-month { padding: 0; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }

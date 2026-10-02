@@ -256,3 +256,36 @@ button.pk-card { cursor: pointer; }
 :root[data-style="peaks"] .k .account-balance { font-weight: 300; font-size: 20px; }
 :root[data-style="peaks"] .k .account-row .k-brand { border-radius: 10px; }
 :root[data-style="peaks"] .k .bill-amount { font-weight: 400; }
+
+/* --- Plan, after the mockup (5.14) ---------------------------------------
+ * The budget in a donut on the pale panel, its parts as arcs (must go out
+ * dark, can flex orange, free pale, saved teal) beside thin figures; the
+ * month as dashes on a line, paid ones grey, late red, today in teal; the
+ * set-asides as thin orange bars ending in a dot. */
+.pl-donut__must { stroke: var(--p-ink); }
+.pl-donut__flex { stroke: var(--k-grad-1a); }
+.pl-donut__free { stroke: color-mix(in srgb, var(--k-grad-2a) 45%, var(--p-paper)); }
+.pl-donut__saved { stroke: color-mix(in srgb, var(--k-grad-2a) 70%, var(--p-ink)); }
+.pl-figs { grid-template-columns: 1fr 1fr; gap: 12px 10px; }
+.pl-figs .pk-tiny { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.pl-key { display: inline-block; width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.pl-key.is-must { background: var(--p-ink); }
+.pl-key.is-flex { background: var(--k-grad-1a); }
+.pl-key.is-free { background: color-mix(in srgb, var(--k-grad-2a) 45%, var(--p-paper)); }
+.pl-key.is-saved { background: color-mix(in srgb, var(--k-grad-2a) 70%, var(--p-ink)); }
+.pk-ln i.paid { background: color-mix(in srgb, var(--k-text) 30%, transparent); box-shadow: none; }
+.pl-late { color: var(--k-negative) !important; }
+:root[data-style="peaks"] .k .plan-flex__track { height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--k-text) 10%, transparent); overflow: visible; position: relative; }
+:root[data-style="peaks"] .k .plan-flex__track i { position: relative; border-radius: 3px; background: linear-gradient(90deg, var(--k-grad-1a), var(--k-grad-1b)); box-shadow: 0 0 8px color-mix(in srgb, var(--k-grad-1a) 45%, transparent); }
+:root[data-style="peaks"] .k .plan-flex__track i::after { content: ""; position: absolute; right: -4px; top: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--k-grad-2a); box-shadow: 0 0 6px var(--k-grad-2a); }
+:root[data-style="peaks"] .k .plan-flex__row.is-over .plan-flex__track i::after { background: var(--k-negative); box-shadow: 0 0 6px var(--k-negative); }
+:root[data-style="peaks"] .k .plan-flex__left { font-weight: 300; }
+/* Plan's panel holds four figures beside the donut: a smaller ring and
+   figures so they fit a phone's width. */
+.pl-top--peaks { grid-template-columns: 112px 1fr; gap: 12px 12px; }
+.pl-top--peaks .pk-top { flex-wrap: wrap; gap: 2px 8px; }
+.pl-top--peaks .pk-ring, .pl-top--peaks .pk-donut { width: 112px; height: 112px; }
+.pl-top--peaks .pk-ring__mid b { font-size: 18px; }
+.pl-top--peaks .pl-figs { gap: 10px 8px; min-width: 0; }
+.pl-top--peaks .pl-figs .pk-n--s { font-size: 17px; }
+.pl-top--peaks .pl-figs .pk-tiny { font-size: 10px; white-space: normal; }

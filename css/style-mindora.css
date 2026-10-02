@@ -310,3 +310,30 @@
 :root[data-style="mindora"] .k .account-group { border-radius: 20px; padding: 4px 16px; }
 :root[data-style="mindora"] .k .account-row .k-brand { border-radius: 50%; }
 :root[data-style="mindora"] .k .account-balance { font-family: var(--m-figure); font-weight: 500; }
+
+/* --- Plan, after the mockup (5.14) ---------------------------------------
+ * The budget on glass over a fine line split into its parts (slate, blush,
+ * sage, sky) with soft badges; the month as steps - sage and ticked when
+ * paid, blush when late, the day in a ring while still to pay; set-asides
+ * as fine lines. */
+.pl-line { display: flex; gap: 3px; height: 8px; margin-top: 16px; border-radius: 4px; overflow: hidden; }
+.pl-line i { border-radius: 4px; min-width: 4px; }
+.pl-top--mindora .is-must { background: var(--k-text); }
+.pl-top--mindora .is-flex { background: var(--k-violet); }
+.pl-top--mindora .is-free { background: var(--k-accent); }
+.pl-top--mindora .is-saved { background: var(--k-magenta); }
+.pl-top--mindora .pl-badges > span { font-family: var(--m-figure); color: var(--k-text); }
+.pl-top--mindora .pl-badges > .is-must { background: color-mix(in srgb, var(--k-surface) 70%, transparent); color: var(--k-text-2); }
+.pl-top--mindora .pl-badges > .is-flex { background: color-mix(in srgb, var(--k-violet) 45%, transparent); }
+.pl-top--mindora .pl-badges > .is-free { background: color-mix(in srgb, var(--k-accent) 22%, transparent); }
+.pl-top--mindora .pl-badges > .is-saved { background: color-mix(in srgb, var(--k-magenta) 50%, transparent); }
+.pl-month--mindora { padding: 16px 12px 12px; border-radius: 20px; background: var(--m-glass); border: 1px solid var(--m-edge); box-shadow: var(--m-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); }
+.pl-month--mindora .pl-step::after { height: 1.5px; top: 20px; }
+.pl-month--mindora .pl-step b { font-family: var(--m-figure); font-weight: 600; color: var(--k-accent); border: 1.5px solid var(--k-accent); background: var(--k-surface); }
+.pl-month--mindora .pl-step.is-paid b { color: var(--k-accent-ink); background: var(--k-accent); }
+.pl-month--mindora .pl-step.is-late b { color: var(--k-text); background: var(--k-violet); border-color: var(--k-violet); }
+.pl-month--mindora .pl-step small { font-family: var(--m-figure); }
+:root[data-style="mindora"] .k .plan-flex__track { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--k-text) 12%, transparent); }
+:root[data-style="mindora"] .k .plan-flex__track i { border-radius: 3px; background: var(--k-accent); }
+:root[data-style="mindora"] .k .plan-flex__row.is-warn .plan-flex__track i { background: var(--k-warning); }
+:root[data-style="mindora"] .k .plan-flex__row.is-over .plan-flex__track i { background: var(--k-violet); }
