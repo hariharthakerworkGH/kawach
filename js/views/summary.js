@@ -1,4 +1,5 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
+import { tactileTop, peaksTop, mindoraTop, keptBack } from './summary-looks.js';
 import { icon } from '../icons.js';
 import { isFixed, isLiveCommitment, coveredByFixed, commitmentFromSuggestion } from '../commitments.js';
 import { isoLocal, hasDueDate, frequencyOf } from '../frequency.js';
@@ -604,7 +605,7 @@ export function monthWaves(f) {
 // Each drawing gets its own gradient ids, so two drawings on one page never
 // share one.
 let mountainsDrawn = 0;
-export function monthMountains(f) {
+export function monthMountains(f, head = '') {
   const totals = f.spendDays || [];
   const daily = (f.spendByDay || []).map((d) => d.amount || 0);
   const n = Math.min(totals.length, daily.length);
@@ -651,7 +652,7 @@ export function monthMountains(f) {
   const paceY = base - (10 + Math.sqrt(Math.min(1, evenDay / peak)) * 112);
   const ticks = [...new Set([0, Math.round((n - 1) / 3), Math.round((2 * (n - 1)) / 3), n - 1])]
     .map((i) => `<text class="mountains__tick" x="${xs(i).toFixed(1)}" y="${H - 2}" text-anchor="middle">${Number(f.spendByDay[i].date.slice(8))}</text>`).join('');
-  return `<div class="totals-card waves-card mountains-card">
+  return `<div class="totals-card waves-card mountains-card">${head}
       <svg class="mountains" viewBox="0 0 ${W} ${H}" role="img" aria-label="This month so far: ${formatRupees(totals[n - 1])} spent; an even day is ${formatRupees(Math.round(evenDay))}. Biggest day ${formatRupees(daily[bigDay])} on ${formatDateNice(f.spendByDay[bigDay].date)}.">
         <defs>
           <linearGradient id="${id}-front" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="mountains__front-top"/><stop offset="1" class="mountains__front-foot"/></linearGradient>
@@ -664,7 +665,7 @@ export function monthMountains(f) {
         ${ticks}
       </svg>
       <div class="waves__key">
-        <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b>spent so far</span>
+        ${head ? '' : `<span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b>spent so far</span>`}
         <span class="waves__k waves--pace"><b>${formatRupees(Math.round(evenDay))}</b>an even day</span>
         <span class="waves__k waves--day"><b>${formatDateNice(f.spendByDay[bigDay].date)}</b>biggest day</span>
       </div>
@@ -871,6 +872,8 @@ function incomeLine(f) {
 
 const monthShort = (month) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(month.slice(5, 7)) - 1];
 
+const LOOK_TOPS = { tactile: tactileTop, peaks: peaksTop, mindora: mindoraTop };
+
 function renderCardsHero(f, { past = null } = {}) {
   const line = breakdownLine;
   // A month that is over reads its own figures and nothing about the present:
@@ -890,7 +893,14 @@ function renderCardsHero(f, { past = null } = {}) {
 
   // CHANGED (4.22): the figures under the headline are one card of rows,
   // one figure a row, rather than figures side by side.
-  return spendingHero(shown, appearance('summary'), past ? `Final for ${past.name}` : null) + `
+  // NEW (5.9): Tactile, Peaks and Mindora draw this month's top half their
+  // own way (summary-looks.js); a finished month and the plain look keep the
+  // Charts one.
+  const style = typeof document !== 'undefined' ? document.documentElement.dataset.style : '';
+  const lookTop = !past && appearance('summary') === 'full' && f.limit > 0 && LOOK_TOPS[style];
+  const top = lookTop
+    ? lookTop(f, spendingStatus(f), style === 'peaks' ? monthMountains(f, `<div class="pk-head"><span class="pk-lab">Spent this month</span><span class="pk-n pk-n--s">${formatRupees(f.spentThisCycle || 0).replace('₹', '')}<sup>₹</sup></span></div>`) : '')
+    : spendingHero(shown, appearance('summary'), past ? `Final for ${past.name}` : null) + `
     ${past ? '' : monthWaves(f)}
     ${past ? '' : weekPills(f)}
     <div class="summary-rows summary-strip">
@@ -902,7 +912,8 @@ function renderCardsHero(f, { past = null } = {}) {
         // In the full look the cards' figure is in the columns above.
         past ? '' : renderOwed(f, { cards: appearance('summary') !== 'full' })
       }
-    </div>
+    </div>`;
+  return top + `
     ${(() => {
       const card = Math.max(0, f.cardSpent || 0);
       const bank = Math.max(0, f.bankSpent || 0);
@@ -992,8 +1003,7 @@ function stillSetAside(f) {
   // payments matched to it, so claiming the whole amount is still there
   // would be a guess dressed up as a figure. Same rows free-to-spend uses
   // when it works out what is safe to keep spending.
-  const rows = f.tracker.filter((t) => t.setAside && !t.skipped && t.left > 0 && ['ok', 'heading-over', 'part'].includes(t.status));
-  const left = rows.reduce((s, t) => s + t.left, 0);
+  const left = keptBack(f);
   if (!left) return '';
   return `<button type="button" class="summary-row summary-row--tap" id="set-aside-stat">
       <span class="summary-row__k">Kept back<small>set aside, not spent yet</small></span>

@@ -16,22 +16,42 @@
 <main id="view-container" class="view-container k"></main>
 <nav class="bottom-nav" id="tabs"><button type="button" class="nav-btn active"><span class="nav-icon"></span>Summary</button><button type="button" class="nav-btn">Add</button></nav>
 <script type="module">
-  // Made-up figures, to see a style drawn without the app's data.
+  // Made-up figures, to see a style's Summary drawn without the app's data:
+  // ?style=&colour=&theme= (style charts draws the Charts top).
   const q = new URLSearchParams(location.search);
-  if (q.get('style')) document.documentElement.dataset.style = q.get('style');
-  if (q.get('colour')) document.documentElement.dataset.colour = q.get('colour');
-  if (q.get('theme')) document.documentElement.dataset.theme = q.get('theme');
+  const root = document.documentElement;
+  if (q.get('style')) q.get('style') === 'charts' ? root.removeAttribute('data-style') : (root.dataset.style = q.get('style'));
+  if (q.get('colour')) root.dataset.colour = q.get('colour');
+  if (q.get('theme')) root.dataset.theme = q.get('theme');
   const { hero } = await import('../js/ui.js');
-  const { monthWaves } = await import('../js/views/summary.js');
+  const { monthWaves, monthMountains, weekPills, spendingStatus } = await import('../js/views/summary.js');
+  const looks = await import('../js/views/summary-looks.js');
   const amts = [3000, 1200, 400, 5400, 800, 600, 1600, 9700, 500, 2500, 1100, 700, 900, 2300];
   let run = 0;
-  const f = { limit: 3100000, daysIntoCycle: 14, daysToClose: 18, spendByDay: amts.map((a, i) => ({ date: `2026-10-${String(i + 1).padStart(2, '0')}`, amount: a * 100 })), spendDays: amts.map((a) => (run += a * 100)) };
-  document.getElementById('view-container').innerHTML = hero({
-    label: 'Left to spend', period: '1 Oct to 31 Oct', amount: '₹12,450',
-    status: 'About ₹700 a day until 31 Oct.',
-    tracking: { stats: [{ k: 'Spent', v: '₹18,550' }, { k: 'Budget', v: '₹31,000' }, { k: 'A day', v: '₹700' }],
-      rings: [{ value: 0.6, grad: 'spent', label: 'spent' }, { value: 0.45, grad: 'month', label: 'month gone' }, { value: 0.7, grad: 'aside', label: 'set aside used' }] },
-  }) + monthWaves(f) + '<div class="totals-card" style="height:300px"></div>';
+  const f = {
+    limit: 3150000, free: 926800, spentThisCycle: 2223200, used: 0.71, perDay: 51500, level: 'ok',
+    daysIntoCycle: 14, daysToClose: 18, cycleStart: '2026-10-01', cycleKey: '2026-10-31', today: '2026-10-14',
+    spendByDay: amts.map((a, i) => ({ date: `2026-10-${String(i + 1).padStart(2, '0')}`, amount: a * 100 })),
+    spendDays: amts.map((a) => (run += a * 100)),
+    cards: [{ account: { label: 'Card 1' }, owed: 1245000, unpaid: 987000 }, { account: { label: 'Card 2' }, owed: 1101700, unpaid: 0 }],
+    totals: { owedCards: 2346700, unpaidBills: 987000 }, cardBills: [{ label: 'Card 1 bill', amount: 987000 }],
+    reimbursable: { owed: 260400 },
+    tracker: [
+      { label: 'Groceries', setAside: true, amount: 1200000, left: 800000, status: 'ok' },
+      { label: 'Fuel', setAside: true, amount: 800000, left: 650000, status: 'ok' },
+      { label: 'Internet', due: '2026-10-18', amount: 109900, left: 109900, status: 'due' },
+      { label: 'Phone', due: '2026-10-24', amount: 49900, left: 49900, status: 'due' },
+      { label: 'Rent', due: '2026-10-05', amount: 1800000, left: 1800000, status: 'late' },
+    ],
+  };
+  const style = root.dataset.style;
+  const tops = { tactile: looks.tactileTop, peaks: looks.peaksTop, mindora: looks.mindoraTop };
+  const status = spendingStatus(f);
+  document.getElementById('view-container').innerHTML = tops[style]
+    ? tops[style](f, status, style === 'peaks' ? monthMountains(f, '<div class="pk-head"><span class="pk-lab">Spent this month</span><span class="pk-n pk-n--s">22,232<sup>₹</sup></span></div>') : '')
+    : hero({ label: 'Left to spend', period: '1 Oct to 31 Oct', amount: '₹9,268', status,
+        tracking: { stats: [{ k: 'Spent', v: '₹22,232' }, { k: 'Budget', v: '₹31,500' }, { k: 'A day', v: '₹515' }],
+          rings: [{ value: 0.71, grad: 'spent', label: 'spent' }, { value: 0.45, grad: 'month', label: 'month gone' }] } }) + monthWaves(f) + weekPills(f);
 </script>
 </body>
 </html>

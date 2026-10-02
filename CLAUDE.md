@@ -232,7 +232,10 @@ text on each. A style other than Charts is one stylesheet keyed on
 changes material, never markup, and brings its own colouring (Tactile
 copper, Peaks slate) for "Follow my phone". The one drawing that differs is
 Summary's month: Peaks draws it as mountains (`monthMountains`), chosen in
-`monthWaves` by the style worn. Mindora (`css/style-mindora.css`, 5.8) is
+`monthWaves` by the style worn. Paint alone made the styles look alike, so
+since 5.9 each also lays out Summary's top half as its mockup does
+(`js/views/summary-looks.js`, same figures, own markup) and has its own tab
+bar and title; the other screens are still Charts' layout in their colours. Mindora (`css/style-mindora.css`, 5.8) is
 glass over a ridge scene cut with clip-path, its own colouring light, so
 "Follow my phone" gives a style its own colouring only when that matches the
 phone's light or dark. dna.css's tab and shell rules carry an id (`:has(#view-

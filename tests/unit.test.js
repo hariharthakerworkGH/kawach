@@ -13,6 +13,7 @@ import { cardPosition, bankBalance, statementDayFixes } from '../js/account-metr
 import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance, applyTheme } from '../js/appearance.js';
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
+import { mood, comingUp, keptBack, topFigures } from '../js/views/summary-looks.js';
 import { looksLikeCardPayment } from '../js/transfers.js';
 import { spendingMonthOf } from '../js/spending-month.js';
 import { parseAlert, splitAlerts, resolveAccount, findDigits } from '../js/alerts.js';
@@ -1523,6 +1524,27 @@ test('Summary waves and week: from the 1st to today, the biggest day marked, owe
   const noIds = (h) => h.replace(/mtn\d+/g, '');
   equal(noIds(peaks), noIds(monthMountains(f)), 'the same month draws the same range every time');
   equal(monthMountains({ ...f, spendDays: [rupees(500)], spendByDay: f.spendByDay.slice(0, 1) }), '', 'one day is not yet a range');
+});
+test('Summary in each style: the mood of the month, what is coming up, what is kept back', () => {
+  const base = { daysIntoCycle: 15, daysToClose: 16, level: 'ok', free: rupees(9000) };
+  equal(mood({ ...base, used: 0.2 }), 'easy', 'a fifth spent half way through is easy');
+  equal(mood({ ...base, used: 0.5 }), 'steady', 'spending with the month is steady');
+  equal(mood({ ...base, used: 0.8, level: 'warning' }), 'tight', 'a warning is tight');
+  equal(mood({ ...base, used: 1.1, level: 'over', free: -rupees(100) }), 'over', 'past the budget is over');
+  const tracker = [
+    { label: 'Phone', due: '2026-10-24', amount: rupees(499), left: rupees(499), status: 'due' },
+    { label: 'Rent', due: '2026-10-05', amount: rupees(18000), left: rupees(18000), status: 'late' },
+    { label: 'EMI', due: '2026-10-10', amount: rupees(8000), left: rupees(3000), status: 'part' },
+    { label: 'Internet', due: '2026-10-18', amount: rupees(1099), left: 0, status: 'paid' },
+    { label: 'Groceries', setAside: true, amount: rupees(12000), left: rupees(8000), status: 'ok' },
+    { label: 'Fuel', setAside: true, amount: rupees(3000), left: rupees(500), status: 'untracked' },
+  ];
+  const soon = comingUp({ tracker });
+  equal(soon.map((c) => c.label).join(','), 'Rent,EMI,Phone', 'dated and unpaid, soonest first; paid and set-asides left out');
+  ok(soon[0].late && soon[1].amount === rupees(3000), 'late is marked, and a part-paid one shows what is left');
+  equal(keptBack({ tracker }), rupees(8000), 'kept back counts only set-asides Kawach can follow');
+  const x = topFigures({ tracker, cards: [{ account: { label: 'Card 1' }, owed: rupees(500), unpaid: rupees(2000) }, { account: { label: 'Card 2' }, owed: 0, unpaid: 0 }], totals: { owedCards: rupees(500), unpaidBills: rupees(2000) }, cardBills: [{}], spendByDay: [] });
+  ok(x.owedCards === rupees(2500) && x.cards.length === 1 && x.bills === 1, 'owed on cards as the Charts row adds it, cards with nothing owed left out');
 });
 test("Plan's month: must-go-outs on their days by state, and what is left of each set-aside", () => {
   const items = [{ id: 'rent', dayOfMonth: 5 }, { id: 'emi', dayOfMonth: 10 }, { id: 'phone', dayOfMonth: 20 }, { id: 'loan-a', dayOfMonth: 2 }];

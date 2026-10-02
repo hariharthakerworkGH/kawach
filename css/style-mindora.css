@@ -116,7 +116,7 @@
  * Opaque, as the base rule explains: figures must not show through labels.
  * #tabs outweighs the id in dna.css's own tab rule.
  */
-:root[data-style="mindora"] #tabs {
+:root[data-style="mindora"] #tabs.bottom-nav {
   margin: 0 12px 12px;
   border: 1px solid var(--m-edge);
   border-radius: 22px;
@@ -136,3 +136,63 @@
 
 /* The dock sits 12px up, so the page ends 12px higher too. */
 :root[data-style="mindora"] body { padding-bottom: calc(var(--nav-height, 84px) + var(--space-lg) + 12px); }
+
+/* --- Summary's top, Mindora's own layout (5.9, summary-looks.js) ---------
+ * The mockup's glass: the figure with the week's thin columns (today lit)
+ * and a fine progress line; four faces for how the month is going; a misty
+ * lake behind what is kept back; what is coming up as steps on a line. */
+.md-glass { position: relative; display: block; width: 100%; padding: 16px; margin-bottom: var(--k-3); border-radius: 20px; overflow: hidden; font: inherit; color: var(--k-text); text-align: left;
+  background: var(--m-glass); border: 1px solid var(--m-edge); box-shadow: var(--m-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); }
+.md-hero { background: var(--m-glass-strong); }
+.md-kick { display: block; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--k-text-2); }
+.md-big { margin-top: 12px; font-size: 46px; font-weight: 300; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.md-hero.is-negative .md-big { color: var(--k-negative); }
+.md-sub { margin-top: 6px; font-size: 13px; color: var(--k-text-3); }
+.md-cols { display: flex; align-items: stretch; gap: 9px; height: 74px; margin-top: 16px; }
+.md-cols > span { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px; }
+.md-cols i { width: 5px; border-radius: 3px; background: color-mix(in srgb, var(--k-text) 22%, transparent); }
+.md-cols i.lit { width: 7px; background: var(--k-accent); box-shadow: 0 0 10px color-mix(in srgb, var(--k-accent) 70%, transparent); }
+.md-cols small { font-size: 9.5px; font-weight: 500; color: var(--k-text-3); }
+.md-spent { display: flex; justify-content: space-between; margin-top: 16px; font-size: 12px; font-weight: 500; color: var(--k-text-2); }
+.md-prog { height: 6px; margin-top: 6px; border-radius: 3px; background: color-mix(in srgb, var(--k-text) 12%, transparent); overflow: hidden; }
+.md-prog i { display: block; height: 100%; border-radius: 3px; background: var(--k-accent); }
+.md-prog i.caution { background: var(--k-warning); } .md-prog i.bad { background: var(--k-negative); }
+.md-moods { display: flex; justify-content: space-between; margin-top: 14px; }
+.md-mood { display: grid; justify-items: center; gap: 6px; font-size: 11px; font-weight: 500; color: var(--k-text-3); }
+.md-mood b { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; opacity: .5; color: var(--k-text); }
+.md-mood svg { width: 30px; height: 30px; }
+.md-mood--easy b { background: color-mix(in srgb, var(--k-magenta) 70%, var(--k-surface)); }
+.md-mood--steady b { background: color-mix(in srgb, var(--k-cyan) 35%, var(--k-surface)); }
+.md-mood--tight b { background: color-mix(in srgb, var(--k-text) 14%, var(--k-surface)); }
+.md-mood--over b { background: color-mix(in srgb, var(--k-violet) 70%, var(--k-surface)); }
+.md-mood.on { color: var(--k-text); }
+.md-mood.on b { opacity: 1; box-shadow: 0 0 0 3px var(--m-edge), 0 6px 14px rgb(0 0 0 / 0.12); }
+.md-line { margin: 14px 0 0; text-align: center; font-size: 14px; color: var(--k-text-2); }
+.md-line.caution { color: var(--k-warning); } .md-line.bad { color: var(--k-negative); }
+.md-split { display: grid; grid-template-columns: 1.1fr 1fr; gap: 12px; margin-bottom: var(--k-3); }
+.md-split .md-glass { margin: 0; }
+.md-stack { display: grid; gap: 12px; align-content: start; }
+.md-small { padding: 14px; }
+.md-mid { display: block; margin-top: 8px; font-size: 22px; font-weight: 500; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.md-good { color: var(--k-positive); }
+.md-badge { display: inline-flex; margin-top: 8px; height: 24px; align-items: center; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 500; color: var(--k-text); background: color-mix(in srgb, var(--k-violet) 45%, transparent); }
+.md-lake { min-height: 196px; padding: 0; display: flex; cursor: pointer; }
+.md-lake__art { position: absolute; inset: 0; width: 100%; height: 100%; }
+.md-lake__sky { fill: color-mix(in srgb, var(--k-magenta) 55%, var(--k-surface)); }
+.md-lake__far { fill: color-mix(in srgb, var(--k-text) 45%, var(--k-magenta)); }
+.md-lake__near { fill: color-mix(in srgb, var(--k-text) 80%, var(--k-bg)); }
+.md-lake__water { fill: color-mix(in srgb, var(--k-text) 60%, var(--k-magenta)); }
+.md-lake__mist { fill: var(--k-surface); opacity: .3; }
+.md-lake__text { position: relative; margin-top: auto; padding: 14px; display: grid; gap: 4px; color: #fff; text-shadow: 0 1px 6px rgb(0 0 0 / 0.45); }
+.md-lake__text .md-kick { color: #fff; }
+.md-lake__text .md-mid { margin: 0; color: #fff; }
+.md-lake__text small { font-size: 12px; opacity: .9; }
+.md-steps { position: relative; display: flex; justify-content: space-between; padding: 14px 6px 0; }
+.md-steps::before { content: ""; position: absolute; left: 30px; right: 30px; top: 32px; height: 1.5px; background: color-mix(in srgb, var(--k-text) 20%, transparent); }
+.md-step { position: relative; display: grid; justify-items: center; gap: 6px; width: 64px; text-align: center; }
+.md-step b { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--k-accent); border: 1.5px solid var(--k-accent); background: var(--k-surface); }
+.md-step.late b { color: var(--k-negative); border-color: var(--k-negative); }
+.md-step b svg { width: 16px; height: 16px; }
+.md-step small { font-size: 11.5px; font-weight: 500; color: var(--k-text-2); line-height: 1.3; }
+.md-step small span { display: block; color: var(--k-text-3); font-weight: 400; }
+:root[data-style="mindora"] .app-header #view-title { font-size: 34px; }

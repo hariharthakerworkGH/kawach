@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.9',
+    items: [
+      {
+        icon: 'eye',
+        title: "Each style now has its own Summary",
+        text: "Tactile, Peaks and Mindora no longer just recolour the same screen. Tactile reads like an instrument with plain rows, Peaks has a donut and the month as mountains, and Mindora shows your week, a face for how the month is going and what is coming up. Each has its own tab bar too.",
+        guide: [{ view: 'appearance', target: '.look-styles', text: "Try each style, then look at Summary." }],
+      },
+    ],
+  },
+  {
     version: '5.8',
     items: [
       {
