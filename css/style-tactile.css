@@ -1,0 +1,130 @@
+/* The Tactile style (5.6): a layer over Charts, the default style.
+ *
+ * Switched on by data-style="tactile" on <html> (js/looks.js). It changes
+ * the material, not the screens: surfaces are raised (a lit top edge, a dark
+ * lower edge, a deep shadow), fields and tracks are wells pressed into them,
+ * the main action is a bevelled pill in the colouring's accent ringed in
+ * metal, switches have metal knobs, and the tab bar is a well with the
+ * current tab raised. Anything not restyled here is drawn as Charts draws it
+ * - which is how a feature built in Charts first still works in Tactile
+ * until the mass update restyles it. Colours all come from the colouring.
+ */
+
+:root[data-style="tactile"] {
+  --t-raise: linear-gradient(180deg, color-mix(in oklch, var(--k-surface), white 6%), var(--k-surface));
+  --t-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 -1px 0 rgb(0 0 0 / 0.45), 0 2px 3px rgb(0 0 0 / 0.5), 0 12px 22px rgb(0 0 0 / 0.42);
+  --t-well: color-mix(in oklch, var(--k-bg), black 25%);
+  --t-well-shadow: inset 0 2px 5px rgb(0 0 0 / 0.75), inset 0 -1px 0 rgb(255 255 255 / 0.05);
+  --t-metal: color-mix(in oklch, var(--k-text) 45%, var(--k-surface));
+  --t-knob: radial-gradient(circle at 35% 30%, #f1ece6, #9a918a 70%, #6d6661);
+}
+/* Daylight: the same shapes, with the light from above much softer. */
+:root[data-style="tactile"][data-theme="light"] {
+  --t-raise: linear-gradient(180deg, color-mix(in oklch, var(--k-surface), white 40%), var(--k-surface));
+  --t-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 -1px 0 rgb(0 0 0 / 0.06), 0 2px 3px rgb(0 0 0 / 0.08), 0 10px 20px rgb(0 0 0 / 0.08);
+  --t-well: color-mix(in oklch, var(--k-bg), black 5%);
+  --t-well-shadow: inset 0 2px 4px rgb(0 0 0 / 0.14), inset 0 -1px 0 rgb(255 255 255 / 0.7);
+}
+
+/* Raised surfaces. */
+:root[data-style="tactile"] .k .totals-card,
+:root[data-style="tactile"] .k .breakdown-list,
+:root[data-style="tactile"] .k .cat-list,
+:root[data-style="tactile"] .k .empty-state,
+:root[data-style="tactile"] .k .hero,
+:root[data-style="tactile"] .k-pane,
+:root[data-style="tactile"] .k-insight,
+:root[data-style="tactile"] .k-context,
+:root[data-style="tactile"] .k-coach .coach-q,
+:root[data-style="tactile"] .k .hist-day-card,
+:root[data-style="tactile"] .totals-card {
+  background: var(--t-raise);
+  border: 0;
+  box-shadow: var(--t-shadow);
+}
+:root[data-style="tactile"] .k .totals-card .totals-card { background: none; box-shadow: none; }
+
+/* Wells: fields, choosers, tracks. */
+:root[data-style="tactile"] .k-input,
+:root[data-style="tactile"] .k-select,
+:root[data-style="tactile"] .k .k-picker,
+:root[data-style="tactile"] .k .hist-search,
+:root[data-style="tactile"] .k select.hist-chip,
+:root[data-style="tactile"] .k-seg,
+:root[data-style="tactile"] .pills-row,
+:root[data-style="tactile"] input[type="text"],
+:root[data-style="tactile"] input[type="number"],
+:root[data-style="tactile"] input[type="password"],
+:root[data-style="tactile"] input[type="search"],
+:root[data-style="tactile"] select {
+  background: var(--t-well);
+  background-image: none;
+  border: 1px solid transparent;
+  box-shadow: var(--t-well-shadow);
+}
+:root[data-style="tactile"] .k-input:focus-visible,
+:root[data-style="tactile"] .k-select:focus-visible,
+:root[data-style="tactile"] input:focus-visible {
+  border-color: var(--k-accent);
+  box-shadow: var(--t-well-shadow), 0 0 10px color-mix(in oklch, var(--k-accent) 30%, transparent);
+}
+
+/* The main action: a bevelled pill in the accent, ringed in metal. */
+:root[data-style="tactile"] .k-btn--primary,
+:root[data-style="tactile"] .k .add-form .k-btn--primary,
+:root[data-style="tactile"] .btn-primary {
+  background: linear-gradient(180deg, color-mix(in oklch, var(--k-accent), white 12%), color-mix(in oklch, var(--k-accent), black 18%));
+  color: var(--k-accent-ink);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--t-metal), inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -2px 3px rgb(0 0 0 / 0.28), 0 8px 14px rgb(0 0 0 / 0.35);
+}
+
+/* A chosen segment, tab or chip is a raised pill in the accent. */
+:root[data-style="tactile"] .k-seg__btn[aria-selected="true"],
+:root[data-style="tactile"] .chip.active,
+:root[data-style="tactile"] .dir-btn.active,
+:root[data-style="tactile"] .seg-btn.active {
+  background: linear-gradient(180deg, color-mix(in oklch, var(--k-accent), white 10%), color-mix(in oklch, var(--k-accent), black 15%));
+  color: var(--k-accent-ink);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 3px 6px rgb(0 0 0 / 0.4);
+}
+
+/* Switches: a well with a metal knob; on, the well fills with the accent. */
+:root[data-style="tactile"] .k-toggle { background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] .k-toggle::after { background: var(--t-knob); box-shadow: 0 0 0 2px color-mix(in oklch, var(--k-bg), black 20%), 0 3px 6px rgb(0 0 0 / 0.55); }
+:root[data-style="tactile"] .k-toggle[aria-checked="true"] { background: color-mix(in oklch, var(--k-accent), black 30%); box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] .k-toggle[aria-checked="true"]::after { background: var(--t-knob); }
+
+/* Add: the amount on a raised card in a well, not on a gradient. */
+:root[data-style="tactile"] .k .amount-hero { background: var(--t-raise); box-shadow: var(--t-shadow); color: var(--k-text); }
+:root[data-style="tactile"] .k .amount-hero .hero-label,
+:root[data-style="tactile"] .k .amount-hero .amount-prefix,
+:root[data-style="tactile"] .k .amount-hero .amount-input { color: var(--k-text); }
+:root[data-style="tactile"] .k .amount-hero .amount-input-wrap { background: var(--t-well); box-shadow: var(--t-well-shadow); border-radius: var(--k-r-md); padding: 0 var(--k-4); }
+:root[data-style="tactile"] .k .amount-hero .amount-input-wrap::after { display: none; }
+:root[data-style="tactile"] .k .amount-hero .amount-wave { stroke: var(--k-accent); opacity: 0.7; }
+:root[data-style="tactile"] .k .amount-hero .amount-wave circle { fill: var(--k-accent); }
+:root[data-style="tactile"] .k .amount-hero .direction-toggle { background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] .k .amount-hero .k-seg__btn { color: var(--k-text-2); }
+:root[data-style="tactile"] .k .amount-hero .k-seg__btn[aria-selected="true"] { color: var(--k-accent-ink); }
+:root[data-style="tactile"] .k .k-picker.is-chosen { background: var(--t-well); color: var(--k-text); border-color: var(--k-accent); box-shadow: var(--t-well-shadow), 0 0 10px color-mix(in oklch, var(--k-accent) 30%, transparent); }
+:root[data-style="tactile"] .k .k-picker.is-chosen::after { border-color: var(--k-text-2); }
+
+/* Rings and bars sit in wells. */
+:root[data-style="tactile"] .tracking-ring__track { stroke: var(--t-well); }
+:root[data-style="tactile"] .k .plan-flex__track,
+:root[data-style="tactile"] .k .coach-share { background: var(--t-well); box-shadow: var(--t-well-shadow); }
+
+/* The tab bar is a well; the current tab is raised in the accent. */
+:root[data-style="tactile"] .bottom-nav { background: var(--t-well); border-top: 0; box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] .nav-btn.active {
+  color: var(--k-accent-ink);
+  background: linear-gradient(180deg, color-mix(in oklch, var(--k-accent), white 10%), color-mix(in oklch, var(--k-accent), black 15%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 3px 6px rgb(0 0 0 / 0.45);
+}
+:root[data-style="tactile"] .nav-btn.active .nav-icon { filter: none; }
+
+/* Screen titles, engraved. */
+:root[data-style="tactile"] #view-title { text-shadow: 0 -1px 0 rgb(0 0 0 / 0.7), 0 1px 0 rgb(255 255 255 / 0.08); }
+:root[data-style="tactile"][data-theme="light"] #view-title { text-shadow: 0 1px 0 rgb(255 255 255 / 0.9); }
