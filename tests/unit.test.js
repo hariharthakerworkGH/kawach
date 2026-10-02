@@ -32,7 +32,7 @@ import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, spendingPulse, cashRiver } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
-import { spentLine, spendingHero, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
+import { spentLine, spendingHero, monthWaves, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -1464,22 +1464,44 @@ test('a finished month\'s hero says it is final and never prints "null"', () => 
   ok(!html.includes('a day until'), 'no pace line for a month that is over');
 });
 
-test('the Summary ring: arcs for budget spent and month gone, coloured by the budget alone', () => {
+test('the Summary tracking card: rings for budget spent, month gone and set-asides used, the first coloured by the budget alone', () => {
   const base = {
     cycleKey: '2026-10-31', cycleStart: '2026-10-01', free: rupees(15150), level: 'ok', limit: rupees(31500), used: 0.52,
     spentThisCycle: rupees(16350), spendDays: [], daysIntoCycle: 14, daysToClose: 18, bankShortfall: 0, perDay: rupees(500), crossesOn: null,
+    tracker: [{ setAside: true, status: 'ok', amount: rupees(6000), used: rupees(1500) }, { setAside: true, status: 'untracked', amount: rupees(2000), used: 0 }],
   };
   const html = spendingHero(base, 'full');
-  ok(html.includes('hero-ring__spent') && html.includes('stroke-dasharray="52.0 100"'), 'the thick arc is the share of the budget spent');
-  ok(html.includes('stroke-dasharray="45.2 100"'), 'the thin arc is the share of the month gone: 14 of 31 days');
-  ok(html.includes('of ₹31,500'), 'the budget is under the figure');
-  ok(!/hero-ring--(warn|over)/.test(html), 'half the budget spent is green');
-  ok(spendingHero({ ...base, used: 0.8 }, 'full').includes('hero-ring--warn'), 'amber from 75%');
-  ok(spendingHero({ ...base, used: 1.2, free: -rupees(6300), level: 'over' }, 'full').includes('hero-ring--over'), 'red from 90%, and past the budget');
-  ok(!/hero-ring--(warn|over)/.test(spendingHero({ ...base, used: 0.05, level: 'critical' }, 'full')), 'a red level for the bank does not turn the budget arc red');
+  ok(html.includes('hero--tracking') && html.includes('stroke-dasharray="52.0 100"'), 'the first ring is the share of the budget spent');
+  ok(html.includes('stroke-dasharray="45.2 100"'), 'the second is the share of the month gone: 14 of 31 days');
+  ok(html.includes('stroke-dasharray="25.0 100"'), 'the third is the set-asides used, only those Kawach can follow');
+  ok(html.includes('₹16,350') && html.includes('₹31,500') && html.includes('₹500'), 'Spent, Budget and A day in a row');
+  ok(!/tracking-ring--(warn|over)/.test(html), 'half the budget spent keeps its gradient');
+  ok(spendingHero({ ...base, used: 0.8 }, 'full').includes('tracking-ring--warn'), 'amber from 75%');
+  ok(spendingHero({ ...base, used: 1.2, free: -rupees(6300), level: 'over' }, 'full').includes('tracking-ring--over'), 'red from 90%, and past the budget');
+  ok(spendingHero({ ...base, used: 1.2, free: -rupees(6300), level: 'over' }, 'full').includes('<b>120%</b>'), 'past the budget it says how far past, the arc full');
+  ok(!/tracking-ring--(warn|over)/.test(spendingHero({ ...base, used: 0.05, level: 'critical' }, 'full')), 'a red level for the bank does not turn the budget ring red');
   ok(spendingHero(base, 'full', 'Final for September').includes('stroke-dasharray="100.0 100"'), 'a finished month has its month ring full');
-  ok(!spendingHero(base, 'plain').includes('hero-ring'), 'the plain look has no ring');
-  ok(!spendingHero({ ...base, used: 0 }, 'full').includes('hero-ring__spent'), 'nothing spent draws no arc (not a dot)');
+  ok(!spendingHero(base, 'plain').includes('hero--tracking'), 'the plain look has no rings');
+  ok(!spendingHero({ ...base, tracker: [] }, 'full').includes('set aside used'), 'no set-asides followed, no third ring');
+});
+
+test('Summary waves and week: from the 1st to today, the biggest day marked, owed per card as Owed on cards adds it up', () => {
+  const days = ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04'];
+  const f = {
+    limit: rupees(31000), daysIntoCycle: 4, daysToClose: 28,
+    spendDays: [rupees(500), rupees(700), rupees(4700), rupees(5000)],
+    spendByDay: days.map((date, i) => ({ date, amount: [rupees(500), rupees(200), rupees(4000), rupees(300)][i] })),
+    cards: [{ account: { label: 'Card 1' }, owed: rupees(2000), unpaid: rupees(9000) }, { account: { label: 'Card 2' }, owed: rupees(500), unpaid: 0 }],
+    totals: { owedCards: rupees(2500), unpaidBills: rupees(9000) },
+  };
+  const waves = monthWaves(f);
+  ok(waves.includes('₹5,000') && waves.includes('spent so far'), 'what has gone so far');
+  ok(waves.includes('₹4,000 on 3 Oct'), 'the biggest day, said in words too');
+  ok(waves.includes('₹4,000 at an even pace'), 'an even pace through ₹31,000 over 31 days is ₹4,000 by the 4th');
+  equal(monthWaves({ ...f, spendDays: [rupees(500)] }), '', 'one day is not yet a picture');
+  const week = weekPills(f);
+  ok(week.includes('₹5,000') && (week.match(/pill-col--lit/g) || []).length === 2, 'the week so far, today lit, and the card with most on it lit');
+  ok(week.includes('Owed on cards') && week.includes('₹11,500'), 'owed on cards: unpaid bills and new spending, as the row it replaces said');
 });
 test("Plan's month: must-go-outs on their days by state, and what is left of each set-aside", () => {
   const items = [{ id: 'rent', dayOfMonth: 5 }, { id: 'emi', dayOfMonth: 10 }, { id: 'phone', dayOfMonth: 20 }, { id: 'loan-a', dayOfMonth: 2 }];
@@ -1504,6 +1526,7 @@ test("Plan's month: must-go-outs on their days by state, and what is left of eac
   ok(flex.includes('₹600 over ₹3,000') && flex.includes('is-over') && flex.includes('width:100.0%'), 'one that is over is red, full, and says by how much');
   ok(!flex.includes('Gifts'), 'an untracked set-aside is left out');
 });
+
 test("History's day chart: what went out each day, moves between your own accounts left out", () => {
   const rows = [
     { date: '2026-09-03', direction: 'debit', amount: rupees(400) },
@@ -1519,6 +1542,7 @@ test("History's day chart: what went out each day, moves between your own accoun
   ok(html.includes('Biggest day <strong>₹4,200</strong> on 25 Sep'), 'the biggest day is named, not the money moved to savings');
   equal(dayChart(rows.slice(3), '2026-09'), '', 'a month with nothing going out has no chart');
 });
+
 // --- From the owner's report of 1 Oct: what the Summary said, and was not true -----
 test('a red headline that is only the bank being short does not say "almost all used"', () => {
   // 21% of the budget spent, the bank short after salary: free-to-spend lifts the level to critical.

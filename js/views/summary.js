@@ -467,13 +467,13 @@ export function ifRefunded(f) {
 // numbers the bank check already subtracts, added up, and nothing else. It
 // does not touch "Left to spend". Money the employer still owes back is shown
 // only while there is some: at nothing it disappears rather than saying "0".
-function renderOwed(f) {
+function renderOwed(f, { cards = true } = {}) {
   const onCards = Math.max(0, ((f.totals && f.totals.owedCards) || 0) + ((f.totals && f.totals.unpaidBills) || 0));
   const employer = (f.reimbursable && f.reimbursable.owed) || 0;
-  if (!f.cards.length && !employer) return '';
+  if ((!cards || !f.cards.length) && !employer) return '';
   return `<div class="summary-owed">
       ${
-        f.cards.length
+        cards && f.cards.length
           ? `<div class="summary-row"><span class="summary-row__k">Owed on cards<small>unpaid bills and new spending</small></span><span class="summary-row__v summary-row__v--cards">${formatRupees(onCards)}</span></div>`
           : ''
       }
@@ -503,11 +503,26 @@ export function spendingHero(f, look = 'full', statusText = null) {
   // pace drawing said, in one picture: an arc running ahead of the ring is
   // spending running ahead of the month. A finished month's ring is full.
   const monthDays = (f.daysIntoCycle || 0) + (f.daysToClose || 1) - 1;
-  const ring = look === 'full' && f.limit > 0
-    ? { spent: Math.max(0, f.used || 0), days: statusText != null ? 1 : monthDays > 0 ? f.daysIntoCycle / monthDays : 0, of: `of ${formatRupees(f.limit)}` }
+  // CHANGED (5.0, the Charts style): the full look is the tracking card -
+  // the figure, then Spent, Budget and A day in a row, then rings for the
+  // budget spent, the month gone and, where there are any, the set-asides
+  // used. Each ring is one share, said in its middle.
+  const tracking = look === 'full' && f.limit > 0
+    ? {
+        stats: [
+          { k: 'Spent', v: formatRupees(f.spentThisCycle || 0) },
+          { k: 'Budget', v: formatRupees(f.limit) },
+          { k: statusText != null ? 'Days' : 'A day', v: statusText != null ? `${monthDays}` : f.perDay > 0 ? formatRupees(f.perDay) : '-' },
+        ],
+        rings: [
+          { value: Math.max(0, f.used || 0), grad: 'spent', label: 'spent' },
+          { value: statusText != null ? 1 : monthDays > 0 ? f.daysIntoCycle / monthDays : 0, grad: 'month', label: 'month gone' },
+          ...asideRing(f),
+        ],
+      }
     : null;
-  const burn = ring || statusText != null ? null : burnLine({ totals: f.spendDays, budget: f.limit, days: f.daysIntoCycle + f.daysToClose - 1, shortfall: f.bankShortfall });
-  const meter = ring || burn || !(f.spentThisCycle > 0) ? null : { pct, tone: f.level === 'ok' ? '' : f.level === 'warning' ? 'warn' : 'over' };
+  const burn = tracking || statusText != null ? null : burnLine({ totals: f.spendDays, budget: f.limit, days: f.daysIntoCycle + f.daysToClose - 1, shortfall: f.bankShortfall });
+  const meter = tracking || burn || !(f.spentThisCycle > 0) ? null : { pct, tone: f.level === 'ok' ? '' : f.level === 'warning' ? 'warn' : 'over' };
   return hero({
     label: 'Left to spend',
     period: `${formatDateNice(f.cycleStart)} to ${until}`,
@@ -518,8 +533,94 @@ export function spendingHero(f, look = 'full', statusText = null) {
     // `burn` is null for a finished month; an empty string, never "null".
     chart: look === 'full' ? burn || '' : '',
     status: look === 'plain' ? '' : escapeHtml(statusText != null ? statusText : spendingStatus(f)),
-    ring,
+    tracking,
   });
+}
+
+// The third ring: how much of the money set aside this month has been used,
+// across every set-aside Kawach can follow. None followed, no ring.
+function asideRing(f) {
+  const rows = (f.tracker || []).filter((t) => t.setAside && !t.skipped && t.status !== 'untracked' && t.amount > 0);
+  const amount = rows.reduce((s, t) => s + t.amount, 0);
+  if (!amount) return [];
+  return [{ value: rows.reduce((s, t) => s + Math.max(0, t.used || 0), 0) / amount, grad: 'aside', label: 'set aside used' }];
+}
+
+/* NEW (5.0, the Charts style): the month as layered waves. Three things on
+ * one drawing, each already worked out: what has gone so far (the running
+ * total), where an even pace through the budget would be by now, and what
+ * each day took on its own along the bottom, the biggest day marked. From
+ * the 1st to today; the days to come are not drawn. Exported for a test. */
+export function monthWaves(f) {
+  const totals = f.spendDays || [];
+  const daily = (f.spendByDay || []).map((d) => d.amount || 0);
+  const n = totals.length;
+  if (n < 2 || !(f.limit > 0) || !totals.some((v) => v > 0)) return '';
+  const monthDays = (f.daysIntoCycle || n) + (f.daysToClose || 1) - 1;
+  const pace = totals.map((_, i) => (f.limit * (i + 1)) / monthDays);
+  const top = Math.max(...totals, ...pace) * 1.08;
+  const W = 340, H = 150, base = 138;
+  // A little room at each end, so the first and last day's marks are whole.
+  const x = (i) => 10 + (i / (n - 1)) * (W - 20);
+  const y = (v) => base - (v / top) * (base - 24);
+  const bigDay = daily.indexOf(Math.max(...daily));
+  const dmax = Math.max(...daily) || 1;
+  const yd = (v) => base - (v / dmax) * 46;
+  const smooth = (pts) => pts.reduce((d, [px, py], i) => {
+    if (!i) return `M${px.toFixed(1)} ${py.toFixed(1)}`;
+    const [qx, qy] = pts[i - 1];
+    const m = (px - qx) / 2;
+    return `${d} C${(qx + m).toFixed(1)} ${qy.toFixed(1)} ${(px - m).toFixed(1)} ${py.toFixed(1)} ${px.toFixed(1)} ${py.toFixed(1)}`;
+  }, '');
+  const layer = (vals, fy, cls) => {
+    const d = smooth(vals.map((v, i) => [x(i), fy(v)]));
+    return `<path class="waves__fill ${cls}" d="${d} L${x(vals.length - 1).toFixed(1)} ${H} L${x(0).toFixed(1)} ${H} Z"/><path class="waves__line ${cls}" d="${d}"/>`;
+  };
+  const [bx, by] = [x(bigDay), yd(daily[bigDay])];
+  const tipX = Math.max(34, Math.min(W - 34, bx));
+  return `<div class="totals-card waves-card">
+      <svg class="waves" viewBox="0 0 ${W} ${H}" role="img" aria-label="This month so far: ${formatRupees(totals[n - 1])} spent against ${formatRupees(Math.round(pace[n - 1]))} at an even pace. Biggest day ${formatRupees(daily[bigDay])} on ${formatDateNice(f.spendByDay[bigDay].date)}.">
+        ${layer(pace, y, 'waves--pace')}
+        ${layer(totals, y, 'waves--spent')}
+        ${layer(daily, yd, 'waves--day')}
+        <circle class="waves__dot" cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="4.5"/>
+        <g class="waves__tip"><rect x="${(tipX - 30).toFixed(1)}" y="${Math.max(2, by - 32).toFixed(1)}" width="60" height="20" rx="6"/><text x="${tipX.toFixed(1)}" y="${(Math.max(2, by - 32) + 14).toFixed(1)}" text-anchor="middle">${formatRupees(daily[bigDay])}</text></g>
+      </svg>
+      <div class="waves__key">
+        <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b>spent so far</span>
+        <span class="waves__k waves--pace"><b>${formatRupees(Math.round(pace[n - 1]))}</b>at an even pace</span>
+        <span class="waves__k waves--day"><b>${formatDateNice(f.spendByDay[bigDay].date)}</b>biggest day</span>
+      </div>
+    </div>`;
+}
+
+/* NEW (5.0): this week in pill columns, today lit, and what is owed on each
+ * card the same way, the card with most on it lit. Exported for a test. */
+export function weekPills(f) {
+  const days = (f.spendByDay || []).slice(-7);
+  if (!days.length) return '';
+  const week = days.reduce((s, d) => s + (d.amount || 0), 0);
+  const top = Math.max(...days.map((d) => d.amount || 0)) || 1;
+  const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const col = (h, lit, label) => `<span class="pill-col${lit ? ' pill-col--lit' : ''}"><i style="height:${Math.max(8, h * 100).toFixed(0)}%"></i><small>${label}</small></span>`;
+  const weekCols = days.map((d, i) => col((d.amount || 0) / top, i === days.length - 1, DOW[new Date(`${d.date}T12:00`).getDay()])).join('');
+  // What each card is owed: its unpaid bill and what has gone on it since,
+  // the same two figures "Owed on cards" adds up (renderOwed).
+  const onCard = (c) => Math.max(0, (c.owed || 0) + (c.unpaid || 0));
+  const cards = (f.cards || []).filter((c) => onCard(c) > 0);
+  const owed = Math.max(0, ((f.totals && f.totals.owedCards) || 0) + ((f.totals && f.totals.unpaidBills) || 0));
+  const cardTop = Math.max(...cards.map(onCard), 1);
+  const most = cards.reduce((m, c) => (onCard(c) > (m ? onCard(m) : 0) ? c : m), null);
+  return `<div class="totals-card pills-card">
+      <div class="pills-row"><div><small>This week</small><b>${formatRupees(week)}</b></div><div class="pill-cols">${weekCols}</div></div>
+      ${
+        cards.length
+          ? `<div class="pills-row pills-row--cards"><div><small>Owed on cards</small><b>${formatRupees(owed)}</b></div><div class="pill-cols">${cards
+              .map((c) => col(onCard(c) / cardTop, c === most, escapeHtml((c.account.label || '').slice(0, 6))))
+              .join('')}</div></div>`
+          : ''
+      }
+    </div>`;
 }
 
 // The headline: what's left to spend, then the bank. Numbers first; the sums
@@ -713,13 +814,16 @@ function renderCardsHero(f, { past = null } = {}) {
   // CHANGED (4.22): the figures under the headline are one card of rows,
   // one figure a row, rather than figures side by side.
   return spendingHero(shown, appearance('summary'), past ? `Final for ${past.name}` : null) + `
-    <div class="summary-rows">
-      ${spentLine(f.spentThisCycle, f.limit, spendSpark(f.spendByDay))}
+    ${past ? '' : monthWaves(f)}
+    ${past ? '' : weekPills(f)}
+    <div class="summary-rows summary-strip">
+      ${appearance('summary') === 'full' ? '' : spentLine(f.spentThisCycle, f.limit, spendSpark(f.spendByDay))}
       ${past ? '' : stillSetAside(f)}
       ${
         // Owed on cards, and owed back by the employer while any is -
         // straight under the spent figure, where the other numbers are.
-        past ? '' : renderOwed(f)
+        // In the full look the cards' figure is in the columns above.
+        past ? '' : renderOwed(f, { cards: appearance('summary') !== 'full' })
       }
     </div>
     ${(() => {
