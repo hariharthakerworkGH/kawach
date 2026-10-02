@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.28',
+    items: [
+      {
+        icon: 'settings',
+        title: "A shorter Settings, and a simpler back button",
+        text: "Settings is now one line per setting, with import history folded away and What's new, Share and Terms on one line. Back takes you to the top of a screen first, then to Summary, then out of the app.",
+        guide: [{ view: 'settings', target: '#import-fold', text: "Tap to see and undo imports." }],
+      },
+    ],
+  },
+  {
     version: '4.27.1',
     items: [
       {

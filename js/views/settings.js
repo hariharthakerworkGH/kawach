@@ -51,75 +51,91 @@ export async function render(container, params = {}) {
     ${backupSection(backup)}
     ${syncSection(sync, syncPass, backup)}
 
-    <h3>How months are counted</h3>
-    <div class="totals-card">
-      <div class="attention-row">
-        <span>Count card spending by billing cycle<br><span class="muted-note">${
-          cycleAware
-            ? 'On: spends after the statement day count next month'
-            : 'Off: counted by date'
-        }</span></span>
-        <button type="button" class="btn-tiny ${cycleAware ? '' : 'primary'}" id="cycle-toggle">${cycleAware ? 'Turn off' : 'Turn on'}</button>
+    <!-- Everything else, one line each. Switches act at once; a row with an
+         arrow opens a screen; the rest folds away until you want it. -->
+    <div class="k settings-k">
+      <h3>Settings</h3>
+      <div class="totals-card settings-card">
+        <div class="k-switch-row settings-switch">
+          <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('card')}</span>
+          <span class="k-switch-row__text" id="cycle-label">Count cards by billing cycle
+            <span class="k-switch-row__sub">${cycleAware ? 'Spends after the statement day count next month' : 'Counted by date'}</span></span>
+          <button type="button" class="k-toggle" id="cycle-toggle" role="switch" aria-checked="${cycleAware}" aria-labelledby="cycle-label"></button>
+        </div>
+        <div class="k-switch-row settings-switch">
+          <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('bill')}</span>
+          <span class="k-switch-row__text" id="reminder-label">Bill reminders
+            <span class="k-switch-row__sub" id="reminder-state">${
+              permission === 'unsupported' ? 'Not possible in this browser' : permission === 'denied' ? 'Blocked: allow notifications in the browser first' : enabled ? `${daysBefore} day${daysBefore === 1 ? '' : 's'} before` : 'Off'
+            }</span></span>
+          ${
+            enabled && permission !== 'unsupported' && permission !== 'denied'
+              ? `<select id="reminder-days" class="settings-days" aria-label="How many days before">${[1, 2, 3, 5, 7]
+                  .map((d) => `<option value="${d}" ${d === daysBefore ? 'selected' : ''}>${d}d</option>`)
+                  .join('')}</select>`
+              : ''
+          }
+          <button type="button" class="k-toggle" id="reminder-toggle" role="switch" aria-checked="${enabled}" aria-labelledby="reminder-label" ${
+            permission === 'unsupported' || permission === 'denied' ? 'disabled' : ''
+          }></button>
+        </div>
+        <button type="button" class="k-row settings-row" id="go-appearance">
+          <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('eye')}</span>
+          <span class="k-row__body"><span class="k-row__title">How it looks</span></span>
+          <span class="settings-chev">${icon('forward')}</span>
+        </button>
+        <button type="button" class="k-row settings-row" id="go-categories">
+          <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('tag')}</span>
+          <span class="k-row__body"><span class="k-row__title">Manage categories</span></span>
+          <span class="settings-chev">${icon('forward')}</span>
+        </button>
+      </div>
+
+      <h3>Help</h3>
+      <div class="totals-card settings-card">
+        <button type="button" class="k-row settings-row" id="watch-tour">
+          <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('play')}</span>
+          <span class="k-row__body"><span class="k-row__title">Watch the tour</span></span>
+          <span class="settings-chev">${icon('forward')}</span>
+        </button>
+        <button type="button" class="k-row settings-row" id="run-setup">
+          <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('restore')}</span>
+          <span class="k-row__body"><span class="k-row__title">Run setup again</span></span>
+          <span class="settings-chev">${icon('forward')}</span>
+        </button>
+        <button type="button" class="k-row settings-row" id="diagnostic-btn">
+          <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('file')}</span>
+          <span class="k-row__body"><span class="k-row__title">Report a problem</span><span class="k-row__meta">Saves a report with names and numbers hidden</span></span>
+          <span class="settings-chev">${icon('forward')}</span>
+        </button>
+        <p id="diagnostic-status" class="status" hidden></p>
+      </div>
+
+      <details class="section-fold settings-fold">
+        <summary>Privacy <span class="summary-sub">stays on this phone</span></summary>
+        <ul class="setup-points">
+          <li>${icon('lock')} Your data stays on this phone.</li>
+          <li>${icon('file')} Statements are read, never saved.</li>
+          <li>${icon('key')} Backups are locked with your passphrase.</li>
+          <li>${icon('ban')} No ads, no tracking, no bank logins.</li>
+        </ul>
+        <p class="muted-note">Not financial advice. <a href="./privacy.html">Privacy policy</a></p>
+      </details>
+
+      <details class="section-fold settings-fold" id="import-fold">
+        <summary>Import history <span class="summary-sub" id="import-count"></span></summary>
+        <div id="import-history"></div>
+      </details>
+
+      <!-- Three small things, one line. -->
+      <div class="settings-foot">
+        <button type="button" class="link-btn" id="whats-new-btn">What's new</button>
+        <span aria-hidden="true">·</span>
+        <button type="button" class="link-btn" id="share-app-btn">Share with a friend</button>
+        <span aria-hidden="true">·</span>
+        <a href="./terms.html" class="link-btn">Terms of use</a>
       </div>
     </div>
-
-    <h3>Bill reminders</h3>
-    <div class="totals-card">
-      ${
-        permission === 'unsupported'
-          ? '<p class="muted-note">This browser doesn\'t support notifications.</p>'
-          : permission === 'denied'
-            ? '<p class="muted-note">Notifications are blocked. Allow them in your browser settings first.</p>'
-            : `
-        <div class="attention-row">
-          <span>Remind me about bills<br><span class="muted-note" id="reminder-state">${enabled ? 'On' : 'Off'}</span></span>
-          <button type="button" class="btn-tiny ${enabled ? '' : 'primary'}" id="reminder-toggle">${enabled ? 'Turn off' : 'Turn on'}</button>
-        </div>
-        <label class="field" style="margin-top:var(--space-sm)">
-          <span>How many days before</span>
-          <select id="reminder-days">
-            ${[1, 2, 3, 5, 7].map((d) => `<option value="${d}" ${d === daysBefore ? 'selected' : ''}>${d} day${d === 1 ? '' : 's'} before</option>`).join('')}
-          </select>
-        </label>`
-      }
-    </div>
-
-    <h3>Privacy</h3>
-    <div class="totals-card">
-      <ul class="setup-points">
-        <li>${icon('lock')} Your data stays on this phone.</li>
-        <li>${icon('file')} Statements are read, never saved.</li>
-        <li>${icon('key')} Backups are locked with your passphrase.</li>
-        <li>${icon('ban')} No ads, no tracking, no bank logins.</li>
-      </ul>
-      <p class="muted-note">Not financial advice.</p>
-    </div>
-
-    <h3>Report a problem</h3>
-    <p class="group-subtitle">Names, UPI ids and card digits are hidden.</p>
-    <div class="totals-card">
-      <button type="button" id="diagnostic-btn" class="btn-secondary btn-block">Save diagnostic report</button>
-      <p id="diagnostic-status" class="status" hidden></p>
-    </div>
-
-    <h3>More</h3>
-    <div class="button-stack">
-      <button type="button" id="go-categories" class="btn-secondary btn-block">Manage categories</button>
-      <button type="button" id="go-appearance" class="btn-secondary btn-block">How it looks</button>
-      <button type="button" id="watch-tour" class="btn-secondary btn-block">Watch the tour</button>
-      <button type="button" id="run-setup" class="btn-secondary btn-block">Run setup again</button>
-      <button type="button" id="whats-new-btn" class="btn-secondary btn-block">What's new</button>
-      <button type="button" id="share-app-btn" class="btn-secondary btn-block">Share Kawach with a friend</button>
-      <!-- Reachable from inside the app, not only from the invite page.
-           Someone who installed Kawach never sees welcome.html again, and
-           had no way at all to read what the app does with their money. -->
-      <a href="./privacy.html" class="btn-secondary btn-block btn-link">Privacy policy</a>
-      <a href="./terms.html" class="btn-secondary btn-block btn-link">Terms of use</a>
-    </div>
-
-    <h3>Import history</h3>
-    <p class="group-subtitle">Undo a wrong import.</p>
-    <div id="import-history"></div>
   `;
 
   enhancePasswords(container);
@@ -139,7 +155,7 @@ export async function render(container, params = {}) {
         await disableReminders();
         showToast('Bill reminders off');
       } else {
-        const result = await enableReminders(Number(container.querySelector('#reminder-days').value));
+        const result = await enableReminders(daysBefore);
         if (!result.ok) {
           showToast(result.reason === 'denied' ? 'Your browser blocked notifications' : "Couldn't turn on reminders");
         } else {
@@ -149,9 +165,10 @@ export async function render(container, params = {}) {
       redraw(container, () => render(container));
     });
 
-    container.querySelector('#reminder-days').addEventListener('change', async (e) => {
+    container.querySelector('#reminder-days')?.addEventListener('change', async (e) => {
       await setSetting('reminderDaysBefore', Number(e.target.value));
       await refreshSchedule();
+      redraw(container, () => render(container));
     });
   }
 
@@ -780,6 +797,8 @@ async function renderImportHistory(container) {
   const el = container.querySelector('#import-history');
   const [batches, accounts, transactions] = await Promise.all([getAll('importBatches'), getAll('accounts'), getAll('transactions')]);
 
+  const count = container.querySelector('#import-count');
+  if (count) count.textContent = batches.length ? `${batches.length}` : 'none yet';
   if (batches.length === 0) {
     el.innerHTML = '<p class="empty">No statements imported yet.</p>';
     return;
@@ -789,6 +808,7 @@ async function renderImportHistory(container) {
   const sorted = [...batches].sort((a, b) => (a.importedAt < b.importedAt ? 1 : -1));
 
   el.innerHTML = `
+    <p class="group-subtitle">Undo a wrong import.</p>
     <div class="totals-card">
       ${sorted
         .map((b) => {
