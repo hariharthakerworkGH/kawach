@@ -1,4 +1,5 @@
 import { openDB, getAll, put, onLocalChange, forgetCachedReads } from './db.js';
+import { wireExplain } from './explain.js';
 import { wireSwipe } from './swipe.js';
 import { getSyncConfig, getSyncPassphrase, syncNow } from './sync.js';
 import { CASH_ACCOUNT_ID } from './config.js';
@@ -523,6 +524,7 @@ async function init() {
 
   document.getElementById('settings-btn').addEventListener('click', () => showView('settings'));
   wireSwipe({ current: () => currentView, go: (name, dir) => showView(name, {}, false, 0, dir) });
+  wireExplain();
 
   document.addEventListener('navigate', (e) => {
     const { view, ...params } = e.detail;

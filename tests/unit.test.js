@@ -15,6 +15,7 @@ import { CHOICES, appearance, setAppearance, applyTheme } from '../js/appearance
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
 import { mood, comingUp, keptBack, topFigures } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
+import { termFor } from '../js/explain.js';
 import { planParts } from '../js/views/plan-looks.js';
 import { looksLikeCardPayment } from '../js/transfers.js';
 import { spendingMonthOf } from '../js/spending-month.js';
@@ -1551,6 +1552,12 @@ test('The short Summary: for new people, and its answer never repeats the bank w
   const f = { level: 'critical', used: 0.2, perDay: rupees(320), cycleKey: '2026-10-31', crossesOn: null };
   equal(shortStatus(f), 'About ₹320 a day until 31 Oct', 'the bank running short is said in Needs you, not here');
   ok(shortStatus({ ...f, level: 'over' }).startsWith('Over budget'), 'over the budget still says so');
+});
+test('A name on screen has one plain sentence behind it', () => {
+  ok(termFor('Kept back') && termFor('Kept back').line.includes('still yours'), 'kept back, as written on screen');
+  ok(termFor('  LEFT TO SPEND ') && termFor('at an even pace:'), 'any case, spaces or a trailing colon');
+  equal(termFor('₹135'), null, 'a figure is not a name');
+  equal(termFor('Groceries'), null, 'and nothing is explained that has no sentence');
 });
 test('Swiping between tabs goes round and round in the order of the tab bar', () => {
   equal(neighbour('summary', 1), 'add', 'left from Summary is Add');

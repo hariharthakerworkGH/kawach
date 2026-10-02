@@ -5419,3 +5419,15 @@ label.look-style { position: relative; cursor: pointer; }
 
 /* --- Coach in the styles (5.16): shared bones ---------------------------- */
 .ct-top { margin-bottom: var(--k-4); }
+
+/* --- Tap a name to see what it means (5.19, js/explain.js) ---------------
+   A quiet dotted line under a name says there is a sentence behind it; the
+   sentence opens in a small bubble beside it. */
+.explainable { cursor: help; text-decoration: underline dotted color-mix(in srgb, currentColor 45%, transparent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.explainable:focus-visible { outline: 2px solid var(--k-accent, var(--accent)); outline-offset: 2px; border-radius: 4px; }
+.explainable[aria-expanded="true"] { text-decoration-color: currentColor; }
+.explain-pop { position: fixed; z-index: 60; max-width: min(320px, calc(100vw - 32px)); display: grid; gap: 4px; padding: 12px 14px; border-radius: 12px; font: 400 14px/1.45 var(--k-font, inherit); color: var(--k-text, var(--text)); background: var(--k-surface-elev, var(--surface)); border: 1px solid var(--k-border, var(--border)); box-shadow: 0 12px 28px rgb(0 0 0 / 0.35); text-transform: none; letter-spacing: 0; }
+.explain-pop b { font-weight: 650; }
+.explain-pop span { color: var(--k-text-2, var(--text-muted)); }
+@media (prefers-reduced-motion: no-preference) { .explain-pop { animation: explain-in 160ms ease-out both; } }
+@keyframes explain-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
