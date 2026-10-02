@@ -5380,3 +5380,4 @@ label.look-style { position: relative; cursor: pointer; }
 :root[data-style] .k .add-row.k-switch-row { display: flex; gap: 12px; }
 :root[data-style] .k .add-row.k-switch-row .k-switch-row__text { flex: 1; }
 :root[data-style] .k .add-form ~ .k-add-sms { margin-top: var(--k-3); }
+:root[data-style] .k .accounts-actions .k-btn--ghost { font-size: 14px; }

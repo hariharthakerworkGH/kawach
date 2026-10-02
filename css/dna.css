@@ -2309,7 +2309,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 }
 .k .accounts-actions .k-btn { flex: 1 1 auto; min-height: var(--k-ctl-md); }
 .k .accounts-actions #add-account-btn { flex-basis: 100%; }
-.k .accounts-actions .k-btn--ghost { flex: 1 1 0; justify-content: center; text-align: center; }
+.k .accounts-actions .k-btn--ghost { flex: 1 1 0; justify-content: center; text-align: center; padding-inline: var(--k-2); }
 
 /* --- the bits of the old screen that stay ----------------------------- */
 .k .account-block .loan-lines,
