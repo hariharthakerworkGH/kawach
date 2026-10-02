@@ -13,6 +13,7 @@ import { ensureBusinessCategories, moneyProfile, activeSpace, accountInSpace } f
 import { detectTransfers } from '../transfers.js';
 import { icon } from '../icons.js';
 import { brandMark } from '../brand.js';
+import { reminderText, updatePerson, shareReminder } from '../people.js';
 import { allocationRing, tickGauge } from '../charts.js';
 import { appearance } from '../appearance.js';
 import { displayName } from './transactions.js';
@@ -126,8 +127,11 @@ export async function render(container) {
     ${renderGroup('Loans', groups.loan, transactions, importBatches, editingAccount, accounts)}
     ${renderGroup('Savings and FDs', groups.savings, transactions, importBatches, editingAccount, accounts)}
     ${renderGroup('Provident fund', groups.pf, transactions, importBatches, editingAccount, accounts)}
+    ${homeFigures ? peopleGroup(homeFigures.people || [], accounts) : ''}
 
   `;
+
+  wirePeople(container);
 
   const openAdd = () => {
     editing = editing === 'new' ? null : 'new';
@@ -679,6 +683,107 @@ function renderGroup(title, accounts, transactions, importBatches, editingAccoun
       </div>
     </section>
   `;
+}
+
+/* NEW (5.20): lent and borrowed. One row per person who owes you or whom
+ * you owe, after the accounts: who, which way and when, and the amount.
+ * Tapping a row opens what passed between you and what can be done next.
+ * The figures come from the same calculation as Summary (js/people.js). */
+const openPeople = new Set();
+
+function peopleGroup(standing, accounts) {
+  const open = standing.filter((s) => s.owed !== 0);
+  if (!open.length) return '';
+  const today = isoLocal(new Date());
+  const late = (s) => s.owed > 0 && s.person.backBy && s.person.backBy < today;
+  const order = (s) => (late(s) ? 0 : s.owed > 0 ? 1 : 2);
+  const toYou = open.filter((s) => s.owed > 0).reduce((t, s) => t + s.owed, 0);
+  const youOwe = open.filter((s) => s.owed < 0).reduce((t, s) => t - s.owed, 0);
+  const accountName = (id) => accounts.find((a) => a.id === id)?.label || 'Cash';
+  const rows = [...open].sort((a, b) => order(a) - order(b) || (a.since < b.since ? -1 : 1)).map((s) => {
+    const { person } = s;
+    const isOpen = openPeople.has(person.id);
+    const days = late(s) ? Math.round((new Date(today) - new Date(person.backBy)) / 86400000) : 0;
+    const meta =
+      s.owed > 0
+        ? days
+          ? `<span class="people-late">Owes you · ${days === 1 ? '1 day' : `${days} days`} late</span>`
+          : `Owes you · ${person.backBy ? `back by ${formatDateNice(person.backBy)}` : `since ${formatDateNice(s.since)}`}`
+        : `You owe · since ${formatDateNice(s.since)}`;
+    const detail = isOpen
+      ? `<div class="account-detail account-recent person-detail">
+          <div class="k-rows account-recent-rows">${s.entries
+            .slice(0, 6)
+            .map(
+              (t) => `<div class="k-row account-recent-row">
+                <span class="k-row__body">
+                  <span class="k-row__title">${t.direction === 'debit' ? 'Gave' : 'Got'}, ${escapeHtml(accountName(t.accountId))}</span>
+                  <span class="k-row__meta">${formatDateNice(t.date)}</span>
+                </span>
+                <span class="k-row__value ${t.direction === 'credit' ? 'in' : 'out'}">${t.direction === 'credit' ? '+' : '−'}${formatRupees(t.amount)}</span>
+              </div>`
+            )
+            .join('')}</div>
+          ${
+            s.owed > 0
+              ? `<label class="field person-backby"><span>Back by</span><input type="date" class="k-input" data-person="${person.id}" value="${person.backBy || ''}"></label>`
+              : ''
+          }
+          <div class="account-actions-inline">
+            <button type="button" class="k-btn k-btn--primary person-settle" data-person="${person.id}" data-way="${s.owed > 0 ? 'got' : 'gave'}" data-amount="${Math.abs(s.owed)}">${s.owed > 0 ? 'Got it back' : 'Paid it back'}</button>
+            ${s.owed > 0 ? `<button type="button" class="k-btn k-btn--secondary person-remind" data-text="${escapeAttr(reminderText(person.name, s.owed, formatDateNice(s.since)))}">Remind</button>` : ''}
+          </div>
+        </div>`
+      : '';
+    return `<div class="account-block">
+        <button type="button" class="k-row account-row person-open" data-person="${person.id}" aria-expanded="${isOpen}">
+          ${brandMark(person.name, { size: 'md' })}
+          <span class="k-row__body">
+            <span class="k-row__title">${escapeHtml(person.name)}</span>
+            <span class="k-row__meta">${meta}</span>
+          </span>
+          <span class="k-row__value account-balance${s.owed > 0 ? ' k-row__value--pos' : ''}">${cover(formatRupees(Math.abs(s.owed)))}</span>
+          <span class="account-row__chev" aria-hidden="true"></span>
+        </button>
+        ${detail}
+      </div>`;
+  });
+  return `
+    <section class="account-group-sec people-sec">
+      <h3 class="account-group-label">Lent and borrowed</h3>
+      <div class="people-sums">
+        ${toYou ? `<div><span>Owed to you</span><b class="pos">${cover(formatRupees(toYou))}</b></div>` : ''}
+        ${youOwe ? `<div><span>You owe</span><b>${cover(formatRupees(youOwe))}</b></div>` : ''}
+      </div>
+      <div class="account-group k-pane k-pane--quiet">${rows.join('')}</div>
+    </section>`;
+}
+
+function wirePeople(container) {
+  container.querySelectorAll('.person-open').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.person;
+      if (openPeople.has(id)) openPeople.delete(id);
+      else openPeople.add(id);
+      redraw(container, () => render(container));
+    })
+  );
+  container.querySelectorAll('.person-backby input').forEach((input) =>
+    input.addEventListener('change', async () => {
+      await updatePerson(input.dataset.person, { backBy: input.value || null });
+      redraw(container, () => render(container));
+    })
+  );
+  // Settling opens Add with everything filled in, so the account and the
+  // day can still be changed before it is saved.
+  container.querySelectorAll('.person-settle').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      container.dispatchEvent(
+        new CustomEvent('navigate', { bubbles: true, detail: { view: 'add', personId: btn.dataset.person, way: btn.dataset.way, amount: Number(btn.dataset.amount) } })
+      );
+    })
+  );
+  container.querySelectorAll('.person-remind').forEach((btn) => btn.addEventListener('click', () => shareReminder(btn.dataset.text)));
 }
 
 /* One account, as one row.

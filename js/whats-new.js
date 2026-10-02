@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.20',
+    items: [
+      {
+        icon: 'accounts',
+        title: "Lent and borrowed",
+        text: "On Add, choose Lent, borrowed: who, which way, and when it should come back. Money you lend comes off Left to spend until it comes back. Accounts shows who owes you and whom you owe, and Summary reminds you when it is late. A payment from a statement can be put under a person in History.",
+        guide: [{ view: 'add', target: '.dir-btn[data-dir="person"]', text: "Money lent to or borrowed from someone goes here." }],
+      },
+    ],
+  },
+  {
     version: '5.19',
     items: [
       {

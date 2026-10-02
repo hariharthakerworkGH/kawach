@@ -28,6 +28,7 @@ import { backupStatus } from '../drive.js';
 import { incomeWords, businesses, activeSpace, setCurrentSpace, accountInSpace, businessSpace, businessRunway } from '../business.js';
 import { taxDates } from '../calendar.js';
 import { escapeHtml, escapeAttr, sectionHead, pill, hero, panel } from '../ui.js';
+import { lateBack, reminderText, shareReminder } from '../people.js';
 
 let currentRange = 'this-month';
 
@@ -1561,6 +1562,14 @@ async function renderAttention(container, transactions, fts = null) {
     }
   }
 
+  // NEW (5.20): money lent and not back by the day you expected it. Said
+  // with the amount and the day, and Remind one tap away.
+  const lateLent = fts ? lateBack(fts.people || [], isoLocal(new Date())) : [];
+  const lateRows = lateLent.map((x) =>
+    todo(icon('clock'), `<b>${escapeHtml(x.person.name)} ${formatRupees(x.owed)}</b>`, `was due back ${formatDateNice(x.person.backBy)}`, `<button type="button" class="btn-tiny person-remind" data-text="${escapeAttr(reminderText(x.person.name, x.owed, formatDateNice(x.since)))}">Remind</button>`, 'is-soon')
+  );
+  if (short) urgent.push(...lateRows);
+
   const rows = [
     driveDays != null
       ? driveDays >= 7
@@ -1583,6 +1592,7 @@ async function renderAttention(container, transactions, fts = null) {
     ...dueCards.map(({ account, bill }) =>
       todo(icon('bill'), `${escapeHtml(account.label)} - ${formatRupees(bill.amount)}`, bill.daysLeft < 0 ? `Overdue by ${Math.abs(bill.daysLeft)}d` : bill.daysLeft === 0 ? 'Due today' : `Due in ${bill.daysLeft}d`, `<button type="button" class="btn-tiny mark-paid" data-id="${account.id}">Mark paid</button>`, bill.daysLeft <= 0 ? 'bill-overdue' : 'bill-urgent')
     ),
+    ...(short ? [] : lateRows),
     ...budgetAlerts.map((b) =>
       todo(categoryStyle(b.name).icon, `${escapeHtml(b.name)} budget`, b.state === 'over' ? `Over by ${formatRupees(-b.left)}` : `${formatRupees(b.left)} left`, `<button type="button" class="btn-tiny budget-open" data-id="${b.categoryId}">See</button>`, b.state === 'over' ? 'bill-overdue' : 'bill-urgent')
     ),
@@ -1674,6 +1684,7 @@ async function renderAttention(container, transactions, fts = null) {
     });
   }
 
+  el.querySelectorAll('.person-remind').forEach((btn) => btn.addEventListener('click', () => shareReminder(btn.dataset.text)));
   const backupBtn = el.querySelector('#go-backup-btn');
   if (backupBtn) {
     backupBtn.addEventListener('click', () => {

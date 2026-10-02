@@ -16,6 +16,7 @@ import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
 import { mood, comingUp, keptBack, topFigures } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
 import { termFor } from '../js/explain.js';
+import { peopleStanding, personSpendEffects, lateBack, reminderText } from '../js/people.js';
 import { planParts } from '../js/views/plan-looks.js';
 import { looksLikeCardPayment } from '../js/transfers.js';
 import { spendingMonthOf } from '../js/spending-month.js';
@@ -1704,4 +1705,16 @@ test('Upcoming still lists a yearly commitment, and anything the commitments lis
   const untracked = { id: 'cashbill', label: 'Cash bill', amount: rupees(900), frequency: 'monthly', dayOfMonth: 9 };
   const rows = upcomingCommitments([yearly, untracked], [{ id: 'other', status: 'paid' }], '2026-10-04');
   equal(rows.map((r) => r.id).sort(), ['cashbill', 'ins'], 'no way to tell they are done, so they stay');
+});
+
+test('lent and borrowed: where you stand, and what each payment does to spending', () => {
+  const t = (id, personId, direction, amount, date) => ({ id, personId, direction, amount, date });
+  const rows = [t('a', 'p', 'debit', 2000, '2026-09-01'), t('b', 'p', 'credit', 500, '2026-09-03'), t('c', 'q', 'credit', 1000, '2026-09-02'), t('d', 'q', 'debit', 1500, '2026-09-04')];
+  const standing = peopleStanding(rows, [{ id: 'p', name: 'P' }, { id: 'q', name: 'Q' }]);
+  equal(standing.map((s) => s.owed), [1500, 500], 'P owes 1,500; Q borrowed 1,000 then got 1,500, so owes 500');
+  const fx = personSpendEffects(rows);
+  equal([fx.get('a'), fx.get('b'), fx.has('c'), fx.get('d')], [2000, -500, false, 500], 'loan, money back, borrowing (nothing), paying back plus a loan');
+  equal(personSpendEffects(rows, (r) => r.id !== 'a').has('a'), false, 'an account that is not spending is left out');
+  equal(lateBack([{ owed: 100, person: { backBy: '2026-09-01' } }, { owed: 0, person: { backBy: '2026-09-01' } }], '2026-09-10').length, 1, 'late only while still owed');
+  ok(reminderText('Ravi Kumar', 200000, '2 Oct').startsWith('Hi Ravi, a gentle reminder about the ₹2,000 from 2 Oct'));
 });

@@ -1,5 +1,5 @@
 import { appearance } from '../appearance.js';
-import { put, getAll, newId } from '../db.js';
+import { put, getAll, newId, getSetting } from '../db.js';
 import { icon } from '../icons.js';
 import { CASH_ACCOUNT_ID } from '../config.js';
 import { categoryStyle } from '../category-style.js';
@@ -10,15 +10,22 @@ import { isLiveCommitment, byYourOrder } from '../commitments.js';
 import { isBusinessCategory, isBusinessAccount, activeSpace, accountInSpace } from '../business.js';
 import { escapeHtml } from '../ui.js';
 import { brandMark } from '../brand.js';
+import { peopleStanding, personNamed, updatePerson } from '../people.js';
 
 export async function render(container, params = {}) {
-  const [categories, allAccounts, recurring, space, transactions] = await Promise.all([
+  const [categories, allAccounts, recurring, space, transactions, people] = await Promise.all([
     getAll('categories'),
     getAll('accounts'),
     getAll('recurring'),
     activeSpace(),
     getAll('transactions'),
+    getSetting('people', []),
   ]);
+  // NEW (5.20): lent and borrowed are the house's, so only Home offers them.
+  // The people still owed or owing come first, as they are the likely ones.
+  const lending = space === 'home';
+  const standing = peopleStanding(transactions, people);
+  const peopleOrder = [...standing].sort((a, b) => Number(b.owed !== 0) - Number(a.owed !== 0) || (b.entries[0]?.date || '').localeCompare(a.entries[0]?.date || ''));
   // The accounts of the lane on screen: Home's, or one business's.
   const accounts = allAccounts.filter(accountInSpace(space));
   const commitments = recurring.filter((r) => isLiveCommitment(r)).sort(byYourOrder);
@@ -109,8 +116,33 @@ export async function render(container, params = {}) {
         <div class="k-seg direction-toggle" role="tablist" aria-label="Which way the money went">
           <button type="button" class="k-seg__btn dir-btn active" role="tab" aria-selected="true" data-dir="debit">Spent</button>
           <button type="button" class="k-seg__btn dir-btn" role="tab" aria-selected="false" data-dir="credit">Received</button>
+          ${lending ? '<button type="button" class="k-seg__btn dir-btn" role="tab" aria-selected="false" data-dir="person">Lent, borrowed</button>' : ''}
         </div>
       </section>
+
+      <!-- NEW (5.20): money between you and a person. Which way it went and
+           who; whether it was a loan or paying one back is worked out from
+           where the two of you stand (js/people.js). -->
+      <div id="add-person" class="add-person" hidden>
+        <div class="k-field">
+          <span class="k-label">Which way</span>
+          <div class="k-seg add-way" role="tablist" aria-label="Which way the money went">
+            <button type="button" class="k-seg__btn way-btn" role="tab" aria-selected="true" data-way="gave">I gave</button>
+            <button type="button" class="k-seg__btn way-btn" role="tab" aria-selected="false" data-way="got">I got</button>
+          </div>
+        </div>
+        <div class="k-field">
+          <span class="k-label" id="add-who-label">Who</span>
+          <div class="k-quick add-people" role="group" aria-labelledby="add-who-label">${peopleOrder
+            .map((st) => `<button type="button" class="k-quick__chip" data-person="${st.person.id}">${brandMark(st.person.name, { size: 'sm' })}<span>${escapeHtml(st.person.name)}</span></button>`)
+            .join('')}<button type="button" class="k-quick__chip" data-person="">${icon('edit')}<span>Someone new</span></button></div>
+          <input id="add-person-name" class="k-input" type="text" placeholder="Their name" autocomplete="off" hidden>
+        </div>
+        <label class="k-field field" id="add-backby-field">
+          <span class="k-label">Back by</span>
+          <input id="add-backby" class="k-input" type="date">
+        </label>
+      </div>
 
       <label class="k-field field">
         <span class="k-label">Merchant</span>
@@ -135,7 +167,7 @@ export async function render(container, params = {}) {
       ${detailFields}
 
       <!-- Quiet, because the app works this out on its own nearly always. -->
-      <details class="k-disclose k-add-more">
+      <details class="k-disclose k-add-more" id="add-more-flags">
         <summary>More</summary>
         <div class="k-add-more__body">
           ${commitmentField(commitments)}
@@ -244,6 +276,54 @@ export async function render(container, params = {}) {
     }
   };
 
+  // NEW (5.20): lent or borrowed. The merchant, category, commitment and
+  // repeats make no sense for money between people, so they step aside and
+  // the person's questions take their place.
+  const descInput = container.querySelector('#add-desc');
+  const personBox = container.querySelector('#add-person');
+  const nameInput = container.querySelector('#add-person-name');
+  const backByField = container.querySelector('#add-backby-field');
+  let way = 'gave';
+  let personId = null;
+  const pickWay = (value) => {
+    way = value;
+    container.querySelectorAll('.way-btn').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.way === way)));
+    // A day to expect it back only means something when you give.
+    backByField.hidden = way !== 'gave';
+  };
+  const pickPerson = (id) => {
+    personId = id;
+    container.querySelectorAll('.add-people .k-quick__chip').forEach((q) => {
+      const on = q.dataset.person === (id ?? '');
+      q.classList.toggle('on', on);
+      q.setAttribute('aria-pressed', String(on));
+    });
+    nameInput.hidden = id !== '';
+    if (id === '') nameInput.focus();
+  };
+  container.querySelectorAll('.way-btn').forEach((b) => b.addEventListener('click', () => pickWay(b.dataset.way)));
+  container.querySelectorAll('.add-people .k-quick__chip').forEach((q) => q.addEventListener('click', () => pickPerson(q.dataset.person)));
+  const showPersonMode = () => {
+    const person = direction === 'person';
+    personBox.hidden = !person;
+    descInput.required = !person;
+    descInput.closest('.k-field, .field').hidden = person;
+    // In the styles the category sits on a card of its own, which goes too.
+    const category = container.querySelector('#add-cat-open').closest('.k-field');
+    (category.closest('.add-card--category') || category).hidden = person;
+    container.querySelector('#add-more-flags').hidden = person;
+    container.querySelector('#add-repeats-toggle').closest('.k-switch-row').hidden = person;
+    if (person && repeatsEl.checked) repeatsToggle.click();
+    // Money between people moves through a bank far more than a card, so a
+    // card chosen by default gives way to the first bank account you spend from.
+    const chosen = accounts.find((a) => a.id === accountSelect.value);
+    const bank = accounts.find((a) => a.type === 'bank' && a.spending !== false);
+    if (person && chosen && chosen.type === 'card' && bank) {
+      accountSelect.value = bank.id;
+      accountSelect.dispatchEvent(new Event('change'));
+    }
+  };
+
   container.querySelectorAll('.dir-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       direction = btn.dataset.dir;
@@ -254,6 +334,7 @@ export async function render(container, params = {}) {
       });
       showWorkRows();
       showNextMonthRow();
+      showPersonMode();
     });
   });
 
@@ -275,7 +356,7 @@ export async function render(container, params = {}) {
     openBtn.classList.toggle('is-chosen', Boolean(chosen && chosen.dataset.cat));
     // The quick chips follow the list: lit when theirs is chosen, hidden
     // when theirs does not fit the account.
-    container.querySelectorAll('.k-quick__chip').forEach((q) => {
+    container.querySelectorAll('.k-quick__chip[data-cat]').forEach((q) => {
       const row = container.querySelector(`#add-categories .chip[data-cat="${q.dataset.cat}"]`);
       q.hidden = !row || row.hidden;
       const on = Boolean(chosen && chosen === row);
@@ -283,7 +364,7 @@ export async function render(container, params = {}) {
       q.setAttribute('aria-pressed', String(on));
     });
   };
-  container.querySelectorAll('.k-quick__chip').forEach((q) => {
+  container.querySelectorAll('.k-quick__chip[data-cat]').forEach((q) => {
     q.addEventListener('click', () => {
       const row = container.querySelector(`#add-categories .chip[data-cat="${q.dataset.cat}"]`);
       if (row) row.click();
@@ -411,6 +492,10 @@ export async function render(container, params = {}) {
     e.preventDefault();
     const amount = Math.round(parseFloat(amountInput.value) * 100);
     if (!Number.isFinite(amount) || amount <= 0) return;
+    if (direction === 'person') {
+      await savePersonMoney(amount);
+      return;
+    }
 
     const transaction = {
       id: newId(),
@@ -474,6 +559,70 @@ export async function render(container, params = {}) {
     showNextMonthRow();
     amountInput.focus();
   });
+
+  // NEW (5.20): money given to or got from a person. Saved as a payment of
+  // that account like any other, carrying the person; whether it is a loan,
+  // money back, borrowing or paying back is worked out from the two of you.
+  const savePersonMoney = async (amount) => {
+    const typed = nameInput.value.trim();
+    const person = personId ? people.find((p) => p.id === personId) : typed ? await personNamed(typed) : null;
+    if (!person) {
+      showToast('Choose who it was');
+      if (personId === '') nameInput.focus();
+      return;
+    }
+    const transaction = {
+      id: newId(),
+      accountId: accountSelect.value,
+      date: dateInput.value || today,
+      rawDescription: `${way === 'gave' ? 'To' : 'From'} ${person.name}`,
+      amount,
+      direction: way === 'gave' ? 'debit' : 'credit',
+      categoryId: null,
+      personId: person.id,
+      source: 'manual',
+      importBatchId: null,
+      isTransfer: false,
+      notes: null,
+      createdAt: Date.now(),
+    };
+    await put('transactions', transaction);
+    // The day to expect it back belongs to what they owe now; once nothing
+    // is owed it goes, so the next loan never inherits an old date.
+    const [now] = peopleStanding([...transactions, transaction], [person]);
+    const backBy = container.querySelector('#add-backby').value;
+    if (now.owed <= 0 && person.backBy) await updatePerson(person.id, { backBy: null });
+    else if (way === 'gave' && backBy) await updatePerson(person.id, { backBy });
+    transactions.push(transaction);
+    if (!people.some((p) => p.id === person.id)) people.push(person);
+    showToast(`Saved ${way === 'gave' ? '-' : '+'}₹${(amount / 100).toLocaleString('en-IN')} · ${person.name}`);
+    savedFeedback(form.querySelector('button[type="submit"]'));
+    amountInput.value = '';
+    nameInput.value = '';
+    container.querySelector('#add-backby').value = '';
+    dateInput.value = today;
+    if (personId === '') {
+      // Someone new is someone known from now on.
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'k-quick__chip';
+      chip.dataset.person = person.id;
+      chip.innerHTML = `${brandMark(person.name, { size: 'sm' })}<span>${escapeHtml(person.name)}</span>`;
+      chip.addEventListener('click', () => pickPerson(person.id));
+      container.querySelector('.add-people').prepend(chip);
+    }
+    pickPerson(null);
+    amountInput.focus();
+  };
+
+  // Opened from a person on Accounts ("Got it back", "Paid it back"): the
+  // person, the way and what is owed are filled in, to check and save.
+  if (lending && params.personId && people.some((p) => p.id === params.personId)) {
+    container.querySelector('.dir-btn[data-dir="person"]').click();
+    pickWay(params.way === 'got' ? 'got' : 'gave');
+    pickPerson(params.personId);
+    if (params.amount > 0) amountInput.value = String(params.amount / 100);
+  }
 
   amountInput.focus();
 }
@@ -599,5 +748,8 @@ function arrangeAdd(container) {
   hero.replaceWith(card);
   card.after(head);
   head.after(rows);
+  const person = container.querySelector('#add-person');
+  person.classList.add('add-card', 'add-card--person');
+  card.after(person);
   form.after(container.querySelector('#add-from-alert'));
 }
