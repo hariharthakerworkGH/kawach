@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.2',
+    items: [
+      {
+        icon: 'accounts',
+        title: "Accounts in the Charts style",
+        text: "Accounts now matches: each account marked by a gradient circle for its kind, the split across your accounts in the same colours, and a loan's progress as a dial of how much is paid back.",
+        guide: [{ view: 'accounts', target: '.tick-gauge', text: "How much of the loan is paid back." }],
+      },
+    ],
+  },
+  {
     version: '5.1',
     items: [
       {

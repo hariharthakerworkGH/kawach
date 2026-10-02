@@ -3410,3 +3410,23 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .k-picker.is-chosen::after { border-color: var(--k-grad-1-ink); }
 .k .add-form .k-btn--primary { background: linear-gradient(90deg, var(--k-grad-1a), var(--k-grad-1b)); color: var(--k-grad-1-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--k-grad-1b) 70%, transparent); }
 .k .amount-hero .amount-input { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+
+/* ---- Accounts in the Charts style (5.2) ----------------------------------
+ * Each account's mark is a gradient circle by kind (cards on the third
+ * gradient, banks and cash on the second, savings, the fund and loans on the
+ * first); the split ring takes the gradient ends; a loan shows the tick
+ * gauge. */
+.k .account-row .k-brand { border-radius: 50% !important; border: 0 !important; box-shadow: none !important; color: var(--k-grad-2-ink) !important; background: linear-gradient(160deg, var(--k-grad-2a), var(--k-grad-2b)) !important; }
+.k .account-row--card .k-brand { color: var(--k-grad-3-ink) !important; background: linear-gradient(160deg, var(--k-grad-3a), var(--k-grad-3b)) !important; }
+.k .account-row--savings .k-brand, .k .account-row--pf .k-brand, .k .account-row--loan .k-brand { color: var(--k-grad-1-ink) !important; background: linear-gradient(160deg, var(--k-grad-1a), var(--k-grad-1b)) !important; }
+.k .account-row .k-brand .k-brand__glyph, .k .account-row .k-brand svg { color: inherit !important; }
+.alloc-ring circle:not(.chart-ring-track) { stroke-width: 13; }
+.tick-gauge { margin: var(--k-2) auto var(--k-1); max-width: 240px; text-align: center; }
+.tick-gauge svg { display: block; width: 100%; height: auto; }
+.gauge-tick { stroke: var(--k-grad-3a); stroke-width: 3.4; stroke-linecap: round; opacity: 0.2; }
+.gauge-tick--far { stroke: var(--k-grad-3b); }
+.gauge-tick--lit { opacity: 1; }
+.tick-gauge__v { fill: var(--k-text); font: 300 30px var(--k-font); }
+.tick-gauge figcaption { margin-top: 2px; font-size: var(--k-caption); letter-spacing: 0.12em; text-transform: uppercase; color: var(--k-text-2); }
+.is-arriving .gauge-tick--lit { animation: tick-in 500ms var(--k-ease) both; }
+@keyframes tick-in { from { opacity: 0.2; } }

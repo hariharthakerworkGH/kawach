@@ -273,7 +273,9 @@ function smoothPath(points) {
    angle of a slice.
    ====================================================================== */
 
-const HUES = ['var(--k-cyan)', 'var(--k-violet)', 'var(--k-magenta)', 'var(--k-positive)', 'var(--k-warning)', 'var(--k-cyan-deep)'];
+// CHANGED (5.2, the Charts style): the slices take the colouring's gradient
+// ends, so the split reads in the same colours as every other chart.
+const HUES = ['var(--k-grad-2a)', 'var(--k-grad-1a)', 'var(--k-grad-3a)', 'var(--k-grad-2b)', 'var(--k-grad-1b)', 'var(--k-positive)'];
 
 /* --- 07 Where the money sits ------------------------------------------
  * Answers: how is what I have split across my accounts?
@@ -441,4 +443,25 @@ export function cashRiver({ months = [] }) {
       <span><i class="river-dot" style="background:var(--k-negative)"></i>Out</span>
       <span><i class="river-band" ></i>${kept >= 0 ? 'Kept' : 'Short'} ${formatRupees(Math.abs(kept))}</span>
     </div>`;
+}
+
+/* --- The tick gauge (5.2, the Charts style) ----------------------------
+ * Answers: how far along is this? A half circle of ticks, those up to the
+ * share lit on the third gradient, the share written in the middle. Used for
+ * a loan paid back. `pct` 0-100. */
+export function tickGauge(pct, label) {
+  const n = 26;
+  const p = Math.max(0, Math.min(100, Math.round(pct || 0)));
+  const ticks = Array.from({ length: n }, (_, i) => {
+    const a = Math.PI + (i / (n - 1)) * Math.PI;
+    const r1 = i % 2 ? 58 : 64;
+    const lit = (i / (n - 1)) * 100 <= p && p > 0;
+    const x0 = 110 + 44 * Math.cos(a), y0 = 92 + 44 * Math.sin(a);
+    const x1 = 110 + r1 * Math.cos(a), y1 = 92 + r1 * Math.sin(a);
+    return `<line class="gauge-tick${lit ? ' gauge-tick--lit' : ''}${i / (n - 1) > 0.5 ? ' gauge-tick--far' : ''}" x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`;
+  }).join('');
+  return `<figure class="tick-gauge">
+      <svg viewBox="0 0 220 104" role="img" aria-label="${esc(`${p}% ${label}`)}">${ticks}<text class="tick-gauge__v" x="110" y="90" text-anchor="middle">${p}%</text></svg>
+      <figcaption>${esc(label)}</figcaption>
+    </figure>`;
 }
