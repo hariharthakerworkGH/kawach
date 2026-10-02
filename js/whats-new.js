@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.18',
+    items: [
+      {
+        icon: 'summary',
+        title: "A shorter Summary for anyone starting out",
+        text: "Someone new now sees three set-up steps, then the answer, what needs them and the month, with everything else one tap away under More about this month. You keep the full Summary; try the short one in Settings, How it looks. The version and Check for update are now in Settings.",
+        guide: [{ view: 'appearance', target: '.look-card', text: "The Summary screen: pick the short version to try it." }],
+      },
+    ],
+  },
+  {
     version: '5.17',
     items: [
       {

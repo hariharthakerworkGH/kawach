@@ -60,12 +60,20 @@ export const CHOICES = {
       { value: 'compact', label: 'Compact', note: 'Tighter gaps, so more fits on the screen at once. Buttons stay the same size to tap.' },
     ],
   },
+  // NEW (5.18): the short version is where a new person starts - the
+  // answer, what needs them, the month, and the rest behind one tap. Anyone
+  // who already had data when it arrived keeps the full one (app.js).
   summary: {
     label: 'The Summary screen',
     question: 'How much goes under the big number?',
-    fallback: 'full',
+    fallback: 'short',
     where: 'Summary',
     options: [
+      {
+        value: 'short',
+        label: 'The short version',
+        note: 'The answer, what needs you and this month. Everything else one tap away.',
+      },
       {
         value: 'full',
         label: 'The number, the picture and the verdict',
@@ -161,6 +169,11 @@ export function appearance(name) {
   // colouring that is the same thing now.
   if (name === 'colour' && saved === undefined) saved = { light: 'flame-light', dark: 'charts' }[all.theme];
   return spec.options.some((o) => o.value === saved) ? saved : spec.fallback;
+}
+
+/* Whether a look has been chosen on this device at all. */
+export function chosen(name) {
+  return read()[name] !== undefined;
 }
 
 export function setAppearance(name, value) {

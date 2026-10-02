@@ -35,7 +35,7 @@ import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, spendingPulse, cashRiver, tickGauge } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
-import { spentLine, spendingHero, monthWaves, monthMountains, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
+import { shortStatus, spentLine, spendingHero, monthWaves, monthMountains, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -1537,6 +1537,20 @@ test("Plan in every style: what comes in split four ways, the same figures Chart
   equal(parts.map((p) => p.id).join(','), 'must,flex,free,saved', 'must go out, can flex, free, saved, in that order');
   equal(parts.map((p) => Math.round(p.share * 100)).join(','), '50,20,25,5', 'each a share of what comes in');
   equal(planParts({ income: rupees(100000), must: rupees(90000), flex: rupees(20000), budget: -rupees(15000), keep: rupees(5000) })[2].amount, 0, 'a budget below nothing is no free money, not a negative slice');
+});
+test('The short Summary: for new people, and its answer never repeats the bank warning', () => {
+  const key = 'kawach-appearance';
+  const before = localStorage.getItem(key);
+  try {
+    localStorage.removeItem(key);
+    equal(appearance('summary'), 'short', 'someone new starts on the short version (5.18)');
+  } finally {
+    if (before === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, before);
+  }
+  const f = { level: 'critical', used: 0.2, perDay: rupees(320), cycleKey: '2026-10-31', crossesOn: null };
+  equal(shortStatus(f), 'About ₹320 a day until 31 Oct', 'the bank running short is said in Needs you, not here');
+  ok(shortStatus({ ...f, level: 'over' }).startsWith('Over budget'), 'over the budget still says so');
 });
 test('Swiping between tabs goes round and round in the order of the tab bar', () => {
   equal(neighbour('summary', 1), 'add', 'left from Summary is Add');

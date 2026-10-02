@@ -126,8 +126,8 @@ export function tactileTop(f, status, month) {
       </div>
       <div class="tl-ticks">${'<i></i>'.repeat(11)}</div>
       <p class="tl-line ${tone(f)}">${escapeHtml(status)}</p>
-    </div>
-    ${month || ''}
+    </div><!--k:answer-->
+    ${month || ''}<!--k:month-->
     ${x.week.length ? `<div class="tl-card"><div class="tl-top"><span class="tl-k">This week</span><b class="tl-mid">${formatRupees(x.weekTotal)}</b></div>${weekCols(x, 'tl-cols')}</div>` : ''}
     <div class="tl-list">
       ${x.cards.length ? `<div class="tl-item tl-item--cards"><span class="tl-ibox">${icon('card')}</span><span class="tl-grow"><span class="tl-t">Owed on cards</span>${x.bills ? `<span class="tl-badge">${bills(x.bills)}</span>` : ''}</span><span class="tl-v">${formatRupees(x.owedCards)}</span>
@@ -199,8 +199,8 @@ export function peaksTop(f, status, month) {
         <div><span class="pk-tiny">Day</span><b>${x.day} of ${x.monthDays}</b></div>
       </div>
       <p class="pk-status ${tone(f)}">${escapeHtml(status)}</p>
-    </div>
-    ${month || ''}
+    </div><!--k:answer-->
+    ${month || ''}<!--k:month-->
     ${x.week.length ? `<div class="pk-card pk-week"><div class="pk-row"><span class="pk-lab">This week</span><span class="pk-n pk-n--s">${sup(plain(x.weekTotal))}</span></div>${weekLine(x)}</div>` : ''}
     ${x.cards.length ? `<div class="pk-card"><div class="pk-row"><span class="pk-lab">Owed on cards${x.bills ? ` · <span class="pk-hot">${bills(x.bills)}</span>` : ''}</span><span class="pk-n pk-n--m">${sup(plain(x.owedCards))}</span></div>
       <div class="pk-bars">${x.cards.map((c) => `<div class="pk-bar">${tagHtml(c)}<span class="pk-trk"><i style="width:${pct(c.share)}"></i></span><b>${plain(c.amount)}</b></div>`).join('')}</div></div>` : ''}
@@ -283,8 +283,8 @@ export function mindoraTop(f, status, month) {
       <div class="md-kick">The month so far</div>
       <div class="md-moods">${MOODS.map(([id, word, smile]) => `<span class="md-mood md-mood--${id}${id === now ? ' on' : ''}"><b>${face(smile)}</b>${word}</span>`).join('')}</div>
       <p class="md-line ${tone(f)}">${escapeHtml(status)}</p>
-    </div>
-    ${month || ''}
+    </div><!--k:answer-->
+    ${month || ''}<!--k:month-->
     ${x.week.length ? `<div class="md-glass"><div class="md-top"><span class="md-kick">This week</span><span class="md-mid">${formatRupees(x.weekTotal)}</span></div>${weekCols(x, 'md-cols')}</div>` : ''}
     ${x.cards.length ? `<div class="md-glass"><div class="md-top"><span class="md-kick">Owed on cards</span><span class="md-mid">${formatRupees(x.owedCards)}</span></div>${x.bills ? `<span class="md-badge">${bills(x.bills)}</span>` : ''}
       <div class="md-bars">${x.cards.map((c) => `<div class="md-bar">${tagHtml(c)}<span class="md-prog"><i style="width:${pct(c.share)}"></i></span><b>${formatRupees(c.amount)}</b></div>`).join('')}</div></div>` : ''}

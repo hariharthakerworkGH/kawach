@@ -243,7 +243,13 @@ regroup and restyle theirs, Plan and Coach draw their top and month in
 **Every style says exactly the same things** (the owner's rule, 5.10): only
 how they look may differ. The list is in summary-looks.js's header; a card
 in a chart is always named (`cardTag`: first word and last four digits).
-Settings and How it looks follow the style too. Tabs swipe left and right
+Settings and How it looks follow the style too. Summary has a short version (5.18, `appearance('summary') === 'short'`, the
+default for someone new; app.js keeps anyone who already had data on the full
+one): three set-up steps until income and commitments are in, then the
+answer under the figure, "Needs you" (three at most: bank short, commitments
+due in three days, then the To do rows; the rest behind "N more"), the month,
+and everything else in one "More about this month" fold. The version line
+lives in Settings. No bare percentages on screen anywhere: amounts or words. Tabs swipe left and right
 round and round (`js/swipe.js`, nav order). Mindora (`css/style-mindora.css`, 5.8) is
 glass over a ridge scene cut with clip-path, its own colouring light, so
 "Follow my phone" gives a style its own colouring only when that matches the

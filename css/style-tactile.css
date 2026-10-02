@@ -335,3 +335,22 @@ button.tl-item { cursor: pointer; }
 :root[data-style="tactile"] .k-coach .coach-q { border-radius: 14px; margin-bottom: 8px; }
 :root[data-style="tactile"] .k-coach .coach-q .k-icon,
 :root[data-style="tactile"] .k-coach .coach-q [class*="k-brand"] { border-radius: 10px; background: var(--t-well); box-shadow: var(--t-well-shadow); color: var(--k-accent); }
+
+/* --- The short Summary in Tactile (5.18): the board's own parts ----------
+ * The set-up steps as its glowing copper process, the progress an inset bar,
+ * Needs you as raised rows with icons in wells, the fold a raised card. */
+:root[data-style="tactile"] .k .setup-card,
+:root[data-style="tactile"] .k .sum-needs,
+:root[data-style="tactile"] .k .sum-more,
+:root[data-style="tactile"] .k .setup-strip { border: 0; border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
+:root[data-style="tactile"] .k .setup-progress { height: 10px; border-radius: 5px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] .k .setup-progress i { background: linear-gradient(90deg, color-mix(in srgb, var(--k-accent), black 15%), var(--k-violet)); box-shadow: 0 0 8px color-mix(in srgb, var(--k-violet) 50%, transparent); }
+:root[data-style="tactile"] .k .setup-step__n { color: var(--k-text-2); background: var(--t-raise); border: 0; box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 22%, transparent), 0 4px 8px rgb(0 0 0 / 0.5); }
+:root[data-style="tactile"] .k .setup-step.is-next .setup-step__n,
+:root[data-style="tactile"] .k .setup-step.is-done .setup-step__n { color: #fff; background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--k-accent), white 18%), color-mix(in srgb, var(--k-accent), black 18%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--k-accent), 0 0 16px color-mix(in srgb, var(--k-violet) 55%, transparent); }
+:root[data-style="tactile"] .k .need-row__ic { color: var(--tint); background: var(--t-well); box-shadow: var(--t-well-shadow); border: 1px solid color-mix(in srgb, var(--k-text) 14%, transparent); }
+:root[data-style="tactile"] .k .need-row + .need-row,
+:root[data-style="tactile"] .k .need-more { border-top: 1px solid rgb(0 0 0 / 0.42); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04); }
+:root[data-style="tactile"] .k .need-row__go .btn-tiny { border: 0; color: var(--k-text); background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 20%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 6px 10px rgb(0 0 0 / 0.45); }
+:root[data-style="tactile"] .k .sum-calm { border-radius: 14px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] .k .sum-more__body .tl-hero { display: none; }
