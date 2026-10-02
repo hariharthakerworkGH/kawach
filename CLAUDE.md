@@ -232,11 +232,17 @@ text on each. A style other than Charts is one stylesheet keyed on
 changes material, never markup, and brings its own colouring (Tactile
 copper, Peaks slate) for "Follow my phone". The one drawing that differs is
 Summary's month: Peaks draws it as mountains (`monthMountains`), chosen in
-`monthWaves` by the style worn. Two Chrome traps: a `:has()` in a style
-layer stops SVG gradients painting (beat dna.css's id with `#tabs`
-instead), and `color-mix(in oklch, x, transparent)` or with white loses its
-hue and drifts red, so mix those in srgb. The tour video is not re-made per
-style.
+`monthWaves` by the style worn. Mindora (`css/style-mindora.css`, 5.8) is
+glass over a ridge scene cut with clip-path, its own colouring light, so
+"Follow my phone" gives a style its own colouring only when that matches the
+phone's light or dark. dna.css's tab and shell rules carry an id (`:has(#view-
+container.k)`): a style beats them with `#tabs` or `#view-container`. Mix
+`color-mix(in oklch, x, transparent)` or white in srgb instead: in oklch the
+hue is lost and drifts red. SVG gradient ids are numbered per drawing. The
+in-app browser pane's screenshots can drop SVG gradients and fixed layers
+under glass, so judge a look from `tests/look-probe.html?style=&colour=&theme=`
+(made-up figures) rendered in headless Edge. The tour video is not re-made
+per style.
 
 The design system is locked in `design.md` (read it before touching a screen);
 its values are tokens in `css/tokens.css`, which `css/style.css` uses by name

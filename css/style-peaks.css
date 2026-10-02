@@ -74,7 +74,7 @@
 
 /* The current tab: its icon in the second gradient, a short line under it. */
 :root[data-style="peaks"] .bottom-nav { background: color-mix(in srgb, var(--k-bg), black 30%); border-top: 0; }
-/* #tabs outweighs the id in dna.css's own tab rule (a :has() here stops SVG gradients painting). */
+/* #tabs outweighs the id in dna.css's own tab rule (a :has() would work too, but costs a style recalculation on every change). */
 :root[data-style="peaks"] #tabs .nav-btn.active { background: none; color: var(--k-text); position: relative; }
 :root[data-style="peaks"] #tabs .nav-btn.active .nav-icon { color: var(--k-grad-2a); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--k-grad-2a) 60%, transparent)); }
 :root[data-style="peaks"] .nav-btn.active::after { content: ""; position: absolute; bottom: 2px; left: 50%; width: 16px; height: 2px; margin-left: -8px; border-radius: 1px; background: var(--k-grad-2a); box-shadow: 0 0 6px var(--k-grad-2a); }

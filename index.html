@@ -51,16 +51,17 @@
   try {
     var a = JSON.parse(localStorage.getItem('kawach-appearance')) || {};
     var r = document.documentElement;
-    // The colouring (js/looks.js): 'auto' is Charts on a dark phone and
-    // burning flame light on a light one. LIGHT must match js/looks.js.
-    // The style too: each brings its own dark colouring for 'auto'. READY and
-    // LIGHT must match js/looks.js.
-    var READY = { tactile: 1, peaks: 1 };
-    var LIGHT = { 'flame-light': 1 };
+    // The colouring (js/looks.js): 'auto' is the style's own colouring when
+    // it is as light or dark as the phone, else Charts on a dark phone and
+    // burning flame light on a light one. READY and LIGHT must match
+    // js/looks.js.
+    var READY = { tactile: 1, peaks: 1, mindora: 1 };
+    var LIGHT = { 'flame-light': 1, mindora: 1 };
     var st = READY[a.style] ? a.style : 'charts';
     if (st !== 'charts') r.setAttribute('data-style', st);
     var c = a.colour || ({ light: 'flame-light', dark: 'charts' })[a.theme] || 'auto';
-    if (c === 'auto') c = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'flame-light' : st;
+    var pl = Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
+    if (c === 'auto') c = Boolean(LIGHT[st]) === pl ? st : pl ? 'flame-light' : 'charts';
     r.setAttribute('data-colour', c);
     r.setAttribute('data-theme', LIGHT[c] ? 'light' : 'dark');
     if (a.text === 'large' || a.text === 'largest') r.setAttribute('data-text', a.text);
@@ -98,6 +99,7 @@
 <link rel="stylesheet" href="./css/looks.css">
 <link rel="stylesheet" href="./css/style-tactile.css">
 <link rel="stylesheet" href="./css/style-peaks.css">
+<link rel="stylesheet" href="./css/style-mindora.css">
 <style>
   /* The opening (4.17.1). Inline so it is on screen in the first frame.
 

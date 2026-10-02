@@ -35,6 +35,7 @@ export function escapeAttr(str) {
  *           thick arc runs ahead of the thin one, spending is ahead of the
  *           month. Both are fractions; spent may pass 1.
  */
+let ringsDrawn = 0;
 export function hero({ label, period = '', amount, negative = false, level = 'ok', meter = null, figures = [], status = '', chart = '', extra = '', ring = null, tracking = null }) {
   const top = period
     ? `<div class="hero-top"><span class="hero-label">${label}</span><span class="hero-label">${period}</span></div>`
@@ -49,6 +50,9 @@ export function hero({ label, period = '', amount, negative = false, level = 'ok
   // something, said in its middle. The first ring's colour is about the
   // budget alone, amber from 75% and red from 90%, as the ring before it was.
   if (tracking) {
+    // Each drawing numbers its gradients, so two cards on one page (or an old
+    // and a new one mid-redraw) never share an id.
+    const drawn = ++ringsDrawn;
     const clamp = (v) => Math.max(0, Math.min(1, v || 0));
     const rings = tracking.rings
       .map((r, i) => {
@@ -57,9 +61,9 @@ export function hero({ label, period = '', amount, negative = false, level = 'ok
         const tone = i === 0 && tracking.warn !== false ? (r.value >= 0.9 ? ' tracking-ring--over' : r.value >= 0.75 ? ' tracking-ring--warn' : '') : '';
         return `<figure class="tracking-ring tracking-ring--${r.grad}${tone}">
           <svg viewBox="0 0 110 110" aria-hidden="true" focusable="false">
-            <defs><linearGradient id="tg-${r.grad}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--tg-a)"/><stop offset="1" style="stop-color:var(--tg-b)"/></linearGradient></defs>
+            <defs><linearGradient id="tg-${r.grad}-${drawn}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--tg-a)"/><stop offset="1" style="stop-color:var(--tg-b)"/></linearGradient></defs>
             <circle class="tracking-ring__track" cx="55" cy="55" r="42"/>
-            ${v > 0.004 ? `<circle class="tracking-ring__arc" style="stroke:url(#tg-${r.grad})" cx="55" cy="55" r="42" pathLength="100" stroke-dasharray="${(v * 100).toFixed(1)} 100" transform="rotate(-90 55 55)"/>` : ''}
+            ${v > 0.004 ? `<circle class="tracking-ring__arc" style="stroke:url(#tg-${r.grad}-${drawn})" cx="55" cy="55" r="42" pathLength="100" stroke-dasharray="${(v * 100).toFixed(1)} 100" transform="rotate(-90 55 55)"/>` : ''}
           </svg>
           <figcaption><b>${Math.round(Math.max(0, r.value || 0) * 100)}%</b><small>${r.label}</small></figcaption>
         </figure>`;

@@ -1,0 +1,138 @@
+/* The Mindora style (5.8): a layer over Charts, the default style.
+ *
+ * Switched on by data-style="mindora" on <html> (js/looks.js). Frosted glass
+ * over a misty ridge: cards are panes of glass, the page has a mountain
+ * scene behind its top, the main action and the chosen option are sage
+ * (the colouring's first accent), the tab bar floats as a dock, and titles
+ * are set in the phone's own serif, in italic - Kawach ships no serif, and
+ * fetches no fonts. The scene is one mask filled with the colouring's ink at
+ * three strengths, so it suits every colouring: slate ridges on mist, pale
+ * ridges on a dark ground. Anything not restyled here is drawn as Charts
+ * draws it.
+ */
+
+:root[data-style="mindora"] {
+  --m-glass: color-mix(in srgb, var(--k-surface) 60%, transparent);
+  --m-glass-strong: color-mix(in srgb, var(--k-surface) 76%, transparent);
+  --m-edge: color-mix(in srgb, var(--k-text) 10%, transparent);
+  --m-shadow: 0 10px 30px rgb(0 0 0 / 0.18);
+  --m-serif: ui-serif, "Iowan Old Style", "Noto Serif", Georgia, serif;
+}
+:root[data-style="mindora"][data-theme="light"] {
+  --m-edge: color-mix(in srgb, white 70%, transparent);
+  --m-shadow: 0 10px 30px rgb(0 0 0 / 0.07);
+}
+
+/* The scene behind the top of every screen: two ridges of hills in the
+ * colouring's ink, a far one faint and a near one stronger, each fading out
+ * toward the bottom like mist on a lake - slate on mist, pale on a dark
+ * ground. Fixed, so it stays put like a wallpaper while the page moves over
+ * it. Cut with clip-path: plain CSS, nothing to load. */
+:root[data-style="mindora"] #view-container::before,
+:root[data-style="mindora"] #view-container::after {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 420px;
+  z-index: -1;
+  pointer-events: none;
+}
+:root[data-style="mindora"] #view-container::before {
+  clip-path: polygon(0 100%, 0.0% 183px, 3.6% 164px, 7.2% 178px, 10.8% 177px, 14.4% 168px, 17.9% 169px, 21.5% 206px, 25.1% 215px, 28.7% 217px, 32.3% 168px, 35.9% 208px, 39.5% 180px, 43.1% 180px, 46.7% 201px, 50.3% 192px, 53.8% 158px, 57.4% 189px, 61.0% 182px, 64.6% 168px, 68.2% 159px, 71.8% 150px, 75.4% 158px, 79.0% 109px, 82.6% 106px, 86.2% 121px, 89.7% 118px, 93.3% 139px, 96.9% 98px, 100% 100%);
+  background: linear-gradient(180deg, transparent 20%, color-mix(in srgb, var(--k-text) 16%, transparent) 40%, transparent 92%);
+}
+:root[data-style="mindora"] #view-container::after {
+  clip-path: polygon(0 100%, 0.0% 251px, 2.1% 232px, 4.1% 237px, 6.2% 248px, 8.2% 213px, 10.3% 231px, 12.3% 225px, 14.4% 225px, 16.4% 223px, 18.5% 229px, 20.5% 230px, 22.6% 207px, 24.6% 228px, 26.7% 216px, 28.7% 205px, 30.8% 192px, 32.8% 209px, 34.9% 219px, 36.9% 211px, 39.0% 187px, 41.0% 191px, 43.1% 191px, 45.1% 193px, 47.2% 202px, 49.2% 198px, 51.3% 176px, 53.3% 209px, 55.4% 201px, 57.4% 185px, 59.5% 179px, 61.5% 209px, 63.6% 195px, 65.6% 175px, 67.7% 191px, 69.7% 211px, 71.8% 191px, 73.8% 178px, 75.9% 207px, 77.9% 185px, 80.0% 224px, 82.1% 197px, 84.1% 196px, 86.2% 192px, 88.2% 222px, 90.3% 230px, 92.3% 205px, 94.4% 201px, 96.4% 212px, 98.5% 203px, 100% 100%);
+  background: linear-gradient(180deg, transparent 35%, color-mix(in srgb, var(--k-text) 30%, transparent) 52%, transparent 100%);
+}
+
+/* The screen itself is clear, so the scene shows; the page's own ground is
+ * behind it. */
+:root[data-style="mindora"] #view-container.k { background: transparent; }
+
+/* Glass. */
+:root[data-style="mindora"] .k .totals-card,
+:root[data-style="mindora"] .k .breakdown-list,
+:root[data-style="mindora"] .k .cat-list,
+:root[data-style="mindora"] .k .empty-state,
+:root[data-style="mindora"] .k-pane,
+:root[data-style="mindora"] .k-insight,
+:root[data-style="mindora"] .k-context,
+:root[data-style="mindora"] .k-coach .coach-q,
+:root[data-style="mindora"] .k .hist-day-card {
+  background: var(--m-glass);
+  border: 1px solid var(--m-edge);
+  box-shadow: var(--m-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+:root[data-style="mindora"] .k .totals-card .totals-card { background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-style="mindora"] .k .hero,
+:root[data-style="mindora"] .k .amount-hero {
+  background: var(--m-glass-strong);
+  border: 1px solid var(--m-edge);
+  box-shadow: var(--m-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+/* No coloured glow or daylight sheen over the glass: the sheen washed out
+ * the top line of the hero. */
+:root[data-style="mindora"] .k .hero::before,
+:root[data-style="mindora"] .k .hero::after { content: none; }
+:root[data-style="mindora"] .k .hero .hero-amount { font-weight: 300; }
+
+/* Frosted fields. */
+:root[data-style="mindora"] .k-input,
+:root[data-style="mindora"] .k-select,
+:root[data-style="mindora"] .k .k-picker,
+:root[data-style="mindora"] .k .hist-search {
+  background: var(--m-glass);
+  background-image: none;
+  border: 1px solid var(--m-edge);
+}
+:root[data-style="mindora"] .k-input:focus-visible,
+:root[data-style="mindora"] .k-select:focus-visible { border: 1.5px solid var(--k-accent); }
+
+/* Sage for what you press. */
+:root[data-style="mindora"] .k-btn--primary,
+:root[data-style="mindora"] .k .add-form .k-btn--primary,
+:root[data-style="mindora"] .btn-primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 12%), var(--k-accent));
+  color: var(--k-accent-ink);
+  border: 0;
+  border-radius: 13px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 6px 14px rgb(0 0 0 / 0.1);
+}
+:root[data-style="mindora"] .k-seg__btn[aria-selected="true"],
+:root[data-style="mindora"] .chip.active,
+:root[data-style="mindora"] .dir-btn.active,
+:root[data-style="mindora"] .seg-btn.active {
+  background: var(--k-accent);
+  color: var(--k-accent-ink);
+  box-shadow: none;
+}
+
+/* The tab bar floats as a dock; the current tab sits on a soft sage pill.
+ * Opaque, as the base rule explains: figures must not show through labels.
+ * #tabs outweighs the id in dna.css's own tab rule.
+ */
+:root[data-style="mindora"] #tabs {
+  margin: 0 12px 12px;
+  border: 1px solid var(--m-edge);
+  border-radius: 22px;
+  background: var(--k-surface);
+  box-shadow: var(--m-shadow);
+}
+:root[data-style="mindora"] #tabs .nav-btn.active { background: color-mix(in srgb, var(--k-accent) 16%, transparent); color: var(--k-accent); border-radius: 14px; }
+:root[data-style="mindora"] #tabs .nav-btn.active .nav-icon { color: var(--k-accent); filter: none; }
+
+/* Titles in an italic serif. */
+:root[data-style="mindora"] .app-header #view-title {
+  font-family: var(--m-serif);
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* The dock sits 12px up, so the page ends 12px higher too. */
+:root[data-style="mindora"] body { padding-bottom: calc(var(--nav-height, 84px) + var(--space-lg) + 12px); }

@@ -601,8 +601,8 @@ export function monthWaves(f) {
  * would be. Heights are square-rooted so one huge day does not flatten the
  * rest. The roughness of the rock is fixed per day, so the range is the same
  * every time it is drawn. Exported for a test. */
-// Each drawing gets its own gradient ids: Chrome keeps painting a removed
-// gradient when a redraw brings back one with the same id.
+// Each drawing gets its own gradient ids, so two drawings on one page never
+// share one.
 let mountainsDrawn = 0;
 export function monthMountains(f) {
   const totals = f.spendDays || [];

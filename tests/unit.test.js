@@ -429,7 +429,10 @@ test('colourings: follow the phone, carry over an old light or dark choice', () 
   equal(colouringFor('auto', false, 'tactile').id, 'tactile', 'in Tactile, a dark phone gets Tactile copper');
   equal(colouringFor('auto', true, 'tactile').id, 'flame-light', 'and a light phone burning flame light');
   equal(styleFor('tactile'), 'tactile', 'Tactile is ready');
-  equal(styleFor('mindora'), 'charts', 'a style not built yet is drawn as Charts');
+  equal(colouringFor('auto', true, 'mindora').id, 'mindora', "in Mindora, a light phone gets Mindora's own light colouring");
+  equal(colouringFor('auto', false, 'mindora').id, 'charts', 'and a dark phone a dark one, Charts');
+  equal(styleFor('mindora'), 'mindora', 'Mindora is ready');
+  equal(styleFor('no-such'), 'charts', 'a style that does not exist is drawn as Charts');
   ok(COLOURINGS.every((c) => c.mode === 'light' || c.mode === 'dark'));
   const key = 'kawach-appearance';
   const before = localStorage.getItem(key);
