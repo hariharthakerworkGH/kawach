@@ -132,12 +132,11 @@ function buildCards(transactions, categories, month, prevMonth) {
 
     if (prevSpent > 0 && coveredDays(prevAll) >= 20) {
       const diff = spent - prevSpent;
-      const pct = Math.round((diff / prevSpent) * 100);
       const against = isCurrentMonth ? `the same days of ${monthLabel(prevMonth)}` : monthLabel(prevMonth);
       comparison =
         diff === 0
           ? `Exactly the same as ${against}.`
-          : `That's ${formatRupees(Math.abs(diff))} ${diff > 0 ? 'more' : 'less'} than ${against} - ${Math.abs(pct)}% ${diff > 0 ? 'up' : 'down'}.`;
+          : `That's ${formatRupees(Math.abs(diff))} ${diff > 0 ? 'more' : 'less'} than ${against}.`;
     }
   }
   const damage = {

@@ -3512,3 +3512,8 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .k-quick__chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--k-border-subtle); background: color-mix(in srgb, var(--k-text) 4%, transparent); color: var(--k-text-2); font: inherit; font-size: var(--k-label); cursor: pointer; }
 .k .k-quick__chip svg { width: 15px; height: 15px; flex: none; }
 .k .k-quick__chip.on { background: linear-gradient(135deg, var(--k-grad-1a), var(--k-grad-1b)); color: var(--k-grad-1-ink); border-color: transparent; }
+
+/* Amounts where a percentage used to be (5.18): smaller, to fit the ring. */
+.tracking-ring figcaption b.is-amount { font-size: 14px; letter-spacing: -0.01em; }
+.k .meter-radial-v--amount { font-size: 22px; }
+.tick-gauge__v--amount { font-size: 20px; }

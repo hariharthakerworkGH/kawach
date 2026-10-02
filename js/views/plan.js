@@ -180,15 +180,13 @@ export async function render(container) {
               budget != null && incomeValue + sideExtra > 0
                 ? {
                     warn: false,
-                    stats: [
-                      { k: 'Comes in', v: formatRupees(incomeValue + sideExtra) },
-                      { k: 'Must go out', v: formatRupees(mustTotal) },
-                      { k: 'Can flex', v: formatRupees(flexTotal) },
-                    ],
+                    // CHANGED (5.18): each ring says its amount, not a share;
+                    // the amounts are not listed again above them.
+                    stats: [{ k: 'Comes in', v: formatRupees(incomeValue + sideExtra) }],
                     rings: [
-                      { value: mustTotal / (incomeValue + sideExtra), grad: 'spent', label: 'must go out' },
-                      { value: flexTotal / (incomeValue + sideExtra), grad: 'aside', label: 'can flex' },
-                      { value: Math.max(0, budget) / (incomeValue + sideExtra), grad: 'month', label: 'free' },
+                      { value: mustTotal / (incomeValue + sideExtra), grad: 'spent', big: formatRupees(mustTotal), label: 'must go out' },
+                      { value: flexTotal / (incomeValue + sideExtra), grad: 'aside', big: formatRupees(flexTotal), label: 'can flex' },
+                      { value: Math.max(0, budget) / (incomeValue + sideExtra), grad: 'month', big: formatRupees(Math.max(0, budget)), label: 'free' },
                     ],
                   }
                 : null,

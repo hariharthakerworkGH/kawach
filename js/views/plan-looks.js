@@ -39,7 +39,7 @@ export function planTop(style, f) {
         <div class="tl-top"><span class="tl-k">Budget each month</span><span class="tl-period">comes in ${formatRupees(f.income)}</span></div>
         <div class="tl-big">${amount}</div>
         ${bar('pl-seg')}
-        <div class="pl-legend">${parts.map((p) => `<span><i class="is-${p.id}"></i>${p.label}<em><b>${formatRupees(p.amount)}</b> <small>${pct(p.share)}</small></em></span>`).join('')}</div>
+        <div class="pl-legend">${parts.map((p) => `<span><i class="is-${p.id}"></i>${p.label}<em><b>${formatRupees(p.amount)}</b></em></span>`).join('')}</div>
         <p class="tl-line">${escapeHtml(f.status)}</p>
       </section>`;
   }
@@ -64,7 +64,7 @@ export function planTop(style, f) {
         <div class="pk-top"><span class="pk-lab">Budget each month</span><span class="pk-tiny">comes in ${formatRupees(f.income)}</span></div>
         <div class="pk-ring"><svg class="pk-donut" viewBox="0 0 150 150" aria-hidden="true"><circle class="pk-donut__trk" cx="75" cy="75" r="62"/>${arcs}</svg>
           <div class="pk-ring__mid"><b>${amount}</b><small>budget</small></div></div>
-        <div class="pk-figs pl-figs">${parts.map((x) => `<div><div class="pk-n pk-n--s">${sup(x.amount)}</div><div class="pk-tiny"><i class="pl-key is-${x.id}"></i>${x.label.toLowerCase()} · ${pct(x.share)}</div></div>`).join('')}</div>
+        <div class="pk-figs pl-figs">${parts.map((x) => `<div><div class="pk-n pk-n--s">${sup(x.amount)}</div><div class="pk-tiny"><i class="pl-key is-${x.id}"></i>${x.label.toLowerCase()}</div></div>`).join('')}</div>
         <p class="pk-status">${escapeHtml(f.status)}</p>
       </section>`;
   }
@@ -72,7 +72,7 @@ export function planTop(style, f) {
       <div class="md-top"><span class="md-kick">Budget each month</span><span class="md-period">comes in ${formatRupees(f.income)}</span></div>
       <div class="md-big">${amount}</div>
       ${bar('pl-line')}
-      <div class="pl-badges">${parts.map((x) => `<span class="is-${x.id}">${x.label} ${formatRupees(x.amount)} · ${pct(x.share)}</span>`).join('')}</div>
+      <div class="pl-badges">${parts.map((x) => `<span class="is-${x.id}">${x.label} ${formatRupees(x.amount)}</span>`).join('')}</div>
       <p class="md-line">${escapeHtml(f.status)}</p>
     </section>`;
 }

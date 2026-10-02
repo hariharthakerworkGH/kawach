@@ -812,7 +812,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
     // Numbers first, one short line each; the history sits behind a tap and
     // the planner answers with two figures, not paragraphs.
     const status = [
-      paidOff != null ? `${paidOff}% paid back` : '',
+      paidOff != null ? `${formatRupees(paidBack)} paid back` : '',
       position.underConstruction && position.stillToRelease ? `${formatRupees(position.stillToRelease)} still to come` : '',
       !position.underConstruction && position.left ? `free in ${months(position.left)}` : '',
     ]
@@ -830,7 +830,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
         <div class="account-detail">
         ${
           // CHANGED (5.2): the Charts style's tick gauge in place of the bar.
-          position.outstanding != null && paidOff != null ? tickGauge(paidOff, 'paid back') : ''
+          position.outstanding != null && paidOff != null ? tickGauge(paidOff, `of ${formatRupees(lent)} paid back`, formatRupees(paidBack)) : ''
         }
         ${
           position.emi

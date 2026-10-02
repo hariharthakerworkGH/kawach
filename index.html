@@ -57,7 +57,8 @@
     // js/looks.js.
     var READY = { tactile: 1, peaks: 1, mindora: 1 };
     var LIGHT = { 'flame-light': 1, mindora: 1 };
-    var st = READY[a.style] ? a.style : 'charts';
+    // Tactile unless another style was chosen (the default since 5.17).
+    var st = a.style === 'charts' ? 'charts' : READY[a.style] ? a.style : 'tactile';
     if (st !== 'charts') r.setAttribute('data-style', st);
     var c = a.colour || ({ light: 'flame-light', dark: 'charts' })[a.theme] || 'auto';
     var pl = Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);

@@ -75,6 +75,8 @@ export function topFigures(f) {
     perDay: f.perDay,
     period: `${formatDateNice(f.cycleStart)} to ${formatDateNice(f.cycleKey)}`,
     asideUsed: asideTotal ? aside.reduce((s, t) => s + Math.max(0, t.used || 0), 0) / asideTotal : null,
+    asideSpent: aside.reduce((s, t) => s + Math.max(0, t.used || 0), 0),
+    asideTotal,
     pace: monthDays > 0 ? Math.round((f.limit * (f.daysIntoCycle || 0)) / monthDays) : 0,
     bigDay: big >= 0 && daily[big] > 0 ? f.spendByDay[big].date : null,
     week,
@@ -116,8 +118,8 @@ export function tactileTop(f, status, month) {
         <div><span class="tl-k">Budget</span><b>${formatRupees(x.limit)}</b></div>
         <div><span class="tl-k">A day</span><b>${x.perDay > 0 ? formatRupees(x.perDay) : '-'}</b></div>
       </div>
-      <div class="tl-prog"><i class="${tone(f)}" style="width:${pct(x.used)}"></i><span><span>Spent</span><span>${pct(x.used)}</span></span></div>
-      ${x.asideUsed != null ? `<div class="tl-prog tl-prog--aside"><i style="width:${pct(x.asideUsed)}"></i><span><span>Set aside used</span><span>${pct(x.asideUsed)}</span></span></div>` : ''}
+      <div class="tl-prog"><i class="${tone(f)}" style="width:${pct(x.used)}"></i><span><span>Spent</span><span>${formatRupees(x.spent)} of ${formatRupees(x.limit)}</span></span></div>
+      ${x.asideUsed != null ? `<div class="tl-prog tl-prog--aside"><i style="width:${pct(x.asideUsed)}"></i><span><span>Set aside used</span><span>${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}</span></span></div>` : ''}
       <div class="tl-slider" role="img" aria-label="Day ${x.day} of ${x.monthDays}">
         <div class="tl-trk"></div><div class="tl-fill" style="width:${pct(x.gone)}"></div><div class="tl-thumb" style="left:${pct(x.gone)}"></div>
         <div class="tl-tip" style="left:${pct(Math.min(0.84, Math.max(0.16, x.gone)))}">Day ${x.day} of ${x.monthDays}</div>
@@ -185,15 +187,15 @@ export function peaksTop(f, status, month) {
       <div class="pk-top"><span class="pk-lab">Left to spend</span><span class="pk-tiny">${x.period}</span></div>
       <div class="pk-ring">${donut}<div class="pk-ring__mid"><b>${formatRupees(x.left)}</b><small>left</small></div></div>
       <div class="pk-figs">
-        <div><div class="pk-n pk-n--l">${sup(Math.round(x.used * 100), '%')}</div><div class="pk-tiny">spent · <span class="pk-hot">${formatRupees(x.weekTotal)} this week</span></div></div>
+        <div><div class="pk-n pk-n--l">${sup(plain(x.spent))}</div><div class="pk-tiny">spent of ${formatRupees(x.limit)} · <span class="pk-hot">${formatRupees(x.weekTotal)} this week</span></div></div>
         <div class="pk-pair">
           <div><div class="pk-n pk-n--m">${x.perDay > 0 ? sup(plain(x.perDay)) : '-'}</div><div class="pk-tiny">a day</div></div>
-          ${x.asideUsed != null ? `<div><div class="pk-n pk-n--m">${sup(Math.round(Math.min(1, x.asideUsed) * 100), '%')}</div><div class="pk-tiny">set aside used</div></div>` : ''}
+          ${x.asideUsed != null ? `<div><div class="pk-n pk-n--m">${sup(plain(x.asideSpent))}</div><div class="pk-tiny">of ${formatRupees(x.asideTotal)} set aside</div></div>` : ''}
         </div>
       </div>
       <div class="pk-foot">
-        <div><span class="pk-tiny">Spent</span><b>${formatRupees(x.spent)}</b></div>
         <div><span class="pk-tiny">Budget</span><b>${formatRupees(x.limit)}</b></div>
+        <div><span class="pk-tiny">Days left</span><b>${x.daysLeft}</b></div>
         <div><span class="pk-tiny">Day</span><b>${x.day} of ${x.monthDays}</b></div>
       </div>
       <p class="pk-status ${tone(f)}">${escapeHtml(status)}</p>
@@ -264,7 +266,7 @@ const face = (smile) => {
 export function mindoraTop(f, status, month) {
   const x = topFigures(f);
   const now = mood(f);
-  const line = (label, v, cls = '') => `<div class="md-spent"><span>${label}</span><span>${pct(v)}</span></div><div class="md-prog"><i class="${cls}" style="width:${pct(v)}"></i></div>`;
+  const line = (label, v, cls, said) => `<div class="md-spent"><span>${label}</span><span>${said}</span></div><div class="md-prog"><i class="${cls}" style="width:${pct(v)}"></i></div>`;
   return `<div class="md-glass md-hero ${f.free < 0 ? 'is-negative' : ''}">
       <div class="md-top"><span class="md-kick">Left to spend</span><span class="md-period">${x.period}</span></div>
       <div class="md-big">${formatRupees(x.left)}</div>
@@ -273,9 +275,9 @@ export function mindoraTop(f, status, month) {
         <div><span class="md-kick">Budget</span><b>${formatRupees(x.limit)}</b></div>
         <div><span class="md-kick">A day</span><b>${x.perDay > 0 ? formatRupees(x.perDay) : '-'}</b></div>
       </div>
-      ${line('Spent', x.used, tone(f))}
-      ${line(`Day ${x.day} of ${x.monthDays}`, x.gone, 'sky')}
-      ${x.asideUsed != null ? line('Set aside used', x.asideUsed, 'blush') : ''}
+      ${line('Spent', x.used, tone(f), `${formatRupees(x.spent)} of ${formatRupees(x.limit)}`)}
+      ${line(`Day ${x.day} of ${x.monthDays}`, x.gone, 'sky', `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`)}
+      ${x.asideUsed != null ? line('Set aside used', x.asideUsed, 'blush', `${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}`) : ''}
     </div>
     <div class="md-glass">
       <div class="md-kick">The month so far</div>

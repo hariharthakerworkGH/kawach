@@ -17,10 +17,12 @@ const KEY = 'kawach-appearance';
 
 export const CHOICES = {
   // The style screens are built in (js/looks.js): only those that are ready.
+  // Tactile is the default since 5.17 (the owner's choice): new features are
+  // built in it first and spread to the others together.
   style: {
     label: 'Style',
     question: 'Which style?',
-    fallback: 'charts',
+    fallback: 'tactile',
     where: '',
     options: STYLES.filter((s) => s.ready).map((s) => ({ value: s.id, label: s.name, note: s.note })),
   },
@@ -33,7 +35,7 @@ export const CHOICES = {
     fallback: 'auto',
     where: '',
     options: [
-      { value: 'auto', label: 'Follow my phone', note: 'Charts when your phone is dark, burning flame when it is light.' },
+      { value: 'auto', label: 'Follow my phone', note: "The style's own colours, or burning flame when your phone is light." },
       ...COLOURINGS.map((c) => ({ value: c.id, label: c.name, note: c.mode === 'light' ? 'Light' : 'Dark' })),
     ],
   },
