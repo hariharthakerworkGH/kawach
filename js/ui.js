@@ -53,7 +53,8 @@ export function hero({ label, period = '', amount, negative = false, level = 'ok
     const rings = tracking.rings
       .map((r, i) => {
         const v = clamp(r.value);
-        const tone = i === 0 ? (r.value >= 0.9 ? ' tracking-ring--over' : r.value >= 0.75 ? ' tracking-ring--warn' : '') : '';
+        // Only Summary's budget ring warns; Plan's rings are shares, not limits.
+        const tone = i === 0 && tracking.warn !== false ? (r.value >= 0.9 ? ' tracking-ring--over' : r.value >= 0.75 ? ' tracking-ring--warn' : '') : '';
         return `<figure class="tracking-ring tracking-ring--${r.grad}${tone}">
           <svg viewBox="0 0 110 110" aria-hidden="true" focusable="false">
             <defs><linearGradient id="tg-${r.grad}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--tg-a)"/><stop offset="1" style="stop-color:var(--tg-b)"/></linearGradient></defs>

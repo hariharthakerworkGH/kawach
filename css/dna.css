@@ -3430,3 +3430,15 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .tick-gauge figcaption { margin-top: 2px; font-size: var(--k-caption); letter-spacing: 0.12em; text-transform: uppercase; color: var(--k-text-2); }
 .is-arriving .gauge-tick--lit { animation: tick-in 500ms var(--k-ease) both; }
 @keyframes tick-in { from { opacity: 0.2; } }
+
+/* ---- Plan in the Charts style (5.3) --------------------------------------
+ * The hero is the tracking card (shares of what comes in); the set-aside
+ * bars and the month strip take the gradients. */
+.k .plan-flex__track i { background: linear-gradient(90deg, var(--k-grad-2a), var(--k-grad-2b)); box-shadow: 0 0 10px color-mix(in oklch, var(--k-grad-2a) 40%, transparent); }
+.k .plan-flex__row.is-warn .plan-flex__track i { background: linear-gradient(90deg, var(--k-grad-3a), var(--k-grad-3b)); }
+.k .plan-flex__row.is-over .plan-flex__track i { background: var(--k-negative); }
+.k .plan-strip__bar.is-due rect { fill: var(--k-grad-1a); filter: drop-shadow(0 0 4px color-mix(in oklch, var(--k-grad-1a) 55%, transparent)); }
+.k .plan-strip__bar.is-due text { fill: var(--k-grad-1a); }
+.k .plan-strip__today { stroke: var(--k-grad-2a); }
+.k .plan-strip__today-label { fill: var(--k-grad-2a); }
+.k .plan-strip__key .is-due::before { background: var(--k-grad-1a); }
