@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.11',
+    items: [
+      {
+        icon: 'eye',
+        title: "Peaks, Mindora and Tactile closer to their originals",
+        text: "Mindora now has its own typefaces and sits on a misty lake under mountains, with the day you are on glowing in your week. Peaks draws your week as a glowing line, with thin figures and rings throughout. Tactile shows warnings on a warm banner and steps through months with round buttons.",
+        guide: [{ view: 'appearance', target: '.look-styles', text: "Try Mindora and Peaks again: they look more like themselves now." }],
+      },
+    ],
+  },
+  {
     version: '5.10',
     items: [
       {
