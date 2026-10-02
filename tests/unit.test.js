@@ -32,7 +32,7 @@ import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, spendingPulse, cashRiver, tickGauge } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
-import { spentLine, spendingHero, monthWaves, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
+import { spentLine, spendingHero, monthWaves, monthMountains, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -1498,7 +1498,11 @@ test('Summary waves and week: from the 1st to today, the biggest day marked, owe
     cards: [{ account: { label: 'Card 1' }, owed: rupees(2000), unpaid: rupees(9000) }, { account: { label: 'Card 2' }, owed: rupees(500), unpaid: 0 }],
     totals: { owedCards: rupees(2500), unpaidBills: rupees(9000) },
   };
+  // The waves are the Charts drawing, whatever look this browser has chosen.
+  const worn = document.documentElement.dataset.style;
+  delete document.documentElement.dataset.style;
   const waves = monthWaves(f);
+  if (worn) document.documentElement.dataset.style = worn;
   ok(waves.includes('₹5,000') && waves.includes('spent so far'), 'what has gone so far');
   ok(waves.includes('₹4,000 on 3 Oct'), 'the biggest day, said in words too');
   ok(waves.includes('₹4,000 at an even pace'), 'an even pace through ₹31,000 over 31 days is ₹4,000 by the 4th');
@@ -1506,6 +1510,16 @@ test('Summary waves and week: from the 1st to today, the biggest day marked, owe
   const week = weekPills(f);
   ok(week.includes('₹5,000') && (week.match(/pill-col--lit/g) || []).length === 2, 'the week so far, today lit, and the card with most on it lit');
   ok(week.includes('Owed on cards') && week.includes('₹11,500'), 'owed on cards: unpaid bills and new spending, as the row it replaces said');
+  const peaks = monthMountains(f);
+  ok(peaks.includes('mountains-card') && peaks.includes('₹5,000') && peaks.includes('₹4,000 on 3 Oct'), 'Peaks draws the same month as mountains, same figures');
+  ok(peaks.includes('₹1,000</b>an even day'), 'an even day of ₹31,000 over 31 days is ₹1,000');
+  equal((peaks.match(/mountains__rim/g) || []).length, 0, 'four days are a slope, nothing lit yet');
+  const week2 = ['2026-10-05', '2026-10-06'].map((date, i) => ({ date, amount: [rupees(900), rupees(100)][i] }));
+  const longer = monthMountains({ ...f, spendDays: [...f.spendDays, rupees(5900), rupees(6000)], spendByDay: [...f.spendByDay, ...week2] });
+  equal((longer.match(/mountains__rim/g) || []).length, 2, 'from five days the two biggest peaks are lit');
+  const noIds = (h) => h.replace(/mtn\d+/g, '');
+  equal(noIds(peaks), noIds(monthMountains(f)), 'the same month draws the same range every time');
+  equal(monthMountains({ ...f, spendDays: [rupees(500)], spendByDay: f.spendByDay.slice(0, 1) }), '', 'one day is not yet a range');
 });
 test("Plan's month: must-go-outs on their days by state, and what is left of each set-aside", () => {
   const items = [{ id: 'rent', dayOfMonth: 5 }, { id: 'emi', dayOfMonth: 10 }, { id: 'phone', dayOfMonth: 20 }, { id: 'loan-a', dayOfMonth: 2 }];

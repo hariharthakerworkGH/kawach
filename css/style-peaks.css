@@ -1,0 +1,100 @@
+/* The Peaks style (5.7): a layer over Charts, the default style.
+ *
+ * Switched on by data-style="peaks" on <html> (js/looks.js). The top card of
+ * each screen is a pale panel with dark ink - done by redefining the ink
+ * tokens inside it, so every figure, ring and label there follows without
+ * any markup changing. In a light colouring the panel turns dark instead,
+ * because it is made from the colouring's own text and ground. The rest is
+ * slate cards, light numerals, the main action in the second gradient's
+ * colour, and the current tab marked by a line under it. Summary's month is
+ * drawn as a mountain range (summary.js monthMountains) instead of waves.
+ * Anything not restyled here is drawn as Charts draws it.
+ */
+
+:root[data-style="peaks"] {
+  --p-paper: color-mix(in srgb, var(--k-text) 94%, var(--k-surface));
+  --p-ink: var(--k-bg);
+  --p-ink-2: color-mix(in srgb, var(--k-bg) 72%, var(--k-text));
+  --p-ink-3: color-mix(in srgb, var(--k-bg) 58%, var(--k-text));
+  /* What a warning is mixed toward to be read on the panel: deeper on a
+     pale panel, lighter on the dark one a light colouring gets. */
+  --p-shade: black;
+}
+:root[data-style="peaks"][data-theme="light"] { --p-shade: white; }
+
+/* The pale panel: every screen's hero. */
+:root[data-style="peaks"] .k .hero {
+  background: var(--p-paper);
+  border: 0;
+  box-shadow: 0 18px 30px -12px rgb(0 0 0 / 0.55);
+  color: var(--p-ink);
+  --k-text: var(--p-ink);
+  --k-text-2: var(--p-ink-2);
+  --k-text-3: var(--p-ink-3);
+  --k-hairline: color-mix(in srgb, var(--p-ink) 10%, transparent);
+  --k-negative: color-mix(in srgb, var(--k-negative-raw, #d33) 70%, var(--p-shade));
+  --k-warning: color-mix(in srgb, var(--k-warning-raw, #c80) 62%, var(--p-shade));
+}
+:root[data-style="peaks"] { --k-negative-raw: var(--k-negative); --k-warning-raw: var(--k-warning); }
+/* No coloured glow or daylight sheen over the panel. */
+:root[data-style="peaks"] .k .hero::before,
+:root[data-style="peaks"] .k .hero::after { content: none; }
+:root[data-style="peaks"] .k .hero .hero-amount,
+:root[data-style="peaks"] .k .hero .hero-label { color: var(--p-ink); text-shadow: none; }
+:root[data-style="peaks"] .k .hero .hero-amount { font-weight: 300; }
+:root[data-style="peaks"] .k .hero .hero-amount.negative { color: color-mix(in srgb, var(--k-negative), black 25%); }
+:root[data-style="peaks"] .k .hero .hero-status.level-ok { color: var(--p-ink-2); }
+
+/* Slate cards: a shade lighter than the ground, soft. */
+:root[data-style="peaks"] .k .totals-card,
+:root[data-style="peaks"] .k-pane,
+:root[data-style="peaks"] .k-insight,
+:root[data-style="peaks"] .k-context,
+:root[data-style="peaks"] .k .hist-day-card {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--k-surface), white 3%), var(--k-surface));
+  border: 0;
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 10px 22px -10px rgb(0 0 0 / 0.6);
+}
+
+/* Light numerals wherever a figure leads. */
+:root[data-style="peaks"] .pills-row b,
+:root[data-style="peaks"] .summary-strip .summary-row__v,
+:root[data-style="peaks"] .k-row__value { font-weight: 300; }
+
+/* The main action in the second gradient's colour (teal in Peaks slate). */
+:root[data-style="peaks"] .k-btn--primary,
+:root[data-style="peaks"] .k .add-form .k-btn--primary,
+:root[data-style="peaks"] .btn-primary {
+  background: var(--k-grad-2a);
+  color: var(--k-grad-2-ink);
+  border-radius: 12px;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--k-grad-2a) 35%, transparent);
+}
+
+/* The current tab: its icon in the second gradient, a short line under it. */
+:root[data-style="peaks"] .bottom-nav { background: color-mix(in srgb, var(--k-bg), black 30%); border-top: 0; }
+/* #tabs outweighs the id in dna.css's own tab rule (a :has() here stops SVG gradients painting). */
+:root[data-style="peaks"] #tabs .nav-btn.active { background: none; color: var(--k-text); position: relative; }
+:root[data-style="peaks"] #tabs .nav-btn.active .nav-icon { color: var(--k-grad-2a); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--k-grad-2a) 60%, transparent)); }
+:root[data-style="peaks"] .nav-btn.active::after { content: ""; position: absolute; bottom: 2px; left: 50%; width: 16px; height: 2px; margin-left: -8px; border-radius: 1px; background: var(--k-grad-2a); box-shadow: 0 0 6px var(--k-grad-2a); }
+
+/* The mountain range (summary.js monthMountains). Its gradient fills are
+ * set on the shapes themselves: a url(#id) in a stylesheet looks for the id
+ * in the stylesheet, not the page. */
+.mountains-card { position: relative; padding: var(--k-3) 0 var(--k-4); overflow: hidden; }
+.mountains { display: block; width: 100%; height: auto; }
+.mountains__back { fill: color-mix(in srgb, var(--k-surface), var(--k-text) 22%); opacity: 0.85; }
+.mountains__front-top { stop-color: color-mix(in srgb, var(--k-surface), var(--k-text) 12%); }
+.mountains__front-foot { stop-color: var(--k-bg); }
+.mountains__lit-top { stop-color: var(--k-grad-1b); stop-opacity: 0.95; }
+.mountains__lit-foot { stop-color: var(--k-grad-1a); stop-opacity: 0; }
+.mountains__rim { fill: none; stroke: color-mix(in srgb, var(--k-grad-1b), white 35%); stroke-width: 1.6; stroke-linecap: round; filter: drop-shadow(0 0 3px var(--k-grad-1a)); }
+.mountains__pace { fill: none; stroke: var(--k-grad-2a); stroke-width: 1.2; stroke-dasharray: 3 4; opacity: 0.8; }
+.mountains__tick { fill: var(--k-text-3); font: 9px var(--k-font); }
+.mountains-card .waves__k.waves--spent::before { color: var(--k-text-2); }
+.mountains-card .waves__k.waves--pace::before { color: var(--k-grad-2a); }
+
+/* Add: the chosen direction on the panel in the first accent. */
+:root[data-style="peaks"] .k .amount-hero .direction-toggle { background: color-mix(in srgb, var(--p-ink) 8%, transparent); box-shadow: none; }
+:root[data-style="peaks"] .k .amount-hero .k-seg__btn[aria-selected="true"] { background: var(--k-grad-1a); color: var(--k-accent-ink); box-shadow: 0 0 14px color-mix(in srgb, var(--k-grad-1a) 35%, transparent); }

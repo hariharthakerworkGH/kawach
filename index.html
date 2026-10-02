@@ -55,7 +55,7 @@
     // burning flame light on a light one. LIGHT must match js/looks.js.
     // The style too: each brings its own dark colouring for 'auto'. READY and
     // LIGHT must match js/looks.js.
-    var READY = { tactile: 1 };
+    var READY = { tactile: 1, peaks: 1 };
     var LIGHT = { 'flame-light': 1 };
     var st = READY[a.style] ? a.style : 'charts';
     if (st !== 'charts') r.setAttribute('data-style', st);
@@ -97,6 +97,7 @@
 <link rel="stylesheet" href="./css/dna.css">
 <link rel="stylesheet" href="./css/looks.css">
 <link rel="stylesheet" href="./css/style-tactile.css">
+<link rel="stylesheet" href="./css/style-peaks.css">
 <style>
   /* The opening (4.17.1). Inline so it is on screen in the first frame.
 
@@ -327,7 +328,7 @@
   <button type="button" id="update-banner-btn">Reload</button>
 </div>
 <main id="view-container" class="view-container"></main>
-<nav class="bottom-nav">
+<nav class="bottom-nav" id="tabs">
   <button type="button" class="nav-btn active" data-view="summary">
     <span class="nav-icon" data-icon="summary"></span><span>Summary</span>
   </button>

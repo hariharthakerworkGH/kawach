@@ -5,7 +5,7 @@
 // counter, not the version people see). The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v155';
+const CACHE_NAME = 'expense-tracker-v156';
 
 const APP_SHELL = [
   './',
@@ -16,6 +16,7 @@ const APP_SHELL = [
   './css/dna.css',
   './css/looks.css',
   './css/style-tactile.css',
+  './css/style-peaks.css',
   './fonts/Geist-Variable.woff2',
   './js/app.js',
   './js/appearance.js',

@@ -1,6 +1,6 @@
 import { getAll, put, remove, newId, getSetting, setSetting } from '../db.js';
 import { icon } from '../icons.js';
-import { formatCurrency, formatRupees, ordinal, formatDateNice, formatMonthYear } from '../format.js';
+import { formatRupees, ordinal, formatDateNice, formatMonthYear } from '../format.js';
 import { detectRecurring } from '../recurring.js';
 import { categoryStyle } from '../category-style.js';
 import { getBudgets, setBudget, budgetStatusForMonth } from '../budgets.js';
@@ -178,24 +178,24 @@ export async function render(container) {
             status:
               budget == null
                 ? 'Add what comes in each month to see your budget.'
-                : `After ${formatCurrency(fixedTotal)} of commitments and ${formatCurrency(keep)} saved.`,
+                : `After ${formatRupees(fixedTotal)} of commitments and ${formatRupees(keep)} saved.`,
           }) +
           `<section class="plan-sums k-pane k-pane--quiet">
       <h3 class="plan-sums__head">${shown ? 'Your amounts' : 'Where it comes from'}</h3>
       ${
         // Said once (5.3): with the rings above, what comes in, must go out
         // and can flex are in the hero, so they are not listed again here.
-        shown ? '' : `<div class="totals-row"><span>${incomeLabel}</span><span class="in">${incomeValue != null ? formatCurrency(incomeValue) : '-'}</span></div>`
+        shown ? '' : `<div class="totals-row"><span>${incomeLabel}</span><span class="in">${incomeValue != null ? formatRupees(incomeValue) : '-'}</span></div>`
       }
       ${
         sidePlan
-          ? `<div class="totals-row"><span>From the business${sideExtra ? `, lowest month (${formatMonthYear(sidePlan.lowestMonth).split(' ')[0]})` : '<br><span class="muted-note">counted after 3 months</span>'}</span><span class="in">${sideExtra ? formatCurrency(sideExtra) : '-'}</span></div>`
+          ? `<div class="totals-row"><span>From the business${sideExtra ? `, lowest month (${formatMonthYear(sidePlan.lowestMonth).split(' ')[0]})` : '<br><span class="muted-note">counted after 3 months</span>'}</span><span class="in">${sideExtra ? formatRupees(sideExtra) : '-'}</span></div>`
           : ''
       }
-      ${shown ? '' : `<div class="totals-row"><span><span class="seg-dot seg-must"></span>Must go out</span><span class="out">−${formatCurrency(mustTotal)}</span></div>`}
-      ${flexTotal && !shown ? `<div class="totals-row"><span><span class="seg-dot seg-flex"></span>Can flex</span><span class="out">−${formatCurrency(flexTotal)}</span></div>` : ''}
-      <div class="totals-row"><span>Saved each month</span><span class="saved-row">−${formatCurrency(keep)}</span></div>
-      ${cashTotal > 0 ? `<p class="muted-note">${formatCurrency(cashTotal)} paid in cash comes out of your ATM money.</p>` : ''}
+      ${shown ? '' : `<div class="totals-row"><span><span class="seg-dot seg-must"></span>Must go out</span><span class="out">−${formatRupees(mustTotal)}</span></div>`}
+      ${flexTotal && !shown ? `<div class="totals-row"><span><span class="seg-dot seg-flex"></span>Can flex</span><span class="out">−${formatRupees(flexTotal)}</span></div>` : ''}
+      <div class="totals-row"><span>Saved each month</span><span class="saved-row">−${formatRupees(keep)}</span></div>
+      ${cashTotal > 0 ? `<p class="muted-note">${formatRupees(cashTotal)} paid in cash comes out of your ATM money.</p>` : ''}
       <details class="fts-breakdown plan-amounts" ${income == null || (kind !== 'business' && !salaryDay) ? 'open' : ''}>
         <summary>Change amounts</summary>
         <label class="field">
@@ -239,7 +239,7 @@ export async function render(container) {
              ${doubled
                .map(
                  (p, i) => `<div class="dupe-pair">
-                   <span class="dupe-amount">${formatCurrency(p.amount)} a month${
+                   <span class="dupe-amount">${formatRupees(p.amount)} a month${
                      p.counted ? ' <span class="dupe-flag">counted twice</span>' : ''
                    }</span>
                    ${[p.a, p.b]
@@ -368,7 +368,7 @@ export async function render(container) {
              ${detected
                .map(
                  (d) => `<div class="attention-row">
-                   <span>${escapeHtml(d.label)}<br><span class="muted-note">${formatCurrency(d.amount)} · ${d.spread ? 'a month, taken out bit by bit' : `around the ${ordinal(d.dayOfMonth)}`}${
+                   <span>${escapeHtml(d.label)}<br><span class="muted-note">${formatRupees(d.amount)} · ${d.spread ? 'a month, taken out bit by bit' : `around the ${ordinal(d.dayOfMonth)}`}${
                      accountName(d.accountId) ? ` · ${escapeHtml(accountName(d.accountId))}` : ''
                    }</span></span>
                    <span class="attention-actions">
@@ -500,7 +500,7 @@ export async function render(container) {
       const monthly = toMonthly(minor, freq);
       const yearly = toYearly(minor, freq);
       previewEl.hidden = false;
-      previewEl.innerHTML = `That's <strong>${formatCurrency(monthly)} a month</strong> - ${formatCurrency(yearly)} a year.`;
+      previewEl.innerHTML = `That's <strong>${formatRupees(monthly)} a month</strong> - ${formatRupees(yearly)} a year.`;
     };
     amountEl.addEventListener('input', updatePreview);
     freqEl.addEventListener('change', updatePreview);
@@ -772,10 +772,10 @@ function budgetCard(b) {
         <span class="k-row__body">
           <span class="k-row__title">${escapeHtml(b.name)}</span>
           <span class="k-row__meta">${
-            b.state === 'over' ? `Over by ${formatCurrency(-b.left)}` : `${formatCurrency(b.left)} left this month`
+            b.state === 'over' ? `Over by ${formatRupees(-b.left)}` : `${formatRupees(b.left)} left this month`
           }</span>
         </span>
-        <span class="k-row__value budget-nums">${formatCurrency(b.spent)}<span class="muted"> / ${formatCurrency(b.limit)}</span></span>
+        <span class="k-row__value budget-nums">${formatRupees(b.spent)}<span class="muted"> / ${formatRupees(b.limit)}</span></span>
         <span class="plan-row__actions">
           <button type="button" class="icon-btn budget-remove" data-id="${b.categoryId}" aria-label="Remove the budget for ${escapeHtml(b.name)}">${icon('close')}</button>
         </span>
@@ -815,7 +815,7 @@ function loanRow(item, paidFrom) {
           <span class="k-row__title">${escapeHtml(item.label)}</span>
           <span class="k-row__meta">${ordinal(item.dayOfMonth)} · ${paidFrom ? escapeHtml(paidFrom) : 'bank'} · loan</span>
         </span>
-        <span class="k-row__value plan-row__amount out">${formatCurrency(item.amount)}</span>
+        <span class="k-row__value plan-row__amount out">${formatRupees(item.amount)}</span>
       </button>
     </div>`;
 }
@@ -834,7 +834,7 @@ function fixedRow(f, categories, paidFrom, index, count) {
     ? f.spread
       ? 'bit by bit'
       : ordinal(f.dayOfMonth)
-    : `${formatCurrency(f.amount)} ${frequencyShort(freq)}${hasDueDate(freq) ? ` · around the ${ordinal(f.dayOfMonth)}` : ''}`;
+    : `${formatRupees(f.amount)} ${frequencyShort(freq)}${hasDueDate(freq) ? ` · around the ${ordinal(f.dayOfMonth)}` : ''}`;
   const parts = [when];
   if (f.emi) parts.push(`EMI ${f.emi.current}/${f.emi.total}`);
   parts.push(f.accountId === 'cash' ? 'cash' : paidFrom ? escapeHtml(paidFrom) : 'bank');
@@ -845,7 +845,7 @@ function fixedRow(f, categories, paidFrom, index, count) {
         <span class="k-row__title">${escapeHtml(f.label)}</span>
         <span class="k-row__meta">${parts.join(' · ')}</span>
       </span>
-      <span class="k-row__value plan-row__amount out">${formatCurrency(monthly)}${isMonthly ? '' : '<span class="muted freq-per-month">/mo</span>'}</span>`;
+      <span class="k-row__value plan-row__amount out">${formatRupees(monthly)}${isMonthly ? '' : '<span class="muted freq-per-month">/mo</span>'}</span>`;
 
   if (reordering) {
     return `

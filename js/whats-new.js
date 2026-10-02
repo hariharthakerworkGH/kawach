@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.7',
+    items: [
+      {
+        icon: 'eye',
+        title: "A third style: Peaks",
+        text: "In Settings, How it looks, you can now choose Peaks: a pale panel at the top of each screen, slate cards, and your month on Summary drawn as a mountain range, its biggest days lit. It works with every colouring. Plan now shows whole rupees everywhere.",
+        guide: [{ view: 'appearance', target: '.look-styles', text: "Tap Peaks to try the third style." }],
+      },
+    ],
+  },
+  {
     version: '5.6',
     items: [
       {

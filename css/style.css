@@ -4372,7 +4372,7 @@ summary {
   position: absolute;
   inset: -45% 15% auto -25%;
   height: 170px;
-  background: radial-gradient(60% 100% at 50% 0%, color-mix(in oklch, var(--accent) 16%, transparent), transparent 70%);
+  background: radial-gradient(60% 100% at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%);
   pointer-events: none;
 }
 
@@ -4419,7 +4419,7 @@ summary {
 }
 
 .due-soon {
-  border-color: color-mix(in oklch, var(--warn) 34%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 34%, transparent);
 }
 
 /* DISCLOSURE. Detail waits behind a row that looks like a row, not a card. */
@@ -4543,7 +4543,7 @@ summary {
   gap: var(--space-xs);
   min-height: var(--tap);
   padding: var(--space-xs);
-  border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   border-radius: var(--radius-md);
   background: var(--surface);
   cursor: pointer;
@@ -4771,7 +4771,7 @@ select.chip {
 .cat-bar-track,
 .cat-share-track,
 .runway-bar {
-  background: color-mix(in oklch, var(--surface-hi) 55%, transparent);
+  background: color-mix(in srgb, var(--surface-hi) 55%, transparent);
 }
 
 /* The filled part of any bar is lit, the same way a chart line is. One rule
@@ -4782,21 +4782,21 @@ select.chip {
 .cat-bar-track > i,
 .cat-share-track > i,
 .runway-part {
-  box-shadow: 0 0 8px color-mix(in oklch, var(--accent) 30%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .committed-flex {
-  box-shadow: 0 0 8px color-mix(in oklch, var(--violet) 30%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--violet) 30%, transparent);
 }
 
 .committed-free {
-  box-shadow: 0 0 8px color-mix(in oklch, var(--emerald) 30%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--emerald) 30%, transparent);
 }
 
 /* The bar at the bottom is the one piece of glass that sits over moving
    content, so it is the one place the blur is worth its cost. */
 .bottom-nav {
-  background: color-mix(in oklch, var(--bg-elevated) 78%, transparent);
+  background: color-mix(in srgb, var(--bg-elevated) 78%, transparent);
   border-top-color: var(--glass-edge);
 }
 
@@ -4811,7 +4811,7 @@ select.chip {
     180deg,
     var(--bg) 0%,
     var(--bg) 88%,
-    color-mix(in oklch, var(--bg) 0%, transparent) 100%
+    color-mix(in srgb, var(--bg) 0%, transparent) 100%
   );
 }
 
@@ -4826,13 +4826,13 @@ select.chip {
 
 .hero-amount.negative,
 .hero.level-over .hero-amount {
-  text-shadow: 0 0 30px color-mix(in oklch, var(--out) 20%, transparent);
+  text-shadow: 0 0 30px color-mix(in srgb, var(--out) 20%, transparent);
 }
 
 /* Where you are, and what you have chosen. Two places, and they are the two
    places a glow earns its keep. */
 .nav-btn.active .nav-icon {
-  filter: drop-shadow(0 0 10px color-mix(in oklch, var(--accent) 45%, transparent));
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 45%, transparent));
 }
 
 .chip.active,
@@ -4860,7 +4860,7 @@ select.chip {
   stroke: var(--accent);
   stroke-width: var(--chart-line);
   vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 0 5px color-mix(in oklch, var(--accent) 55%, transparent));
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 55%, transparent));
 }
 
 /* The thing it is measured against is not lit. That is the whole point of
@@ -4876,7 +4876,7 @@ select.chip {
 
 .chart-ring-track {
   fill: none;
-  stroke: color-mix(in oklch, var(--surface-hi) 70%, transparent);
+  stroke: color-mix(in srgb, var(--surface-hi) 70%, transparent);
   stroke-width: var(--chart-ring);
 }
 
@@ -4884,35 +4884,35 @@ select.chip {
   fill: none;
   stroke: var(--accent);
   stroke-width: var(--chart-ring);
-  filter: drop-shadow(0 0 6px color-mix(in oklch, var(--accent) 45%, transparent));
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 45%, transparent));
 }
 
 /* Bars are light standing up. Money in and money out keep their meanings,
    softened to the strength the rest of the app uses for a filled bar, each
    standing in a track so the empty part of a month is still legible. */
 .bar-track {
-  fill: color-mix(in oklch, var(--surface-hi) 45%, transparent);
+  fill: color-mix(in srgb, var(--surface-hi) 45%, transparent);
 }
 
 .bar-in {
-  fill: color-mix(in oklch, var(--in) 72%, transparent);
-  filter: drop-shadow(0 0 5px color-mix(in oklch, var(--in) 40%, transparent));
+  fill: color-mix(in srgb, var(--in) 72%, transparent);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--in) 40%, transparent));
 }
 
 .bar-out {
-  fill: color-mix(in oklch, var(--out) 68%, transparent);
-  filter: drop-shadow(0 0 5px color-mix(in oklch, var(--out) 36%, transparent));
+  fill: color-mix(in srgb, var(--out) 68%, transparent);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--out) 36%, transparent));
 }
 
 /* Today, on the line. A lit point and the halo around it: the one marker
    in the app, and it marks the one moment that matters. */
 .chart-dot {
   fill: var(--accent);
-  filter: drop-shadow(0 0 6px color-mix(in oklch, var(--accent) 70%, transparent));
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 70%, transparent));
 }
 
 .chart-dot-halo {
-  fill: color-mix(in oklch, var(--accent) 22%, transparent);
+  fill: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 /* A drawing that is part of its pane, not a widget pasted onto it. */
@@ -5135,8 +5135,8 @@ body::before {
   inset: -10% -20% auto -20%;
   height: 52vh;
   background:
-    radial-gradient(66% 72% at 12% 0%, color-mix(in oklch, var(--accent) 10%, transparent), transparent 72%),
-    radial-gradient(58% 68% at 98% 2%, color-mix(in oklch, var(--violet) 9%, transparent), transparent 74%);
+    radial-gradient(66% 72% at 12% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 72%),
+    radial-gradient(58% 68% at 98% 2%, color-mix(in srgb, var(--violet) 9%, transparent), transparent 74%);
   pointer-events: none;
   z-index: 0;
 }
@@ -5155,9 +5155,9 @@ body::after {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(82% 46% at -18% 30%, color-mix(in oklch, var(--accent) 8%, transparent), transparent 74%),
-    radial-gradient(74% 42% at 120% 58%, color-mix(in oklch, var(--violet) 8%, transparent), transparent 72%),
-    radial-gradient(78% 40% at 112% 100%, color-mix(in oklch, var(--amb-warm) 5%, transparent), transparent 70%);
+    radial-gradient(82% 46% at -18% 30%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 74%),
+    radial-gradient(74% 42% at 120% 58%, color-mix(in srgb, var(--violet) 8%, transparent), transparent 72%),
+    radial-gradient(78% 40% at 112% 100%, color-mix(in srgb, var(--amb-warm) 5%, transparent), transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -5247,11 +5247,11 @@ body::after {
 
 .hero.level-warning,
 .hero.level-critical {
-  border-color: color-mix(in oklch, var(--warn) 22%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 22%, transparent);
 }
 
 .hero.level-over {
-  border-color: color-mix(in oklch, var(--out) 26%, transparent);
+  border-color: color-mix(in srgb, var(--out) 26%, transparent);
 }
 
 /* Room under the figure before the picture starts, and room after it before

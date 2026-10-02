@@ -228,9 +228,15 @@ on <html> picks it and `data-theme` follows its light or dark, so the light
 and dark material in the stylesheets comes with it. The three Charts
 gradients are `--k-grad-1a/1b`, `-2a/2b`, `-3a/3b`, with `--k-grad-N-ink` for
 text on each. A style other than Charts is one stylesheet keyed on
-`data-style` (`css/style-tactile.css`, 5.6) that changes material, never
-markup, and brings its own colouring (Tactile copper) for "Follow my phone".
-The tour video is not re-made per style.
+`data-style` (`css/style-tactile.css` 5.6, `css/style-peaks.css` 5.7) that
+changes material, never markup, and brings its own colouring (Tactile
+copper, Peaks slate) for "Follow my phone". The one drawing that differs is
+Summary's month: Peaks draws it as mountains (`monthMountains`), chosen in
+`monthWaves` by the style worn. Two Chrome traps: a `:has()` in a style
+layer stops SVG gradients painting (beat dna.css's id with `#tabs`
+instead), and `color-mix(in oklch, x, transparent)` or with white loses its
+hue and drifts red, so mix those in srgb. The tour video is not re-made per
+style.
 
 The design system is locked in `design.md` (read it before touching a screen);
 its values are tokens in `css/tokens.css`, which `css/style.css` uses by name
