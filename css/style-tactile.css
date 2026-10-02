@@ -37,7 +37,9 @@
 :root[data-style="tactile"] .k-context,
 :root[data-style="tactile"] .k-coach .coach-q,
 :root[data-style="tactile"] .k .hist-day-card,
-:root[data-style="tactile"] .totals-card {
+:root[data-style="tactile"] .totals-card,
+:root[data-style="tactile"] .k .hero-under {
+  border-radius: 18px;
   background: var(--t-raise);
   border: 0;
   box-shadow: var(--t-shadow);
@@ -175,3 +177,46 @@ button.tl-item { cursor: pointer; }
 :root[data-style="tactile"] #tabs .nav-btn.active { border-radius: 18px; }
 :root[data-style="tactile"] body { padding-bottom: calc(var(--nav-height, 84px) + var(--space-lg) + 14px); }
 :root[data-style="tactile"] .app-header #view-title { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+
+/* 5.10: the same figures as every style, in Tactile's material. */
+.tl-top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--k-3); }
+.tl-period { font-size: 12.5px; color: var(--k-text-3); font-variant-numeric: tabular-nums; }
+.tl-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+.tl-stats > div { display: grid; gap: 4px; padding: 9px 10px; border-radius: 12px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+.tl-stats .tl-k { font-size: 10.5px; }
+.tl-stats b { font-size: 15.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--k-text); }
+.tl-prog--aside { margin-top: 8px; }
+.tl-prog--aside i { background: linear-gradient(180deg, color-mix(in srgb, var(--k-violet), white 6%), color-mix(in srgb, var(--k-violet), black 30%)); }
+.tl-card { padding: 14px 16px 12px; margin-bottom: var(--k-3); border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
+.tl-mid { font-size: 20px; font-weight: 760; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--k-text); }
+.tl-cols { display: flex; gap: 8px; height: 84px; margin-top: 12px; }
+.tl-cols > span { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; }
+.tl-cols i { position: relative; width: 100%; max-width: 26px; border-radius: 7px; background: var(--t-well); box-shadow: var(--t-well-shadow); min-height: 6px; }
+.tl-cols i.lit { background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 10%), color-mix(in srgb, var(--k-accent), black 25%)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 0 12px color-mix(in srgb, var(--k-accent) 45%, transparent); }
+.tl-cols small { font-size: 11px; font-weight: 650; color: var(--k-text-3); }
+.tl-item--cards { flex-wrap: wrap; }
+.tl-item--cards .tl-grow { gap: 4px; }
+.tl-cards { flex-basis: 100%; display: grid; gap: 9px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--k-hairline); }
+.tl-cardrow { display: grid; grid-template-columns: 74px 1fr 84px; gap: 10px; align-items: center; font-size: 12.5px; color: var(--k-text-2); }
+.tl-thin { display: block; height: 8px; border-radius: 4px; background: var(--t-well); box-shadow: var(--t-well-shadow); overflow: hidden; }
+.tl-thin i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, var(--k-accent), black 15%), var(--k-violet)); box-shadow: 0 0 6px color-mix(in srgb, var(--k-violet) 50%, transparent); }
+.tl-cardamt { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--k-text); }
+.tl-badge { margin-top: 2px; }
+
+/* --- Settings and How it looks, in Tactile (5.10) ------------------------
+ * The mockup's rows: icons sit in pressed-in wells with a copper outline,
+ * section names are engraved capitals over a groove, rows are divided by a
+ * groove (a dark line with light under it), choices are raised pills. */
+:root[data-style="tactile"] .k-icon { border-radius: 10px; color: var(--k-accent); background: var(--t-well); border: 1px solid color-mix(in srgb, var(--k-text) 16%, transparent); box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] #view-container h3 { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-2); padding-bottom: 7px; border-bottom: 1px solid rgb(0 0 0 / 0.4); box-shadow: 0 1px 0 rgb(255 255 255 / 0.05); text-shadow: 0 -1px 0 rgb(0 0 0 / 0.6); }
+:root[data-style="tactile"] .k-row + .k-row { border-top: 1px solid rgb(0 0 0 / 0.42); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04); }
+:root[data-style="tactile"] .money-kind,
+:root[data-style="tactile"] .look-option.look-style { border: 0; border-radius: 999px; background: var(--t-raise); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 3px 6px rgb(0 0 0 / 0.45); color: var(--k-text-2); }
+:root[data-style="tactile"] .money-kind.on,
+:root[data-style="tactile"] .look-option.look-style.chosen { color: var(--k-accent-ink); background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 10%), color-mix(in srgb, var(--k-accent), black 15%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--t-metal), inset 0 1px 0 rgb(255 255 255 / 0.28); }
+:root[data-style="tactile"] .look-styles { background: var(--t-well); box-shadow: var(--t-well-shadow); border-radius: 999px; }
+:root[data-style="tactile"] .look-option.look-swatch { background: var(--t-raise); border: 0; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 3px rgb(0 0 0 / 0.45), 0 6px 12px rgb(0 0 0 / 0.3); }
+:root[data-style="tactile"] .look-option.look-swatch.chosen { box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--k-accent), 0 0 12px color-mix(in srgb, var(--k-accent) 40%, transparent); }
+:root[data-style="tactile"] .k .hero-under { padding: var(--k-4); margin-top: var(--k-3); }
+.tl-label { display: flex; justify-content: space-between; align-items: baseline; }
+.tl-still { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--k-text-2); }

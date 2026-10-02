@@ -1,5 +1,5 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
-import { tactileTop, peaksTop, mindoraTop, keptBack } from './summary-looks.js';
+import { tactileTop, peaksTop, mindoraTop, keptBack, chartsComing, cardTag, tagHtml } from './summary-looks.js';
 import { icon } from '../icons.js';
 import { isFixed, isLiveCommitment, coveredByFixed, commitmentFromSuggestion } from '../commitments.js';
 import { isoLocal, hasDueDate, frequencyOf } from '../frequency.js';
@@ -387,11 +387,11 @@ async function renderDashboard(container) {
 export function spendingWarning(f) {
   const until = formatDateNice(f.cycleKey);
   if (f.level === 'over')
-    return `You're ${formatCurrency(-f.free)} over this cycle's budget. Stop spending until ${until}, on cards and by UPI - anything more comes out of next month.`;
-  if (f.level === 'critical') return `Critical: only ${formatCurrency(f.free)} left of this cycle's budget${f.crossesOn ? ` - at your pace it runs out on ${formatDateNice(f.crossesOn)}` : ''}.`;
+    return `You're ${formatRupees(-f.free)} over this cycle's budget. Stop spending until ${until}, on cards and by UPI - anything more comes out of next month.`;
+  if (f.level === 'critical') return `Critical: only ${formatRupees(f.free)} left of this cycle's budget${f.crossesOn ? ` - at your pace it runs out on ${formatDateNice(f.crossesOn)}` : ''}.`;
   if (f.level === 'warning')
     return f.crossesOn
-      ? `Careful: at ${formatCurrency(f.pace)} a day the budget runs out on ${formatDateNice(f.crossesOn)}, before the cycle ends on ${until}.`
+      ? `Careful: at ${formatRupees(f.pace)} a day the budget runs out on ${formatDateNice(f.crossesOn)}, before the cycle ends on ${until}.`
       : `Careful: you've used ${Math.round(f.used * 100)}% of this cycle's budget.`;
   return null;
 }
@@ -404,11 +404,11 @@ export function bankWarning(f) {
   const next = payday ? `After your next ${incomeWords(f.incomeKind).noun}, the` : 'After the';
   if (f.bankBeforeCards < 0)
     return payday
-      ? `Your bank is ${formatCurrency(-f.bankBeforeCards)} short of what it has to pay before your ${incomeWords(f.incomeKind).noun} on ${formatDateNice(payday)}.`
-      : `Your bank is ${formatCurrency(-f.bankBeforeCards)} short of what it has to pay this month.`;
-  if (f.bankAfterBills < 0) return `${next} card bills and next month's commitments, your bank would be ${formatCurrency(-f.bankAfterBills)} short.`;
+      ? `Your bank is ${formatRupees(-f.bankBeforeCards)} short of what it has to pay before your ${incomeWords(f.incomeKind).noun} on ${formatDateNice(payday)}.`
+      : `Your bank is ${formatRupees(-f.bankBeforeCards)} short of what it has to pay this month.`;
+  if (f.bankAfterBills < 0) return `${next} card bills and next month's commitments, your bank would be ${formatRupees(-f.bankAfterBills)} short.`;
   if (f.bankLevel === 'warning')
-    return `${next} bills, only ${formatCurrency(f.bankAfterBills)} would be left in your bank - less than the ${formatCurrency(f.keep)} you save each month.`;
+    return `${next} bills, only ${formatRupees(f.bankAfterBills)} would be left in your bank - less than the ${formatRupees(f.keep)} you save each month.`;
   return null;
 }
 
@@ -662,11 +662,12 @@ export function monthMountains(f, head = '') {
         <path class="mountains__front" fill="url(#${id}-front)" d="${poly(front, end)}"/>
         ${lit}
         <line class="mountains__pace" x1="8" x2="${end.toFixed(1)}" y1="${paceY.toFixed(1)}" y2="${paceY.toFixed(1)}"/>
+        <text class="mountains__pace-k" x="${(end - 2).toFixed(1)}" y="${(paceY - 5).toFixed(1)}" text-anchor="end">${formatRupees(Math.round(evenDay))} a day</text>
         ${ticks}
       </svg>
       <div class="waves__key">
-        ${head ? '' : `<span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b>spent so far</span>`}
-        <span class="waves__k waves--pace"><b>${formatRupees(Math.round(evenDay))}</b>an even day</span>
+        <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b>spent so far</span>
+        <span class="waves__k waves--pace"><b>${formatRupees(Math.round(evenDay * n))}</b>at an even pace</span>
         <span class="waves__k waves--day"><b>${formatDateNice(f.spendByDay[bigDay].date)}</b>biggest day</span>
       </div>
     </div>`;
@@ -694,7 +695,7 @@ export function weekPills(f) {
       ${
         cards.length
           ? `<div class="pills-row pills-row--cards"><div><small>Owed on cards</small><b>${formatRupees(owed)}</b></div><div class="pill-cols">${cards
-              .map((c) => col(onCard(c) / cardTop, c === most, escapeHtml((c.account.label || '').slice(0, 6))))
+              .map((c) => col(onCard(c) / cardTop, c === most, tagHtml(cardTag(c.account))))
               .join('')}</div></div>`
           : ''
       }
@@ -899,7 +900,7 @@ function renderCardsHero(f, { past = null } = {}) {
   const style = typeof document !== 'undefined' ? document.documentElement.dataset.style : '';
   const lookTop = !past && appearance('summary') === 'full' && f.limit > 0 && LOOK_TOPS[style];
   const top = lookTop
-    ? lookTop(f, spendingStatus(f), style === 'peaks' ? monthMountains(f, `<div class="pk-head"><span class="pk-lab">Spent this month</span><span class="pk-n pk-n--s">${formatRupees(f.spentThisCycle || 0).replace('₹', '')}<sup>₹</sup></span></div>`) : '')
+    ? lookTop(f, spendingStatus(f), style === 'peaks' ? monthMountains(f, '<div class="pk-head"><span class="pk-lab">This month</span></div>') : monthWaves(f))
     : spendingHero(shown, appearance('summary'), past ? `Final for ${past.name}` : null) + `
     ${past ? '' : monthWaves(f)}
     ${past ? '' : weekPills(f)}
@@ -912,7 +913,8 @@ function renderCardsHero(f, { past = null } = {}) {
         // In the full look the cards' figure is in the columns above.
         past ? '' : renderOwed(f, { cards: appearance('summary') !== 'full' })
       }
-    </div>`;
+    </div>
+    ${past ? '' : chartsComing(f)}`;
   return top + `
     ${(() => {
       const card = Math.max(0, f.cardSpent || 0);
@@ -1424,7 +1426,7 @@ async function renderAttention(container, transactions, fts = null) {
     ...cardPayments.map((p) =>
       todo(
         icon('card'),
-        `${formatCurrency(p.amount)} card bill paid ${formatDateNice(p.date)}`,
+        `${formatRupees(p.amount)} card bill paid ${formatDateNice(p.date)}`,
         'Which card did it pay?',
         `<select class="assign-card" data-txn="${p.id}" aria-label="Card this payment paid"><option value="">Pick card</option>${cards.map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}</select>`
       )
@@ -1433,10 +1435,10 @@ async function renderAttention(container, transactions, fts = null) {
     duplicates.length ? todo(icon('copy'), `${duplicates.length} payment${duplicates.length === 1 ? '' : 's'} saved twice`, 'Already left out of every figure', '<button type="button" class="btn-tiny primary" id="remove-duplicates-btn">Remove</button>') : '',
     alertsWaiting > 0 ? todo(icon('inbox'), `${alertsWaiting} bank alert${alertsWaiting === 1 ? '' : 's'} to check`, '', '<button type="button" class="btn-tiny primary" id="go-inbox-btn">Check</button>') : '',
     ...dueCards.map(({ account, bill }) =>
-      todo(icon('bill'), `${escapeHtml(account.label)} - ${formatCurrency(bill.amount)}`, bill.daysLeft < 0 ? `Overdue by ${Math.abs(bill.daysLeft)}d` : bill.daysLeft === 0 ? 'Due today' : `Due in ${bill.daysLeft}d`, `<button type="button" class="btn-tiny mark-paid" data-id="${account.id}">Mark paid</button>`, bill.daysLeft <= 0 ? 'bill-overdue' : 'bill-urgent')
+      todo(icon('bill'), `${escapeHtml(account.label)} - ${formatRupees(bill.amount)}`, bill.daysLeft < 0 ? `Overdue by ${Math.abs(bill.daysLeft)}d` : bill.daysLeft === 0 ? 'Due today' : `Due in ${bill.daysLeft}d`, `<button type="button" class="btn-tiny mark-paid" data-id="${account.id}">Mark paid</button>`, bill.daysLeft <= 0 ? 'bill-overdue' : 'bill-urgent')
     ),
     ...budgetAlerts.map((b) =>
-      todo(categoryStyle(b.name).icon, `${escapeHtml(b.name)} budget`, b.state === 'over' ? `Over by ${formatCurrency(-b.left)}` : `${formatCurrency(b.left)} left`, `<button type="button" class="btn-tiny budget-open" data-id="${b.categoryId}">See</button>`, b.state === 'over' ? 'bill-overdue' : 'bill-urgent')
+      todo(categoryStyle(b.name).icon, `${escapeHtml(b.name)} budget`, b.state === 'over' ? `Over by ${formatRupees(-b.left)}` : `${formatRupees(b.left)} left`, `<button type="button" class="btn-tiny budget-open" data-id="${b.categoryId}">See</button>`, b.state === 'over' ? 'bill-overdue' : 'bill-urgent')
     ),
     uncategorized.length
       ? todo(
@@ -1646,7 +1648,7 @@ async function renderUpcoming(container, knownFigures = null) {
               <span>${escapeHtml(r.label)}<br><span class="muted-note">${formatDateNice(r.due)}${r.late ? ' · late' : ''}${
                 r.isFixedItem ? (r.emi ? ` · ${r.emi.current} of ${r.emi.total}` : '') : ` · spotted${accountName(r.accountId) ? ` on ${escapeHtml(accountName(r.accountId))}` : ''}`
               }</span></span>
-              <span>${formatCurrency(r.amount)}</span>
+              <span>${formatRupees(r.amount)}</span>
             </div>
             ${
               r.isFixedItem
@@ -1893,8 +1895,8 @@ function renderCategoryBreakdown(map, nameFn, totalOut) {
           </span>
         </span>
         <span class="amounts">
-          ${v.out ? `<span class="out">-${formatCurrency(v.out)}</span>` : ''}
-          ${v.in ? `<span class="in">+${formatCurrency(v.in)}</span>` : ''}
+          ${v.out ? `<span class="out">-${formatRupees(v.out)}</span>` : ''}
+          ${v.in ? `<span class="in">+${formatRupees(v.in)}</span>` : ''}
         </span>
       </li>`;
     })
@@ -1935,8 +1937,8 @@ function renderAccountBreakdown(byAccount, accounts, transactions) {
           <span>${escapeHtml(account.label)}${used ? '' : `<br><span class="muted-note">${note}</span>`}</span>
         </span>
         <span class="amounts">
-          ${bucket.out ? `<span class="out">-${formatCurrency(bucket.out)}</span>` : ''}
-          ${bucket.in ? `<span class="in">+${formatCurrency(bucket.in)}</span>` : ''}
+          ${bucket.out ? `<span class="out">-${formatRupees(bucket.out)}</span>` : ''}
+          ${bucket.in ? `<span class="in">+${formatRupees(bucket.in)}</span>` : ''}
           ${used ? '' : '<span class="muted">-</span>'}
         </span>
       </li>`;

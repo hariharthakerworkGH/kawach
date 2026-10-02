@@ -2309,6 +2309,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 }
 .k .accounts-actions .k-btn { flex: 1 1 auto; min-height: var(--k-ctl-md); }
 .k .accounts-actions #add-account-btn { flex-basis: 100%; }
+.k .accounts-actions .k-btn--ghost { flex: 1 1 0; justify-content: center; text-align: center; }
 
 /* --- the bits of the old screen that stay ----------------------------- */
 .k .account-block .loan-lines,
@@ -3293,6 +3294,8 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k.settings-k .settings-fold > summary::after { margin-left: 0; }
 .k.settings-k .settings-foot > * { display: inline-flex; align-items: center; min-height: var(--k-tap); }
 .k.settings-k .settings-foot a.link-btn { text-decoration: none; }
+/* A drawn dot, centred on the line, between the three links. */
+.k.settings-k .settings-foot .foot-dot { min-height: 0; width: 3px; height: 3px; border-radius: 50%; background: var(--k-text-3); }
 
 /* ==== 5.0 · THE CHARTS STYLE ==============================================
  * The default style (decided 2 Oct 2026). Every new feature is built here
@@ -3361,9 +3364,15 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .pills-row--cards .pill-col i { background: color-mix(in oklch, var(--k-grad-1b) 22%, var(--k-surface)); }
 .pill-col--lit i { background: linear-gradient(180deg, var(--k-grad-3a), var(--k-grad-3b)); box-shadow: 0 0 12px color-mix(in srgb, var(--k-grad-3a) 45%, transparent); }
 .pills-row--cards .pill-col--lit i { background: linear-gradient(180deg, var(--k-grad-1a), var(--k-grad-1b)); box-shadow: 0 0 12px color-mix(in srgb, var(--k-grad-1a) 45%, transparent); }
-.pill-col small { font-size: 0.56rem; color: var(--k-text-3); white-space: nowrap; overflow: hidden; max-width: 30px; }
+.pill-col small { font-size: 0.56rem; color: var(--k-text-3); white-space: nowrap; overflow: hidden; max-width: 30px; text-align: center; }
 .pills-row--cards .pill-cols { height: 72px; }
 .pills-row--cards .pill-col { width: 26px; }
+/* A card's bar names it (5.10): its name over its last digits, centred under it. */
+.pills-row--cards .pill-cols { gap: 10px; height: 88px; }
+.pills-row--cards .pill-col small { overflow: visible; }
+.pills-row--cards .pill-col { width: 44px; }
+.pills-row--cards .pill-col i { width: 26px; }
+.pills-row--cards .pill-col small { max-width: 48px; font-size: 0.6rem; line-height: 1.2; }
 .is-arriving .pill-col i { animation: grow-up 600ms var(--k-ease) both; transform-origin: bottom; }
 
 /* The strip: the figures under the cards, a coloured line under each. */
@@ -3470,3 +3479,30 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .coach-hub__arc--outer { stroke: var(--k-grad-1a); }
 .k .coach-hub__arc--inner { stroke: var(--k-grad-2a); }
 .k .coach-hub__shield { stroke: var(--k-grad-1a); }
+
+/* --- Charts: what is coming up (5.10, summary-looks.js chartsComing) ------ */
+.ch-coming { display: grid; gap: var(--k-3); }
+.ch-coming__k { font-size: var(--k-label); font-weight: var(--k-w-label); letter-spacing: var(--k-track-caption); text-transform: uppercase; color: var(--k-text-3); }
+.ch-coming__row { display: grid; grid-template-columns: 32px 1fr auto; gap: var(--k-3); align-items: center; }
+.ch-coming__ic { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--k-grad-1a); background: color-mix(in srgb, var(--k-grad-1a) 14%, var(--k-surface)); }
+.ch-coming__ic svg { width: 16px; height: 16px; }
+.ch-coming__t { display: grid; gap: 2px; min-width: 0; font-size: var(--k-body); color: var(--k-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ch-coming__t small { font-size: var(--k-label); color: var(--k-text-3); }
+.ch-coming__row b { font-weight: var(--k-w-label); font-variant-numeric: tabular-nums; color: var(--k-text); }
+.ch-coming__row b.is-late { color: var(--k-negative); }
+
+/* How it looks: a style is a centred pill (5.10). dna's .look-option (a
+   left-aligned row with a rule above it) was winning over the picker's own
+   grid, so the names sat off centre and at different heights. */
+.look-option.look-style { display: grid; place-items: center; align-content: center; text-align: center; min-height: 48px; padding: var(--k-2) var(--k-1); border-top: 0; }
+.look-option.look-swatch { border-top-width: 1px; }
+
+/* A fold with a count or a note: it sits at the right, by the chevron
+   (5.10). The count and the chevron both pushed themselves right, split the
+   space, and the count floated in the middle of the row. */
+.section-fold > summary > .muted,
+.section-fold > summary > .summary-sub { margin-left: auto; margin-right: var(--k-2); }
+.section-fold > summary:has(> .muted, > .summary-sub)::after { margin-left: 0; }
+.ch-coming__head { display: flex; justify-content: space-between; align-items: baseline; }
+.ch-coming__still { font-size: var(--k-label); color: var(--k-text-2); font-variant-numeric: tabular-nums; }
+.ch-coming { margin-top: var(--k-3); }

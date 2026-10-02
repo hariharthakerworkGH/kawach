@@ -298,7 +298,7 @@ export async function render(container) {
       if (recorded.length) {
         const sure = await askConfirm({
           title: 'Mark this bill unpaid?',
-          message: `The ${formatCurrency(recorded.reduce((s, t) => s + t.amount, 0))} payment recorded for it is removed too.`,
+          message: `The ${formatRupees(recorded.reduce((s, t) => s + t.amount, 0))} payment recorded for it is removed too.`,
           confirmLabel: 'Mark unpaid',
           danger: true,
         });
@@ -1192,7 +1192,7 @@ function renderBill(bill, account) {
     return `
       <div class="bill-line">
         <span class="bill-when bill-paid"><i class="bill-dot" aria-hidden="true"></i>Paid${account.statementPeriodEnd ? ` · bill of ${formatDateNice(account.statementPeriodEnd)}` : ''}</span>
-        <span class="bill-amount in">${formatCurrency(bill.amount)}</span>
+        <span class="bill-amount in">${formatRupees(bill.amount)}</span>
       </div>
       <div class="bill-actions"><button type="button" class="link-btn bill-toggle-paid" data-id="${account.id}">Mark unpaid</button></div>
     `;
@@ -1202,13 +1202,13 @@ function renderBill(bill, account) {
   // "Due 15 Oct · Min ₹820". Past its date it says Overdue instead, in red,
   // once, rather than counting the days.
   const when = `${bill.dueDate ? `${overdue ? 'Overdue' : 'Due'} ${formatDateNice(bill.dueDate)}` : 'Due date unknown'}${
-    bill.minimum != null ? ` · Min ${formatCurrency(bill.minimum)}` : ''
+    bill.minimum != null ? ` · Min ${formatRupees(bill.minimum)}` : ''
   }`;
   const open = payingBill === account.id;
   return `
     <div class="bill-line">
       <span class="bill-when ${urgency ? 'bill-' + urgency : ''}"><i class="bill-dot" aria-hidden="true"></i>${when}</span>
-      <span class="bill-amount out">${formatCurrency(bill.amount)}</span>
+      <span class="bill-amount out">${formatRupees(bill.amount)}</span>
     </div>
     <div class="bill-actions"><button type="button" class="link-btn bill-pay-open" data-id="${account.id}" aria-expanded="${open}">Mark bill paid</button></div>
     ${open ? billPanel(account) : ''}

@@ -110,7 +110,7 @@ export async function render(container, params = {}) {
     <div class="hero-under" id="hist-stats"></div>
     <div id="hist-days"></div>
     <div class="hist-top">
-      <input type="search" id="txn-search" class="hist-search" placeholder="Search words or an amount" value="${escapeAttr(filters.search)}" aria-label="Search all months">
+      <input type="search" id="txn-search" class="hist-search" placeholder="Name or amount" value="${escapeAttr(filters.search)}" aria-label="Search all months">
       <button type="button" id="txn-select" class="btn-secondary hist-select-btn">Change many</button>
     </div>
     <div class="hist-chips">

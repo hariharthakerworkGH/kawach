@@ -5340,3 +5340,21 @@ body::after {
 .tour-box .tour-look { margin: var(--space-2xs) 0 0; text-align: center; }
 .look-style input { position: absolute; opacity: 0; pointer-events: none; }
 label.look-style { position: relative; cursor: pointer; }
+
+/* A tab arriving by a swipe (js/swipe.js) slides in from the side it came
+   from, settling with a little give. */
+@keyframes view-slide-next { from { transform: translateX(34%) scale(.96); opacity: .2; } to { transform: none; opacity: 1; } }
+@keyframes view-slide-prev { from { transform: translateX(-34%) scale(.96); opacity: .2; } to { transform: none; opacity: 1; } }
+.view-slide-next { animation: view-slide-next 360ms cubic-bezier(.16, 1.08, .3, 1) both; }
+.view-slide-prev { animation: view-slide-prev 360ms cubic-bezier(.16, 1.08, .3, 1) both; }
+
+/* A card named under a bar or beside it (5.10): its name, then its last four
+   digits a shade quieter. Every style uses the same tag. */
+.card-tag { display: inline-grid; gap: 1px; min-width: 0; line-height: 1.2; }
+.card-tag__name, .card-tag__digits { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-tag__digits { opacity: .7; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.pill-col .card-tag { justify-items: center; }
+
+/* A chooser that holds a select (Add's account) is the field itself: in a
+   style, the select inside must not be drawn as a second field (5.10). */
+:root[data-style] .k .k-picker--select select { background: none; border: 0; box-shadow: none; }

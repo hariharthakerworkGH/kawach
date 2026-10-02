@@ -1,5 +1,5 @@
 import { getAll } from '../db.js';
-import { formatCurrency } from '../format.js';
+import { formatRupees } from '../format.js';
 import { categoryStyle } from '../category-style.js';
 import { extractMerchantKey } from '../merchant-rules.js';
 import { categorySlices } from '../splits.js';
@@ -137,12 +137,12 @@ function buildCards(transactions, categories, month, prevMonth) {
       comparison =
         diff === 0
           ? `Exactly the same as ${against}.`
-          : `That's ${formatCurrency(Math.abs(diff))} ${diff > 0 ? 'more' : 'less'} than ${against} - ${Math.abs(pct)}% ${diff > 0 ? 'up' : 'down'}.`;
+          : `That's ${formatRupees(Math.abs(diff))} ${diff > 0 ? 'more' : 'less'} than ${against} - ${Math.abs(pct)}% ${diff > 0 ? 'up' : 'down'}.`;
     }
   }
   const damage = {
     kicker: 'The damage',
-    value: formatCurrency(spent),
+    value: formatRupees(spent),
     line: `${debits.length} transactions${isCurrentMonth ? ` so far in ${monthLabel(month)}` : ` across ${monthLabel(month)}`}. ${comparison}`,
   };
   cards.push('');
@@ -171,7 +171,7 @@ function buildCards(transactions, categories, month, prevMonth) {
       card(
         'Biggest category',
         `${categoryStyle(name).icon} ${escapeHtml(name)}`,
-        `${formatCurrency(topCat[1])} - that's ${share}% of everything you spent this month.`,
+        `${formatRupees(topCat[1])} - that's ${share}% of everything you spent this month.`,
         true
       )
     );
@@ -193,7 +193,7 @@ function buildCards(transactions, categories, month, prevMonth) {
       card(
         'Your regular',
         escapeHtml(shorten(topMerchant.label)),
-        `${topMerchant.count} times this month, ${formatCurrency(topMerchant.total)} in total. That's ${formatCurrency(Math.round(topMerchant.total / topMerchant.count))} a visit.`,
+        `${topMerchant.count} times this month, ${formatRupees(topMerchant.total)} in total. That's ${formatRupees(Math.round(topMerchant.total / topMerchant.count))} a visit.`,
         true
       )
     );
@@ -205,7 +205,7 @@ function buildCards(transactions, categories, month, prevMonth) {
     cards.push(
       card(
         'Biggest single spend',
-        formatCurrency(biggest.amount),
+        formatRupees(biggest.amount),
         `${escapeHtml(shorten(biggest.rawDescription))} on ${new Date(biggest.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })}.`
       )
     );
@@ -230,8 +230,8 @@ function buildCards(transactions, categories, month, prevMonth) {
   cards.push(
     card(
       'In versus out',
-      `${received >= spent ? '+' : '-'}${formatCurrency(Math.abs(received - spent))}`,
-      `${formatCurrency(received)} came in, ${formatCurrency(spent)} went out. ${
+      `${received >= spent ? '+' : '-'}${formatRupees(Math.abs(received - spent))}`,
+      `${formatRupees(received)} came in, ${formatRupees(spent)} went out. ${
         received >= spent ? 'You ended the month ahead.' : 'You spent more than you brought in.'
       }`
     )

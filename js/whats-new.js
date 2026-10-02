@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.10',
+    items: [
+      {
+        icon: 'eye',
+        title: "Swipe between screens, and every style shows the same things",
+        text: "Swipe left or right anywhere on a tab to move to the next one, round and round. Every style now shows the same figures, only drawn its own way, and each card in a chart is named with its last digits. Settings follows your style too, and amounts across Summary and Accounts are in whole rupees.",
+        guide: [{ view: 'summary', target: '#tabs', text: "Swipe left or right on the screen to move between these." }],
+      },
+    ],
+  },
+  {
     version: '5.9',
     items: [
       {

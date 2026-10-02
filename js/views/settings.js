@@ -130,9 +130,9 @@ export async function render(container, params = {}) {
       <!-- Three small things, one line. -->
       <div class="settings-foot">
         <button type="button" class="link-btn" id="whats-new-btn">What's new</button>
-        <span aria-hidden="true">·</span>
+        <span class="foot-dot" aria-hidden="true"></span>
         <button type="button" class="link-btn" id="share-app-btn">Share with a friend</button>
-        <span aria-hidden="true">·</span>
+        <span class="foot-dot" aria-hidden="true"></span>
         <a href="./terms.html" class="link-btn">Terms of use</a>
       </div>
     </div>

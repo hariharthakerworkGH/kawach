@@ -1,4 +1,5 @@
 import { openDB, getAll, put, onLocalChange, forgetCachedReads } from './db.js';
+import { wireSwipe } from './swipe.js';
 import { getSyncConfig, getSyncPassphrase, syncNow } from './sync.js';
 import { CASH_ACCOUNT_ID } from './config.js';
 import { detectTransfers } from './transfers.js';
@@ -87,8 +88,9 @@ const trail = [];
 const TRAIL_MAX = 30;
 
 // fromHistory: shown because of the back button (or on start-up), so it is
-// not added to the trail. scrollY: where to put you on it.
-async function showView(name, params = {}, fromHistory = false, scrollY = 0) {
+// not added to the trail. scrollY: where to put you on it. slide: 1 or -1
+// when a swipe brought it (js/swipe.js), so it comes in from that side.
+async function showView(name, params = {}, fromHistory = false, scrollY = 0, slide = 0) {
   const view = views[name];
   if (!fromHistory && name !== currentView) {
     trail.push({ view: currentView, params: currentParams, scrollY: window.scrollY });
@@ -130,6 +132,11 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0) {
   // comes off again so a screen redrawing itself doesn't replay them. The
   // figure counts first and the bars fill under it (design.md section 10).
   next.classList.add('view-enter');
+  if (slide && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+    const cls = slide > 0 ? 'view-slide-next' : 'view-slide-prev';
+    next.classList.add(cls);
+    setTimeout(() => next.classList.remove(cls), 420);
+  }
   countUpHeroes(next);
   clearTimeout(enterTimer);
   enterTimer = setTimeout(() => next.classList.remove('view-enter'), 1400);
@@ -508,6 +515,7 @@ async function init() {
   });
 
   document.getElementById('settings-btn').addEventListener('click', () => showView('settings'));
+  wireSwipe({ current: () => currentView, go: (name, dir) => showView(name, {}, false, 0, dir) });
 
   document.addEventListener('navigate', (e) => {
     const { view, ...params } = e.detail;
