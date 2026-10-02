@@ -13,8 +13,8 @@
  */
 
 export const STYLES = [
-  { id: 'charts', name: 'Charts', ready: true },
-  { id: 'tactile', name: 'Tactile', ready: false },
+  { id: 'charts', name: 'Charts', ready: true, note: 'Gradient rings, waves and columns.' },
+  { id: 'tactile', name: 'Tactile', ready: true, note: 'Raised cards, pressed-in fields, metal switches.' },
   { id: 'peaks', name: 'Peaks', ready: false },
   { id: 'mindora', name: 'Mindora', ready: false },
 ];
@@ -22,6 +22,7 @@ export const STYLES = [
 // Ground, accent, second accent, money in: the four dots a swatch shows.
 export const COLOURINGS = [
   { id: 'charts', name: 'Charts', mode: 'dark', bg: '#050505', dots: ['#171717', '#f47ebc', '#7c62f2', '#7efdb4'] },
+  { id: 'tactile', name: 'Tactile copper', mode: 'dark', bg: '#222125', dots: ['#38373c', '#b0552f', '#e2906a', '#d9d2cb'] },
   { id: 'ember-dusk', name: 'Ember dusk', mode: 'dark', bg: '#101c30', dots: ['#143041', '#e2773a', '#ffcb68', '#5fb3a8'] },
   { id: 'strawberry-night', name: 'Strawberry night', mode: 'dark', bg: '#142030', dots: ['#1e3442', '#ff5c8d', '#a83a78', '#85a3b2'] },
   { id: 'flame-light', name: 'Burning flame, light', mode: 'light', bg: '#eee9df', dots: ['#f8f5ef', '#a35139', '#ffb162', '#2c3b4d'] },
@@ -30,15 +31,25 @@ export const COLOURINGS = [
   { id: 'atelier', name: 'Atelier', mode: 'dark', bg: '#222326', dots: ['#2e3033', '#c25a36', '#ccac8a', '#8a8350'] },
 ];
 
-// "Follow my phone": Charts when the phone is dark, burning flame when light.
+// "Follow my phone": the style's own colours when the phone is dark (each
+// style brings a colouring of its own), burning flame light when it is light.
 export const AUTO = { dark: 'charts', light: 'flame-light' };
+const OWN = { charts: 'charts', tactile: 'tactile' };
+
+/* The colouring a style wears by its own choice: 'Follow my phone' when dark. */
+export const ownColouring = (style) => OWN[style] || AUTO.dark;
 
 const byId = new Map(COLOURINGS.map((c) => [c.id, c]));
 
 /* The colouring actually worn for a choice ('auto' or an id). */
-export function colouringFor(choice, prefersLight) {
+export function colouringFor(choice, prefersLight, style = 'charts') {
   if (byId.has(choice)) return byId.get(choice);
-  return byId.get(prefersLight ? AUTO.light : AUTO.dark);
+  return byId.get(prefersLight ? AUTO.light : OWN[style] || AUTO.dark);
+}
+
+/* The style worn: one that is ready, or Charts. */
+export function styleFor(choice) {
+  return STYLES.some((s) => s.id === choice && s.ready) ? choice : 'charts';
 }
 
 function prefersLight() {
@@ -47,9 +58,12 @@ function prefersLight() {
 
 /* Puts a choice on <html>: the colouring, its light or dark, and the colour
  * the phone draws its own bar in. */
-export function applyColouring(choice) {
-  const c = colouringFor(choice, prefersLight());
+export function applyColouring(choice, styleChoice = 'charts') {
+  const style = styleFor(styleChoice);
+  const c = colouringFor(choice, prefersLight(), style);
   const root = document.documentElement;
+  if (style === 'charts') root.removeAttribute('data-style');
+  else root.setAttribute('data-style', style);
   root.setAttribute('data-colour', c.id);
   root.setAttribute('data-theme', c.mode);
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.setAttribute('content', c.bg);

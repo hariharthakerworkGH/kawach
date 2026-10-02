@@ -11,11 +11,19 @@
  * doing the thing and a real reason to prefer either.
  */
 
-import { COLOURINGS, applyColouring } from './looks.js';
+import { COLOURINGS, STYLES, applyColouring } from './looks.js';
 
 const KEY = 'kawach-appearance';
 
 export const CHOICES = {
+  // The style screens are built in (js/looks.js): only those that are ready.
+  style: {
+    label: 'Style',
+    question: 'Which style?',
+    fallback: 'charts',
+    where: '',
+    options: STYLES.filter((s) => s.ready).map((s) => ({ value: s.id, label: s.name, note: s.note })),
+  },
   // The colours the app is painted in (js/looks.js, css/looks.css). It
   // replaced "Light or dark" in 4.29: each colouring is light or dark by
   // nature, and "Follow my phone" picks Charts or burning flame light.
@@ -163,7 +171,7 @@ export function setAppearance(name, value) {
   } catch {
     return false;
   }
-  if (name === 'colour') applyTheme();
+  if (name === 'colour' || name === 'style') applyTheme();
   if (name === 'text' || name === 'density') applyDisplay();
   return true;
 }
@@ -175,11 +183,11 @@ export function setAppearance(name, value) {
  */
 let following = false;
 export function applyTheme() {
-  applyColouring(appearance('colour'));
+  applyColouring(appearance('colour'), appearance('style'));
   if (!following && window.matchMedia) {
     following = true;
     window.matchMedia('(prefers-color-scheme: light)').addEventListener?.('change', () => {
-      if (appearance('colour') === 'auto') applyColouring('auto');
+      if (appearance('colour') === 'auto') applyColouring('auto', appearance('style'));
     });
   }
 }

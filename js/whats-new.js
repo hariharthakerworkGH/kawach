@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.6',
+    items: [
+      {
+        icon: 'eye',
+        title: "A second style: Tactile",
+        text: "In Settings, How it looks, you can now choose Tactile: raised cards, pressed-in fields, metal switches and a copper button, with its own charcoal and copper colours. It works with every colouring.",
+        guide: [{ view: 'appearance', target: '.look-styles', text: "Tap Tactile to try the second style." }],
+      },
+    ],
+  },
+  {
     version: '5.5',
     items: [
       {
