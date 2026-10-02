@@ -31,6 +31,9 @@
   --k-grad-2b: #5b80ee;
   --k-grad-3a: #ffb929;
   --k-grad-3b: #f47ebc;
+  --k-grad-1-ink: #14161a;
+  --k-grad-2-ink: #14161a;
+  --k-grad-3-ink: #14161a;
   --bg: #050505;
   --bg-elevated: #0d0d0d;
   --surface: #171717;
@@ -85,6 +88,9 @@
   --k-grad-2b: #a07a73;
   --k-grad-3a: #ffcb68;
   --k-grad-3b: #e2773a;
+  --k-grad-1-ink: #14161a;
+  --k-grad-2-ink: #14161a;
+  --k-grad-3-ink: #14161a;
   --bg: #101c30;
   --bg-elevated: #122638;
   --surface: #143041;
@@ -139,6 +145,9 @@
   --k-grad-2b: #e9d8c8;
   --k-grad-3a: #f2b880;
   --k-grad-3b: #ff5c8d;
+  --k-grad-1-ink: #14161a;
+  --k-grad-2-ink: #14161a;
+  --k-grad-3-ink: #14161a;
   --bg: #142030;
   --bg-elevated: #192a39;
   --surface: #1e3442;
@@ -193,6 +202,9 @@
   --k-grad-2b: #c9c1b1;
   --k-grad-3a: #d98a2b;
   --k-grad-3b: #a35139;
+  --k-grad-1-ink: #14161a;
+  --k-grad-2-ink: #ffffff;
+  --k-grad-3-ink: #14161a;
   --bg: #eee9df;
   --bg-elevated: #f3efe7;
   --surface: #f8f5ef;
@@ -247,6 +259,9 @@
   --k-grad-2b: #6f8bb0;
   --k-grad-3a: #ffcf7a;
   --k-grad-3b: #ffb162;
+  --k-grad-1-ink: #14161a;
+  --k-grad-2-ink: #14161a;
+  --k-grad-3-ink: #14161a;
   --bg: #1b2632;
   --bg-elevated: #23303f;
   --surface: #2c3b4d;
@@ -301,6 +316,9 @@
   --k-grad-2b: #8a3a1c;
   --k-grad-3a: #e9a54a;
   --k-grad-3b: #d77428;
+  --k-grad-1-ink: #14161a;
+  --k-grad-2-ink: #ffffff;
+  --k-grad-3-ink: #14161a;
   --bg: #071f1b;
   --bg-elevated: #092622;
   --surface: #0b2e29;
@@ -355,6 +373,9 @@
   --k-grad-2b: #3f5a8f;
   --k-grad-3a: #d9a05b;
   --k-grad-3b: #c25a36;
+  --k-grad-1-ink: #14161a;
+  --k-grad-2-ink: #ffffff;
+  --k-grad-3-ink: #14161a;
   --bg: #222326;
   --bg-elevated: #28292c;
   --surface: #2e3033;
