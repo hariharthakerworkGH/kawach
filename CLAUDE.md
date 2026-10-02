@@ -172,9 +172,10 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   Sync goes through a file in the user's Google Drive (`kawach-sync.json`) or
   a GitHub gist; the Google pass lasts an hour, and when it has run out as the
   app opens, app.js renews it once, silently (prompt=none).
-- `js/views/*` one file per screen. `js/app.js` routes between them; back
-  retraces the screens you opened, and a screen's `onBack()` closes what is
-  open on it first. A screen redrawing itself goes through `js/redraw.js`,
+- `js/views/*` one file per screen. `js/app.js` routes between them. Back, one
+  press at a time: a screen's `onBack()` closes what is open on it; then to the
+  top of the screen; then a tab goes to Summary and a screen opened from
+  another goes back to it; on Summary at the top it leaves the app. A screen redrawing itself goes through `js/redraw.js`,
   which keeps the scroll position and any open sections.
 - Every passphrase box gets a show button, and a passphrase typed twice goes
   red as soon as the two differ (`js/password-field.js`).

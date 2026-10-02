@@ -152,10 +152,14 @@ function urlFor(view) {
   return `${location.pathname}#${view}`;
 }
 
-// Back goes back one step at a time: whatever is open on the screen first (a
-// step of Import or Setup, a form on Accounts, a payment on History), then the
-// screen before, where you were on it. From Summary with nothing left, back
-// arms an exit: a second press within two seconds leaves the app.
+// Back goes one step at a time (the owner's order, 4.28):
+//   1. whatever is open on the screen closes first (a step of Import or Setup,
+//      a form on Accounts, a payment on History);
+//   2. scrolled down, it goes to the top of the screen;
+//   3. on one of the tabs (Add, Accounts, Plan, History, Coach) it goes to
+//      Summary; a screen opened from another (Settings, Categories, How it
+//      looks, Import...) goes back to the one that opened it;
+//   4. on Summary, at the top, it leaves the app.
 //
 // The browser's history is kept two deep whatever you do - a root marker with
 // the app on top - so the back button always lands on the root, and the app
@@ -163,7 +167,7 @@ function urlFor(view) {
 // or more away starts a fresh trail: leaving with the home button is leaving.
 const TOP = { kawach: 'top' };
 const FRESH_AFTER_MS = 30000;
-let exitArmed = false;
+const TABS = new Set(['add', 'transactions', 'accounts', 'plan', 'coach']);
 let leaving = false;
 let hiddenAt = 0;
 
@@ -188,28 +192,23 @@ function wireBackButton() {
       history.pushState(TOP, '', urlFor(currentView));
       return;
     }
-    if (trail.length) {
-      const prev = trail.pop();
-      history.pushState(TOP, '', urlFor(prev.view));
-      await showView(prev.view, prev.params, true, prev.scrollY);
+    if (window.scrollY > 4) {
+      history.pushState(TOP, '', urlFor(currentView));
+      const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
       return;
     }
-    if (currentView !== 'summary') {
-      history.pushState(TOP, '', urlFor('summary'));
-      showView('summary', {}, true);
-      return;
-    }
-    if (exitArmed) {
+    if (currentView === 'summary') {
       leaving = true;
       history.back();
       return;
     }
-    exitArmed = true;
-    showToast('Press back again to exit');
-    history.pushState(TOP, '', urlFor('summary'));
-    setTimeout(() => {
-      exitArmed = false;
-    }, 2000);
+    // A tab goes home; a screen opened from another goes back to it.
+    const prev = !TABS.has(currentView) && trail.length ? trail.pop() : null;
+    if (!prev) trail.length = 0;
+    const to = prev ? prev.view : 'summary';
+    history.pushState(TOP, '', urlFor(to));
+    await showView(to, prev ? prev.params : {}, true, prev ? prev.scrollY : 0);
   });
 
   document.addEventListener('visibilitychange', () => {
@@ -219,7 +218,6 @@ function wireBackButton() {
     }
     if (hiddenAt && Date.now() - hiddenAt >= FRESH_AFTER_MS) {
       trail.length = 0;
-      exitArmed = false;
       leaving = false;
     }
   });
