@@ -3571,3 +3571,27 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .sum-more__body { padding: 0 var(--k-3) var(--k-3); display: grid; gap: var(--k-3); }
 .k .sum-more__body > * { margin-top: 0; margin-bottom: 0; }
 .k.settings-k .version-line, .settings-k .version-line { display: flex; justify-content: center; align-items: center; gap: var(--k-3); margin-top: var(--k-5); font-size: var(--k-label); color: var(--k-text-3); }
+
+/* --- Lent and borrowed (5.20) ------------------------------------------
+ * Add: who, as chips with their initials, under the way the money went.
+ * Accounts: the two totals, then one row per person, opened like an account. */
+.k .add-person { display: grid; gap: var(--k-4); }
+.k .add-people { flex-wrap: wrap; }
+.k .add-people .k-quick__chip { padding-left: 5px; }
+.k .add-people .k-quick__chip:last-child { padding-left: 12px; }
+.k .add-people .k-brand { width: 26px; height: 26px; border-radius: 50%; font-size: 11px; }
+.k #add-person-name { margin-top: var(--k-2); }
+.k .person-open[aria-expanded="true"] .account-row__chev { border-color: var(--k-accent); transform: rotate(225deg) translate(-0.08em, -0.08em); }
+.k .person-open .k-brand { border-radius: 50%; }
+.k .people-late { color: var(--k-warning); }
+.k .people-sums { display: flex; gap: var(--k-3); margin-bottom: var(--k-3); }
+.k .people-sums > div { flex: 1; display: grid; gap: 2px; padding: 12px 14px; border-radius: var(--k-r-md); background: var(--k-surface); border: 1px solid var(--k-hairline); }
+.k .people-sums span { font-size: var(--k-caption); font-weight: var(--k-w-fig); letter-spacing: var(--k-track-caption); text-transform: uppercase; color: var(--k-text-3); }
+.k .people-sums b { font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.k .people-sums b.pos { color: var(--k-positive); }
+.k .account-detail .person-backby { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: var(--k-3); margin: var(--k-2) 0; font-size: var(--k-label); color: var(--k-text-2); }
+.k .account-detail .person-backby input { max-width: 11em; margin: 0; }
+.k .account-detail .person-backby > span { margin: 0; }
+.k .hist-person { margin-top: var(--k-2); }
+/* "Lent, borrowed" is the longest of the three, so it takes the room it needs. */
+.k .direction-toggle .k-seg__btn { flex: 1 1 auto; white-space: nowrap; padding-inline: 10px; }

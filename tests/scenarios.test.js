@@ -1557,3 +1557,64 @@ test('the diagnostic report carries the work-cost and next-month flags, and the 
   const row = f.tracker.find((t) => t.amount === rupees(20000));
   ok(row && 'setAside' in row && 'left' in row, 'each commitment says how much of it is left');
 });
+
+// --- Lent and borrowed (5.20) ----------------------------------------------
+// THE RULE, the owner's: money lent comes off Left to spend, because it is not
+// in your hand; when it comes back it goes on again, in the month it arrives.
+// Money borrowed never raises the budget, and paying it back is not spending.
+// Cash was counted when it left the ATM, so cash given or got moves only what
+// is owed, never the month.
+async function seedPeople() {
+  await seedBasics({ keep: 0 });
+  await put('accounts', { id: 'cash', label: 'Cash', type: 'cash' });
+  await put('recurring', commitment({ id: 'rent', label: 'Rent', amount: 10000, dayOfMonth: 5 }));
+  await put('settings', { id: 'people', value: [{ id: 'ravi', name: 'Ravi Test' }, { id: 'meena', name: 'Meena Test' }] });
+}
+const toPerson = (id, personId, date, amount, extra = {}) => txn({ id, accountId: 'bank', date, amount, rawDescription: `UPI-${id}`, personId, ...extra });
+const fromPerson = (id, personId, date, amount, extra = {}) => toPerson(id, personId, date, amount, { direction: 'credit', ...extra });
+
+test('lent and borrowed: a loan comes off, money back goes on in its own month, borrowing does neither', async () => {
+  await seedPeople();
+  const before = await computeFreeToSpend(day('2026-09-20'));
+  await putAll('transactions', [toPerson('lend', 'ravi', '2026-09-10', 2000)]);
+  const lent = await computeFreeToSpend(day('2026-09-20'));
+  equal(lent.free, before.free - rupees(2000), 'lending ₹2,000 leaves ₹2,000 less to spend');
+  equal(lent.people.find((s) => s.person.id === 'ravi').owed, rupees(2000), 'and Ravi owes it');
+
+  await putAll('transactions', [fromPerson('back', 'ravi', '2026-10-05', 2000)]);
+  const oct = await computeFreeToSpend(day('2026-10-06'));
+  equal(oct.spentThisCycle, -rupees(2000), 'back in October: October has ₹2,000 more to spend');
+  equal(oct.people.find((s) => s.person.id === 'ravi').owed, 0, 'and nothing is owed');
+  equal((await computeFreeToSpend(day('2026-09-30'))).free, lent.free, 'September is as it was');
+
+  // Borrowing: in, then paid back. Neither moves the month.
+  const base = await computeFreeToSpend(day('2026-10-20'));
+  await putAll('transactions', [fromPerson('borrow', 'meena', '2026-10-12', 3000), toPerson('repay', 'meena', '2026-10-18', 3000)]);
+  const after = await computeFreeToSpend(day('2026-10-20'));
+  equal(after.free, base.free, 'borrowing and paying back leave Left to spend where it was');
+  equal(after.people.find((s) => s.person.id === 'meena').owed, 0);
+});
+
+test('lent and borrowed: paying more than you owe lends the rest; cash moves only the debt', async () => {
+  await seedPeople();
+  const base = await computeFreeToSpend(day('2026-09-20'));
+  // Meena lent you ₹1,000; you send ₹1,500: ₹1,000 paid back, ₹500 lent.
+  await putAll('transactions', [fromPerson('b1', 'meena', '2026-09-02', 1000), toPerson('p1', 'meena', '2026-09-05', 1500)]);
+  const f = await computeFreeToSpend(day('2026-09-20'));
+  equal(f.free, base.free - rupees(500), 'only the ₹500 beyond the debt is a loan');
+  equal(f.people.find((s) => s.person.id === 'meena').owed, rupees(500));
+  // Cash to Ravi: owed, but the month is unchanged (the ATM already counted it).
+  await putAll('transactions', [toPerson('c1', 'ravi', '2026-09-06', 700, { accountId: 'cash' })]);
+  const g = await computeFreeToSpend(day('2026-09-20'));
+  equal(g.free, f.free, 'cash given does not count twice');
+  equal(g.people.find((s) => s.person.id === 'ravi').owed, rupees(700));
+});
+
+test('lent and borrowed: money from a person is never taken for the salary', async () => {
+  await seedPeople();
+  await putAll('transactions', [fromPerson('big', 'meena', '2026-09-30', 90000)]);
+  const f = await computeFreeToSpend(day('2026-09-30'));
+  equal(f.salary.late, true, 'a ₹90,000 loan on payday is not the salary: it is still to come');
+  await put('transactions', fromPerson('big', null, '2026-09-30', 90000));
+  equal((await computeFreeToSpend(day('2026-09-30'))).salary.late, false, 'the same credit from nobody in particular is taken for it');
+});

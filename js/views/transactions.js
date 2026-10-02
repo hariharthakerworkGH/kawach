@@ -1,4 +1,5 @@
-import { getAll, put, remove } from '../db.js';
+import { getAll, put, remove, getSetting } from '../db.js';
+import { personNamed } from '../people.js';
 import { learnFromAssignment } from '../merchant-rules.js';
 import { formatCurrency, formatRupees, formatMonthYear, formatDateNice } from '../format.js';
 import { categoryStyle } from '../category-style.js';
@@ -32,7 +33,7 @@ import { escapeHtml, escapeAttr, emptyState } from '../ui.js';
 const PAGE_SIZE = 150;
 
 const filters = { search: '', accountId: '', categoryId: '', month: '', shown: PAGE_SIZE };
-let cache = { transactions: [], categories: [], accounts: [], commitments: [], quick: [] };
+let cache = { transactions: [], categories: [], accounts: [], commitments: [], quick: [], people: [] };
 let selected = new Set();
 let selecting = false;
 let expanded = null;
@@ -61,7 +62,7 @@ export function onBack() {
 
 export async function render(container, params = {}) {
   shownIn = container;
-  const [allTransactions, categories, allAccounts, recurring, space] = await Promise.all([getAll('transactions'), getAll('categories'), getAll('accounts'), getAll('recurring'), activeSpace()]);
+  const [allTransactions, categories, allAccounts, recurring, space, people] = await Promise.all([getAll('transactions'), getAll('categories'), getAll('accounts'), getAll('recurring'), activeSpace(), getSetting('people', [])]);
   // Only the lane on screen: Home's payments, or one business's.
   const accounts = allAccounts.filter(accountInSpace(space));
   const inLane = new Set(accounts.map((a) => a.id));
@@ -72,6 +73,7 @@ export async function render(container, params = {}) {
     accounts,
     commitments: recurring.filter((r) => isLiveCommitment(r)).sort(byYourOrder),
     quick: quickCategories(transactions),
+    people,
   };
   selected = new Set();
   selecting = false;
@@ -586,8 +588,11 @@ function rowTemplate(t) {
 // totals ignore too.
 function subHtml(t) {
   const account = cache.accounts.find((a) => a.id === t.accountId);
+  const person = t.personId && !t.isTransfer ? cache.people.find((p) => p.id === t.personId) : null;
   const workTag = t.isTransfer
     ? ''
+    : person
+      ? `<span class="hist-tag${t.direction === 'credit' ? ' hist-tag--in' : ''}">${escapeHtml(person.name)}</span>`
     : t.direction === 'debit' && t.isReimbursable
       ? '<span class="hist-tag">Owed back</span>'
       : t.direction === 'credit' && t.isSettlement
@@ -621,7 +626,9 @@ function expandedTemplate(t) {
           ? `<p class="muted-note">${t.splits
               .map((s) => `${categoryStyle(catName(s.categoryId)).icon} ${escapeHtml(catName(s.categoryId) || 'Needs a category')} ${formatRupees(s.amount)}`)
               .join(' · ')}</p>`
-          : `<div class="hist-cats">
+          : t.personId
+            ? '' // a person's money is under them, not in a category
+            : `<div class="hist-cats">
               ${quick.map(chip).join('')}
               <select class="txn-cat hist-cat-more ${t.categoryId ? '' : 'needs-category'}" data-field="categoryId" aria-label="Category">
                 <option value="">${t.categoryId ? 'Other…' : 'Needs a category'}</option>
@@ -634,7 +641,7 @@ function expandedTemplate(t) {
           ? cardPaymentField(cache.accounts.filter((a) => a.type === 'card'), t.paysCardId, `pays-card-${t.id}`, 'class="rv-field" data-field="paysCardId"')
           : ''
       }
-      ${t.direction === 'debit' && !paysCardLike(t) ? commitmentField(cache.commitments, t.commitmentId, `commitment-${t.id}`, 'class="rv-field" data-field="commitmentId"') : ''}
+      ${t.direction === 'debit' && !paysCardLike(t) && !t.personId ? commitmentField(cache.commitments, t.commitmentId, `commitment-${t.id}`, 'class="rv-field" data-field="commitmentId"') : ''}
       <details class="loan-detail hist-edit">
         <summary>Edit</summary>
         <div class="txn-edit-row">
@@ -653,6 +660,7 @@ function expandedTemplate(t) {
         ${workFlagField(t)}
         ${nextMonthField(t)}
       </details>
+      ${personField(t)}
       <div class="hist-actions">
         <button type="button" class="link-btn txn-split-btn">${split ? 'Edit split' : 'Split'}</button>
         <button type="button" class="link-btn review-transfer-toggle">${t.isTransfer ? 'Counts as spending' : 'Moved, not spent'}</button>
@@ -675,6 +683,21 @@ function workFlagField(t) {
   return `<label class="hist-flag">
       <input type="checkbox" class="rv-field" data-field="${field}" ${t[field] ? 'checked' : ''}>
       <span>${debit ? 'Reimbursable (Work)' : 'Settles a reimbursement'}</span>
+    </label>`;
+}
+
+// NEW (5.20): lent to or borrowed from a person. A name typed here, or one
+// picked from the people already known, puts the payment under them
+// (js/people.js); clearing it takes it back out. Not on money moved between
+// your own accounts or a business's, which are never a person's.
+function personField(t) {
+  const account = cache.accounts.find((a) => a.id === t.accountId);
+  if (t.isTransfer || (account && isBusinessAccount(account))) return '';
+  const person = cache.people.find((p) => p.id === t.personId);
+  return `<label class="field hist-person">
+      <span>${t.direction === 'debit' ? 'Lent to or paid back to' : 'Borrowed from or paid back by'}</span>
+      <input type="text" class="rv-field" data-field="personName" list="hist-people-${t.id}" value="${person ? escapeAttr(person.name) : ''}" placeholder="Nobody" autocomplete="off">
+      <datalist id="hist-people-${t.id}">${cache.people.map((p) => `<option value="${escapeAttr(p.name)}"></option>`).join('')}</datalist>
     </label>`;
 }
 
@@ -794,6 +817,24 @@ async function handleChange(e, container) {
     // Refreshed in place, so the Edit panel stays open under the finger.
     const subEl = rowEl.querySelector('.hist-sub');
     if (subEl) subEl.innerHTML = subHtml(t);
+    return;
+  }
+
+  // NEW (5.20): the person. Saved when the box is left; a work flag goes, as
+  // money between people is never also a work cost or its refund.
+  if (field === 'personName') {
+    if (e.type !== 'change') return;
+    const person = await personNamed(e.target.value);
+    if (person) {
+      t.personId = person.id;
+      delete t.isReimbursable;
+      delete t.isSettlement;
+      if (!cache.people.some((p) => p.id === person.id)) cache.people.push(person);
+    } else delete t.personId;
+    await save(t);
+    // Drawn again: the category and commitment come and go with the person.
+    renderList(container);
+    showToast(person ? `Under ${person.name} in Accounts` : 'No longer lent or borrowed');
     return;
   }
 

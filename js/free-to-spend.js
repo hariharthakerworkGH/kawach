@@ -8,6 +8,7 @@ import { isLoanAccount, loanCommitment, loanPosition, assignLoanPayments } from 
 import { isPfAccount, pfPosition } from './pf.js';
 import { businessPlan, businessMonth } from './business.js';
 import { reimbursableTally, unsettledCosts } from './reimbursable.js';
+import { isPersonMoney, personSpendEffects, peopleStanding } from './people.js';
 
 // THE RULE - how much you can spend this month (the 1st to the last day).
 //
@@ -60,6 +61,10 @@ import { reimbursableTally, unsettledCosts } from './reimbursable.js';
 // salary, so spending the budget still leaves next month's salary for next
 // month. Cash commitments come out of the ATM withdrawal and aren't counted
 // twice; card bill payments, transfers and the salary are never "spending".
+//
+// Money lent to someone comes off Left to spend, money they pay back goes on
+// again in the month it arrives, and money borrowed or paid back to someone
+// is neither (js/people.js has the whole rule).
 //
 // Not spending, ever: a loan EMI (debt coming down), money sent that came
 // back (same UPI ID, same amount, within 45 days), and anything leaving an
@@ -122,7 +127,8 @@ function upiIdOf(t) {
 function paidBack(debits, transactions, today) {
   // A work refund is not "the same money coming back": it settles a claim,
   // and has its own rule (isSettlement, below).
-  const credits = transactions.filter((t) => t.direction === 'credit' && !t.isTransfer && !t.isSettlement && t.date <= today && upiIdOf(t));
+  // So does money from someone you lent to or borrowed from (js/people.js).
+  const credits = transactions.filter((t) => t.direction === 'credit' && !t.isTransfer && !t.isSettlement && !t.personId && t.date <= today && upiIdOf(t));
   const usedCredits = new Set();
   const pairs = [];
   for (const d of [...debits].sort((a, b) => (a.date < b.date ? -1 : 1))) {
@@ -241,8 +247,10 @@ export async function computeFreeToSpend(now = new Date()) {
           bankIds.has(t.accountId) &&
           t.direction === 'credit' &&
           !t.isTransfer &&
-          // A big work refund near payday is not the salary landing.
+          // A big work refund near payday is not the salary landing, and
+          // nor is money from a person.
           !t.isSettlement &&
+          !t.personId &&
           t.amount >= monthlyIncome / 2 &&
           t.date >= addDays(payday, -SALARY_EARLY_DAYS) &&
           t.date <= addDays(payday, SALARY_LATE_DAYS) &&
@@ -318,6 +326,7 @@ export async function computeFreeToSpend(now = new Date()) {
           t.direction === 'credit' &&
           !t.isTransfer &&
           !t.isSettlement &&
+          !t.personId &&
           t.amount >= monthlyIncome / 2 &&
           t.date >= addDays(payday, -SALARY_EARLY_DAYS) &&
           t.date <= payday
@@ -685,12 +694,14 @@ export async function computeFreeToSpend(now = new Date()) {
   // A work cost you will be refunded for is never one of your own commitments
   // (a client dinner is not "Food", whatever its size), so it is left out of
   // what commitments are matched against as well as out of spending.
-  const bankPool = transactions.filter((t) => holdingIds.has(t.accountId) && !looksLikeCardPayment(t, 'bank') && !isWorkCost(t));
+  // Money lent or borrowed is never a commitment either, and is counted by
+  // its own rule below.
+  const bankPool = transactions.filter((t) => holdingIds.has(t.accountId) && !looksLikeCardPayment(t, 'bank') && !isWorkCost(t) && !isPersonMoney(t));
   for (const b of budgetItems) {
     // Same rule as above for what has already been paid: an allowance is
     // drawn down by any card, a named bill only by its own.
     const cardPool = transactions.filter(
-      (t) => !t.isTransfer && !isWorkCost(t) && (isSetAside(b.item) ? cardIds.has(t.accountId) : t.accountId === b.item.accountId)
+      (t) => !t.isTransfer && !isWorkCost(t) && !isPersonMoney(t) && (isSetAside(b.item) ? cardIds.has(t.accountId) : t.accountId === b.item.accountId)
     );
     matchedTo(b, b.paidBy === 'card' ? cardPool : bankPool);
   }
@@ -733,11 +744,19 @@ export async function computeFreeToSpend(now = new Date()) {
   // spend, and the refund must not be credited back for a cost that never came
   // off (a refund landing on a card would otherwise net against card spending).
   const cardWindow = transactions.filter(
-    (t) => cardIds.has(t.accountId) && !t.isTransfer && !isWorkCost(t) && !isRefund(t) && !loanEmiIds.has(t.id) && inCardMonth(t)
+    (t) => cardIds.has(t.accountId) && !t.isTransfer && !isWorkCost(t) && !isRefund(t) && !isPersonMoney(t) && !loanEmiIds.has(t.id) && inCardMonth(t)
   );
   const cardGross = cardWindow.reduce((s, t) => s + (t.direction === 'credit' ? -t.amount : t.amount), 0);
   const cardSpent = cardGross - sum(cardCommitmentCharges);
-  const spentThisCycle = cardSpent + bankSpent;
+  // Lent and borrowed (js/people.js): a loan from a bank account you spend
+  // from or a card is spent this month, money back is taken off, and the
+  // rest (borrowing, paying back, anything in cash or savings) is neither.
+  const personEffects = personSpendEffects(transactions, (t) => bankIds.has(t.accountId) || cardIds.has(t.accountId));
+  const personSpends = transactions
+    .filter((t) => personEffects.has(t.id) && t.date >= windowStart && t.date <= spendEnd && t.date <= today)
+    .map((t) => ({ date: t.date, amount: personEffects.get(t.id) }));
+  const personSpent = personSpends.reduce((s, e) => s + e.amount, 0);
+  const spentThisCycle = cardSpent + bankSpent + personSpent;
 
   // Work costs: shown and followed, never spent. Every account of the house,
   // cards included, since the hotel was swiped on one.
@@ -786,9 +805,10 @@ export async function computeFreeToSpend(now = new Date()) {
     ...bankSpends.map((t) => ({ date: t.date, amount: t.direction === 'debit' ? t.amount : -t.amount })),
     ...cards.flatMap((c) =>
       transactions
-        .filter((t) => t.accountId === c.account.id && !t.isTransfer && !isWorkCost(t) && !isRefund(t) && !claimed.has(t.id) && (!c.cycleStart || t.date > c.cycleStart) && t.date <= today)
+        .filter((t) => t.accountId === c.account.id && !t.isTransfer && !isWorkCost(t) && !isRefund(t) && !isPersonMoney(t) && !claimed.has(t.id) && (!c.cycleStart || t.date > c.cycleStart) && t.date <= today)
         .map((t) => ({ date: t.date, amount: t.direction === 'debit' ? t.amount : -t.amount }))
     ),
+    ...personSpends,
   ].filter((e) => e.date >= windowStart && e.date <= today);
   const perDay = new Map();
   for (const e of datedSpends) perDay.set(e.date, (perDay.get(e.date) || 0) + e.amount);
@@ -1042,6 +1062,8 @@ export async function computeFreeToSpend(now = new Date()) {
     // for cards is such a cost.
     workCostsThisMonth,
     reimbursable: owedBack,
+    // Lent and borrowed: where you stand with each person (js/people.js).
+    people: peopleStanding(transactions, await getSetting('people', [])),
     refundInBankCheck,
     refundOverdue,
     // Cumulative spending, one figure per day gone by. See above.

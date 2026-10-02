@@ -204,7 +204,8 @@ export function takenHome(transactions, accounts, month, { outside = true } = {}
     );
   return transactions
     .filter((t) => t.direction === 'credit' && home.has(t.accountId) && monthOf(t.date) === month)
-    .filter((t) => (t.isTransfer ? fromBusiness(t, transactions, business) : outside && !sentBefore(t)))
+    // Nor is money borrowed from someone or paid back by them (js/people.js).
+    .filter((t) => (t.isTransfer ? fromBusiness(t, transactions, business) : outside && !t.personId && !sentBefore(t)))
     .reduce((s, t) => s + t.amount, 0);
 }
 

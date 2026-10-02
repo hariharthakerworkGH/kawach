@@ -119,6 +119,12 @@ Periods:
   a month" is an allowance, not a bill, so paying for a film with a different
   card still spends it (`isSetAside` decides). A **must be paid** item on a
   named card stays on that card, because that one really is one bill.
+- Lent and borrowed (`js/people.js`): a payment carries `personId`, and
+  gave or got decides the rest. Money lent from a bank account you spend
+  from or a card comes off Left to spend; money back goes on again in the
+  month it arrives; borrowing and paying back are neither. Cash and savings
+  move only what is owed (the ATM already counted cash). People are the
+  `people` setting; Home only.
 - The bank balance never raises the budget. It is a separate check that only warns.
 - A commitment is one of two things, asked once on Plan: **must be paid** (rent,
   an EMI, a bill: it has a day and can be late) or **set aside** (groceries,

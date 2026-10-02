@@ -42,6 +42,9 @@ export const TERMS = {
   'net this month': 'Money that came in, less money that went out, this month.',
   'in': 'All the money that came in this month.',
   'out': 'All the money that went out this month, not counting moves between your own accounts.',
+  'owed to you': 'Money you lent that has not come back yet, from everyone together.',
+  'you owe': 'Money you borrowed and have not paid back yet.',
+  'lent and borrowed': 'Money between you and people you know. Lending comes off Left to spend until it comes back.',
   'needs you': 'Things to do: a bill due, the bank running short, payments without a category.',
 };
 
@@ -50,7 +53,7 @@ export const TERMS = {
 const LABELS = [
   '.hero-label', '.tl-k', '.md-kick', '.pk-lab', '.pk-tiny', '.stat-k', '.tracking-stats small',
   '.waves__k', '.summary-row__k', '.tl-t', '.tl-label > span', '.hero-figures .muted', '.pl-legend > span',
-  '.sum-needs__head', '.ch-coming__k', '.ch-coming__still', '.pk-coming .pk-tiny', '.plan-sums .totals-row > span:first-child',
+  '.sum-needs__head', '.people-sums span', '.people-sec .account-group-label', '.ch-coming__k', '.ch-coming__still', '.pk-coming .pk-tiny', '.plan-sums .totals-row > span:first-child',
 ].join(', ');
 
 const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim().replace(/[:.]$/, '').toLowerCase();
