@@ -279,3 +279,21 @@
 /* The words over the lake keep a soft dark mist behind them, so they read
  * whatever colours the lake takes (on a dark colouring it turns pale). */
 .md-lake__text { width: 100%; background: linear-gradient(180deg, transparent, rgb(10 20 24 / 0.55)); border-radius: 0 0 20px 20px; padding-top: 28px; }
+
+/* --- Add, after the mockup (5.12) ----------------------------------------
+ * One glass card holds Money out and in as underlined tabs, the amount in a
+ * frosted field edged in sage, and the merchant; recent categories as glass
+ * chips, the chosen one sage; the rest on glass; the bank SMS a quiet link. */
+:root[data-style="mindora"] .k .add-card { border-radius: 20px; background: var(--m-glass); border: 1px solid var(--m-edge); box-shadow: var(--m-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); }
+:root[data-style="mindora"] .k .add-card .k-label,
+:root[data-style="mindora"] .k .add-card .hero-label { font-family: var(--m-figure); font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--k-text-2); }
+:root[data-style="mindora"] .k .add-card--amount .direction-toggle { display: flex; gap: 22px; width: auto; padding: 0; background: none; box-shadow: none; border: 0; justify-content: flex-start; }
+:root[data-style="mindora"] .k .add-card--amount .direction-toggle .k-seg__btn { flex: none; min-height: 36px; padding: 0 0 8px; border-radius: 0; background: none; box-shadow: none; color: var(--k-text-3); font-family: var(--m-figure); font-size: 14px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+:root[data-style="mindora"] .k .add-card--amount .direction-toggle .k-seg__btn[aria-selected="true"] { color: var(--k-text); background: none; box-shadow: inset 0 -2px 0 var(--k-accent); }
+:root[data-style="mindora"] .k .add-card--amount .amount-input-wrap { background: var(--m-glass-strong); border: 1.5px solid var(--k-accent); }
+:root[data-style="mindora"] .k .add-card--amount .amount-prefix { font: 300 26px var(--m-figure); color: var(--k-text-3); }
+:root[data-style="mindora"] .k .add-card--amount .amount-input { font-family: var(--m-figure); font-size: 42px; font-weight: 300; letter-spacing: -0.03em; }
+:root[data-style="mindora"] .k .k-quick__chip { border: 1px solid var(--m-edge); background: var(--m-glass); color: var(--k-text-2); font-family: var(--m-figure); }
+:root[data-style="mindora"] .k .k-quick__chip.on { background: var(--k-accent); color: var(--k-accent-ink); border-color: transparent; }
+:root[data-style="mindora"] .k .add-row > .add-row-ic { border-radius: 50%; color: var(--k-accent); background: var(--m-glass-strong); border: 1px solid var(--m-edge); }
+:root[data-style="mindora"] .k .add-form ~ .k-add-sms { background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }

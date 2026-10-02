@@ -120,6 +120,12 @@ export async function render(container, params = {}) {
       <!-- One row saying what is chosen. The twenty were the whole problem. -->
       <div class="k-field">
         <span class="k-label" id="add-cat-label">Category</span>
+        <!-- NEW (5.12): the five used most recently, one tap each; the row
+             under them shows the choice and opens the whole list. -->
+        <div class="k-quick" role="group" aria-label="Recent categories">${catList
+          .slice(0, 5)
+          .map((c) => `<button type="button" class="k-quick__chip" data-cat="${c.id}">${categoryStyle(c.name).icon}<span>${escapeHtml(c.name)}</span></button>`)
+          .join('')}</div>
         <button type="button" class="k-picker" id="add-cat-open" aria-haspopup="dialog" aria-labelledby="add-cat-label add-cat-name">
           <span class="k-picker__mark" id="add-cat-mark"></span>
           <span class="k-picker__name" id="add-cat-name">Uncategorized</span>
@@ -177,6 +183,8 @@ export async function render(container, params = {}) {
       </div>
     </div>
   `;
+
+  arrangeAdd(container);
 
   container.querySelector('#add-from-alert').addEventListener('click', () => {
     container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'inbox' } }));
@@ -265,7 +273,22 @@ export async function render(container, params = {}) {
     catMark.innerHTML = brandMark(name, { category: name, size: 'sm' });
     // A category chosen lights the row (the Charts style's highlighted row).
     openBtn.classList.toggle('is-chosen', Boolean(chosen && chosen.dataset.cat));
+    // The quick chips follow the list: lit when theirs is chosen, hidden
+    // when theirs does not fit the account.
+    container.querySelectorAll('.k-quick__chip').forEach((q) => {
+      const row = container.querySelector(`#add-categories .chip[data-cat="${q.dataset.cat}"]`);
+      q.hidden = !row || row.hidden;
+      const on = Boolean(chosen && chosen === row);
+      q.classList.toggle('on', on);
+      q.setAttribute('aria-pressed', String(on));
+    });
   };
+  container.querySelectorAll('.k-quick__chip').forEach((q) => {
+    q.addEventListener('click', () => {
+      const row = container.querySelector(`#add-categories .chip[data-cat="${q.dataset.cat}"]`);
+      if (row) row.click();
+    });
+  });
 
   let lastFocus = null;
   const openSheet = () => {
@@ -323,6 +346,8 @@ export async function render(container, params = {}) {
         paintCategory();
       }
     });
+    // The quick chips hide with the rows they stand for.
+    paintCategory();
   };
   // The mark beside the account name: a real logo if one has been dropped
   // into icons/brands/, otherwise the monogram. Recognition, not decoration.
@@ -529,4 +554,50 @@ function byRecentUse(categories, transactions) {
   }
   if (!counts.size) return categories;
   return [...categories].sort((a, b) => (counts.get(b.id) || 0) - (counts.get(a.id) || 0));
+}
+
+/* NEW (5.12): Tactile, Peaks and Mindora group the form as their mockups do
+ * (mockups/5.0): the direction first, the amount and the merchant together on
+ * one card, the category, then account, date and repeats as rows, and the
+ * bank SMS last. The same elements move - ids, values and listeners go with
+ * them - so what the form asks and does is the same in every style. Charts
+ * keeps the order it was built in. */
+function arrangeAdd(container) {
+  const style = document.documentElement.dataset.style;
+  if (!['tactile', 'peaks', 'mindora'].includes(style)) return;
+  const form = container.querySelector('#add-form');
+  const hero = form.querySelector('.amount-hero');
+  const toggle = hero.querySelector('.direction-toggle');
+  const field = (id) => container.querySelector(`#${id}`).closest('.k-field, .field, .k-switch-row');
+  const card = document.createElement('div');
+  card.className = 'add-card add-card--amount';
+  const head = document.createElement('div');
+  head.className = 'add-card add-card--category';
+  const rows = document.createElement('div');
+  rows.className = 'add-card add-rows';
+  if (style === 'mindora') card.append(toggle);
+  else form.prepend(toggle);
+  card.append(hero.querySelector('.amount-field'), field('add-desc'));
+  head.append(container.querySelector('#add-cat-open').closest('.k-field'));
+  const account = field('add-account');
+  const quick = account.parentElement !== form ? account.closest('details') : null;
+  const mark = (el, name) => {
+    const ic = document.createElement('span');
+    ic.className = 'add-row-ic';
+    ic.innerHTML = icon(name);
+    el.prepend(ic);
+    el.classList.add('add-row');
+  };
+  if (quick) rows.append(quick);
+  else {
+    mark(account, 'card');
+    mark(field('add-date'), 'clock');
+    const repeats = container.querySelector('#add-repeats-toggle').closest('.k-switch-row');
+    mark(repeats, 'sync');
+    rows.append(account, field('add-date'), repeats, container.querySelector('#add-repeat-options'));
+  }
+  hero.replaceWith(card);
+  card.after(head);
+  head.after(rows);
+  form.after(container.querySelector('#add-from-alert'));
 }

@@ -5358,3 +5358,25 @@ label.look-style { position: relative; cursor: pointer; }
 /* A chooser that holds a select (Add's account) is the field itself: in a
    style, the select inside must not be drawn as a second field (5.10). */
 :root[data-style] .k .k-picker--select select { background: none; border: 0; box-shadow: none; }
+
+/* --- Add, arranged as the Tactile, Peaks and Mindora mockups do (5.12) ---
+   add.js arrangeAdd() groups the same fields into cards: the amount with
+   the merchant, the category, then account, date and repeats as rows with
+   an icon each. These are the shared bones; each style's sheet paints them. */
+:root[data-style] .k .add-form > .direction-toggle { width: 100%; margin: 0 0 var(--k-3); }
+:root[data-style] .k .add-card { display: grid; gap: var(--k-3); padding: var(--k-4); margin-bottom: var(--k-3); }
+:root[data-style] .k .add-card .field,
+:root[data-style] .k .add-card .k-field { margin: 0; }
+:root[data-style] .k .add-card--amount .amount-field { display: grid; gap: var(--k-2); }
+:root[data-style] .k .add-card--amount .amount-input-wrap { display: flex; align-items: baseline; gap: 6px; padding: 10px 14px; border-radius: 12px; border: 0; }
+:root[data-style] .k .add-card--amount .amount-input { flex: 1; min-width: 0; width: 100%; padding: 0; border: 0; background: transparent; box-shadow: none; font-size: 44px; line-height: 1.1; color: var(--k-text); font-variant-numeric: tabular-nums; }
+:root[data-style] .k .add-card--amount .amount-input:focus-visible { outline: none; box-shadow: none; }
+:root[data-style] .k .add-card--category .k-picker { min-height: 44px; }
+:root[data-style] .k .add-rows { gap: 0; padding-top: var(--k-2); padding-bottom: var(--k-2); }
+:root[data-style] .k .add-row { display: grid; grid-template-columns: 36px 1fr; column-gap: 12px; row-gap: 4px; align-items: center; padding: var(--k-3) 0; }
+:root[data-style] .k .add-row + .add-row { border-top: 1px solid var(--k-hairline); }
+:root[data-style] .k .add-row > .add-row-ic { grid-row: 1 / span 2; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; }
+:root[data-style] .k .add-row > .add-row-ic svg { width: 18px; height: 18px; }
+:root[data-style] .k .add-row.k-switch-row { display: flex; gap: 12px; }
+:root[data-style] .k .add-row.k-switch-row .k-switch-row__text { flex: 1; }
+:root[data-style] .k .add-form ~ .k-add-sms { margin-top: var(--k-3); }
