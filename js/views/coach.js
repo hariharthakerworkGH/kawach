@@ -88,6 +88,18 @@ function heroTemplate(snapshot) {
   const leftAtEnd = c.free - projected;
   const over = leftAtEnd < 0;
   const pct = c.free > 0 ? Math.min(100, Math.round((projected / c.free) * 100)) : 100;
+  const style = document.documentElement.dataset.style;
+  if (['tactile', 'peaks', 'mindora'].includes(style)) {
+    return coachTop(style, {
+      left: pace === 0 ? '-' : formatRupees(leftAtEnd),
+      over,
+      by: formatDateNice(c.cycleKey || c.windowEnd),
+      pace: `${formatRupees(pace)}/day`,
+      safe: `${formatRupees(Math.max(0, c.perDay))}/day`,
+      days: `${c.daysToClose}`,
+      share: c.free > 0 ? Math.min(1, projected / c.free) : 1,
+    });
+  }
   return hero({
     label: 'Left at this pace',
     // FIXED (5.5): the pace runs to the end of the spending month (cycleKey,
@@ -418,3 +430,54 @@ function noteTemplate(n) {
   `;
 }
 
+
+/* NEW (5.16): Coach's top in Tactile, Peaks and Mindora, after their mockups:
+ * the same figures as the Charts card - left at this pace and by when, your
+ * pace and the safe amount a day, the days left, and how much of what is
+ * left this pace would use - in each style's own drawing. */
+function coachTop(style, f) {
+  const pct = `${Math.round(f.share * 100)}%`;
+  const neg = f.over ? ' is-negative' : '';
+  if (style === 'tactile') {
+    return `<section class="tl-hero ct-top${neg}">
+        <div class="tl-top"><span class="tl-k">Left at this pace</span><span class="tl-period">by ${f.by}</span></div>
+        <div class="tl-big">${f.left}</div>
+        <div class="tl-stats"><div><span class="tl-k">Your pace</span><b>${f.pace}</b></div><div><span class="tl-k">Safe</span><b>${f.safe}</b></div><div><span class="tl-k">Days left</span><b>${f.days}</b></div></div>
+        <div class="tl-prog"><i class="${f.over ? 'bad' : ''}" style="width:${pct}"></i><span><span>Of what is left, at this pace</span><span>${pct}</span></span></div>
+      </section>`;
+  }
+  if (style === 'peaks') {
+    // The reference's gauge: an arc three quarters round, from a teal dot.
+    const a0 = Math.PI * 0.75;
+    const a1 = Math.PI * 2.25;
+    const at = (a, r = 44) => [60 + r * Math.cos(a), 56 + r * Math.sin(a)];
+    const arc = (s0, e0) => {
+      const [x0, y0] = at(s0);
+      const [x1, y1] = at(e0);
+      return `M${x0.toFixed(2)} ${y0.toFixed(2)} A44 44 0 ${e0 - s0 > Math.PI ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+    };
+    const [tx, ty] = at(a0);
+    return `<section class="pk-panel ct-top ct-top--peaks${neg}">
+        <div class="pk-top"><span class="pk-lab">Left at this pace</span><span class="pk-tiny">by ${f.by}</span></div>
+        <svg class="ct-gauge" viewBox="0 0 120 110" role="img" aria-label="${pct} of what is left, at this pace">
+          <path class="ct-gauge__trk" d="${arc(a0, a1)}"/>
+          ${f.share > 0.005 ? `<path class="ct-gauge__arc" d="${arc(a0, a0 + (a1 - a0) * f.share)}"/>` : ''}
+          <circle class="ct-gauge__dot" cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="4.5"/>
+          <text class="ct-gauge__v" x="60" y="60" text-anchor="middle">${f.left}</text>
+          <text class="ct-gauge__k" x="60" y="76" text-anchor="middle">${pct} of what is left</text>
+        </svg>
+        <div class="pk-figs">
+          <div><div class="pk-n pk-n--m">${f.pace}</div><div class="pk-tiny">your pace</div></div>
+          <div><div class="pk-n pk-n--m ct-safe">${f.safe}</div><div class="pk-tiny">safe</div></div>
+          <div><div class="pk-n pk-n--s">${f.days}</div><div class="pk-tiny">days left</div></div>
+        </div>
+      </section>`;
+  }
+  return `<section class="md-glass md-hero ct-top${neg}">
+      <div class="md-top"><span class="md-kick">Left at this pace</span><span class="md-period">by ${f.by}</span></div>
+      <div class="md-big">${f.left}</div>
+      <div class="md-stats"><div><span class="md-kick">Your pace</span><b>${f.pace}</b></div><div><span class="md-kick">Safe</span><b>${f.safe}</b></div><div><span class="md-kick">Days left</span><b>${f.days}</b></div></div>
+      <div class="md-spent"><span>Of what is left, at this pace</span><span>${pct}</span></div>
+      <div class="md-prog"><i class="${f.over ? 'bad' : ''}" style="width:${pct}"></i></div>
+    </section>`;
+}

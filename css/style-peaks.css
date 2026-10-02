@@ -310,3 +310,23 @@ button.pk-card { cursor: pointer; }
    bold words take the panel's ink. */
 :root[data-style="peaks"] .k #hist-hero .hero-under { background: none; box-shadow: none; border-radius: 0; padding: 12px 0 0; margin-top: 12px; }
 :root[data-style="peaks"] .k .hero strong { color: var(--p-ink); }
+
+/* --- Coach, after the mockup (5.16) --------------------------------------
+ * The reference's gauge on the pale panel - an orange arc three quarters
+ * round from a teal dot, what is left in its middle - beside the pace and
+ * the safe amount, thin; the questions on slate. */
+.ct-top--peaks { grid-template-columns: 130px 1fr; }
+.ct-gauge { width: 130px; height: auto; display: block; overflow: visible; }
+.ct-gauge__trk { fill: none; stroke: color-mix(in srgb, var(--p-ink) 12%, var(--p-paper)); stroke-width: 10; stroke-linecap: round; }
+.ct-gauge__arc { fill: none; stroke: var(--k-grad-1a); stroke-width: 10; stroke-linecap: round; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--k-grad-1a) 55%, transparent)); }
+.ct-top--peaks.is-negative .ct-gauge__arc { stroke: var(--k-negative); }
+.ct-gauge__dot { fill: var(--k-grad-2a); filter: drop-shadow(0 0 4px var(--k-grad-2a)); }
+.ct-gauge__v { font: 300 17px var(--k-font); fill: var(--p-ink); letter-spacing: -0.02em; }
+.ct-top--peaks.is-negative .ct-gauge__v { fill: var(--k-negative); }
+.ct-gauge__k { font: 400 7.5px var(--k-font); fill: var(--p-ink-2); }
+.ct-top--peaks .pk-figs { gap: 10px; }
+.ct-top--peaks .pk-n--m { font-size: 20px; }
+.ct-safe { color: color-mix(in srgb, var(--k-grad-2a) 55%, var(--p-shade)); }
+:root[data-style="peaks"] .k-coach .coach-q { border-radius: 14px; margin-bottom: 8px; }
+:root[data-style="peaks"] .k-coach .coach-q .k-icon,
+:root[data-style="peaks"] .k-coach .coach-q [class*="k-brand"] { border-radius: 10px; color: var(--k-grad-1a); background: color-mix(in srgb, var(--k-text) 8%, transparent); }

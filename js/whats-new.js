@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.16',
+    items: [
+      {
+        icon: 'coach',
+        title: "Coach in each style, and every screen done",
+        text: "Coach now shows what is left at this pace in each style's own design: a pressed-in bar in Tactile, the gauge in Peaks, glass in Mindora. With this, all six screens are laid out in each style's own way.",
+        guide: [{ view: 'coach', target: '.ct-top, .hero', text: "What is left if you keep spending at this pace." }],
+      },
+    ],
+  },
+  {
     version: '5.15',
     items: [
       {

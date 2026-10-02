@@ -5416,3 +5416,6 @@ label.look-style { position: relative; cursor: pointer; }
 :root[data-style] .k .hist-days-card { padding: var(--k-4); margin: var(--k-3) 0; }
 :root[data-style] .k .hist-days-card:empty { display: none; }
 :root[data-style] .k .hist-days-card::before { content: "Day by day"; display: block; margin-bottom: var(--k-3); }
+
+/* --- Coach in the styles (5.16): shared bones ---------------------------- */
+.ct-top { margin-bottom: var(--k-4); }
