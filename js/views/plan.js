@@ -139,6 +139,8 @@ export async function render(container) {
   // `k-plan` scopes the rules for classes this screen shares with Summary,
   // so styling a commitment row here cannot reach across and restyle one
   // there.
+  // Whether the hero's rings and figures are on screen (they need an income).
+  const shown = budget != null && (incomeValue || 0) + sideExtra > 0;
   container.classList.add('k', 'k-plan');
   container.innerHTML = `
     ${
@@ -148,10 +150,29 @@ export async function render(container) {
           // answers, and the sums behind it sit under it, not above it.
           hero({
             label: '<span class="seg-dot seg-free"></span>Budget each month',
-            amount: budget != null ? formatCurrency(budget) : '-',
+            amount: budget != null ? formatRupees(budget) : '-',
             level: budget != null && budget < 0 ? 'over' : 'ok',
             negative: budget != null && budget < 0,
             chart: budget != null ? committedBar({ must: mustTotal, flex: flexTotal, free: budget, legend: false }) : '',
+            // CHANGED (5.3, the Charts style): what comes in, and the three
+            // shares of it - must go out, can flex, free - as rings. They say
+            // what the "committed" meter below used to, so it is gone.
+            tracking:
+              budget != null && incomeValue + sideExtra > 0
+                ? {
+                    warn: false,
+                    stats: [
+                      { k: 'Comes in', v: formatRupees(incomeValue + sideExtra) },
+                      { k: 'Must go out', v: formatRupees(mustTotal) },
+                      { k: 'Can flex', v: formatRupees(flexTotal) },
+                    ],
+                    rings: [
+                      { value: mustTotal / (incomeValue + sideExtra), grad: 'spent', label: 'must go out' },
+                      { value: flexTotal / (incomeValue + sideExtra), grad: 'aside', label: 'can flex' },
+                      { value: Math.max(0, budget) / (incomeValue + sideExtra), grad: 'month', label: 'free' },
+                    ],
+                  }
+                : null,
             // One sentence saying what the figure is, in the screen's own
             // terms. Nothing here is calculated: it reads the same values.
             status:
@@ -160,15 +181,19 @@ export async function render(container) {
                 : `After ${formatCurrency(fixedTotal)} of commitments and ${formatCurrency(keep)} saved.`,
           }) +
           `<section class="plan-sums k-pane k-pane--quiet">
-      <h3 class="plan-sums__head">Where it comes from</h3>
-      <div class="totals-row"><span>${incomeLabel}</span><span class="in">${incomeValue != null ? formatCurrency(incomeValue) : '-'}</span></div>
+      <h3 class="plan-sums__head">${shown ? 'Your amounts' : 'Where it comes from'}</h3>
+      ${
+        // Said once (5.3): with the rings above, what comes in, must go out
+        // and can flex are in the hero, so they are not listed again here.
+        shown ? '' : `<div class="totals-row"><span>${incomeLabel}</span><span class="in">${incomeValue != null ? formatCurrency(incomeValue) : '-'}</span></div>`
+      }
       ${
         sidePlan
           ? `<div class="totals-row"><span>From the business${sideExtra ? `, lowest month (${formatMonthYear(sidePlan.lowestMonth).split(' ')[0]})` : '<br><span class="muted-note">counted after 3 months</span>'}</span><span class="in">${sideExtra ? formatCurrency(sideExtra) : '-'}</span></div>`
           : ''
       }
-      <div class="totals-row"><span><span class="seg-dot seg-must"></span>Must go out</span><span class="out">−${formatCurrency(mustTotal)}</span></div>
-      ${flexTotal ? `<div class="totals-row"><span><span class="seg-dot seg-flex"></span>Can flex</span><span class="out">−${formatCurrency(flexTotal)}</span></div>` : ''}
+      ${shown ? '' : `<div class="totals-row"><span><span class="seg-dot seg-must"></span>Must go out</span><span class="out">−${formatCurrency(mustTotal)}</span></div>`}
+      ${flexTotal && !shown ? `<div class="totals-row"><span><span class="seg-dot seg-flex"></span>Can flex</span><span class="out">−${formatCurrency(flexTotal)}</span></div>` : ''}
       <div class="totals-row"><span>Saved each month</span><span class="saved-row">−${formatCurrency(keep)}</span></div>
       ${cashTotal > 0 ? `<p class="muted-note">${formatCurrency(cashTotal)} paid in cash comes out of your ATM money.</p>` : ''}
       <details class="fts-breakdown plan-amounts" ${income == null || (kind !== 'business' && !salaryDay) ? 'open' : ''}>
@@ -197,7 +222,8 @@ export async function render(container) {
     ${
       // How much of the month is spoken for, from the same figures the hero
       // above is made of. No second calculation.
-      !inBusiness && incomeValue
+      // Without the rings above (no income yet), the meter still says it.
+      !inBusiness && incomeValue && budget == null
         ? `<section class="plan-meter k-pane k-pane--quiet">${radialMeter({ committed: fixedTotal + keep, income: incomeValue + sideExtra })}</section>`
         : ''
     }

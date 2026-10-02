@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.3',
+    items: [
+      {
+        icon: 'plan',
+        title: "Plan in the Charts style",
+        text: "Plan now matches: your budget, with what comes in, what must go out and what can flex beside it, and three rings for the share of your income each one takes.",
+        guide: [{ view: 'plan', target: '.hero--tracking', text: "How your income is shared out each month." }],
+      },
+    ],
+  },
+  {
     version: '5.2',
     items: [
       {
