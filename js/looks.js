@@ -15,7 +15,7 @@
 export const STYLES = [
   { id: 'charts', name: 'Charts', ready: true, note: 'Gradient rings, waves and columns.' },
   { id: 'tactile', name: 'Tactile', ready: true, note: 'Raised cards, pressed-in fields, metal switches.' },
-  { id: 'peaks', name: 'Peaks', ready: false },
+  { id: 'peaks', name: 'Peaks', ready: true, note: 'A pale panel up top, the month as mountains.' },
   { id: 'mindora', name: 'Mindora', ready: false },
 ];
 
@@ -23,6 +23,7 @@ export const STYLES = [
 export const COLOURINGS = [
   { id: 'charts', name: 'Charts', mode: 'dark', bg: '#050505', dots: ['#171717', '#f47ebc', '#7c62f2', '#7efdb4'] },
   { id: 'tactile', name: 'Tactile copper', mode: 'dark', bg: '#222125', dots: ['#38373c', '#b0552f', '#e2906a', '#d9d2cb'] },
+  { id: 'peaks', name: 'Peaks slate', mode: 'dark', bg: '#1c2328', dots: ['#eef6f6', '#fd8242', '#f6b74c', '#1efae0'] },
   { id: 'ember-dusk', name: 'Ember dusk', mode: 'dark', bg: '#101c30', dots: ['#143041', '#e2773a', '#ffcb68', '#5fb3a8'] },
   { id: 'strawberry-night', name: 'Strawberry night', mode: 'dark', bg: '#142030', dots: ['#1e3442', '#ff5c8d', '#a83a78', '#85a3b2'] },
   { id: 'flame-light', name: 'Burning flame, light', mode: 'light', bg: '#eee9df', dots: ['#f8f5ef', '#a35139', '#ffb162', '#2c3b4d'] },
@@ -34,7 +35,7 @@ export const COLOURINGS = [
 // "Follow my phone": the style's own colours when the phone is dark (each
 // style brings a colouring of its own), burning flame light when it is light.
 export const AUTO = { dark: 'charts', light: 'flame-light' };
-const OWN = { charts: 'charts', tactile: 'tactile' };
+const OWN = { charts: 'charts', tactile: 'tactile', peaks: 'peaks' };
 
 /* The colouring a style wears by its own choice: 'Follow my phone' when dark. */
 export const ownColouring = (style) => OWN[style] || AUTO.dark;

@@ -552,6 +552,7 @@ function asideRing(f) {
  * each day took on its own along the bottom, the biggest day marked. From
  * the 1st to today; the days to come are not drawn. Exported for a test. */
 export function monthWaves(f) {
+  if (typeof document !== 'undefined' && document.documentElement.dataset.style === 'peaks') return monthMountains(f);
   const totals = f.spendDays || [];
   const daily = (f.spendByDay || []).map((d) => d.amount || 0);
   const n = totals.length;
@@ -589,6 +590,82 @@ export function monthWaves(f) {
       <div class="waves__key">
         <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b>spent so far</span>
         <span class="waves__k waves--pace"><b>${formatRupees(Math.round(pace[n - 1]))}</b>at an even pace</span>
+        <span class="waves__k waves--day"><b>${formatDateNice(f.spendByDay[bigDay].date)}</b>biggest day</span>
+      </div>
+    </div>`;
+}
+
+/* NEW (5.7, the Peaks style): the same month as a mountain range. Each day's
+ * spending is a ridge, its two biggest days catch the light on their
+ * right-hand slope, and a dashed line marks what an even day of the budget
+ * would be. Heights are square-rooted so one huge day does not flatten the
+ * rest. The roughness of the rock is fixed per day, so the range is the same
+ * every time it is drawn. Exported for a test. */
+// Each drawing gets its own gradient ids: Chrome keeps painting a removed
+// gradient when a redraw brings back one with the same id.
+let mountainsDrawn = 0;
+export function monthMountains(f) {
+  const totals = f.spendDays || [];
+  const daily = (f.spendByDay || []).map((d) => d.amount || 0);
+  const n = Math.min(totals.length, daily.length);
+  if (n < 2 || !(f.limit > 0) || !daily.some((v) => v > 0)) return '';
+  const monthDays = (f.daysIntoCycle || n) + (f.daysToClose || 1) - 1;
+  const evenDay = f.limit / monthDays;
+  const W = 360, H = 170, base = 156, STEP = 4;
+  const peak = Math.max(...daily.slice(0, n));
+  const soft = daily.slice(0, n).map((v, i) => (daily[i - 1] ?? v) * 0.2 + v * 0.6 + (daily[i + 1] ?? v) * 0.2);
+  const xs = (i) => 8 + (i / (n - 1)) * (W - 22);
+  const rough = (k) => (((k * 7919) % 101) / 101 - 0.35);
+  const calm = Math.min(1, Math.sqrt(14 / n));
+  const ridge = (scale, lift, jag) => {
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const h = lift + Math.sqrt(soft[i] / peak) * scale;
+      pts.push([xs(i), base - h]);
+      if (i === n - 1) break;
+      const h2 = lift + Math.sqrt(soft[i + 1] / peak) * scale;
+      for (let j = 1; j < STEP; j++) {
+        const t = j / STEP;
+        pts.push([xs(i) + (xs(i + 1) - xs(i)) * t, base - (h + (h2 - h) * t) + rough(i * STEP + j) * jag * (1 - Math.abs(t - 0.5))]);
+      }
+    }
+    return pts;
+  };
+  const back = ridge(78, 30, 14 * calm).map(([px, py]) => [px + 7, py - 6]);
+  const front = ridge(112, 10, 16 * calm);
+  const end = front[front.length - 1][0];
+  const poly = (pts, x1) => `M${pts[0][0].toFixed(1)} ${base} ${pts.map(([px, py]) => `L${px.toFixed(1)} ${py.toFixed(1)}`).join(' ')} L${x1.toFixed(1)} ${base} Z`;
+  // Only a real peak is lit (higher than the days beside it), and only once
+  // there are five days: two or three days make one slope, not a range.
+  const isPeak = (d) => daily[d] > 0 && daily[d] >= (daily[d - 1] ?? 0) && daily[d] >= (daily[d + 1] ?? 0);
+  const big = n < 5 ? [] : [...daily.slice(0, n).keys()].filter(isPeak).sort((a, b) => daily[b] - daily[a]).slice(0, 2);
+  const bigDay = daily.indexOf(peak);
+  const id = `mtn${++mountainsDrawn}`;
+  const lit = big.map((d) => {
+    const i = d * STEP, slope = [front[i]];
+    for (let k = i + 1; k < front.length && slope.length < 7 && front[k][1] >= slope[slope.length - 1][1] - 2; k++) slope.push(front[k]);
+    const [px, py] = front[i], last = slope[slope.length - 1];
+    const face = `M${px.toFixed(1)} ${py.toFixed(1)} ${slope.slice(1).map(([sx, sy]) => `L${sx.toFixed(1)} ${sy.toFixed(1)}`).join(' ')} L${(last[0] - 2).toFixed(1)} ${base} L${(px + (last[0] - px) * 0.3).toFixed(1)} ${base} Z`;
+    return `<path class="mountains__lit" fill="url(#${id}-lit)" d="${face}"/><polyline class="mountains__rim" points="${slope.map(([sx, sy]) => `${sx.toFixed(1)},${sy.toFixed(1)}`).join(' ')}"/>`;
+  }).join('');
+  const paceY = base - (10 + Math.sqrt(Math.min(1, evenDay / peak)) * 112);
+  const ticks = [...new Set([0, Math.round((n - 1) / 3), Math.round((2 * (n - 1)) / 3), n - 1])]
+    .map((i) => `<text class="mountains__tick" x="${xs(i).toFixed(1)}" y="${H - 2}" text-anchor="middle">${Number(f.spendByDay[i].date.slice(8))}</text>`).join('');
+  return `<div class="totals-card waves-card mountains-card">
+      <svg class="mountains" viewBox="0 0 ${W} ${H}" role="img" aria-label="This month so far: ${formatRupees(totals[n - 1])} spent; an even day is ${formatRupees(Math.round(evenDay))}. Biggest day ${formatRupees(daily[bigDay])} on ${formatDateNice(f.spendByDay[bigDay].date)}.">
+        <defs>
+          <linearGradient id="${id}-front" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="mountains__front-top"/><stop offset="1" class="mountains__front-foot"/></linearGradient>
+          <linearGradient id="${id}-lit" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="mountains__lit-top"/><stop offset="0.9" class="mountains__lit-foot"/></linearGradient>
+        </defs>
+        <path class="mountains__back" d="${poly(back, Math.min(W, end + 7))}"/>
+        <path class="mountains__front" fill="url(#${id}-front)" d="${poly(front, end)}"/>
+        ${lit}
+        <line class="mountains__pace" x1="8" x2="${end.toFixed(1)}" y1="${paceY.toFixed(1)}" y2="${paceY.toFixed(1)}"/>
+        ${ticks}
+      </svg>
+      <div class="waves__key">
+        <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b>spent so far</span>
+        <span class="waves__k waves--pace"><b>${formatRupees(Math.round(evenDay))}</b>an even day</span>
         <span class="waves__k waves--day"><b>${formatDateNice(f.spendByDay[bigDay].date)}</b>biggest day</span>
       </div>
     </div>`;

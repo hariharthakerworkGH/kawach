@@ -98,15 +98,15 @@
      an edge that catches that light. Only the heroes blur what is behind
      them - a blurred pane costs real frames on a mid-range phone, and a long
      list of them would stutter while it scrolls. */
-  --glass: color-mix(in oklch, var(--surface) 76%, transparent);
-  --glass-hi: color-mix(in oklch, var(--surface-alt) 72%, transparent);
+  --glass: color-mix(in srgb, var(--surface) 76%, transparent);
+  --glass-hi: color-mix(in srgb, var(--surface-alt) 72%, transparent);
   --glass-sheen: linear-gradient(
     180deg,
     oklch(100% 0 0 / 0.035) 0%,
     oklch(100% 0 0 / 0.008) 38%,
     transparent 72%
   );
-  --glass-edge: color-mix(in oklch, var(--border) 34%, transparent);
+  --glass-edge: color-mix(in srgb, var(--border) 34%, transparent);
   --blur: 18px;
 
   /* ---- Glow ----
@@ -114,12 +114,12 @@
      it, the line that explains the figure, the control you have chosen.
      Never a rim around every card - the moment everything glows, nothing
      is being pointed at. */
-  --glow-cyan: 0 0 24px color-mix(in oklch, var(--accent) 26%, transparent);
-  --glow-blue: 0 0 22px color-mix(in oklch, var(--accent) 18%, transparent);
-  --glow-violet: 0 0 24px color-mix(in oklch, var(--violet) 22%, transparent);
-  --glow-warm: 0 0 24px color-mix(in oklch, var(--warn) 20%, transparent);
+  --glow-cyan: 0 0 24px color-mix(in srgb, var(--accent) 26%, transparent);
+  --glow-blue: 0 0 22px color-mix(in srgb, var(--accent) 18%, transparent);
+  --glow-violet: 0 0 24px color-mix(in srgb, var(--violet) 22%, transparent);
+  --glow-warm: 0 0 24px color-mix(in srgb, var(--warn) 20%, transparent);
   /* For a figure: light thrown by the text itself, not a box behind it. */
-  --glow-text: 0 0 30px color-mix(in oklch, var(--accent) 16%, transparent);
+  --glow-text: 0 0 30px color-mix(in srgb, var(--accent) 16%, transparent);
 
   /* The warm field in the room. It is not the amber that means "this needs
      you": that one is a colour on a figure or a word, this one is light on
@@ -281,20 +281,20 @@
        above rather than a highlight. Glow is almost nothing - a lit edge on
        white reads as a smudge - so hierarchy in daylight is carried by
        weight and space, which is how paper has always done it. */
-    --glass: color-mix(in oklch, var(--surface) 92%, transparent);
-    --glass-hi: color-mix(in oklch, var(--surface-alt) 90%, transparent);
+    --glass: color-mix(in srgb, var(--surface) 92%, transparent);
+    --glass-hi: color-mix(in srgb, var(--surface-alt) 90%, transparent);
     --glass-sheen: linear-gradient(
       180deg,
       oklch(100% 0 0 / 0.9) 0%,
       oklch(100% 0 0 / 0.35) 40%,
       transparent 75%
     );
-    --glass-edge: color-mix(in oklch, var(--border) 62%, transparent);
+    --glass-edge: color-mix(in srgb, var(--border) 62%, transparent);
 
-    --glow-cyan: 0 0 18px color-mix(in oklch, var(--accent) 12%, transparent);
-    --glow-blue: 0 0 16px color-mix(in oklch, var(--accent) 9%, transparent);
-    --glow-violet: 0 0 18px color-mix(in oklch, var(--violet) 10%, transparent);
-    --glow-warm: 0 0 18px color-mix(in oklch, var(--warn) 10%, transparent);
+    --glow-cyan: 0 0 18px color-mix(in srgb, var(--accent) 12%, transparent);
+    --glow-blue: 0 0 16px color-mix(in srgb, var(--accent) 9%, transparent);
+    --glow-violet: 0 0 18px color-mix(in srgb, var(--violet) 10%, transparent);
+    --glow-warm: 0 0 18px color-mix(in srgb, var(--warn) 10%, transparent);
     --glow-text: none;
 
     --amb-warm: oklch(72% 0.13 55);
@@ -375,20 +375,20 @@
        above rather than a highlight. Glow is almost nothing - a lit edge on
        white reads as a smudge - so hierarchy in daylight is carried by
        weight and space, which is how paper has always done it. */
-    --glass: color-mix(in oklch, var(--surface) 92%, transparent);
-    --glass-hi: color-mix(in oklch, var(--surface-alt) 90%, transparent);
+    --glass: color-mix(in srgb, var(--surface) 92%, transparent);
+    --glass-hi: color-mix(in srgb, var(--surface-alt) 90%, transparent);
     --glass-sheen: linear-gradient(
       180deg,
       oklch(100% 0 0 / 0.9) 0%,
       oklch(100% 0 0 / 0.35) 40%,
       transparent 75%
     );
-    --glass-edge: color-mix(in oklch, var(--border) 62%, transparent);
+    --glass-edge: color-mix(in srgb, var(--border) 62%, transparent);
 
-    --glow-cyan: 0 0 18px color-mix(in oklch, var(--accent) 12%, transparent);
-    --glow-blue: 0 0 16px color-mix(in oklch, var(--accent) 9%, transparent);
-    --glow-violet: 0 0 18px color-mix(in oklch, var(--violet) 10%, transparent);
-    --glow-warm: 0 0 18px color-mix(in oklch, var(--warn) 10%, transparent);
+    --glow-cyan: 0 0 18px color-mix(in srgb, var(--accent) 12%, transparent);
+    --glow-blue: 0 0 16px color-mix(in srgb, var(--accent) 9%, transparent);
+    --glow-violet: 0 0 18px color-mix(in srgb, var(--violet) 10%, transparent);
+    --glow-warm: 0 0 18px color-mix(in srgb, var(--warn) 10%, transparent);
     --glow-text: none;
 
     --amb-warm: oklch(72% 0.13 55);
