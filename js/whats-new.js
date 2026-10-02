@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '4.29',
+    items: [
+      {
+        icon: 'eye',
+        title: "Pick your colours",
+        text: "Kawach now wears the Charts colours: black, pink, violet and mint. In Settings, How it looks, choose from seven colourings, or let it follow your phone's light or dark. The Charts style for every screen, and three more styles, are on the way.",
+        guide: [{ view: 'appearance', target: '.look-swatches', text: "Tap a colouring to see the whole app change." }],
+      },
+    ],
+  },
+  {
     version: '4.28',
     items: [
       {

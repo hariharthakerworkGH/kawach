@@ -17,6 +17,7 @@ import { spendingHero } from './summary.js';
 import { allocationRing } from '../charts.js';
 import { sixMonthCharts, lastSixMonths } from './transactions.js';
 import { showToast } from '../toast.js';
+import { STYLES, COLOURINGS, AUTO } from '../looks.js';
 
 // Enough invented money to draw every option honestly, for someone who has
 // not added anything yet. Paise, like everywhere else.
@@ -141,7 +142,38 @@ function usingSample(name) {
   return false;
 }
 
+/* Style and colours, the first card: the styles as a row (Charts now, the
+ * others as they are built), the colourings as swatches. Each swatch is still
+ * a radio, so choosing one saves and repaints like every other choice here. */
+function lookCard(spec) {
+  const current = appearance('colour');
+  const dots = (c) => c.dots.map((d) => `<i style="background:${d}"></i>`).join('');
+  const auto = COLOURINGS.find((c) => c.id === AUTO.dark);
+  const autoLight = COLOURINGS.find((c) => c.id === AUTO.light);
+  const tile = (value, name, sub, swatch) => `
+        <label class="look-option look-swatch${value === current ? ' chosen' : ''}">
+          <input type="radio" name="look-colour" value="${value}"${value === current ? ' checked' : ''}>
+          <span class="look-dots">${swatch}</span>
+          <span class="look-label">${name}</span>
+          <span class="muted-note">${sub}</span>
+        </label>`;
+  return `
+    <h3>Style</h3>
+    <div class="totals-card look-card look-styles">
+      ${STYLES.map((s) => `<span class="look-style${s.id === 'charts' ? ' chosen' : ''}${s.ready ? '' : ' soon'}">${s.name}${s.ready ? '' : '<small>coming</small>'}</span>`).join('')}
+    </div>
+    <h3>${spec.label}</h3>
+    <div class="totals-card look-card">
+      <div class="look-swatches">
+        ${tile('auto', 'Follow my phone', 'Charts or flame', [auto.bg, auto.dots[1], autoLight.bg, autoLight.dots[1]].map((d) => `<i style="background:${d}"></i>`).join(''))}
+        ${COLOURINGS.map((c) => tile(c.id, c.name, c.mode === 'light' ? 'Light' : 'Dark', dots(c))).join('')}
+      </div>
+      <p class="muted-note look-live">Tap one to see the whole app change.</p>
+    </div>`;
+}
+
 function card(name, spec) {
+  if (name === 'colour') return lookCard(spec);
   const current = appearance(name);
   const preview = previewFor(name, current);
   return `
@@ -167,7 +199,7 @@ function card(name, spec) {
                ${preview}
              </div>`
           : `<p class="muted-note look-live">${
-              name === 'theme' || name === 'text' || name === 'density'
+              name === 'colour' || name === 'text' || name === 'density'
                 ? 'Tap one to see the whole app change. Tap another to put it back.'
                 : spec.where
                   ? `Open ${spec.where} to see it.`

@@ -11,18 +11,22 @@
  * doing the thing and a real reason to prefer either.
  */
 
+import { COLOURINGS, applyColouring } from './looks.js';
+
 const KEY = 'kawach-appearance';
 
 export const CHOICES = {
-  theme: {
-    label: 'Daylight',
-    question: 'Light or dark?',
+  // The colours the app is painted in (js/looks.js, css/looks.css). It
+  // replaced "Light or dark" in 4.29: each colouring is light or dark by
+  // nature, and "Follow my phone" picks Charts or burning flame light.
+  colour: {
+    label: 'Colours',
+    question: 'Which colours?',
     fallback: 'auto',
     where: '',
     options: [
-      { value: 'auto', label: 'Follow my phone', note: 'Dark when your phone is dark, light when it is light.' },
-      { value: 'dark', label: 'Always dark', note: 'The deep background, whatever the phone is set to.' },
-      { value: 'light', label: 'Always light', note: 'Paper white, whatever the phone is set to.' },
+      { value: 'auto', label: 'Follow my phone', note: 'Charts when your phone is dark, burning flame when it is light.' },
+      ...COLOURINGS.map((c) => ({ value: c.id, label: c.name, note: c.mode === 'light' ? 'Light' : 'Dark' })),
     ],
   },
   text: {
@@ -141,7 +145,11 @@ function read() {
 export function appearance(name) {
   const spec = CHOICES[name];
   if (!spec) return null;
-  const saved = read()[name];
+  const all = read();
+  let saved = all[name];
+  // Before 4.29 the choice was light or dark; it carries over to the
+  // colouring that is the same thing now.
+  if (name === 'colour' && saved === undefined) saved = { light: 'flame-light', dark: 'charts' }[all.theme];
   return spec.options.some((o) => o.value === saved) ? saved : spec.fallback;
 }
 
@@ -155,23 +163,25 @@ export function setAppearance(name, value) {
   } catch {
     return false;
   }
-  if (name === 'theme') applyTheme();
+  if (name === 'colour') applyTheme();
   if (name === 'text' || name === 'density') applyDisplay();
   return true;
 }
 
-/* The chosen daylight, put on <html> where the stylesheet can see it.
- *
- * 'auto' removes the attribute rather than setting it to "auto", so the
- * stylesheet's own prefers-color-scheme rule is left to decide. index.html
- * does the same thing inline before the first paint, so the app never opens
- * in the wrong colour and then corrects itself.
+/* The chosen colouring, put on <html> where the stylesheets can see it, with
+ * its light or dark (js/looks.js). index.html does the same inline before the
+ * first paint, so the app never opens in the wrong colours and then corrects
+ * itself. 'auto' follows the phone, and keeps following it while open.
  */
+let following = false;
 export function applyTheme() {
-  const theme = appearance('theme');
-  const root = document.documentElement;
-  if (theme === 'auto') root.removeAttribute('data-theme');
-  else root.setAttribute('data-theme', theme);
+  applyColouring(appearance('colour'));
+  if (!following && window.matchMedia) {
+    following = true;
+    window.matchMedia('(prefers-color-scheme: light)').addEventListener?.('change', () => {
+      if (appearance('colour') === 'auto') applyColouring('auto');
+    });
+  }
 }
 
 /* Text size and spacing, put on <html> beside the daylight. The default of
