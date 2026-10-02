@@ -246,10 +246,10 @@ test("a ring's slices add up to the total it is drawn from", () => {
 
 test('the commitment meter handles nothing, everything and too much', () => {
   equal(radialMeter({ committed: 0, income: 0 }), '', 'no income, no meter');
-  ok(radialMeter({ committed: 0, income: rupees(96000) }).includes('0%'), 'nothing committed reads 0%');
-  ok(radialMeter({ committed: rupees(82200), income: rupees(96000) }).includes('86%'), 'the share is the share');
+  ok(radialMeter({ committed: 0, income: rupees(96000) }).includes('₹0</span>'), 'nothing committed reads ₹0');
+  ok(radialMeter({ committed: rupees(82200), income: rupees(96000) }).includes('₹82,200</span>'), 'the amount committed, not a share (5.18)');
   const over = radialMeter({ committed: rupees(120000), income: rupees(96000) });
-  ok(over.includes('125%'), 'over budget says so');
+  ok(over.includes('₹1,20,000</span>') && over.includes('meter-radial-v--amount over'), 'over budget says so');
   ok(over.includes('Over by'), 'and names what is over');
   ok(!/NaN|Infinity/.test(over), 'never NaN or Infinity');
 });
@@ -401,6 +401,7 @@ test('a look that was never offered falls back to the one that was', () => {
     equal(appearance('nothing-by-this-name'), null);
     localStorage.removeItem(key);
     for (const name of Object.keys(CHOICES)) equal(appearance(name), CHOICES[name].fallback, name);
+    equal(appearance('style'), 'tactile', 'with nothing chosen, Kawach opens in Tactile (5.17)');
   } finally {
     if (before === null) localStorage.removeItem(key);
     else localStorage.setItem(key, before);
@@ -1488,7 +1489,11 @@ test('the Summary tracking card: rings for budget spent, month gone and set-asid
   ok(!/tracking-ring--(warn|over)/.test(html), 'half the budget spent keeps its gradient');
   ok(spendingHero({ ...base, used: 0.8 }, 'full').includes('tracking-ring--warn'), 'amber from 75%');
   ok(spendingHero({ ...base, used: 1.2, free: -rupees(6300), level: 'over' }, 'full').includes('tracking-ring--over'), 'red from 90%, and past the budget');
-  ok(spendingHero({ ...base, used: 1.2, free: -rupees(6300), level: 'over' }, 'full').includes('<b>120%</b>'), 'past the budget it says how far past, the arc full');
+  const past = spendingHero({ ...base, used: 1.2, spentThisCycle: rupees(37800), free: -rupees(6300), level: 'over' }, 'full');
+  ok(past.includes('<b class="is-amount">₹37,800</b>') && past.includes('₹6,300 over'), 'past the budget it says how far past, in rupees');
+  ok(html.includes('<b class="is-amount">₹16,350</b><small>of ₹31,500</small>'), 'the rings say amounts, never a bare percentage (5.18)');
+  ok(html.includes('<b class="is-amount">Day 14</b><small>of 31</small>') && html.includes('<b class="is-amount">₹1,500</b><small>of ₹6,000 set aside</small>'), 'the day of the month, and set-asides in rupees');
+  ok(!/<b[^>]*>\d+%<\/b>/.test(html), 'no percentage left in the card');
   ok(!/tracking-ring--(warn|over)/.test(spendingHero({ ...base, used: 0.05, level: 'critical' }, 'full')), 'a red level for the bank does not turn the budget ring red');
   ok(spendingHero(base, 'full', 'Final for September').includes('stroke-dasharray="100.0 100"'), 'a finished month has its month ring full');
   ok(!spendingHero(base, 'plain').includes('hero--tracking'), 'the plain look has no rings');

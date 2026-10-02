@@ -65,7 +65,7 @@ export function hero({ label, period = '', amount, negative = false, level = 'ok
             <circle class="tracking-ring__track" cx="55" cy="55" r="42"/>
             ${v > 0.004 ? `<circle class="tracking-ring__arc" style="stroke:url(#tg-${r.grad}-${drawn})" cx="55" cy="55" r="42" pathLength="100" stroke-dasharray="${(v * 100).toFixed(1)} 100" transform="rotate(-90 55 55)"/>` : ''}
           </svg>
-          <figcaption><b>${Math.round(Math.max(0, r.value || 0) * 100)}%</b><small>${r.label}</small></figcaption>
+          <figcaption><b${r.big != null ? ' class="is-amount"' : ''}>${r.big != null ? r.big : `${Math.round(Math.max(0, r.value || 0) * 100)}%`}</b><small>${r.label}</small></figcaption>
         </figure>`;
       })
       .join('');

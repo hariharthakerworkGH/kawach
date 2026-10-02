@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.17',
+    items: [
+      {
+        icon: 'eye',
+        title: "Tactile is the new default, and amounts replace percentages",
+        text: "Kawach now opens in the Tactile style unless you chose another one. Rings and bars that showed a percentage now say the actual amount or the day, like ₹22,232 of ₹31,500 or Day 14 of 31.",
+        guide: [{ view: 'summary', target: '.hero, .tl-hero', text: "Every figure here is in rupees or days now." }],
+      },
+    ],
+  },
+  {
     version: '5.16',
     items: [
       {

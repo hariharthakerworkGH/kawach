@@ -172,7 +172,7 @@ export function goalRing({ saved = 0, target = 0, size = 76, monthly = null, by 
       <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" class="chart-ring-track"/>
       <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" class="chart-ring-fill" stroke-linecap="round"
         stroke-dasharray="${(circumference * share).toFixed(1)} ${circumference.toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>
-      <text x="${size / 2}" y="${size / 2 + 5}" text-anchor="middle" fill="var(--k-text)" font-size="${Math.round(size / 4.6)}" font-weight="700">${Math.round(share * 100)}%</text>
+      <text x="${size / 2}" y="${size / 2 + 5}" text-anchor="middle" fill="var(--k-text)" font-size="${Math.round(size / 7)}" font-weight="700">${esc(formatRupees(saved))}</text>
       ${monthly ? `<title>${esc(`${formatRupees(monthly)} a month gets there`)}</title>` : ''}
     </svg>`;
 }
@@ -357,12 +357,12 @@ export function radialMeter({ committed = 0, income = 0, size = 150 }) {
         </linearGradient></defs>
       </svg>
       <div class="meter-radial-mid">
-        <span class="meter-radial-v${over ? ' over' : ''}">${pct}%</span>
+        <span class="meter-radial-v meter-radial-v--amount${over ? ' over' : ''}">${formatRupees(committed)}</span>
         <span class="meter-radial-k">committed</span>
       </div>
     </div>
     <div class="meter-radial-legend">
-      <span><span class="muted">Committed</span> ${formatRupees(committed)}</span>
+      <span><span class="muted">Comes in</span> ${formatRupees(income)}</span>
       <span><span class="muted">${left < 0 ? 'Over by' : 'Left to plan'}</span> ${formatRupees(Math.abs(left))}</span>
     </div>`;
 }
@@ -449,7 +449,7 @@ export function cashRiver({ months = [] }) {
  * Answers: how far along is this? A half circle of ticks, those up to the
  * share lit on the third gradient, the share written in the middle. Used for
  * a loan paid back. `pct` 0-100. */
-export function tickGauge(pct, label) {
+export function tickGauge(pct, label, said = null) {
   const n = 26;
   const p = Math.max(0, Math.min(100, Math.round(pct || 0)));
   const ticks = Array.from({ length: n }, (_, i) => {
@@ -461,7 +461,7 @@ export function tickGauge(pct, label) {
     return `<line class="gauge-tick${lit ? ' gauge-tick--lit' : ''}${i / (n - 1) > 0.5 ? ' gauge-tick--far' : ''}" x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"/>`;
   }).join('');
   return `<figure class="tick-gauge">
-      <svg viewBox="0 0 220 104" role="img" aria-label="${esc(`${p}% ${label}`)}">${ticks}<text class="tick-gauge__v" x="110" y="90" text-anchor="middle">${p}%</text></svg>
+      <svg viewBox="0 0 220 104" role="img" aria-label="${esc(`${said || `${p}%`} ${label}`)}">${ticks}<text class="tick-gauge__v${said ? ' tick-gauge__v--amount' : ''}" x="110" y="90" text-anchor="middle">${esc(said || `${p}%`)}</text></svg>
       <figcaption>${esc(label)}</figcaption>
     </figure>`;
 }

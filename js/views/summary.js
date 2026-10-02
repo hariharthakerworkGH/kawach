@@ -392,7 +392,7 @@ export function spendingWarning(f) {
   if (f.level === 'warning')
     return f.crossesOn
       ? `Careful: at ${formatRupees(f.pace)} a day the budget runs out on ${formatDateNice(f.crossesOn)}, before the cycle ends on ${until}.`
-      : `Careful: you've used ${Math.round(f.used * 100)}% of this cycle's budget.`;
+      : `Careful: ${formatRupees(f.spentThisCycle || 0)} of this cycle's ${formatRupees(f.limit)} is gone.`;
   return null;
 }
 
@@ -515,9 +515,18 @@ export function spendingHero(f, look = 'full', statusText = null) {
           { k: 'Budget', v: formatRupees(f.limit) },
           { k: statusText != null ? 'Days' : 'A day', v: statusText != null ? `${monthDays}` : f.perDay > 0 ? formatRupees(f.perDay) : '-' },
         ],
+        // CHANGED (5.18): each ring says an amount or a day in its middle;
+        // a bare percentage told a newcomer nothing.
         rings: [
-          { value: Math.max(0, f.used || 0), grad: 'spent', label: 'spent' },
-          { value: statusText != null ? 1 : monthDays > 0 ? f.daysIntoCycle / monthDays : 0, grad: 'month', label: 'month gone' },
+          {
+            value: Math.max(0, f.used || 0),
+            grad: 'spent',
+            big: formatRupees(f.spentThisCycle || 0),
+            label: (f.spentThisCycle || 0) > f.limit ? `${formatRupees((f.spentThisCycle || 0) - f.limit)} over` : `of ${formatRupees(f.limit)}`,
+          },
+          statusText != null
+            ? { value: 1, grad: 'month', big: `${monthDays} days`, label: 'month done' }
+            : { value: monthDays > 0 ? f.daysIntoCycle / monthDays : 0, grad: 'month', big: `Day ${f.daysIntoCycle}`, label: `of ${monthDays}` },
           ...asideRing(f),
         ],
       }
@@ -544,7 +553,8 @@ function asideRing(f) {
   const rows = (f.tracker || []).filter((t) => t.setAside && !t.skipped && t.status !== 'untracked' && t.amount > 0);
   const amount = rows.reduce((s, t) => s + t.amount, 0);
   if (!amount) return [];
-  return [{ value: rows.reduce((s, t) => s + Math.max(0, t.used || 0), 0) / amount, grad: 'aside', label: 'set aside used' }];
+  const used = rows.reduce((s, t) => s + Math.max(0, t.used || 0), 0);
+  return [{ value: used / amount, grad: 'aside', big: formatRupees(used), label: `of ${formatRupees(amount)} set aside` }];
 }
 
 /* NEW (5.0, the Charts style): the month as layered waves. Three things on
@@ -769,7 +779,7 @@ function insightCard(f) {
     title = days <= 7 ? 'The cycle is nearly over' : 'Spending is ahead of pace';
     body = f.crossesOn
       ? `At this pace the budget runs out on ${formatDateNice(f.crossesOn)}. ${formatRupees(f.perDay)} a day keeps it to ${formatDateNice(f.cycleKey)}.`
-      : `${Math.round(f.used * 100)}% of the budget is gone with ${days} day${days === 1 ? '' : 's'} to go.`;
+      : `${formatRupees(f.spentThisCycle || 0)} of ${formatRupees(f.limit)} is gone with ${days} day${days === 1 ? '' : 's'} to go.`;
   } else if (f.free != null && f.free > 0) {
     tone = 'k-context--calm';
     title = 'On track for this cycle';
@@ -860,7 +870,7 @@ export function spendingStatus(f) {
     if (f.used < 0.9) return `About ${formatRupees(f.perDay)} a day until ${until}. Bank is short: see below.`;
     return 'Critical - almost all used';
   }
-  if (f.level === 'warning') return f.crossesOn ? `Careful - runs out ${formatDateNice(f.crossesOn)} at this pace` : `Careful - ${Math.round(f.used * 100)}% used`;
+  if (f.level === 'warning') return f.crossesOn ? `Careful - runs out ${formatDateNice(f.crossesOn)} at this pace` : `Careful - ${formatRupees(f.spentThisCycle || 0)} of ${formatRupees(f.limit)} used`;
   return `About ${formatRupees(f.perDay)} a day until ${until}`;
 }
 
@@ -1713,12 +1723,12 @@ function comparisonPeriod(now = new Date()) {
     const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
     const prevEnd = new Date(now.getFullYear(), now.getMonth() - 1, Math.min(dayOfMonth, prevMonthEnd));
-    return { from: toISODate(prevStart), to: toISODate(prevEnd), label: 'vs the same days last month' };
+    return { from: toISODate(prevStart), to: toISODate(prevEnd), label: 'than the same days last month' };
   }
   if (currentRange === 'last-month') {
     const prevStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
     const prevEnd = new Date(now.getFullYear(), now.getMonth() - 1, 0);
-    return { from: toISODate(prevStart), to: toISODate(prevEnd), label: 'vs the month before' };
+    return { from: toISODate(prevStart), to: toISODate(prevEnd), label: 'than the month before' };
   }
   return null;
 }
@@ -1789,7 +1799,8 @@ async function renderContent(container) {
     if (prevOut > 0) {
       const pctChange = Math.round(((totalOut - prevOut) / prevOut) * 100);
       const arrow = pctChange > 0 ? icon('up') : pctChange < 0 ? icon('arrow-down') : icon('forward');
-      comparisonHtml = `<p class="muted-note compare-note">${arrow} ${Math.abs(pctChange)}% ${comparison.label}</p>`;
+      // CHANGED (5.18): the difference in rupees, not a percentage.
+      comparisonHtml = `<p class="muted-note compare-note">${arrow} ${formatRupees(Math.abs(totalOut - prevOut))} ${totalOut >= prevOut ? 'more' : 'less'} ${comparison.label}</p>`;
     }
   }
 

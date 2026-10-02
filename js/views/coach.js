@@ -98,6 +98,7 @@ function heroTemplate(snapshot) {
       safe: `${formatRupees(Math.max(0, c.perDay))}/day`,
       days: `${c.daysToClose}`,
       share: c.free > 0 ? Math.min(1, projected / c.free) : 1,
+      uses: `${formatRupees(projected)} of ${formatRupees(Math.max(0, c.free))}`,
     });
   }
   return hero({
@@ -123,7 +124,7 @@ function heroTemplate(snapshot) {
         { k: 'Safe', v: `${formatRupees(Math.max(0, c.perDay))}/day` },
         { k: 'Days left', v: `${c.daysToClose}` },
       ],
-      rings: [{ value: c.free > 0 ? projected / c.free : 1, grad: 'spent', label: 'of what is left, at this pace' }],
+      rings: [{ value: c.free > 0 ? projected / c.free : 1, grad: 'spent', big: formatRupees(projected), label: `of ${formatRupees(Math.max(0, c.free))} at this pace` }],
     },
   });
 }
@@ -443,7 +444,7 @@ function coachTop(style, f) {
         <div class="tl-top"><span class="tl-k">Left at this pace</span><span class="tl-period">by ${f.by}</span></div>
         <div class="tl-big">${f.left}</div>
         <div class="tl-stats"><div><span class="tl-k">Your pace</span><b>${f.pace}</b></div><div><span class="tl-k">Safe</span><b>${f.safe}</b></div><div><span class="tl-k">Days left</span><b>${f.days}</b></div></div>
-        <div class="tl-prog"><i class="${f.over ? 'bad' : ''}" style="width:${pct}"></i><span><span>Of what is left, at this pace</span><span>${pct}</span></span></div>
+        <div class="tl-prog"><i class="${f.over ? 'bad' : ''}" style="width:${pct}"></i><span><span>At this pace</span><span>${f.uses}</span></span></div>
       </section>`;
   }
   if (style === 'peaks') {
@@ -459,12 +460,12 @@ function coachTop(style, f) {
     const [tx, ty] = at(a0);
     return `<section class="pk-panel ct-top ct-top--peaks${neg}">
         <div class="pk-top"><span class="pk-lab">Left at this pace</span><span class="pk-tiny">by ${f.by}</span></div>
-        <svg class="ct-gauge" viewBox="0 0 120 110" role="img" aria-label="${pct} of what is left, at this pace">
+        <svg class="ct-gauge" viewBox="0 0 120 110" role="img" aria-label="At this pace you use ${f.uses}">
           <path class="ct-gauge__trk" d="${arc(a0, a1)}"/>
           ${f.share > 0.005 ? `<path class="ct-gauge__arc" d="${arc(a0, a0 + (a1 - a0) * f.share)}"/>` : ''}
           <circle class="ct-gauge__dot" cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="4.5"/>
           <text class="ct-gauge__v" x="60" y="60" text-anchor="middle">${f.left}</text>
-          <text class="ct-gauge__k" x="60" y="76" text-anchor="middle">${pct} of what is left</text>
+          <text class="ct-gauge__k" x="60" y="76" text-anchor="middle">uses ${f.uses}</text>
         </svg>
         <div class="pk-figs">
           <div><div class="pk-n pk-n--m">${f.pace}</div><div class="pk-tiny">your pace</div></div>
@@ -477,7 +478,7 @@ function coachTop(style, f) {
       <div class="md-top"><span class="md-kick">Left at this pace</span><span class="md-period">by ${f.by}</span></div>
       <div class="md-big">${f.left}</div>
       <div class="md-stats"><div><span class="md-kick">Your pace</span><b>${f.pace}</b></div><div><span class="md-kick">Safe</span><b>${f.safe}</b></div><div><span class="md-kick">Days left</span><b>${f.days}</b></div></div>
-      <div class="md-spent"><span>Of what is left, at this pace</span><span>${pct}</span></div>
+      <div class="md-spent"><span>At this pace</span><span>${f.uses}</span></div>
       <div class="md-prog"><i class="${f.over ? 'bad' : ''}" style="width:${pct}"></i></div>
     </section>`;
 }
