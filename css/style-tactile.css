@@ -306,3 +306,25 @@ button.tl-item { cursor: pointer; }
 :root[data-style="tactile"] .k .plan-flex__row.is-warn .plan-flex__track i { background: linear-gradient(90deg, color-mix(in srgb, var(--k-warning), black 30%), var(--k-warning)); }
 :root[data-style="tactile"] .k .plan-flex__row.is-over .plan-flex__track i { background: linear-gradient(90deg, color-mix(in srgb, var(--k-negative), black 30%), var(--k-negative)); }
 .plan-month .pl-month--tactile { background: var(--t-well); box-shadow: var(--t-well-shadow); }
+
+/* --- History, after the mockup (5.15) ------------------------------------
+ * In and out in an inset table on the raised net card; the days in an
+ * inset well on a raised card of their own, copper bars, the biggest lit;
+ * each day under an engraved heading, its payments raised rows. */
+:root[data-style="tactile"] .k #hist-hero .hero-under { display: grid; gap: 0; padding: 4px 14px; border-radius: 12px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] .k #hist-hero .stat { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; }
+:root[data-style="tactile"] .k #hist-hero .stat + .stat { border-top: 1px solid var(--k-hairline); }
+:root[data-style="tactile"] .k #hist-hero .stat-k { font-size: 14.5px; text-transform: none; letter-spacing: 0; color: var(--k-text-2); }
+:root[data-style="tactile"] .k #hist-hero .stat-v { font-size: 15px; font-weight: 700; }
+:root[data-style="tactile"] .k .hist-days-card { border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
+:root[data-style="tactile"] .k .hist-days-card::before { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-2); }
+:root[data-style="tactile"] .k .hist-days-card .hist-days__bars { padding: 12px 10px 6px; border-radius: 12px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] .k .hist-days__bar { background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 6%), color-mix(in srgb, var(--k-accent), black 35%)); opacity: .55; }
+:root[data-style="tactile"] .k .hist-days__bar.is-top { opacity: 1; box-shadow: 0 0 12px color-mix(in srgb, var(--k-violet) 55%, transparent); }
+:root[data-style="tactile"] .k .hist-day-head { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-2); padding-bottom: 7px; border-bottom: 1px solid rgb(0 0 0 / 0.4); box-shadow: 0 1px 0 rgb(255 255 255 / 0.05); margin-bottom: 8px; }
+:root[data-style="tactile"] .k .hist-day-card { display: grid; gap: 8px; padding: 0; background: none; box-shadow: none; border-radius: 0; }
+:root[data-style="tactile"] .k .hist-day-card .hist-row { border-radius: 14px; background: var(--t-raise); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 3px rgb(0 0 0 / 0.45), 0 6px 12px rgb(0 0 0 / 0.3); border-top: 0; padding-inline: 12px; }
+:root[data-style="tactile"] .k .hist-cat { border-radius: 10px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] .k .txn-amount { font-weight: 700; }
+:root[data-style="tactile"] .k .hist-day-card { grid-template-columns: minmax(0, 1fr); }
+:root[data-style="tactile"] .k #hist-hero .stat { flex-direction: row; }

@@ -337,3 +337,24 @@
 :root[data-style="mindora"] .k .plan-flex__track i { border-radius: 3px; background: var(--k-accent); }
 :root[data-style="mindora"] .k .plan-flex__row.is-warn .plan-flex__track i { background: var(--k-warning); }
 :root[data-style="mindora"] .k .plan-flex__row.is-over .plan-flex__track i { background: var(--k-violet); }
+
+/* --- History, after the mockup (5.15) ------------------------------------
+ * The net on glass with in and out stacked at its right in sage and blush,
+ * the days as thin columns on glass with the biggest a white one that
+ * glows; each day's payments on glass under a small heading, round icons. */
+:root[data-style="mindora"] .k #hist-hero .hero-under { display: flex; gap: 18px; margin-top: 8px; }
+:root[data-style="mindora"] .k #hist-hero .stat { display: block; }
+:root[data-style="mindora"] .k #hist-hero .stat-k { display: inline; margin-right: 5px; font: 600 10px var(--m-figure); letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-3); }
+:root[data-style="mindora"] .k #hist-hero .stat-v { font: 500 15px var(--m-figure); }
+:root[data-style="mindora"] .k #hist-hero .stat-v.in { color: var(--k-positive); }
+:root[data-style="mindora"] .k #hist-hero .stat-v.out { color: color-mix(in srgb, var(--k-violet) 55%, var(--k-text)); }
+:root[data-style="mindora"] .k .hist-days-card { border-radius: 20px; background: var(--m-glass); border: 1px solid var(--m-edge); box-shadow: var(--m-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); }
+:root[data-style="mindora"] .k .hist-days-card::before { font: 600 11px var(--m-figure); letter-spacing: .1em; text-transform: uppercase; color: var(--k-text-2); }
+:root[data-style="mindora"] .k .hist-days__bars { gap: 4px; }
+:root[data-style="mindora"] .k .hist-days__bar { max-width: 5px; justify-self: center; margin: 0 auto; border-radius: 3px; background: color-mix(in srgb, var(--k-text) 22%, transparent); }
+:root[data-style="mindora"] .k .hist-days__bar.is-top { max-width: 7px; background: #fff; box-shadow: 0 0 10px rgb(255 255 255 / 0.9); }
+:root[data-style="mindora"][data-theme="dark"] .k .hist-days__bar.is-top { background: var(--k-text); }
+:root[data-style="mindora"] .k .hist-day-head { font: 600 11px var(--m-figure); letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-2); }
+:root[data-style="mindora"] .k .hist-cat { border-radius: 50%; }
+:root[data-style="mindora"] .k .txn-amount { font-family: var(--m-figure); font-weight: 500; }
+:root[data-style="mindora"] .k #hist-hero .hero-under { background: none; border: 0; box-shadow: none; padding: 0; border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }

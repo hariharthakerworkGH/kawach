@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.15',
+    items: [
+      {
+        icon: 'history',
+        title: "History in each style",
+        text: "In Tactile, Peaks and Mindora, History now shows money in and out on the month's own card, the days on a card of their own, and your payments in each style's own design.",
+        guide: [{ view: 'transactions', target: '#hist-hero', text: "The month: what came in, what went out, and the difference." }],
+      },
+    ],
+  },
+  {
     version: '5.14',
     items: [
       {

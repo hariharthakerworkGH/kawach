@@ -5410,3 +5410,9 @@ label.look-style { position: relative; cursor: pointer; }
 .pl-legend em { flex-basis: 100%; font-style: normal; padding-left: 15px; }
 /* Inside Plan's own "This month" card the steps need no card of their own. */
 .plan-month .pl-month--mindora, .plan-month .pk-card.pl-month { padding: 0; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* --- History in the styles (5.15): shared bones ------------------------- */
+:root[data-style] .k #hist-hero .hero-under { margin: var(--k-4) 0 0; }
+:root[data-style] .k .hist-days-card { padding: var(--k-4); margin: var(--k-3) 0; }
+:root[data-style] .k .hist-days-card:empty { display: none; }
+:root[data-style] .k .hist-days-card::before { content: "Day by day"; display: block; margin-bottom: var(--k-3); }

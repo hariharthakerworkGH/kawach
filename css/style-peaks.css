@@ -289,3 +289,24 @@ button.pk-card { cursor: pointer; }
 .pl-top--peaks .pl-figs { gap: 10px 8px; min-width: 0; }
 .pl-top--peaks .pl-figs .pk-n--s { font-size: 17px; }
 .pl-top--peaks .pl-figs .pk-tiny { font-size: 10px; white-space: normal; }
+
+/* --- History, after the mockup (5.15) ------------------------------------
+ * The net on the pale panel with in and out beside it, thin, in teal and
+ * orange; the days on a slate card as orange bars, the biggest glowing;
+ * each day's payments on a slate card under a small tracked heading, with
+ * quiet square icons and thin figures. */
+:root[data-style="peaks"] .k #hist-hero .hero-under { display: flex; gap: 24px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--p-ink) 10%, transparent); }
+:root[data-style="peaks"] .k #hist-hero .stat-v { font-size: 20px; font-weight: 300; }
+:root[data-style="peaks"] .k #hist-hero .stat-v.in { color: color-mix(in srgb, var(--k-grad-2a) 55%, var(--p-shade)); }
+:root[data-style="peaks"] .k #hist-hero .stat-v.out { color: color-mix(in srgb, var(--k-grad-1a) 75%, var(--p-shade)); }
+:root[data-style="peaks"] .k .hist-days-card { border-radius: 14px; background: linear-gradient(180deg, color-mix(in srgb, var(--k-surface), white 3%), var(--k-surface)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 10px 22px -10px rgb(0 0 0 / 0.6); }
+:root[data-style="peaks"] .k .hist-days-card::before { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--k-text-3); }
+:root[data-style="peaks"] .k .hist-days__bar { border-radius: 2px; background: color-mix(in srgb, var(--k-grad-1a) 45%, transparent); }
+:root[data-style="peaks"] .k .hist-days__bar.is-top { background: linear-gradient(180deg, var(--k-grad-1b), var(--k-grad-1a)); box-shadow: 0 0 12px color-mix(in srgb, var(--k-grad-1a) 60%, transparent); }
+:root[data-style="peaks"] .k .hist-day-head { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--k-text-3); }
+:root[data-style="peaks"] .k .hist-cat { border-radius: 10px; }
+:root[data-style="peaks"] .k .txn-amount { font-weight: 300; font-size: 16px; }
+/* Inside the pale panel, In and Out are part of it, not a card on it, and
+   bold words take the panel's ink. */
+:root[data-style="peaks"] .k #hist-hero .hero-under { background: none; box-shadow: none; border-radius: 0; padding: 12px 0 0; margin-top: 12px; }
+:root[data-style="peaks"] .k .hero strong { color: var(--p-ink); }
