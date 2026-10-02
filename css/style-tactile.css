@@ -245,3 +245,22 @@ button.tl-item { cursor: pointer; }
 :root[data-style="tactile"] .hist-month .hist-step:disabled { opacity: .4; }
 :root[data-style="tactile"] .hist-month .hist-month-name { padding: 9px 20px; border-radius: 999px; background: var(--t-well); box-shadow: var(--t-well-shadow); font-size: 15px; }
 :root[data-style="tactile"] .k select.hist-chip { border-radius: 999px; }
+
+/* --- Add, after the mockup (5.12) ----------------------------------------
+ * Money out and in as the board's tabs; the amount on a raised card in an
+ * inset field with a glowing copper edge, the merchant under it; recent
+ * categories as raised pills, the chosen one copper; the rest as raised
+ * rows with icons in wells; the bank SMS a dark pill at the foot. */
+:root[data-style="tactile"] .k .add-card { border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
+:root[data-style="tactile"] .k .add-card .k-label,
+:root[data-style="tactile"] .k .add-card .hero-label { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-3); }
+:root[data-style="tactile"] .k .add-card--amount .amount-input-wrap { background: var(--t-well); border: 1px solid var(--k-accent); box-shadow: var(--t-well-shadow), 0 0 10px color-mix(in srgb, var(--k-accent) 28%, transparent); }
+:root[data-style="tactile"] .k .add-card--amount .amount-prefix { font-size: 24px; font-weight: 700; color: var(--k-text-3); }
+:root[data-style="tactile"] .k .add-card--amount .amount-input { font-weight: 760; letter-spacing: -0.04em; text-shadow: 0 2px 6px rgb(0 0 0 / 0.5); }
+:root[data-style="tactile"] .k .k-quick__chip { border: 0; color: var(--k-text-2); background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 22%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 6px 10px rgb(0 0 0 / 0.45); }
+:root[data-style="tactile"] .k .k-quick__chip svg { color: var(--k-accent); }
+:root[data-style="tactile"] .k .k-quick__chip.on { color: var(--k-accent-ink); background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 10%), color-mix(in srgb, var(--k-accent), black 18%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--t-metal), inset 0 1px 0 rgb(255 255 255 / 0.3), 0 6px 10px rgb(0 0 0 / 0.45); }
+:root[data-style="tactile"] .k .k-quick__chip.on svg { color: currentColor; }
+:root[data-style="tactile"] .k .add-row > .add-row-ic { color: var(--k-accent); background: var(--t-well); box-shadow: var(--t-well-shadow); border: 1px solid color-mix(in srgb, var(--k-text) 16%, transparent); }
+:root[data-style="tactile"] .k .add-row + .add-row { border-top: 1px solid rgb(0 0 0 / 0.42); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04); }
+:root[data-style="tactile"] .k .add-form ~ .k-add-sms { border-radius: 999px; background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 20%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 8px 14px rgb(0 0 0 / 0.5); }

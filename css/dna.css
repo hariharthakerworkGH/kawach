@@ -3506,3 +3506,9 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .ch-coming__head { display: flex; justify-content: space-between; align-items: baseline; }
 .ch-coming__still { font-size: var(--k-label); color: var(--k-text-2); font-variant-numeric: tabular-nums; }
 .ch-coming { margin-top: var(--k-3); }
+
+/* --- Add: the five recent categories as chips (5.12), every style ------- */
+.k .k-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: var(--k-3); }
+.k .k-quick__chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--k-border-subtle); background: color-mix(in srgb, var(--k-text) 4%, transparent); color: var(--k-text-2); font: inherit; font-size: var(--k-label); cursor: pointer; }
+.k .k-quick__chip svg { width: 15px; height: 15px; flex: none; }
+.k .k-quick__chip.on { background: linear-gradient(135deg, var(--k-grad-1a), var(--k-grad-1b)); color: var(--k-grad-1-ink); border-color: transparent; }

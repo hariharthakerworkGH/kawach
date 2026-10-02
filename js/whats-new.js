@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.12',
+    items: [
+      {
+        icon: 'add',
+        title: "Add in each style, and recent categories one tap away",
+        text: "Your five most recent categories now sit on Add as one-tap choices, with the full list a tap below them. In Tactile, Peaks and Mindora, Add is laid out as each style's own design: the amount and what it was for together, then the category, then account, date and repeats.",
+        guide: [{ view: 'add', target: '.k-quick', text: "Tap one of these to choose a recent category." }],
+      },
+    ],
+  },
+  {
     version: '5.11',
     items: [
       {
