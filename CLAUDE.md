@@ -157,7 +157,13 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
 - `js/parsers/*` statement readers (HDFC, ICICI, SBI savings and loan, payslip,
   EPFO passbook, CSV) + `registry.js`. The SBI savings reader also picks up the
   fixed deposits (MOD) linked to the account; they become a savings account of
-  their own. Any other bank's or card's PDF goes to `any-bank.js`, the general
+  their own. Money put into one of those deposits or swept back out of it
+  (SBI's "SWEEP TFR/TRF", "FIRDFTFRREF" for a deposit made by hand, or a
+  transfer to a number the statement sweeps from) is a transfer, never
+  spending; js/transfers.js applies the same wording to lines saved earlier.
+  Nothing leaving an account you do not spend from (`isPutAway`) is counted
+  in category totals, Coach or the recap.
+  Any other bank's or card's PDF goes to `any-bank.js`, the general
   reader: dated lines with amounts at the end, money in or out settled by the
   running balance (or "Cr" on a card). It also takes over when a bank's own
   reader finds no rows, and its `BANKS` list names every Indian bank for

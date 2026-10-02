@@ -1,4 +1,5 @@
 import { getAll, put } from './db.js';
+import { DEPOSIT_MOVE_RE } from './parsers/sbi-savings.js';
 
 const MAX_DAYS_APART = 5;
 
@@ -52,6 +53,17 @@ export async function detectTransfers() {
   for (const t of auto) {
     if (t.isTransfer || updated.has(t)) continue;
     if (!looksLikeCardPayment(t, accountType.get(t.accountId))) continue;
+    t.isTransfer = true;
+    updates.push(t);
+  }
+
+  // Money put into a fixed deposit at the same bank, or swept back out of it:
+  // the bank's own wording says so (js/parsers/sbi-savings.js). New statements
+  // are read that way; this catches the lines saved before the reader knew,
+  // which counted ₹65,000 into an FD as a ₹65,000 spend.
+  for (const t of auto) {
+    if (t.isTransfer || updated.has(t) || accountType.get(t.accountId) === 'card') continue;
+    if (!DEPOSIT_MOVE_RE.test(t.rawDescription || '')) continue;
     t.isTransfer = true;
     updates.push(t);
   }
