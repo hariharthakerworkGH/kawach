@@ -264,3 +264,20 @@ button.tl-item { cursor: pointer; }
 :root[data-style="tactile"] .k .add-row > .add-row-ic { color: var(--k-accent); background: var(--t-well); box-shadow: var(--t-well-shadow); border: 1px solid color-mix(in srgb, var(--k-text) 16%, transparent); }
 :root[data-style="tactile"] .k .add-row + .add-row { border-top: 1px solid rgb(0 0 0 / 0.42); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04); }
 :root[data-style="tactile"] .k .add-form ~ .k-add-sms { border-radius: 999px; background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 20%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 8px 14px rgb(0 0 0 / 0.5); }
+
+/* --- Accounts, after the mockup (5.13) -----------------------------------
+ * The total on a raised card, what sits beside it in an inset table under
+ * it; each account a raised row of its own with its mark in a well; the
+ * loan's progress a pressed-in bar. */
+:root[data-style="tactile"] .acct-total .hero-figures { display: grid; gap: 0; margin-top: 16px; padding: 4px 14px; border-radius: 12px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] .acct-total .hero-figures > span { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; font-weight: 680; font-variant-numeric: tabular-nums; color: var(--k-text); }
+:root[data-style="tactile"] .acct-total .hero-figures > span + span { border-top: 1px solid var(--k-hairline); }
+:root[data-style="tactile"] .acct-total .hero-figures .muted { font-weight: 400; color: var(--k-text-2); }
+:root[data-style="tactile"] .k .account-group { display: grid; gap: 8px; padding: 0; background: none; border: 0; box-shadow: none; }
+:root[data-style="tactile"] .k .account-block { border-radius: 14px; padding: 2px 14px; background: var(--t-raise); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 3px rgb(0 0 0 / 0.45), 0 6px 12px rgb(0 0 0 / 0.3); }
+:root[data-style="tactile"] .k .account-block + .account-block { border-top: 0; }
+:root[data-style="tactile"] .k .account-row .k-brand { border-radius: 10px; box-shadow: var(--t-well-shadow), 0 0 0 1px color-mix(in srgb, var(--k-text) 16%, transparent); }
+:root[data-style="tactile"] .k .account-balance { font-weight: 700; }
+:root[data-style="tactile"] .acct-total .hero-figures { width: 100%; box-sizing: border-box; justify-items: stretch; }
+:root[data-style="tactile"] .acct-total .hero-figures > span { width: 100%; }
+:root[data-style="tactile"] .acct-total .hero-figures { grid-template-columns: 1fr; }

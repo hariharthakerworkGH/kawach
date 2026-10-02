@@ -242,3 +242,17 @@ button.pk-card { cursor: pointer; }
 :root[data-style="peaks"] .k .k-quick__chip.on { color: var(--k-accent-ink); background: var(--k-grad-1a); box-shadow: 0 0 18px color-mix(in srgb, var(--k-grad-1a) 35%, transparent); }
 :root[data-style="peaks"] .k .add-row > .add-row-ic { color: var(--k-text-2); background: color-mix(in srgb, var(--k-text) 8%, transparent); }
 :root[data-style="peaks"] .k .add-form ~ .k-add-sms { border-radius: 14px; background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--k-text) 12%, transparent); }
+
+/* --- Accounts, after the mockup (5.13) -----------------------------------
+ * The pale panel holds the four figures as a two-by-two grid, big and thin
+ * over a small label; each account a slate card of its own with a thin
+ * figure. */
+:root[data-style="peaks"] .acct-total .hero-figures { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--p-ink) 10%, transparent); }
+:root[data-style="peaks"] .acct-total .hero-figures > span { display: flex; flex-direction: column-reverse; gap: 4px; font-size: 24px; font-weight: 300; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; color: var(--p-ink); }
+:root[data-style="peaks"] .acct-total .hero-figures .muted { font-size: 11px; font-weight: 400; letter-spacing: 0; color: var(--p-ink-2); }
+:root[data-style="peaks"] .k .account-group { display: grid; gap: 10px; padding: 0; background: none; border: 0; box-shadow: none; }
+:root[data-style="peaks"] .k .account-block { border-radius: 14px; padding: 2px 14px; background: linear-gradient(180deg, color-mix(in srgb, var(--k-surface), white 3%), var(--k-surface)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 10px 22px -10px rgb(0 0 0 / 0.6); }
+:root[data-style="peaks"] .k .account-block + .account-block { border-top: 0; }
+:root[data-style="peaks"] .k .account-balance { font-weight: 300; font-size: 20px; }
+:root[data-style="peaks"] .k .account-row .k-brand { border-radius: 10px; }
+:root[data-style="peaks"] .k .bill-amount { font-weight: 400; }

@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.13',
+    items: [
+      {
+        icon: 'accounts',
+        title: "Accounts shows what you owe beside what you have",
+        text: "The top of Accounts now shows what is owed on your cards and on your loans next to the money in your accounts, the same figures as Summary. In Tactile, Peaks and Mindora it is laid out as each style's own design.",
+        guide: [{ view: 'accounts', target: '.acct-total', text: "What you have, and beside it what you owe." }],
+      },
+    ],
+  },
+  {
     version: '5.12',
     items: [
       {

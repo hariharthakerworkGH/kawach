@@ -1,4 +1,5 @@
 import { getAll, put, remove, newId } from '../db.js';
+import { computeFreeToSpend } from '../free-to-spend.js';
 import { formatCurrency, formatDateNice, formatMonthYear, formatRupees, ordinal } from '../format.js';
 import { bankBalance, cardCycleSpend, cardBillDue, cardPosition, statementDay, isPutAway } from '../account-metrics.js';
 import { loanPosition, loanPayments, paymentsFor, payFasterPlan, loanHistory, isLoanAccount } from '../loans.js';
@@ -68,6 +69,10 @@ export async function render(container) {
   const [accounts, allTransactions, importBatches, who] = await Promise.all([getAll('accounts'), getAll('transactions'), getAll('importBatches'), moneyProfile()]);
   profile = { ...who, hasPf: accounts.some((a) => a.type === 'pf') };
   space = await activeSpace();
+  // NEW (5.13): what is owed on cards and on loans, beside the money in the
+  // banks. The same figures Summary shows, from the same calculation, so the
+  // two screens can never disagree; Home's only, as that calculation is.
+  const homeFigures = space === 'home' ? await computeFreeToSpend() : null;
   // Copies saved by overlapping statement imports are left out of every
   // balance here, the same as on the Summary.
   const duplicateIds = new Set(findDuplicates(allTransactions).map((t) => t.id));
@@ -104,7 +109,7 @@ export async function render(container) {
       ${appearance('accounts') === 'private' ? `<button type="button" id="accounts-reveal" class="k-btn k-btn--ghost">${balancesShown ? 'Hide' : 'Show'} balances</button>` : ''}
       ${accounts.length > 1 ? `<button type="button" id="accounts-reorder" class="k-btn k-btn--ghost">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
     </div>
-    ${accountsTotal(groups, transactions)}
+    ${accountsTotal(groups, transactions, homeFigures)}
     ${editing === 'new' ? accountForm(null, transactions, accounts) : ''}
     ${
       showEmpty
@@ -1326,7 +1331,7 @@ function readLoanFields(form) {
 // balances a statement has proved are counted - Kawach never asks for one to
 // be typed in - and money put away (savings, FDs) is named beside the total
 // rather than folded into it, because it is not money to spend.
-function accountsTotal(groups, transactions) {
+function accountsTotal(groups, transactions, fts = null) {
   // Label and figure together, so the drawing and the total are made of the
   // same rows and cannot drift apart.
   const known = (list) =>
@@ -1347,13 +1352,21 @@ function accountsTotal(groups, transactions) {
   // account on screen: an account whose balance is not known yet is not in
   // the figure, and saying otherwise would make the total look wrong.
   const across = `Counted from ${spendable.length} account${spendable.length === 1 ? '' : 's'} with a known balance`;
-  return hero({
+  return `<div class="acct-total">${hero({
     label: 'In your accounts',
     amount: covering() ? '••••' : formatRupees(total),
     negative: total < 0,
-    figures: putAway.length && !covering()
-      ? [{ label: 'Put away', value: formatRupees(putAway.reduce((s, v) => s + v, 0)) }]
-      : [],
+    figures: covering()
+      ? []
+      : [
+          ...(fts && (fts.cards || []).length
+            ? [{ label: 'Owed on cards', value: formatRupees(Math.max(0, ((fts.totals && fts.totals.owedCards) || 0) + ((fts.totals && fts.totals.unpaidBills) || 0))) }]
+            : []),
+          ...(putAway.length ? [{ label: 'Put away', value: formatRupees(putAway.reduce((s, v) => s + v, 0)) }] : []),
+          ...(fts && (fts.loans || []).some((l) => l.outstanding != null)
+            ? [{ label: 'Loans', value: formatRupees(fts.loans.reduce((s, l) => s + (l.outstanding || 0), 0)) }]
+            : []),
+        ],
     status: covering() ? 'Tap Show to see your balances' : across,
     // Only when there is a split worth seeing; the ring's slices are the
     // rows above, so they add to the figure above them exactly. Whether it is
@@ -1366,5 +1379,5 @@ function accountsTotal(groups, transactions) {
             caption: 'Every slice is an account you can spend from. Money put away is counted apart.',
           })
         : '',
-  });
+  })}</div>`;
 }

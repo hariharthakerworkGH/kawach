@@ -297,3 +297,16 @@
 :root[data-style="mindora"] .k .k-quick__chip.on { background: var(--k-accent); color: var(--k-accent-ink); border-color: transparent; }
 :root[data-style="mindora"] .k .add-row > .add-row-ic { border-radius: 50%; color: var(--k-accent); background: var(--m-glass-strong); border: 1px solid var(--m-edge); }
 :root[data-style="mindora"] .k .add-form ~ .k-add-sms { background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* --- Accounts, after the mockup (5.13) -----------------------------------
+ * The total on glass with what sits beside it as soft badges (owed in
+ * blush, put away in sky, loans plain); the accounts as rows on one glass
+ * card with round marks. */
+:root[data-style="mindora"] .acct-total .hero-figures { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+:root[data-style="mindora"] .acct-total .hero-figures > span { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 11px; border-radius: 999px; font: 500 12px var(--m-figure); color: var(--k-text); background: color-mix(in srgb, var(--k-surface) 70%, transparent); font-variant-numeric: tabular-nums; }
+:root[data-style="mindora"] .acct-total .hero-figures > span:nth-child(1) { background: color-mix(in srgb, var(--k-violet) 45%, transparent); }
+:root[data-style="mindora"] .acct-total .hero-figures > span:nth-child(2) { background: color-mix(in srgb, var(--k-magenta) 50%, transparent); }
+:root[data-style="mindora"] .acct-total .hero-figures .muted { color: var(--k-text-2); }
+:root[data-style="mindora"] .k .account-group { border-radius: 20px; padding: 4px 16px; }
+:root[data-style="mindora"] .k .account-row .k-brand { border-radius: 50%; }
+:root[data-style="mindora"] .k .account-balance { font-family: var(--m-figure); font-weight: 500; }
