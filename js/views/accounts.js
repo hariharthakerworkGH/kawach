@@ -12,7 +12,7 @@ import { ensureBusinessCategories, moneyProfile, activeSpace, accountInSpace } f
 import { detectTransfers } from '../transfers.js';
 import { icon } from '../icons.js';
 import { brandMark } from '../brand.js';
-import { allocationRing } from '../charts.js';
+import { allocationRing, tickGauge } from '../charts.js';
 import { appearance } from '../appearance.js';
 import { displayName } from './transactions.js';
 import { escapeHtml, escapeAttr, emptyState, hero, moneyTone, shapeLike } from '../ui.js';
@@ -722,9 +722,9 @@ function accountRow(account, { meta = '', value = '', tone = '', canOpen = false
   }
 
   const figure = `<span class="k-row__value account-balance ${tone}">${value}</span>`;
-  if (!canOpen) return `<div class="k-row account-row">${body}${figure}</div>`;
+  if (!canOpen) return `<div class="k-row account-row account-row--${account.type}">${body}${figure}</div>`;
   return `
-    <button type="button" class="k-row account-row account-open" data-id="${account.id}" aria-expanded="${open}">
+    <button type="button" class="k-row account-row account-open account-row--${account.type}" data-id="${account.id}" aria-expanded="${open}">
       ${body}${figure}
       <span class="account-row__chev" aria-hidden="true"></span>
     </button>`;
@@ -824,9 +824,8 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
         })}
         <div class="account-detail">
         ${
-          position.outstanding != null && paidOff != null
-            ? `<div class="k-meter account-meter"><div class="k-meter__fill" style="width:${Math.max(paidOff, 1)}%"></div></div>`
-            : ''
+          // CHANGED (5.2): the Charts style's tick gauge in place of the bar.
+          position.outstanding != null && paidOff != null ? tickGauge(paidOff, 'paid back') : ''
         }
         ${
           position.emi

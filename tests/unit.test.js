@@ -30,7 +30,7 @@ import { assignStyles } from '../js/category-style.js';
 import { searchWords, findCandidates } from '../js/category-match.js';
 import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
-import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, spendingPulse, cashRiver } from '../js/charts.js';
+import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, spendingPulse, cashRiver, tickGauge } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
 import { spentLine, spendingHero, monthWaves, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
 
@@ -1541,6 +1541,14 @@ test("History's day chart: what went out each day, moves between your own accoun
   ok(html.includes('data-day="2026-09-03"') && html.includes('₹600 out'), 'a day adds up all it paid out');
   ok(html.includes('Biggest day <strong>₹4,200</strong> on 25 Sep'), 'the biggest day is named, not the money moved to savings');
   equal(dayChart(rows.slice(3), '2026-09'), '', 'a month with nothing going out has no chart');
+});
+
+test('the tick gauge lights the ticks up to the share and says it', () => {
+  const lit = (g) => (g.match(/gauge-tick--lit/g) || []).length;
+  equal(lit(tickGauge(0, 'paid back')), 0, 'nothing paid back, nothing lit');
+  equal(lit(tickGauge(100, 'paid back')), 26, 'all paid back, every tick');
+  equal(lit(tickGauge(32, 'paid back')), 9, 'a third of the way, nine of twenty-six');
+  ok(tickGauge(32, 'paid back').includes('aria-label="32% paid back"'), 'and says it in words');
 });
 
 // --- From the owner's report of 1 Oct: what the Summary said, and was not true -----
