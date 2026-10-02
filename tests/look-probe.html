@@ -33,12 +33,12 @@
     daysIntoCycle: 14, daysToClose: 18, cycleStart: '2026-10-01', cycleKey: '2026-10-31', today: '2026-10-14',
     spendByDay: amts.map((a, i) => ({ date: `2026-10-${String(i + 1).padStart(2, '0')}`, amount: a * 100 })),
     spendDays: amts.map((a) => (run += a * 100)),
-    cards: [{ account: { label: 'Card 1' }, owed: 1245000, unpaid: 987000 }, { account: { label: 'Card 2' }, owed: 1101700, unpaid: 0 }],
+    cards: [{ account: { label: 'ICICI Amazon Pay', last4: '4321' }, owed: 1245000, unpaid: 987000 }, { account: { label: 'HDFC Millennia' }, owed: 1101700, unpaid: 0 }, { account: { label: 'Swiggy 9012' }, owed: 120000, unpaid: 0 }],
     totals: { owedCards: 2346700, unpaidBills: 987000 }, cardBills: [{ label: 'Card 1 bill', amount: 987000 }],
     reimbursable: { owed: 260400 },
     tracker: [
-      { label: 'Groceries', setAside: true, amount: 1200000, left: 800000, status: 'ok' },
-      { label: 'Fuel', setAside: true, amount: 800000, left: 650000, status: 'ok' },
+      { label: 'Groceries', setAside: true, amount: 1200000, used: 400000, left: 800000, status: 'ok' },
+      { label: 'Fuel', setAside: true, amount: 800000, used: 150000, left: 650000, status: 'ok' },
       { label: 'Internet', due: '2026-10-18', amount: 109900, left: 109900, status: 'due' },
       { label: 'Phone', due: '2026-10-24', amount: 49900, left: 49900, status: 'due' },
       { label: 'Rent', due: '2026-10-05', amount: 1800000, left: 1800000, status: 'late' },
@@ -47,11 +47,12 @@
   const style = root.dataset.style;
   const tops = { tactile: looks.tactileTop, peaks: looks.peaksTop, mindora: looks.mindoraTop };
   const status = spendingStatus(f);
+  const month = style === 'peaks' ? monthMountains(f, '<div class="pk-head"><span class="pk-lab">This month</span></div>') : monthWaves(f);
   document.getElementById('view-container').innerHTML = tops[style]
-    ? tops[style](f, status, style === 'peaks' ? monthMountains(f, '<div class="pk-head"><span class="pk-lab">Spent this month</span><span class="pk-n pk-n--s">22,232<sup>₹</sup></span></div>') : '')
+    ? tops[style](f, status, month)
     : hero({ label: 'Left to spend', period: '1 Oct to 31 Oct', amount: '₹9,268', status,
         tracking: { stats: [{ k: 'Spent', v: '₹22,232' }, { k: 'Budget', v: '₹31,500' }, { k: 'A day', v: '₹515' }],
-          rings: [{ value: 0.71, grad: 'spent', label: 'spent' }, { value: 0.45, grad: 'month', label: 'month gone' }] } }) + monthWaves(f) + weekPills(f);
+          rings: [{ value: 0.71, grad: 'spent', label: 'spent' }, { value: 0.45, grad: 'month', label: 'month gone' }, { value: 0.27, grad: 'aside', label: 'set aside used' }] } }) + month + weekPills(f) + looks.chartsComing(f);
 </script>
 </body>
 </html>

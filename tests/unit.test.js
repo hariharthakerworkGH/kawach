@@ -14,6 +14,7 @@ import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance, applyTheme } from '../js/appearance.js';
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
 import { mood, comingUp, keptBack, topFigures } from '../js/views/summary-looks.js';
+import { neighbour } from '../js/swipe.js';
 import { looksLikeCardPayment } from '../js/transfers.js';
 import { spendingMonthOf } from '../js/spending-month.js';
 import { parseAlert, splitAlerts, resolveAccount, findDigits } from '../js/alerts.js';
@@ -1516,7 +1517,7 @@ test('Summary waves and week: from the 1st to today, the biggest day marked, owe
   ok(week.includes('Owed on cards') && week.includes('₹11,500'), 'owed on cards: unpaid bills and new spending, as the row it replaces said');
   const peaks = monthMountains(f);
   ok(peaks.includes('mountains-card') && peaks.includes('₹5,000') && peaks.includes('₹4,000 on 3 Oct'), 'Peaks draws the same month as mountains, same figures');
-  ok(peaks.includes('₹1,000</b>an even day'), 'an even day of ₹31,000 over 31 days is ₹1,000');
+  ok(peaks.includes('₹4,000</b>at an even pace') && peaks.includes('₹1,000 a day'), 'the same key as the waves, and the dashed line says an even day, ₹1,000');
   equal((peaks.match(/mountains__rim/g) || []).length, 0, 'four days are a slope, nothing lit yet');
   const week2 = ['2026-10-05', '2026-10-06'].map((date, i) => ({ date, amount: [rupees(900), rupees(100)][i] }));
   const longer = monthMountains({ ...f, spendDays: [...f.spendDays, rupees(5900), rupees(6000)], spendByDay: [...f.spendByDay, ...week2] });
@@ -1524,6 +1525,13 @@ test('Summary waves and week: from the 1st to today, the biggest day marked, owe
   const noIds = (h) => h.replace(/mtn\d+/g, '');
   equal(noIds(peaks), noIds(monthMountains(f)), 'the same month draws the same range every time');
   equal(monthMountains({ ...f, spendDays: [rupees(500)], spendByDay: f.spendByDay.slice(0, 1) }), '', 'one day is not yet a range');
+});
+test('Swiping between tabs goes round and round in the order of the tab bar', () => {
+  equal(neighbour('summary', 1), 'add', 'left from Summary is Add');
+  equal(neighbour('transactions', 1), 'coach', 'History then Coach');
+  equal(neighbour('coach', 1), 'summary', 'past Coach comes Summary again');
+  equal(neighbour('summary', -1), 'coach', 'and before Summary, Coach');
+  equal(neighbour('settings', 1), null, 'a screen that is not a tab does not swipe');
 });
 test('Summary in each style: the mood of the month, what is coming up, what is kept back', () => {
   const base = { daysIntoCycle: 15, daysToClose: 16, level: 'ok', free: rupees(9000) };

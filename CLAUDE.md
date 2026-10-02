@@ -235,7 +235,12 @@ Summary's month: Peaks draws it as mountains (`monthMountains`), chosen in
 `monthWaves` by the style worn. Paint alone made the styles look alike, so
 since 5.9 each also lays out Summary's top half as its mockup does
 (`js/views/summary-looks.js`, same figures, own markup) and has its own tab
-bar and title; the other screens are still Charts' layout in their colours. Mindora (`css/style-mindora.css`, 5.8) is
+bar and title; the other screens are still Charts' layout in their colours.
+**Every style says exactly the same things** (the owner's rule, 5.10): only
+how they look may differ. The list is in summary-looks.js's header; a card
+in a chart is always named (`cardTag`: first word and last four digits).
+Settings and How it looks follow the style too. Tabs swipe left and right
+round and round (`js/swipe.js`, nav order). Mindora (`css/style-mindora.css`, 5.8) is
 glass over a ridge scene cut with clip-path, its own colouring light, so
 "Follow my phone" gives a style its own colouring only when that matches the
 phone's light or dark. dna.css's tab and shell rules carry an id (`:has(#view-
