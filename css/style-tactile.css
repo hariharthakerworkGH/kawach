@@ -281,3 +281,28 @@ button.tl-item { cursor: pointer; }
 :root[data-style="tactile"] .acct-total .hero-figures { width: 100%; box-sizing: border-box; justify-items: stretch; }
 :root[data-style="tactile"] .acct-total .hero-figures > span { width: 100%; }
 :root[data-style="tactile"] .acct-total .hero-figures { grid-template-columns: 1fr; }
+
+/* --- Plan, after the mockup (5.14) ---------------------------------------
+ * The budget on a raised card over an inset bar split into its parts
+ * (copper, amber, metal, green) with a legend; the month as the board's
+ * five-step process - glowing copper circles for what is paid, dim raised
+ * ones for what is to come, red for late; set-asides as thin inset bars. */
+.pl-top--tactile { padding: var(--k-5) var(--k-4) var(--k-4); border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
+.pl-seg { display: flex; gap: 3px; height: 20px; margin-top: 16px; padding: 4px; border-radius: 10px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+.pl-seg i { border-radius: 6px; min-width: 4px; }
+.pl-top--tactile .is-must { background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 8%), color-mix(in srgb, var(--k-accent), black 30%)); }
+.pl-top--tactile .is-flex { background: linear-gradient(180deg, var(--k-warning), color-mix(in srgb, var(--k-warning), black 32%)); }
+.pl-top--tactile .is-free { background: linear-gradient(180deg, #d9d2cb, #8e857e); }
+.pl-top--tactile .is-saved { background: linear-gradient(180deg, var(--k-positive), color-mix(in srgb, var(--k-positive), black 25%)); }
+.pl-month--tactile { padding: 14px 10px 12px; border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
+.pl-month--tactile .pl-step::after { background: color-mix(in srgb, var(--k-text) 12%, var(--k-bg)); }
+.pl-month--tactile .pl-step.is-paid::after { background: linear-gradient(90deg, var(--k-accent), var(--k-violet)); box-shadow: 0 0 8px color-mix(in srgb, var(--k-violet) 60%, transparent); }
+.pl-month--tactile .pl-step b { color: var(--k-text-2); background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 22%, transparent), 0 4px 8px rgb(0 0 0 / 0.5); }
+.pl-month--tactile .pl-step.is-paid b { color: #fff; background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--k-accent), white 18%), color-mix(in srgb, var(--k-accent), black 18%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--k-accent), 0 0 16px color-mix(in srgb, var(--k-violet) 55%, transparent); }
+.pl-month--tactile .pl-step.is-late b { color: #fff; background: radial-gradient(circle at 40% 30%, var(--k-negative), color-mix(in srgb, var(--k-negative), black 35%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--k-negative), 0 0 16px color-mix(in srgb, var(--k-negative) 55%, transparent); }
+.pl-month--tactile .pl-step.is-due b { color: var(--k-accent); }
+:root[data-style="tactile"] .k .plan-flex__track { height: 8px; border-radius: 4px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] .k .plan-flex__track i { border-radius: 4px; background: linear-gradient(90deg, var(--k-accent), var(--k-violet)); box-shadow: 0 0 6px color-mix(in srgb, var(--k-violet) 50%, transparent); }
+:root[data-style="tactile"] .k .plan-flex__row.is-warn .plan-flex__track i { background: linear-gradient(90deg, color-mix(in srgb, var(--k-warning), black 30%), var(--k-warning)); }
+:root[data-style="tactile"] .k .plan-flex__row.is-over .plan-flex__track i { background: linear-gradient(90deg, color-mix(in srgb, var(--k-negative), black 30%), var(--k-negative)); }
+.plan-month .pl-month--tactile { background: var(--t-well); box-shadow: var(--t-well-shadow); }

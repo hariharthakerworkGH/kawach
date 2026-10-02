@@ -15,6 +15,7 @@ import { CHOICES, appearance, setAppearance, applyTheme } from '../js/appearance
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
 import { mood, comingUp, keptBack, topFigures } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
+import { planParts } from '../js/views/plan-looks.js';
 import { looksLikeCardPayment } from '../js/transfers.js';
 import { spendingMonthOf } from '../js/spending-month.js';
 import { parseAlert, splitAlerts, resolveAccount, findDigits } from '../js/alerts.js';
@@ -1525,6 +1526,12 @@ test('Summary waves and week: from the 1st to today, the biggest day marked, owe
   const noIds = (h) => h.replace(/mtn\d+/g, '');
   equal(noIds(peaks), noIds(monthMountains(f)), 'the same month draws the same range every time');
   equal(monthMountains({ ...f, spendDays: [rupees(500)], spendByDay: f.spendByDay.slice(0, 1) }), '', 'one day is not yet a range');
+});
+test("Plan in every style: what comes in split four ways, the same figures Charts rings", () => {
+  const parts = planParts({ income: rupees(100000), must: rupees(50000), flex: rupees(20000), budget: rupees(25000), keep: rupees(5000) });
+  equal(parts.map((p) => p.id).join(','), 'must,flex,free,saved', 'must go out, can flex, free, saved, in that order');
+  equal(parts.map((p) => Math.round(p.share * 100)).join(','), '50,20,25,5', 'each a share of what comes in');
+  equal(planParts({ income: rupees(100000), must: rupees(90000), flex: rupees(20000), budget: -rupees(15000), keep: rupees(5000) })[2].amount, 0, 'a budget below nothing is no free money, not a negative slice');
 });
 test('Swiping between tabs goes round and round in the order of the tab bar', () => {
   equal(neighbour('summary', 1), 'add', 'left from Summary is Add');
