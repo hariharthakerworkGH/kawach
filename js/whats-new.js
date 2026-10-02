@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.0',
+    items: [
+      {
+        icon: 'summary',
+        title: "Summary in the new Charts style",
+        text: "Summary is the first screen in the Charts style: what is left, with spent, budget and a day beside it and three rings; the month as waves against an even pace, your biggest day marked; this week and each card's dues as columns. The other screens follow.",
+        guide: [{ view: 'summary', target: '.waves-card', text: "Spent so far against an even pace, your biggest day marked." }],
+      },
+    ],
+  },
+  {
     version: '4.29',
     items: [
       {

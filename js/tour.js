@@ -21,6 +21,10 @@ export function playTour() {
       <button type="button" class="icon-btn tour-close" aria-label="Close">${icon('close')}</button>
       <video class="tour-video" src="${TOUR_VIDEO}" poster="${TOUR_POSTER}" controls autoplay playsinline preload="auto"></video>
       <p class="muted-note tour-offline" hidden>The tour needs an internet connection.</p>
+      <!-- The film shows what each screen does, drawn in the look Kawach had
+           when it was made; the screens now come in several styles (5.0), and
+           the film is not re-made for each (owner, 2 Oct 2026). -->
+      <p class="muted-note tour-look">Your screens may look different. Pick a style you like in Settings.</p>
     </div>
   `;
   const video = backdrop.querySelector('video');

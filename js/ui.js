@@ -35,7 +35,7 @@ export function escapeAttr(str) {
  *           thick arc runs ahead of the thin one, spending is ahead of the
  *           month. Both are fractions; spent may pass 1.
  */
-export function hero({ label, period = '', amount, negative = false, level = 'ok', meter = null, figures = [], status = '', chart = '', extra = '', ring = null }) {
+export function hero({ label, period = '', amount, negative = false, level = 'ok', meter = null, figures = [], status = '', chart = '', extra = '', ring = null, tracking = null }) {
   const top = period
     ? `<div class="hero-top"><span class="hero-label">${label}</span><span class="hero-label">${period}</span></div>`
     : `<p class="hero-label">${label}</p>`;
@@ -44,6 +44,35 @@ export function hero({ label, period = '', amount, negative = false, level = 'ok
   // screen reader reads the label and skips the digits underneath). If the
   // animation never runs, the same digits are already there to read.
   const figure = `<p class="hero-amount ${negative ? 'negative' : ''}${ring && amount.length > 8 ? ' hero-amount--long' : ''}" role="img" aria-label="${escapeAttr(`${label}: ${amount}`)}"><span aria-hidden="true" data-count="${escapeAttr(amount)}">${amount}</span></p>`;
+  // NEW (5.0, the Charts style): the tracking card. The figure, three figures
+  // in a row under it, and up to three gradient rings - each a share of
+  // something, said in its middle. The first ring's colour is about the
+  // budget alone, amber from 75% and red from 90%, as the ring before it was.
+  if (tracking) {
+    const clamp = (v) => Math.max(0, Math.min(1, v || 0));
+    const rings = tracking.rings
+      .map((r, i) => {
+        const v = clamp(r.value);
+        const tone = i === 0 ? (r.value >= 0.9 ? ' tracking-ring--over' : r.value >= 0.75 ? ' tracking-ring--warn' : '') : '';
+        return `<figure class="tracking-ring tracking-ring--${r.grad}${tone}">
+          <svg viewBox="0 0 110 110" aria-hidden="true" focusable="false">
+            <defs><linearGradient id="tg-${r.grad}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--tg-a)"/><stop offset="1" style="stop-color:var(--tg-b)"/></linearGradient></defs>
+            <circle class="tracking-ring__track" cx="55" cy="55" r="42"/>
+            ${v > 0.004 ? `<circle class="tracking-ring__arc" style="stroke:url(#tg-${r.grad})" cx="55" cy="55" r="42" pathLength="100" stroke-dasharray="${(v * 100).toFixed(1)} 100" transform="rotate(-90 55 55)"/>` : ''}
+          </svg>
+          <figcaption><b>${Math.round(Math.max(0, r.value || 0) * 100)}%</b><small>${r.label}</small></figcaption>
+        </figure>`;
+      })
+      .join('');
+    return `<div class="hero hero--tracking level-${level}">
+      ${top}
+      <div class="tracking-fig">${figure}${tracking.under ? `<span class="tracking-under">${tracking.under}</span>` : ''}</div>
+      <div class="tracking-stats">${tracking.stats.map((st) => `<div><small>${st.k}</small><b>${st.v}</b></div>`).join('')}</div>
+      <div class="tracking-rings">${rings}</div>
+      ${status ? `<p class="hero-status level-${level}">${status}</p>` : ''}
+      ${extra}
+    </div>`;
+  }
   if (ring) {
     const pct = (v) => (Math.max(0, Math.min(1, v || 0)) * 100).toFixed(1);
     // A zero-length dash with round ends is still drawn as a dot, so an arc

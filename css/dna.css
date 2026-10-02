@@ -3293,3 +3293,96 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k.settings-k .settings-fold > summary::after { margin-left: 0; }
 .k.settings-k .settings-foot > * { display: inline-flex; align-items: center; min-height: var(--k-tap); }
 .k.settings-k .settings-foot a.link-btn { text-decoration: none; }
+
+/* ==== 5.0 · THE CHARTS STYLE ==============================================
+ * The default style (decided 2 Oct 2026). Every new feature is built here
+ * first; Tactile, Peaks and Mindora come later as layers over it, falling
+ * back to this wherever they have not restyled something yet. Colours come
+ * from the colouring (css/looks.css): the three gradients are --k-grad-1
+ * (accent to second accent), -2 (third to fourth) and -3 (warning to accent).
+ */
+
+/* The tracking card: the figure, three figures in a row, three rings. */
+.hero.hero--tracking { padding: var(--k-5) var(--k-5) var(--k-4); }
+.hero--tracking .tracking-fig { display: flex; align-items: baseline; gap: var(--k-3); flex-wrap: wrap; margin-top: var(--k-3); }
+.hero--tracking .hero-amount { font-weight: 300; letter-spacing: -0.035em; margin: 0; }
+.hero--tracking .tracking-under { font-size: var(--k-label); color: var(--k-text-3); }
+.hero--tracking .tracking-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--k-2); margin-top: var(--k-4); }
+.hero--tracking .tracking-stats small { display: block; font-size: var(--k-caption); color: var(--k-text-3); letter-spacing: var(--k-track-caption); }
+.hero--tracking .tracking-stats b { display: block; margin-top: 4px; font-size: var(--k-value-sm); font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; }
+.hero--tracking .tracking-rings { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--k-2); margin-top: var(--k-4); }
+.hero--tracking .tracking-rings:has(> :nth-child(2):last-child) { grid-template-columns: repeat(2, 1fr); padding: 0 12%; }
+.tracking-ring { position: relative; margin: 0; }
+.tracking-ring svg { display: block; width: 100%; }
+.tracking-ring__track { fill: none; stroke: color-mix(in oklch, var(--k-text) 7%, transparent); stroke-width: 12; }
+.tracking-ring__arc { fill: none; stroke-width: 12; stroke-linecap: round; }
+.tracking-ring--spent { --tg-a: var(--k-grad-1a); --tg-b: var(--k-grad-1b); }
+.tracking-ring--month { --tg-a: var(--k-grad-2a); --tg-b: var(--k-grad-2b); }
+.tracking-ring--aside { --tg-a: var(--k-grad-3a); --tg-b: var(--k-grad-3b); }
+.tracking-ring--warn .tracking-ring__arc { stroke: var(--k-warning) !important; }
+.tracking-ring--over .tracking-ring__arc { stroke: var(--k-negative) !important; }
+.tracking-ring figcaption { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.tracking-ring figcaption b { font-size: 1.05rem; font-weight: 300; font-variant-numeric: tabular-nums; }
+.tracking-ring figcaption small { font-size: 0.56rem; color: var(--k-text-3); line-height: 1.2; max-width: 7ch; margin: 2px auto 0; }
+.is-arriving .tracking-ring__arc { animation: hero-ring-in 1100ms var(--k-ease) both; }
+.is-arriving .tracking-ring:nth-child(2) .tracking-ring__arc { animation-delay: 120ms; }
+.is-arriving .tracking-ring:nth-child(3) .tracking-ring__arc { animation-delay: 240ms; }
+
+/* The month as layered waves, with the biggest day marked. */
+.waves-card { position: relative; padding: var(--k-3) 0 var(--k-4); overflow: hidden; }
+.waves { display: block; width: 100%; height: auto; }
+.waves__fill { stroke: none; }
+.waves__line { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.waves--spent.waves__fill { fill: color-mix(in oklch, var(--k-grad-2a) 22%, transparent); }
+.waves--spent.waves__line { stroke: var(--k-grad-2a); filter: drop-shadow(0 0 4px color-mix(in oklch, var(--k-grad-2a) 60%, transparent)); }
+.waves--pace.waves__fill { fill: color-mix(in oklch, var(--k-grad-3a) 12%, transparent); }
+.waves--pace.waves__line { stroke: var(--k-grad-3a); stroke-dasharray: 5 5; }
+.waves--day.waves__fill { fill: color-mix(in oklch, var(--k-grad-1b) 30%, transparent); }
+.waves--day.waves__line { stroke: var(--k-grad-1a); }
+.waves__dot { fill: var(--k-grad-1a); stroke: var(--k-surface); stroke-width: 2; }
+.waves__tip rect { fill: var(--k-grad-1a); }
+.waves__tip text { fill: var(--k-accent-ink); font-size: 10.5px; font-weight: var(--k-w-strong); font-family: var(--k-font); }
+.waves__key { display: grid; gap: 6px; padding: var(--k-2) var(--k-4) 0; font-size: var(--k-label); color: var(--k-text-3); }
+.waves__k { display: grid; grid-template-columns: 14px 104px 1fr; align-items: center; }
+.waves__k::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid currentColor; }
+.waves__k b { color: var(--k-text); font-weight: var(--k-w-label); font-variant-numeric: tabular-nums; }
+.waves__k.waves--spent::before { color: var(--k-grad-2a); }
+.waves__k.waves--pace::before { color: var(--k-grad-3a); }
+.waves__k.waves--day::before { color: var(--k-grad-1a); }
+
+/* Pill columns: this week with today lit, what is owed on each card. */
+.pills-card { display: grid; gap: var(--k-2); padding: var(--k-2); }
+.pills-row { display: flex; align-items: center; justify-content: space-between; gap: var(--k-3); padding: var(--k-3) var(--k-4); border-radius: var(--k-r-md); background: color-mix(in oklch, var(--k-text) 3%, transparent); }
+.pills-row small { display: block; font-size: var(--k-label); color: var(--k-text-3); }
+.pills-row b { display: block; margin-top: 4px; font-size: 1.7rem; font-weight: 300; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.pill-cols { display: flex; gap: 6px; height: 64px; flex: none; }
+.pill-col { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; width: 18px; }
+.pill-col i { display: block; width: 100%; border-radius: 6px; background: color-mix(in oklch, var(--k-grad-3a) 18%, var(--k-surface)); }
+.pills-row--cards .pill-col i { background: color-mix(in oklch, var(--k-grad-1b) 22%, var(--k-surface)); }
+.pill-col--lit i { background: linear-gradient(180deg, var(--k-grad-3a), var(--k-grad-3b)); box-shadow: 0 0 12px color-mix(in oklch, var(--k-grad-3a) 45%, transparent); }
+.pills-row--cards .pill-col--lit i { background: linear-gradient(180deg, var(--k-grad-1a), var(--k-grad-1b)); box-shadow: 0 0 12px color-mix(in oklch, var(--k-grad-1a) 45%, transparent); }
+.pill-col small { font-size: 0.56rem; color: var(--k-text-3); white-space: nowrap; overflow: hidden; max-width: 30px; }
+.pills-row--cards .pill-cols { height: 72px; }
+.pills-row--cards .pill-col { width: 26px; }
+.is-arriving .pill-col i { animation: grow-up 600ms var(--k-ease) both; transform-origin: bottom; }
+
+/* The strip: the figures under the cards, a coloured line under each. */
+.summary-rows.summary-strip { display: grid; grid-template-columns: 1fr 1fr; gap: var(--k-4) var(--k-3); padding: var(--k-4); }
+.summary-strip > *, .summary-strip .summary-owed > * { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 0 0 var(--k-2); border: 0; text-align: left; }
+.summary-strip .summary-owed { display: contents; }
+.summary-strip .summary-row__k { font-size: var(--k-caption); letter-spacing: 0.08em; text-transform: uppercase; color: var(--k-text-2); }
+.summary-strip .summary-row__k small { text-transform: none; letter-spacing: 0; }
+.summary-strip .summary-row__v { font-size: 1.2rem; font-weight: 400; font-variant-numeric: tabular-nums; }
+.summary-strip > *::after, .summary-strip .summary-owed > *::after { content: ""; align-self: stretch; height: 3px; border-radius: 2px; margin-top: 4px; background: var(--k-grad-3a); }
+.summary-strip > *:nth-child(2)::after, .summary-strip .summary-owed > *:nth-child(1)::after { background: var(--k-grad-1a); }
+.summary-strip .summary-owed > *:nth-child(2)::after { background: var(--k-grad-2a); }
+
+/* The strip's tappable "Kept back" sheds its old button look, and the
+   wrapper that holds the owed figures draws no line of its own. */
+.summary-strip > button.summary-row { width: 100%; margin: 0; background: none; box-shadow: none; border-radius: 0; color: inherit; font: inherit; cursor: pointer; }
+.summary-strip > button.summary-row .summary-row__k, .summary-strip > button.summary-row .summary-row__v { text-align: left; }
+.summary-strip > .summary-owed::after { content: none; }
+/* The strip's rows are tiles, whatever row style they had before. */
+.k .summary-rows.summary-strip .summary-row { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 4px; padding: 0 0 var(--k-2); min-height: 0; }
+.k .summary-rows.summary-strip .summary-row__k { display: block; }
+.k .summary-rows.summary-strip .summary-row__k small { display: block; margin-top: 2px; }
