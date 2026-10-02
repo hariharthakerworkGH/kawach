@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.8',
+    items: [
+      {
+        icon: 'eye',
+        title: "The fourth style: Mindora",
+        text: "In Settings, How it looks, you can now choose Mindora: frosted glass over misty hills, sage buttons and a floating tab bar, with its own light mist colours. All four styles are now ready, in every colouring.",
+        guide: [{ view: 'appearance', target: '.look-styles', text: "Tap Mindora to try the fourth style." }],
+      },
+    ],
+  },
+  {
     version: '5.7',
     items: [
       {

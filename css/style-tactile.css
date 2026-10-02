@@ -117,7 +117,7 @@
 :root[data-style="tactile"] .k .coach-share { background: var(--t-well); box-shadow: var(--t-well-shadow); }
 
 /* The tab bar is a well; the current tab is raised in the accent.
- * #tabs outweighs the id in dna.css's own tab rule (a :has() here stops SVG gradients painting). */
+ * #tabs outweighs the id in dna.css's own tab rule (a :has() would work too, but costs a style recalculation on every change). */
 :root[data-style="tactile"] .bottom-nav { background: var(--t-well); border-top: 0; box-shadow: var(--t-well-shadow); }
 :root[data-style="tactile"] #tabs .nav-btn.active {
   color: var(--k-accent-ink);

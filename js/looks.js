@@ -16,7 +16,7 @@ export const STYLES = [
   { id: 'charts', name: 'Charts', ready: true, note: 'Gradient rings, waves and columns.' },
   { id: 'tactile', name: 'Tactile', ready: true, note: 'Raised cards, pressed-in fields, metal switches.' },
   { id: 'peaks', name: 'Peaks', ready: true, note: 'A pale panel up top, the month as mountains.' },
-  { id: 'mindora', name: 'Mindora', ready: false },
+  { id: 'mindora', name: 'Mindora', ready: true, note: 'Frosted glass over a misty ridge, sage and serif.' },
 ];
 
 // Ground, accent, second accent, money in: the four dots a swatch shows.
@@ -24,6 +24,7 @@ export const COLOURINGS = [
   { id: 'charts', name: 'Charts', mode: 'dark', bg: '#050505', dots: ['#171717', '#f47ebc', '#7c62f2', '#7efdb4'] },
   { id: 'tactile', name: 'Tactile copper', mode: 'dark', bg: '#222125', dots: ['#38373c', '#b0552f', '#e2906a', '#d9d2cb'] },
   { id: 'peaks', name: 'Peaks slate', mode: 'dark', bg: '#1c2328', dots: ['#eef6f6', '#fd8242', '#f6b74c', '#1efae0'] },
+  { id: 'mindora', name: 'Mindora mist', mode: 'light', bg: '#dfe6e7', dots: ['#f1f5f4', '#4e786c', '#e8aeb7', '#a7c7e7'] },
   { id: 'ember-dusk', name: 'Ember dusk', mode: 'dark', bg: '#101c30', dots: ['#143041', '#e2773a', '#ffcb68', '#5fb3a8'] },
   { id: 'strawberry-night', name: 'Strawberry night', mode: 'dark', bg: '#142030', dots: ['#1e3442', '#ff5c8d', '#a83a78', '#85a3b2'] },
   { id: 'flame-light', name: 'Burning flame, light', mode: 'light', bg: '#eee9df', dots: ['#f8f5ef', '#a35139', '#ffb162', '#2c3b4d'] },
@@ -32,12 +33,13 @@ export const COLOURINGS = [
   { id: 'atelier', name: 'Atelier', mode: 'dark', bg: '#222326', dots: ['#2e3033', '#c25a36', '#ccac8a', '#8a8350'] },
 ];
 
-// "Follow my phone": the style's own colours when the phone is dark (each
-// style brings a colouring of its own), burning flame light when it is light.
+// "Follow my phone": the style's own colouring when it is as light or dark as
+// the phone (each style brings one), otherwise Charts on a dark phone and
+// burning flame light on a light one. Mindora's own colouring is light.
 export const AUTO = { dark: 'charts', light: 'flame-light' };
-const OWN = { charts: 'charts', tactile: 'tactile', peaks: 'peaks' };
+const OWN = { charts: 'charts', tactile: 'tactile', peaks: 'peaks', mindora: 'mindora' };
 
-/* The colouring a style wears by its own choice: 'Follow my phone' when dark. */
+/* The colouring a style brings with it. */
 export const ownColouring = (style) => OWN[style] || AUTO.dark;
 
 const byId = new Map(COLOURINGS.map((c) => [c.id, c]));
@@ -45,7 +47,8 @@ const byId = new Map(COLOURINGS.map((c) => [c.id, c]));
 /* The colouring actually worn for a choice ('auto' or an id). */
 export function colouringFor(choice, prefersLight, style = 'charts') {
   if (byId.has(choice)) return byId.get(choice);
-  return byId.get(prefersLight ? AUTO.light : OWN[style] || AUTO.dark);
+  const own = byId.get(ownColouring(style));
+  return (own.mode === 'light') === Boolean(prefersLight) ? own : byId.get(prefersLight ? AUTO.light : AUTO.dark);
 }
 
 /* The style worn: one that is ready, or Charts. */
