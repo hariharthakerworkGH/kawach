@@ -23,8 +23,29 @@ function shiftMonthKey(key, delta) {
   return monthKeyOf(d);
 }
 
+// Salary paid at the end of a month is the next month's money (5.22): it
+// lands on the 30th and is lived on through the month after, so counting it
+// where it landed made one month look rich and the next look like a loss.
+// A payment carries the month it counts for (`countsFor`) once you have said
+// so; History asks the first time and, after a yes, files each salary that
+// way by itself. Without it, a payment counts in the month of its date.
+export const countsFor = (t) => t.countsFor || t.date.slice(0, 7);
+export const nextMonthKey = (key) => shiftMonthKey(key, 1);
+
+// A credit that looks like the salary arriving early for next month: into a
+// home bank account you spend from, at least half the monthly income, in
+// the last week of its month, and not yet given a month either way.
+export function salaryLike(t, account, income) {
+  if (!income || t.countsFor || t.direction !== 'credit' || t.isTransfer || t.personId || t.isSettlement) return false;
+  if (!account || account.type !== 'bank' || account.business || account.spending === false) return false;
+  if (t.amount < income / 2) return false;
+  const [y, m, d] = t.date.split('-').map(Number);
+  return d > new Date(y, m, 0).getDate() - 7;
+}
+
 // The month a single transaction counts towards.
 export function spendingMonthOf(txn, account, cycleAware = true) {
+  if (txn.countsFor) return txn.countsFor;
   const base = monthKeyOf(txn.date);
   if (!cycleAware) return base;
   if (!account || account.type !== 'card' || !account.billingCycleDay) return base;
