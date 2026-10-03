@@ -133,6 +133,11 @@ Periods:
   filed that way (`countsFor` on the payment), and Edit can switch any one.
   The set-day commitments that salary paid on salary day go with it
   (`salaryDayPayments`, js/commitments.js): the budget's own rule.
+- In and Out (History, its six months, Summary's In/Out/Net) are what
+  reached or left the bank (`cashSide`, js/transfers.js): a card bill counts
+  the day it is paid, a purchase on the card is not added again. Left to
+  spend is not this: it counts a purchase the day it is swiped, and a card
+  bill is never spending there.
 - The bank balance never raises the budget. It is a separate check that only warns.
 - A commitment is one of two things, asked once on Plan: **must be paid** (rent,
   an EMI, a bill: it has a day and can be late) or **set aside** (groceries,

@@ -11,7 +11,7 @@ import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
 import { isLiveCommitment, byYourOrder, salaryDayPayments } from '../commitments.js';
 import { commitmentField, cardPaymentField, isMonthEnd } from './add.js';
-import { looksLikeCardPayment } from '../transfers.js';
+import { looksLikeCardPayment, cashSide } from '../transfers.js';
 import { isoLocal } from '../frequency.js';
 import { icon } from '../icons.js';
 import { categoriesFor, activeSpace, accountInSpace, isBusinessAccount } from '../business.js';
@@ -111,7 +111,7 @@ export async function render(container, params = {}) {
       <div class="hero-top"><span class="hero-label">Net this month</span><span class="hero-label" id="hist-period"></span></div>
       <p class="hero-amount" id="hist-net">&nbsp;</p>
       <p class="hero-status" id="txn-count"></p>
-      ${sixMonthCharts(lastSixMonths(transactions), appearance('history'))}
+      ${sixMonthCharts(lastSixMonths(transactions, accounts), appearance('history'))}
     </section>
     <div class="hero-under" id="hist-stats"></div>
     <div id="hist-days"></div>
@@ -401,10 +401,19 @@ function secondOfDay(t) {
 }
 
 // Money in and out, leaving out money moved between your own accounts.
+// In or out for this screen: what left or reached the bank (cashSide). With
+// one card picked in the account filter, that card's own purchases and
+// refunds instead, or a card would always read nothing.
+function sideOf(t) {
+  const byId = (id) => cache.accounts.find((a) => a.id === id);
+  const picked = byId(filters.accountId);
+  if (picked && picked.type === 'card') return t.isTransfer ? null : t.direction === 'credit' ? 'in' : 'out';
+  return cashSide(t, byId(t.accountId));
+}
+
 function totals(rows) {
-  const out = rows.filter((t) => t.direction === 'debit' && !t.isTransfer).reduce((s, t) => s + t.amount, 0);
-  const inAmt = rows.filter((t) => t.direction === 'credit' && !t.isTransfer).reduce((s, t) => s + t.amount, 0);
-  return { out, in: inAmt };
+  const sum = (side) => rows.filter((t) => sideOf(t) === side).reduce((s, t) => s + t.amount, 0);
+  return { out: sum('out'), in: sum('in') };
 }
 
 function renderList(container) {
@@ -505,7 +514,8 @@ function groupTemplate(rows, across) {
       month = day.slice(0, 7);
       html += `<h3 class="hist-month-head">${formatMonthYear(day)}</h3>`;
     }
-    const net = list.filter((t) => !t.isTransfer).reduce((s, t) => s + (t.direction === 'credit' ? t.amount : -t.amount), 0);
+    // The day's figure by the same rule as the month's (sideOf).
+    const net = list.reduce((s, t) => s + (sideOf(t) === 'in' ? t.amount : sideOf(t) === 'out' ? -t.amount : 0), 0);
     html += `
       <div class="hist-day" data-day="${day}">
         <div class="hist-day-head"><span>${dayLabel(day)}</span>${net ? `<span class="${net > 0 ? 'in' : 'out'}">${net > 0 ? '+' : '−'}${formatRupees(Math.abs(net))}</span>` : ''}</div>
@@ -524,7 +534,7 @@ export function dayChart(rows, month) {
   const days = new Date(y, m, 0).getDate();
   const out = new Array(days).fill(0);
   for (const t of rows) {
-    if (t.direction !== 'debit' || t.isTransfer || t.date.slice(0, 7) !== month) continue;
+    if (sideOf(t) !== 'out' || t.date.slice(0, 7) !== month) continue;
     out[Number(t.date.slice(8, 10)) - 1] += t.amount;
   }
   const top = Math.max(...out);
@@ -606,7 +616,8 @@ function subHtml(t) {
       : t.direction === 'credit' && t.isSettlement
         ? '<span class="hist-tag hist-tag--in">Paid back</span>'
         : '';
-  const text = [account ? escapeHtml(account.label) : '', t.isTransfer ? 'moved' : '', isSplit(t) ? 'split' : ''].filter(Boolean).join(' · ');
+  const bill = cardBill(t);
+  const text = [account ? escapeHtml(account.label) : '', bill ? 'card bill' : t.isTransfer ? 'moved' : '', isSplit(t) ? 'split' : ''].filter(Boolean).join(' · ');
   // With a tag, the words go in their own box so that on a narrow screen it is
   // the account name that is cut short, never the tag.
   return workTag ? `<span class="hist-sub-text">${text}</span>${workTag}` : text;
@@ -672,7 +683,7 @@ function expandedTemplate(t) {
       ${personField(t)}
       <div class="hist-actions">
         <button type="button" class="link-btn txn-split-btn">${split ? 'Edit split' : 'Split'}</button>
-        <button type="button" class="link-btn review-transfer-toggle">${t.isTransfer ? 'Counts as spending' : 'Moved, not spent'}</button>
+        ${cardBill(t) ? '' : `<button type="button" class="link-btn review-transfer-toggle">${t.isTransfer ? 'Counts as spending' : 'Moved, not spent'}</button>`}
         <button type="button" class="link-btn danger txn-delete">Delete</button>
       </div>
     </div>
@@ -693,6 +704,13 @@ function workFlagField(t) {
       <input type="checkbox" class="rv-field" data-field="${field}" ${t[field] ? 'checked' : ''}>
       <span>${debit ? 'Reimbursable (Work)' : 'Settles a reimbursement'}</span>
     </label>`;
+}
+
+// A card bill paid from the bank: out the day it is paid (cashSide), so
+// "Moved, not spent" has nothing to change on it.
+function cardBill(t) {
+  const account = cache.accounts.find((a) => a.id === t.accountId);
+  return Boolean(account && account.type !== 'card' && t.direction === 'debit' && (t.paysCardId || looksLikeCardPayment(t, 'bank')));
 }
 
 // NEW (5.22): salary at the end of a month. History asks once, the first time
@@ -1217,18 +1235,16 @@ export function sixMonthCharts(months, look = 'both') {
     : river;
 }
 
-export function lastSixMonths(transactions) {
+export function lastSixMonths(transactions, accounts = []) {
+  const byId = new Map(accounts.map((a) => [a.id, a]));
   const now = new Date();
   const months = [];
   for (let back = 5; back >= 0; back -= 1) {
     const d = new Date(now.getFullYear(), now.getMonth() - back, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const rows = transactions.filter((t) => !t.isTransfer && countsFor(t) === key);
-    months.push({
-      label: d.toLocaleDateString('en-IN', { month: 'short' }),
-      in: rows.filter((t) => t.direction === 'credit').reduce((s, t) => s + t.amount, 0),
-      out: rows.filter((t) => t.direction === 'debit').reduce((s, t) => s + t.amount, 0),
-    });
+    const rows = transactions.filter((t) => countsFor(t) === key);
+    const sum = (side) => rows.filter((t) => cashSide(t, byId.get(t.accountId)) === side).reduce((s, t) => s + t.amount, 0);
+    months.push({ label: d.toLocaleDateString('en-IN', { month: 'short' }), in: sum('in'), out: sum('out') });
   }
   return months;
 }

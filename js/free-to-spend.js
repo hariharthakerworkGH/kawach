@@ -696,7 +696,9 @@ export async function computeFreeToSpend(now = new Date()) {
   // what commitments are matched against as well as out of spending.
   // Money lent or borrowed is never a commitment either, and is counted by
   // its own rule below.
-  const bankPool = transactions.filter((t) => holdingIds.has(t.accountId) && !looksLikeCardPayment(t, 'bank') && !isWorkCost(t) && !isPersonMoney(t));
+  // A card bill is never spending here either, even one switched to "counts as
+  // spending" in History: the purchases it pays were counted when swiped.
+  const bankPool = transactions.filter((t) => holdingIds.has(t.accountId) && !looksLikeCardPayment(t, 'bank') && !t.paysCardId && !isWorkCost(t) && !isPersonMoney(t));
   for (const b of budgetItems) {
     // Same rule as above for what has already been paid: an allowance is
     // drawn down by any card, a named bill only by its own.

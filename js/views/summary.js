@@ -29,6 +29,7 @@ import { incomeWords, businesses, activeSpace, setCurrentSpace, accountInSpace, 
 import { taxDates, renews, renewalsAhead, renewalAfter } from '../calendar.js';
 import { escapeHtml, escapeAttr, sectionHead, pill, hero, panel } from '../ui.js';
 import { lateBack, reminderText, shareReminder } from '../people.js';
+import { cashSide } from '../transfers.js';
 
 let currentRange = 'this-month';
 
@@ -1946,14 +1947,28 @@ async function renderContent(container) {
       : transactions.filter((t) => t.date >= from && t.date <= to)
   ).filter((t) => !t.isTransfer && accountInSpace(space)(byAccountId.get(t.accountId) || {}));
 
-  let totalIn = 0;
+  // In, Out and Net are what reached or left the bank (cashSide): the card
+  // bill counts when it is paid, a purchase on the card does not count again.
+  // The categories below are the purchases themselves, which is where the
+  // money went.
+  let cashIn = 0;
+  let cashOut = 0;
+  for (const t of monthKey
+    ? transactions.filter((t) => spendingMonthOf(t, byAccountId.get(t.accountId), false) === monthKey)
+    : transactions.filter((t) => t.date >= from && t.date <= to)) {
+    const account = byAccountId.get(t.accountId);
+    if (!accountInSpace(space)(account || {})) continue;
+    const side = cashSide(t, account);
+    if (side === 'in') cashIn += t.amount;
+    else if (side === 'out') cashOut += t.amount;
+  }
+
   let totalOut = 0;
   const byCategory = new Map();
   const byAccount = new Map();
 
   for (const t of inRange) {
-    if (t.direction === 'credit') totalIn += t.amount;
-    else totalOut += t.amount;
+    if (t.direction === 'debit') totalOut += t.amount;
 
     // Split-aware: one transaction can land in several categories.
     for (const slice of categorySlices(t)) {
@@ -2005,9 +2020,9 @@ async function renderContent(container) {
   }
   content.innerHTML = `
     <div class="totals-card in-out">
-      <div><span class="hero-label">In</span><p class="in">+${formatRupees(totalIn)}</p></div>
-      <div><span class="hero-label">Out</span><p class="out">−${formatRupees(totalOut)}</p></div>
-      <div><span class="hero-label">Net</span><p>${formatRupees(totalIn - totalOut)}</p></div>
+      <div><span class="hero-label">In</span><p class="in">+${formatRupees(cashIn)}</p></div>
+      <div><span class="hero-label">Out</span><p class="out">−${formatRupees(cashOut)}</p></div>
+      <div><span class="hero-label">Net</span><p>${formatRupees(cashIn - cashOut)}</p></div>
     </div>
     ${comparisonHtml}
     <details class="section-fold">
