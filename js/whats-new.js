@@ -12,6 +12,23 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.21',
+    items: [
+      {
+        icon: 'clock',
+        title: "Renewal dates",
+        text: "Insurance and other costs paid every 3, 6 or 12 months now take the date they are next due. Plan lists them by date, Summary reminds you a week before, and Renewed moves the date on. Bill reminders send them once, a week ahead, instead of every month.",
+        guide: [{ view: 'plan', target: '.plan-common', text: "Add a yearly cost like insurance with its next date." }],
+      },
+      {
+        icon: 'file',
+        title: "For your CA",
+        text: "In Settings, choose a month or a financial year and save a spreadsheet of every payment, or a PDF with totals by category and your loan interest and principal. It is not locked, so share it only with your CA.",
+        guide: [{ view: 'settings', target: '.ca-card', text: "Save a year's payments for your CA here." }],
+      },
+    ],
+  },
+  {
     version: '5.20',
     items: [
       {

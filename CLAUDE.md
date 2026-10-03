@@ -64,7 +64,9 @@ owner's own). `moneyProfile()` says who someone is, and screens show only
 what fits: PF for salaried people, business things for those with a business.
 
 `js/calendar.js` holds the costs Indian homes and shops usually pay (tapped on
-Plan, never with a guessed amount) and the tax dates worth knowing (advance
+Plan, never with a guessed amount), renewals (a quarterly, half-yearly or
+yearly cost carries `renewsOn`, its date; the budget still sets a slice aside
+each month) and the tax dates worth knowing (advance
 tax and the return for business income, GST when the business is marked
 registered) - dates only, Kawach never files or computes tax. `js/goals.js`
 holds goals: an amount, a month, and the savings pots it is counted in, with
@@ -178,6 +180,10 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   Sync goes through a file in the user's Google Drive (`kawach-sync.json`) or
   a GitHub gist; the Google pass lasts an hour, and when it has run out as the
   app opens, app.js renews it once, silently (prompt=none).
+- `js/ca-export.js` "For your CA" in Settings: a month or a financial year
+  (April to March) as a spreadsheet of every payment and a report printed to
+  PDF (totals by space and category, loan interest and principal). Not
+  encrypted, and the screen says so.
 - `js/views/*` one file per screen. `js/app.js` routes between them. Back, one
   press at a time: a screen's `onBack()` closes what is open on it; then to the
   top of the screen; then a tab goes to Summary and a screen opened from

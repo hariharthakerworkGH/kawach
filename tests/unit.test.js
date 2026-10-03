@@ -17,6 +17,8 @@ import { mood, comingUp, keptBack, topFigures } from '../js/views/summary-looks.
 import { neighbour } from '../js/swipe.js';
 import { termFor } from '../js/explain.js';
 import { peopleStanding, personSpendEffects, lateBack, reminderText } from '../js/people.js';
+import { nextRenewal, renewalAfter, renewalsAhead } from '../js/calendar.js';
+import { caPeriods, buildCaReport, toCsv } from '../js/ca-export.js';
 import { planParts } from '../js/views/plan-looks.js';
 import { looksLikeCardPayment } from '../js/transfers.js';
 import { spendingMonthOf } from '../js/spending-month.js';
@@ -1717,4 +1719,44 @@ test('lent and borrowed: where you stand, and what each payment does to spending
   equal(personSpendEffects(rows, (r) => r.id !== 'a').has('a'), false, 'an account that is not spending is left out');
   equal(lateBack([{ owed: 100, person: { backBy: '2026-09-01' } }, { owed: 0, person: { backBy: '2026-09-01' } }], '2026-09-10').length, 1, 'late only while still owed');
   ok(reminderText('Ravi Kumar', 200000, '2 Oct').startsWith('Hi Ravi, a gentle reminder about the ₹2,000 from 2 Oct'));
+});
+
+test('renewals: the next date steps a whole period on, keeps a 31st, and waits a few days after it passes', () => {
+  const car = { frequency: 'yearly', renewsOn: '2025-10-12' };
+  equal(nextRenewal(car, '2026-10-03'), '2026-10-12', 'a year on from last year\'s date');
+  equal(nextRenewal(car, '2026-10-14'), '2026-10-12', 'still shown two days after');
+  equal(nextRenewal(car, '2026-10-16'), '2027-10-12', 'then the next one');
+  equal(renewalAfter(car, '2026-10-03'), '2027-10-12', 'Renewed moves it on a year');
+  equal(nextRenewal({ frequency: 'quarterly', renewsOn: '2026-01-31' }, '2026-04-10'), '2026-04-30', 'a 31st in a 30-day month');
+  equal(nextRenewal({ frequency: 'quarterly', renewsOn: '2026-01-31' }, '2026-05-10'), '2026-07-31', 'and the 31st again after it');
+  equal(nextRenewal({ frequency: 'monthly', renewsOn: '2026-01-31' }, '2026-05-10'), null, 'a monthly cost is not a renewal');
+  equal(nextRenewal({ frequency: 'yearly' }, '2026-05-10'), null, 'no date, no renewal');
+  equal(renewalsAhead([car, { frequency: 'halfYearly', renewsOn: '2026-10-05' }], '2026-10-03').map((r) => r.days), [2, 9], 'soonest first, days away');
+});
+
+test('for your CA: financial years, totals without money moved, and a spreadsheet that never runs a formula', () => {
+  const periods = caPeriods('2026-05-20');
+  equal([periods[0].from, periods[0].to, periods[1].from, periods[1].to], ['2026-04-01', '2026-05-20', '2025-04-01', '2026-03-31'], 'April to March');
+  equal(caPeriods('2027-02-10')[0].from, '2026-04-01', 'February is still the year that began last April');
+  const accounts = [{ id: 'b', label: 'Bank', type: 'bank' }, { id: 's', label: 'Shop', type: 'bank', business: true, space: 'biz' }];
+  const tx = (id, accountId, date, amount, direction, extra = {}) => ({ id, accountId, date, amount, direction, rawDescription: id, ...extra });
+  const report = buildCaReport({
+    transactions: [
+      tx('salary', 'b', '2026-04-30', 5000000, 'credit', { categoryId: 'inc' }),
+      tx('rent', 'b', '2026-05-05', 2000000, 'debit', { categoryId: 'home' }),
+      tx('move', 'b', '2026-05-06', 100000, 'debit', { isTransfer: true }),
+      tx('=cmd', 's', '2026-05-07', 30000, 'debit', { categoryId: 'stock' }),
+      tx('old', 'b', '2026-03-31', 999, 'debit'),
+    ],
+    accounts,
+    categories: [{ id: 'inc', name: 'Income' }, { id: 'home', name: 'Rent' }, { id: 'stock', name: 'Stock' }],
+    businesses: [{ id: 'biz', name: 'The Shop' }],
+    period: periods[0],
+    today: '2026-05-20',
+  });
+  equal(report.rows.length, 4, 'only the period, money moved included in the list');
+  equal(report.lanes.map((l) => [l.name, l.moneyIn, l.moneyOut]), [['Home', 5000000, 2000000], ['The Shop', 0, 30000]], 'money moved left out of the totals; the business on its own');
+  const csv = toCsv(report);
+  ok(csv.includes("'=cmd") && !csv.includes(',=cmd'), 'a description starting with = is not a formula');
+  ok(csv.includes('2026-05-05,Bank,Home,rent,Rent,,20000.00,'), 'paise kept, money out in its column');
 });

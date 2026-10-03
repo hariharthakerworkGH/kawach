@@ -5,6 +5,7 @@ import { formatDateNice } from '../format.js';
 import { remindersEnabled, reminderDaysBefore, permissionState, enableReminders, disableReminders, refreshSchedule } from '../reminders.js';
 import { buildDiagnosticReport } from '../diagnostics.js';
 import { isoLocal } from '../frequency.js';
+import { caPeriods, caReport, toCsv, reportHtml } from '../ca-export.js';
 import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
 import { getSyncConfig, saveSyncConfig, clearSyncConfig, syncNow, testToken, getSyncPassphrase, setSyncPassphrase, turnOnGoogleSync } from '../sync.js';
@@ -90,6 +91,23 @@ export async function render(container, params = {}) {
           <span class="k-row__body"><span class="k-row__title">Manage categories</span></span>
           <span class="settings-chev">${icon('forward')}</span>
         </button>
+      </div>
+
+      <!-- NEW (5.21): a month or a financial year, for a chartered accountant. -->
+      <h3>For your CA</h3>
+      <div class="totals-card settings-card ca-card">
+        <label class="k-field field">
+          <span class="k-label">Period</span>
+          <!-- April to July, when returns are filed, it starts on last year. -->
+          <select id="ca-period" class="k-select">${caPeriods(isoLocal(new Date()))
+            .map((p, i) => `<option value="${p.id}" ${i === 1 && [3, 4, 5, 6].includes(new Date().getMonth()) ? 'selected' : ''}>${p.label}</option>`)
+            .join('')}</select>
+        </label>
+        <div class="ca-actions">
+          <button type="button" class="k-btn k-btn--secondary" id="ca-csv">${icon('file')} Spreadsheet</button>
+          <button type="button" class="k-btn k-btn--secondary" id="ca-pdf">${icon('file')} PDF</button>
+        </div>
+        <p class="muted-note">Not locked with your passphrase. Share it only with your CA.</p>
       </div>
 
       <h3>Help</h3>
@@ -178,6 +196,46 @@ export async function render(container, params = {}) {
       redraw(container, () => render(container));
     });
   }
+
+  // For your CA: the spreadsheet is saved as a file; the PDF is the report
+  // printed with the phone's own "Save as PDF", the only way to make one
+  // without loading anything.
+  const caPeriod = () => caPeriods(isoLocal(new Date())).find((p) => p.id === container.querySelector('#ca-period').value);
+  container.querySelector('#ca-csv').addEventListener('click', async () => {
+    const period = caPeriod();
+    const report = await caReport(period);
+    if (!report.rows.length) return showToast('No payments in that period');
+    const url = URL.createObjectURL(new Blob([toCsv(report)], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kawach-${period.id}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    showToast(`Saved ${report.rows.length} payments`);
+  });
+  container.querySelector('#ca-pdf').addEventListener('click', async () => {
+    const period = caPeriod();
+    const report = await caReport(period);
+    if (!report.rows.length) return showToast('No payments in that period');
+    const sheet = document.createElement('div');
+    sheet.id = 'print-report';
+    sheet.innerHTML = reportHtml(report);
+    document.body.append(sheet);
+    document.body.classList.add('printing');
+    // The PDF is named after the page's title.
+    const title = document.title;
+    document.title = `Kawach ${period.label.replace(/ so far$/, '')}`;
+    const done = () => {
+      sheet.remove();
+      document.body.classList.remove('printing');
+      document.title = title;
+      window.removeEventListener('afterprint', done);
+    };
+    window.addEventListener('afterprint', done);
+    window.print();
+  });
 
   const diagnosticStatus = container.querySelector('#diagnostic-status');
   container.querySelector('#diagnostic-btn').addEventListener('click', async () => {

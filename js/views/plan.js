@@ -12,7 +12,7 @@ import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSu
 import { appearance } from '../appearance.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
-import { COMMON_COSTS } from '../calendar.js';
+import { COMMON_COSTS, RENEWAL_MONTHS, renews, nextRenewal, renewalsAhead } from '../calendar.js';
 import { getGoals, saveGoals, goalProgress, GOAL_IDEAS } from '../goals.js';
 import { committedBar, goalRing, radialMeter } from '../charts.js';
 import { bankBalance } from '../account-metrics.js';
@@ -311,6 +311,7 @@ export async function render(container) {
              .map((c) => `<button type="button" class="plan-chip common-cost" data-label="${escapeHtml(c.label)}" data-frequency="${c.frequency}">+ ${escapeHtml(c.label)}</button>`)
              .join('')}</div></details>`
     }
+    ${renewalsList(fixed.filter((f) => renews(f)), todayIso)}
     ${
       finished.length
         ? `<details class="fts-breakdown"><summary>Finished (${finished.length})</summary><div class="totals-card">${finished
@@ -485,10 +486,13 @@ export async function render(container) {
   }
 
   container.querySelectorAll('.fixed-edit').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       editingId = btn.dataset.id;
       adding = false;
-      redraw(container, () => render(container));
+      await redraw(container, () => render(container));
+      // From the Renewals list the form opens up among the commitments, so
+      // it is brought to where the eye is.
+      if (btn.classList.contains('renewal-row')) container.querySelector('#fixed-form')?.scrollIntoView({ block: 'center' });
     });
   });
 
@@ -500,6 +504,7 @@ export async function render(container) {
     const freqEl = form.querySelector('.ff-frequency');
     const previewEl = form.querySelector('#ff-preview');
     const dayField = form.querySelector('.ff-day-field');
+    const renewsField = form.querySelector('.ff-renews-field');
     const kindEls = [...form.querySelectorAll('.ff-kind')];
     const setAside = () => form.querySelector('.ff-kind:checked')?.value === 'aside';
 
@@ -508,7 +513,8 @@ export async function render(container) {
       const freq = freqEl.value;
       // Money set aside has no day to be late on, so there is no day to ask
       // for. A thing that must be paid keeps its day.
-      dayField.hidden = !hasDueDate(freq) || (freq === 'monthly' && setAside());
+      dayField.hidden = !hasDueDate(freq) || (freq === 'monthly' && setAside()) || Boolean(RENEWAL_MONTHS[freq]);
+      renewsField.hidden = !RENEWAL_MONTHS[freq];
       if (!Number.isFinite(raw) || raw <= 0 || freq === 'monthly') {
         previewEl.hidden = true;
         return;
@@ -533,7 +539,10 @@ export async function render(container) {
       const day = parseInt(form.querySelector('.ff-day').value, 10);
       if (!label || !Number.isFinite(amount) || amount <= 0) return;
       const endMonth = form.querySelector('.ff-end').value; // YYYY-MM or ''
-      const dayOfMonth = Number.isInteger(day) && day >= 1 && day <= 31 ? day : existing ? existing.dayOfMonth : 1;
+      // A renewal's date gives its day as well, so everything that reads the
+      // day keeps working.
+      const renewsOn = RENEWAL_MONTHS[freqEl.value] ? form.querySelector('.ff-renews').value || null : null;
+      const dayOfMonth = renewsOn ? Number(renewsOn.slice(8, 10)) : Number.isInteger(day) && day >= 1 && day <= 31 ? day : existing ? existing.dayOfMonth : 1;
       await put('recurring', {
         ...(existing || {}),
         id: existing ? existing.id : `fixed-${newId()}`,
@@ -541,6 +550,7 @@ export async function render(container) {
         amount,
         frequency: freqEl.value,
         dayOfMonth,
+        renewsOn,
         // One question on screen, the two fields the app has always used.
         // `spread` is what actually stops a thing being called late (it has
         // no due date), and `flexible` is what puts it in the "can flex"
@@ -843,6 +853,34 @@ function loanRow(item, paidFrom) {
     </div>`;
 }
 
+/* NEW (5.21): what renews, soonest first, one line each: what, how much,
+ * when. One without a date says so and opens its form to add it. */
+function renewalsList(items, today) {
+  if (!items.length) return '';
+  const dated = renewalsAhead(items, today);
+  const undated = items.filter((f) => !f.renewsOn);
+  const when = (days) => (days < 0 ? `${-days} day${days === -1 ? '' : 's'} ago` : days === 0 ? 'today' : days === 1 ? 'tomorrow' : days <= 60 ? `in ${days} days` : '');
+  return `${sectionHead('Renewals')}
+    <div class="totals-card renewals">
+      ${dated
+        .map(
+          ({ item, due, days }) => `<button type="button" class="k-row renewal-row fixed-edit${days <= 7 ? ' is-soon' : ''}" data-id="${item.id}">
+            <span class="k-row__body"><span class="k-row__title">${escapeHtml(item.label)}</span><span class="k-row__meta">${formatDateNice(due)}${when(days) ? ` · ${when(days)}` : ''}</span></span>
+            <span class="k-row__value">${formatRupees(item.amount)}</span>
+          </button>`
+        )
+        .join('')}
+      ${undated
+        .map(
+          (item) => `<button type="button" class="k-row renewal-row fixed-edit" data-id="${item.id}">
+            <span class="k-row__body"><span class="k-row__title">${escapeHtml(item.label)}</span><span class="k-row__meta">Add the date it renews</span></span>
+            <span class="k-row__value">${formatRupees(item.amount)}</span>
+          </button>`
+        )
+        .join('')}
+    </div>`;
+}
+
 function fixedRow(f, categories, paidFrom, index, count) {
   const cat = categories.find((c) => c.id === f.categoryId);
   const { icon: mark, color } = categoryStyle(cat?.name || f.label);
@@ -857,7 +895,9 @@ function fixedRow(f, categories, paidFrom, index, count) {
     ? f.spread
       ? 'bit by bit'
       : ordinal(f.dayOfMonth)
-    : `${formatRupees(f.amount)} ${frequencyShort(freq)}${hasDueDate(freq) ? ` · around the ${ordinal(f.dayOfMonth)}` : ''}`;
+    : renews(f)
+      ? `${formatRupees(f.amount)} ${frequencyShort(freq)} · ${f.renewsOn ? `next ${formatDateNice(nextRenewal(f, isoLocal(new Date())))}` : 'date not set'}`
+      : `${formatRupees(f.amount)} ${frequencyShort(freq)}${hasDueDate(freq) ? ` · around the ${ordinal(f.dayOfMonth)}` : ''}`;
   const parts = [when];
   if (f.emi) parts.push(`EMI ${f.emi.current}/${f.emi.total}`);
   parts.push(f.accountId === 'cash' ? 'cash' : paidFrom ? escapeHtml(paidFrom) : 'bank');
@@ -929,6 +969,12 @@ function fixedForm(categories, accounts, item) {
       <label class="field ff-day-field">
         <span>Day of month it goes out</span>
         <input type="number" class="ff-day" min="1" max="31" placeholder="1" value="${v.dayOfMonth || ''}">
+      </label>
+      <!-- NEW (5.21): what renews every three, six or twelve months has a
+           date, not a day: which month it falls in is the whole point. -->
+      <label class="field ff-renews-field">
+        <span>Next due</span>
+        <input type="date" class="ff-renews" value="${v.renewsOn ? nextRenewal(v, isoLocal(new Date())) : ''}">
       </label>
       <label class="field">
         <span>Paid from</span>

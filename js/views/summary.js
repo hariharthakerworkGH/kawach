@@ -26,7 +26,7 @@ import { redraw } from '../redraw.js';
 import { installCard, wireInstallCard } from '../install.js';
 import { backupStatus } from '../drive.js';
 import { incomeWords, businesses, activeSpace, setCurrentSpace, accountInSpace, businessSpace, businessRunway } from '../business.js';
-import { taxDates } from '../calendar.js';
+import { taxDates, renews, renewalsAhead, renewalAfter } from '../calendar.js';
 import { escapeHtml, escapeAttr, sectionHead, pill, hero, panel } from '../ui.js';
 import { lateBack, reminderText, shareReminder } from '../people.js';
 
@@ -1501,7 +1501,7 @@ async function renderAttention(container, transactions, fts = null) {
   const el = container.querySelector('#attention-section');
   if (!el) return;
 
-  const [accounts, categories, budgets, alertsWaiting, syncConfig, syncPass, lastBackupAt] = await Promise.all([
+  const [accounts, categories, budgets, alertsWaiting, syncConfig, syncPass, lastBackupAt, recurring] = await Promise.all([
     getAll('accounts'),
     getAll('categories'),
     getBudgets(),
@@ -1509,6 +1509,7 @@ async function renderAttention(container, transactions, fts = null) {
     getSyncConfig(),
     getSyncPassphrase(),
     getSetting('lastBackupAt', null),
+    getAll('recurring'),
   ]);
   // Only once there's something worth losing.
   const safety = transactions.length ? dataSafety(syncConfig, syncPass, lastBackupAt) : { ok: true };
@@ -1568,7 +1569,13 @@ async function renderAttention(container, transactions, fts = null) {
   const lateRows = lateLent.map((x) =>
     todo(icon('clock'), `<b>${escapeHtml(x.person.name)} ${formatRupees(x.owed)}</b>`, `was due back ${formatDateNice(x.person.backBy)}`, `<button type="button" class="btn-tiny person-remind" data-text="${escapeAttr(reminderText(x.person.name, x.owed, formatDateNice(x.since)))}">Remind</button>`, 'is-soon')
   );
-  if (short) urgent.push(...lateRows);
+  // NEW (5.21): a renewal in the week ahead, or a few days gone. "Renewed"
+  // moves it on to next time; left alone, it moves on by itself.
+  const renewing = renewalsAhead(recurring.filter((r) => isLiveCommitment(r) && renews(r)), isoLocal(new Date())).filter((r) => r.days <= 7);
+  const renewRows = renewing.map(({ item, due, days }) =>
+    todo(icon('clock'), `<b>${escapeHtml(item.label)} ${formatRupees(item.amount)}</b>`, days < 0 ? `renewal was due ${formatDateNice(due)}` : days === 0 ? 'renews today' : `renews ${formatDateNice(due)}`, `<button type="button" class="btn-tiny renewal-done" data-id="${item.id}">Renewed</button>`, days < 0 ? 'is-alert' : 'is-soon')
+  );
+  if (short) urgent.push(...lateRows, ...renewRows);
 
   const rows = [
     driveDays != null
@@ -1592,7 +1599,7 @@ async function renderAttention(container, transactions, fts = null) {
     ...dueCards.map(({ account, bill }) =>
       todo(icon('bill'), `${escapeHtml(account.label)} - ${formatRupees(bill.amount)}`, bill.daysLeft < 0 ? `Overdue by ${Math.abs(bill.daysLeft)}d` : bill.daysLeft === 0 ? 'Due today' : `Due in ${bill.daysLeft}d`, `<button type="button" class="btn-tiny mark-paid" data-id="${account.id}">Mark paid</button>`, bill.daysLeft <= 0 ? 'bill-overdue' : 'bill-urgent')
     ),
-    ...(short ? [] : lateRows),
+    ...(short ? [] : [...lateRows, ...renewRows]),
     ...budgetAlerts.map((b) =>
       todo(categoryStyle(b.name).icon, `${escapeHtml(b.name)} budget`, b.state === 'over' ? `Over by ${formatRupees(-b.left)}` : `${formatRupees(b.left)} left`, `<button type="button" class="btn-tiny budget-open" data-id="${b.categoryId}">See</button>`, b.state === 'over' ? 'bill-overdue' : 'bill-urgent')
     ),
@@ -1684,6 +1691,16 @@ async function renderAttention(container, transactions, fts = null) {
     });
   }
 
+  el.querySelectorAll('.renewal-done').forEach((btn) =>
+    btn.addEventListener('click', async () => {
+      const item = recurring.find((r) => r.id === btn.dataset.id);
+      if (!item) return;
+      const next = renewalAfter(item, isoLocal(new Date()));
+      await put('recurring', { ...item, renewsOn: next, dayOfMonth: Number(next.slice(8, 10)) });
+      showToast(`Next renewal ${formatDateNice(next)}`);
+      btn.closest('.need-row, .todo-row')?.remove();
+    })
+  );
   el.querySelectorAll('.person-remind').forEach((btn) => btn.addEventListener('click', () => shareReminder(btn.dataset.text)));
   const backupBtn = el.querySelector('#go-backup-btn');
   if (backupBtn) {
