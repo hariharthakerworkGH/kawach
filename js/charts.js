@@ -211,17 +211,12 @@ export function inOutBars({ months = [] }) {
         <text class="chart-tick" x="${cx.toFixed(1)}" y="${H - 2}" text-anchor="middle">${esc(m.label)}</text>`;
     })
     .join('');
-  const last = real[real.length - 1];
-  const sentence =
-    last.out > last.in
-      ? `${esc(last.label)} spends <b>${formatRupees(last.out - last.in)} more</b> than it takes in.`
-      : `${esc(last.label)} keeps <b>${formatRupees(last.in - last.out)}</b> of what came in.`;
   const label = `Money in and out over ${real.length} months. ${real.map((m) => `${m.label}: in ${formatRupees(m.in)}, out ${formatRupees(m.out)}`).join('. ')}.`;
   const drawing = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
       ${bars}
     </svg>`;
   return `<div class="chart-block">${drawing}
-      <p class="chart-note in-out-legend"><span><i class="key key-in"></i>in</span><span><i class="key key-out"></i>out</span><span>${sentence}</span></p>
+      <p class="chart-note in-out-legend"><span><i class="key key-in"></i>in</span><span><i class="key key-out"></i>out</span></p>
     </div>`;
 }
 

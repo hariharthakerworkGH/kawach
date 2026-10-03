@@ -462,13 +462,22 @@ function renderList(container) {
     statsEl.innerHTML = '';
   }
   container.querySelector('#hist-days').innerHTML = across ? '' : dayChart(rows, filters.month);
-  carryLine(container, across, net);
+  const carried = carryLine(container, across, net);
   salaryQuestion(container, across);
+  // The month in one sentence, said once (the six months below used to say
+  // it again). Where the balance is known it also says where the difference
+  // went: taken from what last month left, or carried into the next.
+  const prev = monthName(shiftMonth(filters.month, -1));
+  const next = monthName(shiftMonth(filters.month, 1));
   container.querySelector('#txn-count').textContent = rows.length
     ? net > 0
-      ? 'More came in than went out.'
+      ? carried != null ? `${formatRupees(net)} more came in than went out, carried into ${next}.` : 'More came in than went out.'
       : net < 0
-        ? 'More went out than came in.'
+        ? carried == null
+          ? 'More went out than came in.'
+          : carried + net >= 0
+            ? `${formatRupees(-net)} more went out than came in, taken from what ${prev} left.`
+            : `${formatRupees(-net)} more went out than came in, more than ${prev} left.`
         : 'In and out came to the same.'
     : filters.categoryId === 'uncategorized'
       ? 'Every payment has a category'
@@ -734,7 +743,7 @@ function carryLine(container, across, net) {
   // About whole accounts, so not while a category or a search narrows the list.
   if (across || filters.categoryId || filters.search.trim() || !banks.length || !banks.every(reaches)) {
     el.hidden = true;
-    return;
+    return null;
   }
   const [y, m] = month.split('-').map(Number);
   const today = isoLocal(new Date());
@@ -755,6 +764,8 @@ function carryLine(container, across, net) {
   const brought = left - Math.round(net / 100) * 100;
   el.hidden = false;
   el.innerHTML = `<span>Brought from ${monthName(shiftMonth(month, -1))} <b>${formatRupees(brought)}</b></span><span>${current ? 'In the bank now' : 'Left at the end'} <b>${formatRupees(left)}</b></span>`;
+  // What it brought, for the sentence above the line.
+  return brought;
 }
 
 // NEW (5.22): salary at the end of a month. History asks once, the first time
