@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.21.3',
+    items: [
+      {
+        icon: 'history',
+        title: "Card bills count when you pay them",
+        text: "In History, Out is what left your bank: a card bill counts the day you pay it, and the purchases on the card are not added again. Pick a card in the account filter to see its own purchases. Left to spend is unchanged.",
+        guide: [{ view: 'transactions', target: '#hist-net', text: "Card bills count here the day you pay them." }],
+      },
+    ],
+  },
+  {
     version: '5.21.2',
     items: [
       {

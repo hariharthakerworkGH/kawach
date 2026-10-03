@@ -20,7 +20,7 @@ import { peopleStanding, personSpendEffects, lateBack, reminderText } from '../j
 import { nextRenewal, renewalAfter, renewalsAhead } from '../js/calendar.js';
 import { caPeriods, buildCaReport, toCsv } from '../js/ca-export.js';
 import { planParts } from '../js/views/plan-looks.js';
-import { looksLikeCardPayment } from '../js/transfers.js';
+import { looksLikeCardPayment, cashSide } from '../js/transfers.js';
 import { spendingMonthOf, salaryLike, nextMonthKey, countsFor as countsForMonth } from '../js/spending-month.js';
 import { parseAlert, splitAlerts, resolveAccount, findDigits } from '../js/alerts.js';
 import * as hdfcList from '../js/parsers/hdfc-card-current-text.js';
@@ -1790,4 +1790,16 @@ test('paid on salary day for the month after: commitments with a set day move wi
   const ids = salaryDayPayments(rows, [rent, tiffin], '2026-09-30', '2026-09-30', new Set(['b'])).map((t) => t.id);
   equal(ids, ['rent-paid', 'tagged'], 'rent paid that day moves; tiffin, groceries, money moved and an earlier day stay');
   equal(countsForMonth({ date: '2026-09-30', forNextMonth: true, commitmentId: 'rent' }), '2026-10', 'a payment flagged for next month counts there');
+});
+
+test('in and out: the card bill counts when paid, the purchase on the card does not count again', () => {
+  const bank = { id: 'b', type: 'bank' };
+  const card = { id: 'c', type: 'card' };
+  equal(cashSide({ direction: 'debit', amount: 50000 }, card), null, 'a swipe on the card is not out yet');
+  equal(cashSide({ direction: 'debit', amount: 50000, rawDescription: 'CRED CLUB CC PAYMENT', isTransfer: true }, bank), 'out', 'the bill paid from the bank is');
+  equal(cashSide({ direction: 'debit', amount: 50000, isTransfer: true, paysCardId: 'c' }, bank), 'out', 'and one you said paid a card');
+  equal(cashSide({ direction: 'credit', amount: 50000, rawDescription: 'PAYMENT RECEIVED', isTransfer: true }, card), null, 'the card hearing of it is not in');
+  equal(cashSide({ direction: 'debit', amount: 6800000, isTransfer: true }, bank), null, 'money moved to your other account is neither');
+  equal(cashSide({ direction: 'credit', amount: 9000000 }, bank), 'in', 'salary is in');
+  equal(cashSide({ direction: 'debit', amount: 2500000 }, bank), 'out', 'rent is out');
 });

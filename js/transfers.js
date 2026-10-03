@@ -130,6 +130,20 @@ const PAYMENT_OUT_RE = /\b(CRED\b|CRED\.CLUB|CC\s*PAYMENT|CREDIT\s*CARD\s*(BILL\
 // refunds come back from the merchant - so NEFT/IMPS/NetBanking count too.
 const PAYMENT_IN_RE = /\b(PAYMENT\s*RECEIVED|CC\s*PAYMENT|BPPY\s*CC|CRED\b|AUTOPAY\s*RECEIVED|NET\s*BANKING\s*(TRANSFER|PAYMENT)|PAYMENT\s*-?\s*THANK\s*YOU|BBPS|NEFT|IMPS)/i;
 
+/* In and Out for a month (5.21.3, the owner's rule): what came into or left
+ * your bank and cash accounts. A card purchase is not out yet; the bill that
+ * pays for it is, the day it leaves the bank, so the same money is never
+ * counted twice. Money moved between your own accounts is neither, and a
+ * card's own refunds and "payment received" are the card's business.
+ * The budget is not this: Left to spend counts a purchase the day it is
+ * swiped (js/free-to-spend.js). Returns 'in', 'out' or null. */
+export function cashSide(t, account) {
+  const card = Boolean(account && account.type === 'card');
+  if (!card && t.direction === 'debit' && (t.paysCardId || looksLikeCardPayment(t, 'bank'))) return 'out';
+  if (card || t.isTransfer) return null;
+  return t.direction === 'credit' ? 'in' : 'out';
+}
+
 export function looksLikeCardPayment(t, type) {
   const desc = t.rawDescription || '';
   if (type === 'card') return t.direction === 'credit' && PAYMENT_IN_RE.test(desc);

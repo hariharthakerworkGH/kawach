@@ -67,8 +67,8 @@ export async function render(container) {
  */
 async function loadData() {
   try {
-    const [f, transactions] = await Promise.all([computeFreeToSpend(), getAll('transactions')]);
-    const months = lastSixMonths(transactions);
+    const [f, transactions, accounts] = await Promise.all([computeFreeToSpend(), getAll('transactions'), getAll('accounts')]);
+    const months = lastSixMonths(transactions, accounts);
     const usable = f && f.monthlyIncome && f.salary && f.salary.setUp && f.limit > 0;
     state = {
       real: usable ? f : null,
