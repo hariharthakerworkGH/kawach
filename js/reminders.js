@@ -2,6 +2,7 @@ import { getAll, getSetting, setSetting } from './db.js';
 import { cardBillDue } from './account-metrics.js';
 import { formatCurrency } from './format.js';
 import { frequencyOf, hasDueDate, nextOccurrence } from './frequency.js';
+import { renews, nextRenewal } from './calendar.js';
 import { isLiveCommitment } from './commitments.js';
 
 // Bill reminders without a server.
@@ -102,6 +103,21 @@ export async function refreshSchedule() {
     // Reminding you daily that you buy chai daily helps nobody - only things
     // that fall due on a particular date are worth a notification.
     if (!hasDueDate(frequencyOf(r)) || r.spread) continue;
+    // A renewal (every three, six or twelve months) on its own date, a week
+    // ahead at least, as insurance needs time. Without a date it is never
+    // reminded: it used to be, on its day of EVERY month.
+    if (renews(r)) {
+      const due = nextRenewal(r, todayISO());
+      if (!due || due < todayISO()) continue;
+      schedule.push({
+        id: `renew-${r.id}-${due}`,
+        title: `${r.label} renews soon`,
+        body: `${formatCurrency(r.amount)} on ${niceDate(due)}.`,
+        notifyOn: shiftDays(due, -Math.max(daysBefore, 7)),
+        dueDate: due,
+      });
+      continue;
+    }
     const due = nextOccurrence(r.dayOfMonth, today);
     if (r.endDate && due > r.endDate) continue;
     schedule.push({

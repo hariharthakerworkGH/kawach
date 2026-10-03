@@ -5431,3 +5431,30 @@ label.look-style { position: relative; cursor: pointer; }
 .explain-pop span { color: var(--k-text-2, var(--text-muted)); }
 @media (prefers-reduced-motion: no-preference) { .explain-pop { animation: explain-in 160ms ease-out both; } }
 @keyframes explain-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* --- For your CA (5.21): the report, printed to a PDF ---------------------
+ * Built only while printing; everything else on the page steps aside, and it
+ * is black on white whatever the style, as a paper for an accountant. */
+#print-report { display: none; }
+.k .ca-card .field, .k .ca-card .muted-note { margin: 0; }
+.k .ca-actions { display: flex; gap: var(--k-3); flex-wrap: wrap; }
+.k .ca-actions .k-btn { flex: 1; gap: 8px; }
+.k .ca-actions svg { width: 16px; height: 16px; }
+@media print {
+  html, html body.printing { background: #fff !important; }
+  body.printing > :not(#print-report) { display: none !important; }
+  body.printing #print-report { display: block; color: #111; font: 10pt/1.4 var(--k-font, sans-serif); }
+  #print-report h1 { margin: 0 0 4pt; font-size: 18pt; }
+  #print-report h2 { margin: 18pt 0 6pt; font-size: 13pt; border-bottom: 1px solid #999; padding-bottom: 3pt; }
+  #print-report h3 { margin: 6pt 0 3pt; font-size: 10pt; color: #444; }
+  #print-report header p, #print-report .small { color: #555; font-size: 8.5pt; }
+  #print-report .sums { display: flex; gap: 24pt; }
+  #print-report .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18pt; }
+  #print-report table { width: 100%; border-collapse: collapse; }
+  #print-report td, #print-report th { padding: 2pt 4pt; border-bottom: 0.5pt solid #ddd; text-align: left; vertical-align: top; }
+  #print-report .n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  #print-report .all { font-size: 8pt; }
+  #print-report .all i { color: #666; }
+  #print-report tr.moved { color: #888; }
+  #print-report tr { break-inside: avoid; }
+}
