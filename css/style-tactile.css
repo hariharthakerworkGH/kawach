@@ -364,3 +364,4 @@ button.tl-item { cursor: pointer; }
 :root[data-style="tactile"] .k .people-sums > div { border: 0; border-radius: 14px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
 :root[data-style="tactile"] .k .add-people .k-brand,
 :root[data-style="tactile"] .k .person-open .k-brand { background: var(--t-well); box-shadow: var(--t-well-shadow); color: var(--k-text); }
+:root[data-style="tactile"] .k .hist-salary { border: 0; border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }

@@ -1,4 +1,5 @@
-import { getAll, put, remove, getSetting } from '../db.js';
+import { getAll, put, remove, getSetting, setSetting } from '../db.js';
+import { countsFor, nextMonthKey, salaryLike } from '../spending-month.js';
 import { personNamed } from '../people.js';
 import { learnFromAssignment } from '../merchant-rules.js';
 import { formatCurrency, formatRupees, formatMonthYear, formatDateNice } from '../format.js';
@@ -79,6 +80,7 @@ export async function render(container, params = {}) {
   selecting = false;
   expanded = null;
   splitDraft = null;
+  await fileSalaries(allAccounts);
 
   // Opening the screen always starts from a clean slate - a filter left over
   // from last time silently hides transactions with no obvious reason why.
@@ -103,6 +105,7 @@ export async function render(container, params = {}) {
       <span class="hist-month-name" id="month-name"></span>
       <button type="button" class="icon-btn hist-step" id="month-next" aria-label="Month after">${icon('forward')}</button>
     </div>
+    <div id="hist-salary"></div>
     <section class="hero" id="hist-hero">
       <div class="hero-top"><span class="hero-label">Net this month</span><span class="hero-label" id="hist-period"></span></div>
       <p class="hero-amount" id="hist-net">&nbsp;</p>
@@ -336,7 +339,7 @@ function matching() {
   const month = acrossMonths() ? null : filters.month;
   return cache.transactions
     .filter((t) => {
-      if (month && t.date.slice(0, 7) !== month) return false;
+      if (month && countsFor(t) !== month) return false;
       if (filters.accountId && t.accountId !== filters.accountId) return false;
       if (filters.categoryId === 'uncategorized' && !needsCategory(t)) return false;
       if (filters.categoryId && filters.categoryId !== 'uncategorized') {
@@ -444,6 +447,7 @@ function renderList(container) {
     statsEl.innerHTML = '';
   }
   container.querySelector('#hist-days').innerHTML = across ? '' : dayChart(rows, filters.month);
+  salaryQuestion(container, across);
   container.querySelector('#txn-count').textContent = rows.length
     ? net > 0
       ? 'More came in than went out.'
@@ -589,8 +593,11 @@ function rowTemplate(t) {
 function subHtml(t) {
   const account = cache.accounts.find((a) => a.id === t.accountId);
   const person = t.personId && !t.isTransfer ? cache.people.find((p) => p.id === t.personId) : null;
+  const elsewhere = countsFor(t) !== t.date.slice(0, 7);
   const workTag = t.isTransfer
     ? ''
+    : elsewhere
+      ? `<span class="hist-tag hist-tag--in">For ${formatMonthYear(`${countsFor(t)}-01`).split(' ')[0]}</span>`
     : person
       ? `<span class="hist-tag${t.direction === 'credit' ? ' hist-tag--in' : ''}">${escapeHtml(person.name)}</span>`
     : t.direction === 'debit' && t.isReimbursable
@@ -659,6 +666,7 @@ function expandedTemplate(t) {
         <input type="number" step="0.01" class="rv-field rv-amount-input" data-field="amount" value="${(t.amount / 100).toFixed(2)}" aria-label="Amount">
         ${workFlagField(t)}
         ${nextMonthField(t)}
+        ${salaryMonthField(t)}
       </details>
       ${personField(t)}
       <div class="hist-actions">
@@ -683,6 +691,69 @@ function workFlagField(t) {
   return `<label class="hist-flag">
       <input type="checkbox" class="rv-field" data-field="${field}" ${t[field] ? 'checked' : ''}>
       <span>${debit ? 'Reimbursable (Work)' : 'Settles a reimbursement'}</span>
+    </label>`;
+}
+
+// NEW (5.22): salary at the end of a month. History asks once, the first time
+// it sees one; after a yes every salary is filed under the month it pays for
+// as it arrives, and after a no none is. Either way any one payment can be
+// switched in its Edit panel.
+let salaryAsk = null;
+async function fileSalaries(accounts) {
+  const [income, kind, choice] = await Promise.all([getSetting('monthlyIncome', null), getSetting('incomeType', 'salary'), getSetting('salaryNextMonth', null)]);
+  salaryAsk = null;
+  if (kind === 'business' || choice === false) return;
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+  const found = cache.transactions.filter((t) => salaryLike(t, byId.get(t.accountId), income)).sort((a, b) => (a.date < b.date ? 1 : -1));
+  if (choice === true) {
+    for (const t of found) {
+      t.countsFor = nextMonthKey(t.date.slice(0, 7));
+      await save(t);
+    }
+  } else salaryAsk = found[0] || null;
+}
+
+// The question, on the month it landed in and on the month it pays for.
+function salaryQuestion(container, across) {
+  const box = container.querySelector('#hist-salary');
+  const t = salaryAsk;
+  const own = t && t.date.slice(0, 7);
+  if (!t || across || (filters.month !== own && filters.month !== nextMonthKey(own))) {
+    box.innerHTML = '';
+    return;
+  }
+  const next = monthName(nextMonthKey(own));
+  box.innerHTML = `<div class="hist-salary">
+      <p><b>${formatRupees(t.amount)}</b> came in on ${formatDateNice(t.date)}. Is it your salary for ${next}?</p>
+      <div class="hist-salary__go">
+        <button type="button" class="k-btn k-btn--primary" data-answer="yes">Yes, count it in ${next}</button>
+        <button type="button" class="k-btn k-btn--ghost" data-answer="no">No</button>
+      </div>
+    </div>`;
+  box.querySelectorAll('button').forEach((btn) =>
+    btn.addEventListener('click', async () => {
+      const yes = btn.dataset.answer === 'yes';
+      await setSetting('salaryNextMonth', yes);
+      if (yes) await fileSalaries(cache.accounts);
+      salaryAsk = null;
+      showToast(yes ? `Salary now counts in the month it pays for` : 'Left in the month it came in');
+      // Drawn again whole: the six months above move with it.
+      render(container, { month: filters.month });
+    })
+  );
+}
+
+const monthName = (key) => new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, 1).toLocaleDateString('en-IN', { month: 'long' });
+
+// The switch in a payment's Edit panel: money in during a month's last week.
+function salaryMonthField(t) {
+  if (t.direction !== 'credit' || t.isTransfer || t.personId) return '';
+  const [y, m, d] = t.date.split('-').map(Number);
+  if (d <= new Date(y, m, 0).getDate() - 7) return '';
+  const next = nextMonthKey(t.date.slice(0, 7));
+  return `<label class="hist-flag">
+      <input type="checkbox" class="rv-field" data-field="countsNext" ${t.countsFor === next ? 'checked' : ''}>
+      <span>Count in ${monthName(next)}</span>
     </label>`;
 }
 
@@ -809,6 +880,18 @@ async function handleChange(e, container) {
   // NEW: a ticked box saves the flag; unticked removes it, so a payment that
   // was never flagged carries no field at all. Saved on 'change' only: a
   // checkbox also fires 'input', which would save twice.
+  // NEW (5.22): money in near a month's end, counted in the next month or
+  // in its own. Unticked is saved as its own month, so it is never filed
+  // ahead again by itself.
+  if (field === 'countsNext') {
+    if (e.type !== 'change') return;
+    const own = t.date.slice(0, 7);
+    t.countsFor = e.target.checked ? nextMonthKey(own) : own;
+    await save(t);
+    render(container, { month: filters.month });
+    return;
+  }
+
   if (field === 'isReimbursable' || field === 'isSettlement' || field === 'forNextMonth') {
     if (e.type !== 'change') return;
     if (e.target.checked) t[field] = true;
@@ -1120,7 +1203,7 @@ export function lastSixMonths(transactions) {
   for (let back = 5; back >= 0; back -= 1) {
     const d = new Date(now.getFullYear(), now.getMonth() - back, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const rows = transactions.filter((t) => !t.isTransfer && t.date.slice(0, 7) === key);
+    const rows = transactions.filter((t) => !t.isTransfer && countsFor(t) === key);
     months.push({
       label: d.toLocaleDateString('en-IN', { month: 'short' }),
       in: rows.filter((t) => t.direction === 'credit').reduce((s, t) => s + t.amount, 0),

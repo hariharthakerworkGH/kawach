@@ -3597,3 +3597,8 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .direction-toggle .k-seg__btn { flex: 1 1 auto; white-space: nowrap; padding-inline: 10px; }
 /* For your CA (5.21): a field and two buttons, so the card keeps its padding all round. */
 .k.settings-k .settings-card.ca-card { display: grid; gap: var(--k-3); padding: var(--k-4); }
+/* Salary at a month's end (5.22): one question, asked once, under the net. */
+.k .hist-salary { display: grid; gap: var(--k-3); margin: var(--k-3) 0; padding: var(--k-4); border-radius: var(--k-r-md); background: var(--k-surface); border: 1px solid var(--k-hairline); }
+.k .hist-salary p { margin: 0; color: var(--k-text-2); }
+.k .hist-salary b { color: var(--k-text); }
+.k .hist-salary__go { display: flex; gap: var(--k-2); flex-wrap: wrap; }

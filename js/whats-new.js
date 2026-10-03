@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.21.1',
+    items: [
+      {
+        icon: 'history',
+        title: "Salary counts in the month it pays for",
+        text: "Salary that lands in the last days of a month is the next month's money. History asks once, and after a yes counts each salary in the month it pays for, so Net this month is right. Any payment can be switched back in its Edit.",
+        guide: [{ view: 'transactions', target: '#hist-net', text: "Salary from the end of last month is counted here now." }],
+      },
+    ],
+  },
+  {
     version: '5.21',
     items: [
       {

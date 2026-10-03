@@ -21,7 +21,7 @@ import { nextRenewal, renewalAfter, renewalsAhead } from '../js/calendar.js';
 import { caPeriods, buildCaReport, toCsv } from '../js/ca-export.js';
 import { planParts } from '../js/views/plan-looks.js';
 import { looksLikeCardPayment } from '../js/transfers.js';
-import { spendingMonthOf } from '../js/spending-month.js';
+import { spendingMonthOf, salaryLike, nextMonthKey } from '../js/spending-month.js';
 import { parseAlert, splitAlerts, resolveAccount, findDigits } from '../js/alerts.js';
 import * as hdfcList from '../js/parsers/hdfc-card-current-text.js';
 import * as csvParser from '../js/parsers/csv.js';
@@ -1759,4 +1759,18 @@ test('for your CA: financial years, totals without money moved, and a spreadshee
   const csv = toCsv(report);
   ok(csv.includes("'=cmd") && !csv.includes(',=cmd'), 'a description starting with = is not a formula');
   ok(csv.includes('2026-05-05,Bank,Home,rent,Rent,,20000.00,'), 'paise kept, money out in its column');
+});
+
+test('salary at a month\'s end: spotted in the last week, counted in the month it pays for once you say so', () => {
+  const bank = { id: 'b', type: 'bank' };
+  const pay = (date, amount, extra = {}) => ({ id: date, accountId: 'b', date, amount, direction: 'credit', ...extra });
+  ok(salaryLike(pay('2026-09-30', 9000000), bank, 10000000), 'the 30th, near the income: salary-like');
+  ok(!salaryLike(pay('2026-09-20', 9000000), bank, 10000000), 'not in the last week');
+  ok(!salaryLike(pay('2026-09-30', 2000000), bank, 10000000), 'too small to be the salary');
+  ok(!salaryLike(pay('2026-09-30', 9000000, { personId: 'p' }), bank, 10000000), 'money from a person is not salary');
+  ok(!salaryLike(pay('2026-09-30', 9000000), { ...bank, spending: false }, 10000000), 'not into an account kept for saving');
+  ok(!salaryLike(pay('2026-09-30', 9000000, { countsFor: '2026-09' }), bank, 10000000), 'not once you have said where it counts');
+  equal(spendingMonthOf(pay('2026-09-30', 9000000, { countsFor: '2026-10' }), bank), '2026-10', 'counted in October once you said so');
+  equal(spendingMonthOf(pay('2026-09-30', 9000000), bank), '2026-09', 'and in its own month until then');
+  equal(nextMonthKey('2026-12'), '2027-01');
 });
