@@ -137,11 +137,44 @@ const PAYMENT_IN_RE = /\b(PAYMENT\s*RECEIVED|CC\s*PAYMENT|BPPY\s*CC|CRED\b|AUTOP
  * card's own refunds and "payment received" are the card's business.
  * The budget is not this: Left to spend counts a purchase the day it is
  * swiped (js/free-to-spend.js). Returns 'in', 'out' or null. */
-export function cashSide(t, account) {
-  const card = Boolean(account && account.type === 'card');
-  if (!card && t.direction === 'debit' && (t.paysCardId || looksLikeCardPayment(t, 'bank'))) return 'out';
-  if (card || t.isTransfer) return null;
+//
+// Only the bank accounts you spend from (5.21.5, "whatever moves from the main
+// account"): money that reached a savings account, a loan account or cash
+// already left the main one, so its EMIs, FDs and cash spends are not out a
+// second time.
+//
+// Money moved is out too when it leaves for an account you do not spend from
+// (savings, the account the home loans are paid from): it has left the main
+// account. Only a move between two accounts you spend from is neither, and
+// that is what `between` holds (spendMoves below). With it, what a month
+// brought forward plus In less Out is exactly what it ends with.
+export const spendsFrom = (account) => Boolean(account && account.type === 'bank' && account.spending !== false);
+
+export function cashSide(t, account, between = null) {
+  if (!spendsFrom(account)) return null;
+  if (t.direction === 'debit' && (t.paysCardId || looksLikeCardPayment(t, 'bank'))) return 'out';
+  if (t.isTransfer && (!between || between.has(t.id))) return null;
   return t.direction === 'credit' ? 'in' : 'out';
+}
+
+/* The moves that stay among the accounts you spend from: both halves, by the
+ * pair the import found (movedTo / movedFrom) or, failing that, the same
+ * amount the other way within three days. */
+export function spendMoves(transactions, accounts) {
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+  const spend = (id) => spendsFrom(byId.get(id));
+  const moves = transactions.filter((t) => t.isTransfer && spend(t.accountId));
+  const ids = new Set();
+  for (const t of moves) {
+    const other = t.direction === 'debit' ? t.movedTo : t.movedFrom;
+    if (other) {
+      if (spend(other)) ids.add(t.id);
+      continue;
+    }
+    const twin = moves.find((c) => c.accountId !== t.accountId && c.direction !== t.direction && c.amount === t.amount && daysApart(c.date, t.date) <= 3);
+    if (twin) ids.add(t.id);
+  }
+  return ids;
 }
 
 export function looksLikeCardPayment(t, type) {

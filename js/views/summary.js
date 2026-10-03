@@ -29,7 +29,7 @@ import { incomeWords, businesses, activeSpace, setCurrentSpace, accountInSpace, 
 import { taxDates, renews, renewalsAhead, renewalAfter } from '../calendar.js';
 import { escapeHtml, escapeAttr, sectionHead, pill, hero, panel } from '../ui.js';
 import { lateBack, reminderText, shareReminder } from '../people.js';
-import { cashSide } from '../transfers.js';
+import { cashSide, spendMoves } from '../transfers.js';
 
 let currentRange = 'this-month';
 
@@ -1953,12 +1953,13 @@ async function renderContent(container) {
   // money went.
   let cashIn = 0;
   let cashOut = 0;
+  const moves = spendMoves(transactions, accounts);
   for (const t of monthKey
     ? transactions.filter((t) => spendingMonthOf(t, byAccountId.get(t.accountId), false) === monthKey)
     : transactions.filter((t) => t.date >= from && t.date <= to)) {
     const account = byAccountId.get(t.accountId);
     if (!accountInSpace(space)(account || {})) continue;
-    const side = cashSide(t, account);
+    const side = cashSide(t, account, moves);
     if (side === 'in') cashIn += t.amount;
     else if (side === 'out') cashOut += t.amount;
   }

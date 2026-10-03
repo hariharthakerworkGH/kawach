@@ -11,7 +11,8 @@ import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
 import { isLiveCommitment, byYourOrder, salaryDayPayments } from '../commitments.js';
 import { commitmentField, cardPaymentField, isMonthEnd } from './add.js';
-import { looksLikeCardPayment, cashSide } from '../transfers.js';
+import { looksLikeCardPayment, cashSide, spendMoves } from '../transfers.js';
+import { bankBalance, balanceAt } from '../account-metrics.js';
 import { isoLocal } from '../frequency.js';
 import { icon } from '../icons.js';
 import { categoriesFor, activeSpace, accountInSpace, isBusinessAccount } from '../business.js';
@@ -111,6 +112,7 @@ export async function render(container, params = {}) {
       <div class="hero-top"><span class="hero-label">Net this month</span><span class="hero-label" id="hist-period"></span></div>
       <p class="hero-amount" id="hist-net">&nbsp;</p>
       <p class="hero-status" id="txn-count"></p>
+      <p class="hist-carry" id="hist-carry" hidden></p>
       ${sixMonthCharts(lastSixMonths(transactions, accounts), appearance('history'))}
     </section>
     <div class="hero-under" id="hist-stats"></div>
@@ -249,6 +251,7 @@ export async function render(container, params = {}) {
     for (const id of selected) {
       await remove('transactions', id);
       cache.transactions = cache.transactions.filter((x) => x.id !== id);
+      cache.moves = null;
     }
     selected.clear();
     renderList(container);
@@ -332,6 +335,7 @@ export function searchHit(t, needle) {
 // was recorded - so one tap on a category would send it to the top of its day.
 // The earlier stamp is kept as createdAt first, once, before it is overwritten.
 function save(t) {
+  cache.moves = null; // a payment marked moved or not changes which moves stay inside
   if (!t.createdAt && t.updatedAt) t.createdAt = t.updatedAt;
   return put('transactions', t);
 }
@@ -408,7 +412,8 @@ function sideOf(t) {
   const byId = (id) => cache.accounts.find((a) => a.id === id);
   const picked = byId(filters.accountId);
   if (picked && picked.type === 'card') return t.isTransfer ? null : t.direction === 'credit' ? 'in' : 'out';
-  return cashSide(t, byId(t.accountId));
+  if (!cache.moves) cache.moves = spendMoves(cache.transactions, cache.accounts);
+  return cashSide(t, byId(t.accountId), cache.moves);
 }
 
 function totals(rows) {
@@ -457,6 +462,7 @@ function renderList(container) {
     statsEl.innerHTML = '';
   }
   container.querySelector('#hist-days').innerHTML = across ? '' : dayChart(rows, filters.month);
+  carryLine(container, across, net);
   salaryQuestion(container, across);
   container.querySelector('#txn-count').textContent = rows.length
     ? net > 0
@@ -529,12 +535,12 @@ function groupTemplate(rows, across) {
 // your own accounts left out, as in the totals), the biggest day named under
 // it. A bar is a button that takes you to that day in the list. Nothing went
 // out, no chart. Exported so it can be tested.
-export function dayChart(rows, month) {
+export function dayChart(rows, month, side = sideOf) {
   const [y, m] = month.split('-').map(Number);
   const days = new Date(y, m, 0).getDate();
   const out = new Array(days).fill(0);
   for (const t of rows) {
-    if (sideOf(t) !== 'out' || t.date.slice(0, 7) !== month) continue;
+    if (side(t) !== 'out' || t.date.slice(0, 7) !== month) continue;
     out[Number(t.date.slice(8, 10)) - 1] += t.amount;
   }
   const top = Math.max(...out);
@@ -713,6 +719,44 @@ function cardBill(t) {
   return Boolean(account && account.type !== 'card' && t.direction === 'debit' && (t.paysCardId || looksLikeCardPayment(t, 'bank')));
 }
 
+// NEW (5.21.5): what the month started with and ends with, in the accounts
+// you spend from, so Net adds up to the balance: brought forward + in − out.
+// A payment counted in another month than its date (salary at a month's end)
+// is counted where History counts it. Left out where it cannot be trusted:
+// an account with no statement balance, or a month before its first payment.
+function carryLine(container, across, net) {
+  const el = container.querySelector('#hist-carry');
+  const picked = cache.accounts.find((a) => a.id === filters.accountId);
+  const banks = (picked ? [picked] : cache.accounts).filter((a) => cashSide({ direction: 'credit' }, a) === 'in' && a.knownBalance != null);
+  const month = filters.month;
+  const start = `${month}-01`;
+  const reaches = (a) => cache.transactions.some((t) => t.accountId === a.id && t.date < start);
+  // About whole accounts, so not while a category or a search narrows the list.
+  if (across || filters.categoryId || filters.search.trim() || !banks.length || !banks.every(reaches)) {
+    el.hidden = true;
+    return;
+  }
+  const [y, m] = month.split('-').map(Number);
+  const today = isoLocal(new Date());
+  const current = month === thisMonth();
+  const end = current ? today : isoLocal(new Date(y, m, 0));
+  const ids = new Set(banks.map((a) => a.id));
+  const signed = (t) => (t.direction === 'credit' ? t.amount : -t.amount);
+  // Payments on these accounts by the day: before it but counted from this
+  // month on, or after it but counted before - each moves the line.
+  const moved = (day, from) =>
+    cache.transactions
+      .filter((t) => ids.has(t.accountId) && ((t.date <= day && countsFor(t) >= from) || (t.date > day && countsFor(t) < from)))
+      .reduce((s, t) => s + (t.date <= day ? signed(t) : -signed(t)), 0);
+  const sum = (day) => banks.reduce((s, a) => s + (current && day === today ? bankBalance(a, cache.transactions, today) : balanceAt(a, cache.transactions, day)), 0);
+  const left = Math.round((sum(end) - moved(end, nextMonthKey(month))) / 100) * 100;
+  // From the two rounded figures, so the line adds up to the rupee on screen
+  // (worked out on its own it can be a rupee off from rounding).
+  const brought = left - Math.round(net / 100) * 100;
+  el.hidden = false;
+  el.innerHTML = `<span>Brought from ${monthName(shiftMonth(month, -1))} <b>${formatRupees(brought)}</b></span><span>${current ? 'In the bank now' : 'Left at the end'} <b>${formatRupees(left)}</b></span>`;
+}
+
 // NEW (5.22): salary at the end of a month. History asks once, the first time
 // it sees one; after a yes every salary is filed under the month it pays for
 // as it arrives, and after a no none is. Either way any one payment can be
@@ -732,17 +776,16 @@ async function fileSalaries(accounts) {
     t.countsFor = nextMonthKey(t.date.slice(0, 7));
     await save(t);
   }
-  // And what that salary paid for the month after, on the day it landed:
-  // rent, EMIs and the other commitments with a set day, from the salary's
-  // date to the month's end. Only for a salary filed ahead, never one you
-  // left in its own month.
-  const homeBanks = new Set(accounts.filter((a) => (a.type === 'bank' || a.type === 'savings') && !a.business).map((a) => a.id));
+  // And what that salary paid for the month after, from its date to the
+  // month's end (salaryDayPayments). Only for a salary filed ahead, never one
+  // you left in its own month, and only from the account it landed in.
+  const homeBanks = new Set(accounts.filter((a) => a.type === 'bank' && a.spending !== false && !a.business).map((a) => a.id));
   const commitments = [...cache.commitments.filter((c) => !c.space || c.space === 'home'), ...accounts.filter(isLoanAccount).map(loanCommitment).filter(Boolean)];
   const filed = cache.transactions.filter((t) => t.direction === 'credit' && t.countsFor && t.countsFor === nextMonthKey(t.date.slice(0, 7)) && homeBanks.has(t.accountId));
   for (const s of filed) {
     const [y, m] = s.date.split('-').map(Number);
     const monthEnd = `${s.date.slice(0, 8)}${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`;
-    for (const t of salaryDayPayments(cache.transactions, commitments, s.date, monthEnd, homeBanks)) {
+    for (const t of salaryDayPayments(cache.transactions, commitments, s.date, monthEnd, new Set([s.accountId]))) {
       t.countsFor = s.countsFor;
       await save(t);
     }
@@ -1237,13 +1280,14 @@ export function sixMonthCharts(months, look = 'both') {
 
 export function lastSixMonths(transactions, accounts = []) {
   const byId = new Map(accounts.map((a) => [a.id, a]));
+  const moves = spendMoves(transactions, accounts);
   const now = new Date();
   const months = [];
   for (let back = 5; back >= 0; back -= 1) {
     const d = new Date(now.getFullYear(), now.getMonth() - back, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const rows = transactions.filter((t) => countsFor(t) === key);
-    const sum = (side) => rows.filter((t) => cashSide(t, byId.get(t.accountId)) === side).reduce((s, t) => s + t.amount, 0);
+    const sum = (side) => rows.filter((t) => cashSide(t, byId.get(t.accountId), moves) === side).reduce((s, t) => s + t.amount, 0);
     months.push({ label: d.toLocaleDateString('en-IN', { month: 'short' }), in: sum('in'), out: sum('out') });
   }
   return months;

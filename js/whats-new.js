@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.22',
+    items: [
+      {
+        icon: 'history',
+        title: "What each month brought forward",
+        text: "History now shows what a month started with and ends with in the accounts you spend from, so brought forward + in - out = your balance. Money moved to savings or the loan account counts as out, everything paid from the salary on salary day goes with it, and payments from savings are not counted again.",
+        guide: [{ view: 'transactions', target: '#hist-carry', text: "What the month started with, and what is in the bank now." }],
+      },
+    ],
+  },
+  {
     version: '5.21.4',
     items: [
       {
