@@ -71,7 +71,7 @@ export async function buildDiagnosticReport(now = new Date()) {
   // and merchant ("emi-…-www_dyson_in-12"), a detected bill's from the
   // merchant name. Every id is swapped for a neutral one, consistently, so
   // links between records still hold. 'cash' (paid in cash) stays as it is.
-  const idMaps = { a: new Map(), t: new Map(), r: new Map(), i: new Map(), c: new Map() };
+  const idMaps = { a: new Map(), t: new Map(), r: new Map(), i: new Map(), c: new Map(), p: new Map() };
   const idFor = (kind, id) => {
     if (id == null || id === 'cash') return id ?? null;
     const map = idMaps[kind];
@@ -79,7 +79,7 @@ export async function buildDiagnosticReport(now = new Date()) {
     return map.get(id);
   };
 
-  const settingKeys = new Set(['monthlyIncome', 'salaryDay', 'keepInBank', 'cycleAwareMonths', 'budgets']);
+  const settingKeys = new Set(['monthlyIncome', 'salaryDay', 'keepInBank', 'cycleAwareMonths', 'budgets', 'incomeType', 'salaryNextMonth']);
   const figures = await computeFreeToSpend(now);
 
   return {
@@ -174,6 +174,10 @@ export async function buildDiagnosticReport(now = new Date()) {
       isReimbursable: t.isReimbursable === true ? true : undefined,
       isSettlement: t.isSettlement === true ? true : undefined,
       forNextMonth: t.forNextMonth === true ? true : undefined,
+      // The month a payment counts in when it is not its own (salary at a
+      // month's end, 5.21.1), and whose money it was (lent and borrowed, 5.20).
+      countsFor: t.countsFor || undefined,
+      personId: t.personId ? idFor('p', t.personId) : undefined,
       paysStatement: t.paysStatement ? `${idFor('a', String(t.paysStatement).split('|')[0])}|${String(t.paysStatement).split('|')[1] || ''}` : undefined,
       time: t.time || undefined,
       createdAt: t.createdAt || undefined,
