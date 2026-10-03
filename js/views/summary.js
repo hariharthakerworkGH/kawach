@@ -714,7 +714,7 @@ export function monthWaves(f) {
         <g class="waves__tip"><rect x="${(tipX - 30).toFixed(1)}" y="${Math.max(2, by - 32).toFixed(1)}" width="60" height="20" rx="6"/><text x="${tipX.toFixed(1)}" y="${(Math.max(2, by - 32) + 14).toFixed(1)}" text-anchor="middle">${formatRupees(daily[bigDay])}</text></g>
       </svg>
       <div class="waves__key">
-        <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b>spent so far</span>
+        <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b>${f.finished ? 'spent in all' : 'spent so far'}</span>
         <span class="waves__k waves--pace"><b>${formatRupees(Math.round(pace[n - 1]))}</b>at an even pace</span>
         <span class="waves__k waves--day"><b>${formatDateNice(f.spendByDay[bigDay].date)}</b>biggest day</span>
       </div>
@@ -791,7 +791,7 @@ export function monthMountains(f, head = '') {
         ${ticks}
       </svg>
       <div class="waves__key">
-        <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b>spent so far</span>
+        <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b>${f.finished ? 'spent in all' : 'spent so far'}</span>
         <span class="waves__k waves--pace"><b>${formatRupees(Math.round(evenDay * n))}</b>at an even pace</span>
         <span class="waves__k waves--day"><b>${formatDateNice(f.spendByDay[bigDay].date)}</b>biggest day</span>
       </div>
@@ -1026,13 +1026,18 @@ function renderCardsHero(f, opts = {}) {
   // Charts one.
   const style = typeof document !== 'undefined' ? document.documentElement.dataset.style : '';
   const short = Boolean(opts.short);
-  const lookTop = !past && ['full', 'short'].includes(appearance('summary')) && f.limit > 0 && LOOK_TOPS[style];
+  // CHANGED (5.22.2): a finished month is drawn in the same top as the month
+  // running, so going back a month never changes the look. It says "Final for
+  // September" where the pace was, shows the whole month, and leaves out what
+  // is about now (this week, what is owed, what is coming).
+  const lookTop = ['full', 'short'].includes(appearance('summary')) && (past || f.limit > 0) && LOOK_TOPS[style];
+  const drawn = past ? { ...shown, finished: true } : f;
   const top = lookTop
-    ? lookTop(f, short ? shortStatus(f) : spendingStatus(f), style === 'peaks' ? monthMountains(f, '<div class="pk-head"><span class="pk-lab">This month</span></div>') : monthWaves(f))
+    ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), style === 'peaks' ? monthMountains(drawn, `<div class="pk-head"><span class="pk-lab">${past ? past.name : 'This month'}</span></div>`) : monthWaves(drawn))
     : spendingHero(shown, short ? 'full' : appearance('summary'), past ? `Final for ${past.name}` : null, short ? shortStatus(f) : null) + `<!--k:answer-->
     ${past ? '' : monthWaves(f)}<!--k:month-->
     ${past ? '' : weekPills(f)}
-    <div class="summary-rows summary-strip">
+    ${past && ['full', 'short'].includes(appearance('summary')) ? '' : `<div class="summary-rows summary-strip">
       ${['full', 'short'].includes(appearance('summary')) ? '' : spentLine(f.spentThisCycle, f.limit, spendSpark(f.spendByDay))}
       ${past ? '' : stillSetAside(f)}
       ${
@@ -1041,7 +1046,7 @@ function renderCardsHero(f, opts = {}) {
         // In the full look the cards' figure is in the columns above.
         past ? '' : renderOwed(f, { cards: !['full', 'short'].includes(appearance('summary')) })
       }
-    </div>
+    </div>`}
     ${past ? '' : chartsComing(f)}`;
   return top + `
     ${(() => {

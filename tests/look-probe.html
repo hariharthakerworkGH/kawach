@@ -46,7 +46,9 @@
   };
   const style = root.dataset.style;
   const tops = { tactile: looks.tactileTop, peaks: looks.peaksTop, mindora: looks.mindoraTop };
-  const status = spendingStatus(f);
+  // ?finished=1: the month as it reads once it is over (5.22.2).
+  if (q.get('finished') === '1') f.finished = true;
+  const status = f.finished ? 'Final for October' : spendingStatus(f);
   const month = style === 'peaks' ? monthMountains(f, '<div class="pk-head"><span class="pk-lab">This month</span></div>') : monthWaves(f);
   document.getElementById('view-container').innerHTML = tops[style]
     ? tops[style](f, status, month)

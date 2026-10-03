@@ -68,10 +68,13 @@ export function topFigures(f) {
     limit: f.limit,
     spent: Math.max(0, f.spentThisCycle || 0),
     used: Math.max(0, f.used || 0),
-    day: f.daysIntoCycle || 0,
+    // A finished month (5.22.2): the whole month has gone, and everything about
+    // now - this week, what is owed, what is coming - is left out of it.
+    finished: Boolean(f.finished),
+    day: f.finished ? monthDays : f.daysIntoCycle || 0,
     monthDays,
-    gone: monthDays > 0 ? Math.min(1, (f.daysIntoCycle || 0) / monthDays) : 0,
-    daysLeft: f.daysToClose || 0,
+    gone: f.finished ? 1 : monthDays > 0 ? Math.min(1, (f.daysIntoCycle || 0) / monthDays) : 0,
+    daysLeft: f.finished ? 0 : f.daysToClose || 0,
     perDay: f.perDay,
     period: `${formatDateNice(f.cycleStart)} to ${formatDateNice(f.cycleKey)}`,
     asideUsed: asideTotal ? aside.reduce((s, t) => s + Math.max(0, t.used || 0), 0) / asideTotal : null,
@@ -91,6 +94,9 @@ export function topFigures(f) {
   };
 }
 
+// "₹63,128 of ₹9,733": once the commitments are more than the income there is no
+// budget to be "of" (a finished month can be like that), so only what was spent.
+const ofLimit = (x) => (x.limit > 0 ? `${formatRupees(x.spent)} of ${formatRupees(x.limit)}` : formatRupees(x.spent));
 const pct = (v) => `${Math.round(Math.min(1, Math.max(0, v)) * 100)}%`;
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const dow = (iso) => DOW[new Date(`${iso}T12:00`).getDay()];
@@ -116,9 +122,9 @@ export function tactileTop(f, status, month) {
       <div class="tl-stats">
         <div><span class="tl-k">Spent</span><b>${formatRupees(x.spent)}</b></div>
         <div><span class="tl-k">Budget</span><b>${formatRupees(x.limit)}</b></div>
-        <div><span class="tl-k">A day</span><b>${x.perDay > 0 ? formatRupees(x.perDay) : '-'}</b></div>
+        <div><span class="tl-k">${x.finished ? 'Days' : 'A day'}</span><b>${x.finished ? x.monthDays : x.perDay > 0 ? formatRupees(x.perDay) : '-'}</b></div>
       </div>
-      <div class="tl-prog"><i class="${tone(f)}" style="width:${pct(x.used)}"></i><span><span>Spent</span><span>${formatRupees(x.spent)} of ${formatRupees(x.limit)}</span></span></div>
+      <div class="tl-prog"><i class="${tone(f)}" style="width:${pct(x.used)}"></i><span><span>Spent</span><span>${ofLimit(x)}</span></span></div>
       ${x.asideUsed != null ? `<div class="tl-prog tl-prog--aside"><i style="width:${pct(x.asideUsed)}"></i><span><span>Set aside used</span><span>${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}</span></span></div>` : ''}
       <div class="tl-slider" role="img" aria-label="Day ${x.day} of ${x.monthDays}">
         <div class="tl-trk"></div><div class="tl-fill" style="width:${pct(x.gone)}"></div><div class="tl-thumb" style="left:${pct(x.gone)}"></div>
@@ -128,14 +134,14 @@ export function tactileTop(f, status, month) {
       <p class="tl-line ${tone(f)}">${escapeHtml(status)}</p>
     </div><!--k:answer-->
     ${month || ''}<!--k:month-->
-    ${x.week.length ? `<div class="tl-card"><div class="tl-top"><span class="tl-k">This week</span><b class="tl-mid">${formatRupees(x.weekTotal)}</b></div>${weekCols(x, 'tl-cols')}</div>` : ''}
-    <div class="tl-list">
+    ${x.week.length && !x.finished ? `<div class="tl-card"><div class="tl-top"><span class="tl-k">This week</span><b class="tl-mid">${formatRupees(x.weekTotal)}</b></div>${weekCols(x, 'tl-cols')}</div>` : ''}
+    ${x.finished ? '' : `<div class="tl-list">
       ${x.cards.length ? `<div class="tl-item tl-item--cards"><span class="tl-ibox">${icon('card')}</span><span class="tl-grow"><span class="tl-t">Owed on cards</span>${x.bills ? `<span class="tl-badge">${bills(x.bills)}</span>` : ''}</span><span class="tl-v">${formatRupees(x.owedCards)}</span>
         <div class="tl-cards">${x.cards.map((c) => `<div class="tl-cardrow">${tagHtml(c)}<span class="tl-thin"><i style="width:${pct(c.share)}"></i></span><span class="tl-cardamt">${formatRupees(c.amount)}</span></div>`).join('')}</div></div>` : ''}
       ${x.kept ? row(categoryIcon('piggy'), 'Kept back', 'set aside, not spent yet', formatRupees(x.kept), '', 'set-aside-stat') : ''}
       ${x.employer ? row(categoryIcon('income'), 'Owed back', 'by your employer', formatRupees(x.employer), 'tl-ok') : ''}
-    </div>
-    ${x.coming.length ? `<div class="tl-label"><span>Coming up</span><span class="tl-still">${formatRupees(x.stillToPay)} still to pay</span></div><div class="tl-list">${x.coming.map((c) => row(categoryStyle(c.label).icon, escapeHtml(c.label), `${formatDateNice(c.due)}${c.late ? ' · late' : ''}`, formatRupees(c.amount), c.late ? 'tl-bad' : '')).join('')}</div>` : ''}`;
+    </div>`}
+    ${x.coming.length && !x.finished ? `<div class="tl-label"><span>Coming up</span><span class="tl-still">${formatRupees(x.stillToPay)} still to pay</span></div><div class="tl-list">${x.coming.map((c) => row(categoryStyle(c.label).icon, escapeHtml(c.label), `${formatDateNice(c.due)}${c.late ? ' · late' : ''}`, formatRupees(c.amount), c.late ? 'tl-bad' : '')).join('')}</div>` : ''}`;
 }
 
 /* --- Peaks: the pale panel with a donut, the mountains, slate cards ------ */
@@ -187,28 +193,28 @@ export function peaksTop(f, status, month) {
       <div class="pk-top"><span class="pk-lab">Left to spend</span><span class="pk-tiny">${x.period}</span></div>
       <div class="pk-ring">${donut}<div class="pk-ring__mid"><b>${formatRupees(x.left)}</b><small>left</small></div></div>
       <div class="pk-figs">
-        <div><div class="pk-n pk-n--l">${sup(plain(x.spent))}</div><div class="pk-tiny">spent of ${formatRupees(x.limit)} · <span class="pk-hot">${formatRupees(x.weekTotal)} this week</span></div></div>
+        <div><div class="pk-n pk-n--l">${sup(plain(x.spent))}</div><div class="pk-tiny">spent${x.limit > 0 ? ` of ${formatRupees(x.limit)}` : ''}${x.finished ? '' : ` · <span class="pk-hot">${formatRupees(x.weekTotal)} this week</span>`}</div></div>
         <div class="pk-pair">
-          <div><div class="pk-n pk-n--m">${x.perDay > 0 ? sup(plain(x.perDay)) : '-'}</div><div class="pk-tiny">a day</div></div>
+          ${x.finished ? '' : `<div><div class="pk-n pk-n--m">${x.perDay > 0 ? sup(plain(x.perDay)) : '-'}</div><div class="pk-tiny">a day</div></div>`}
           ${x.asideUsed != null ? `<div><div class="pk-n pk-n--m">${sup(plain(x.asideSpent))}</div><div class="pk-tiny">of ${formatRupees(x.asideTotal)} set aside</div></div>` : ''}
         </div>
       </div>
       <div class="pk-foot">
         <div><span class="pk-tiny">Budget</span><b>${formatRupees(x.limit)}</b></div>
-        <div><span class="pk-tiny">Days left</span><b>${x.daysLeft}</b></div>
-        <div><span class="pk-tiny">Day</span><b>${x.day} of ${x.monthDays}</b></div>
+        ${x.finished ? `<div><span class="pk-tiny">Days</span><b>${x.monthDays}</b></div>` : `<div><span class="pk-tiny">Days left</span><b>${x.daysLeft}</b></div>
+        <div><span class="pk-tiny">Day</span><b>${x.day} of ${x.monthDays}</b></div>`}
       </div>
       <p class="pk-status ${tone(f)}">${escapeHtml(status)}</p>
     </div><!--k:answer-->
     ${month || ''}<!--k:month-->
-    ${x.week.length ? `<div class="pk-card pk-week"><div class="pk-row"><span class="pk-lab">This week</span><span class="pk-n pk-n--s">${sup(plain(x.weekTotal))}</span></div>${weekLine(x)}</div>` : ''}
-    ${x.cards.length ? `<div class="pk-card"><div class="pk-row"><span class="pk-lab">Owed on cards${x.bills ? ` · <span class="pk-hot">${bills(x.bills)}</span>` : ''}</span><span class="pk-n pk-n--m">${sup(plain(x.owedCards))}</span></div>
+    ${x.week.length && !x.finished ? `<div class="pk-card pk-week"><div class="pk-row"><span class="pk-lab">This week</span><span class="pk-n pk-n--s">${sup(plain(x.weekTotal))}</span></div>${weekLine(x)}</div>` : ''}
+    ${x.cards.length && !x.finished ? `<div class="pk-card"><div class="pk-row"><span class="pk-lab">Owed on cards${x.bills ? ` · <span class="pk-hot">${bills(x.bills)}</span>` : ''}</span><span class="pk-n pk-n--m">${sup(plain(x.owedCards))}</span></div>
       <div class="pk-bars">${x.cards.map((c) => `<div class="pk-bar">${tagHtml(c)}<span class="pk-trk"><i style="width:${pct(c.share)}"></i></span><b>${plain(c.amount)}</b></div>`).join('')}</div></div>` : ''}
-    ${x.kept || x.employer ? `<div class="pk-two">
+    ${(x.kept || x.employer) && !x.finished ? `<div class="pk-two">
       ${x.kept ? `<button type="button" class="pk-card" id="set-aside-stat"><span class="pk-lab">Kept back</span><span class="pk-n pk-n--m">${sup(plain(x.kept))}</span><span class="pk-tiny">set aside, not spent yet</span></button>` : ''}
       ${x.employer ? `<div class="pk-card"><span class="pk-lab">Owed back</span><span class="pk-n pk-n--m pk-good">${sup(plain(x.employer))}</span><span class="pk-tiny">by your employer</span></div>` : ''}
     </div>` : ''}
-    ${x.coming.length ? `<div class="pk-card pk-coming">
+    ${x.coming.length && !x.finished ? `<div class="pk-card pk-coming">
       <div class="pk-lab">Coming up</div>
       <div class="pk-dashes">${x.coming
         .map((c) => `<div class="pk-dash"><span class="pk-dash__t">${escapeHtml(c.label)}<small>${formatDateNice(c.due)}${c.late ? ' · late' : ''}</small></span><span class="pk-ln"><i class="${c.late ? 'late' : ''}" style="left:${monthPos(c.due)}"></i>${f.today ? `<u style="left:${monthPos(f.today)}"></u>` : ''}</span><b>${plain(c.amount)}</b></div>`)
@@ -273,26 +279,26 @@ export function mindoraTop(f, status, month) {
       <div class="md-stats">
         <div><span class="md-kick">Spent</span><b>${formatRupees(x.spent)}</b></div>
         <div><span class="md-kick">Budget</span><b>${formatRupees(x.limit)}</b></div>
-        <div><span class="md-kick">A day</span><b>${x.perDay > 0 ? formatRupees(x.perDay) : '-'}</b></div>
+        <div><span class="md-kick">${x.finished ? 'Days' : 'A day'}</span><b>${x.finished ? x.monthDays : x.perDay > 0 ? formatRupees(x.perDay) : '-'}</b></div>
       </div>
-      ${line('Spent', x.used, tone(f), `${formatRupees(x.spent)} of ${formatRupees(x.limit)}`)}
-      ${line(`Day ${x.day} of ${x.monthDays}`, x.gone, 'sky', `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`)}
+      ${line('Spent', x.used, tone(f), ofLimit(x))}
+      ${line(`Day ${x.day} of ${x.monthDays}`, x.gone, 'sky', x.finished ? 'month done' : `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`)}
       ${x.asideUsed != null ? line('Set aside used', x.asideUsed, 'blush', `${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}`) : ''}
     </div>
     <div class="md-glass">
-      <div class="md-kick">The month so far</div>
+      <div class="md-kick">${x.finished ? 'The month' : 'The month so far'}</div>
       <div class="md-moods">${MOODS.map(([id, word, smile]) => `<span class="md-mood md-mood--${id}${id === now ? ' on' : ''}"><b>${face(smile)}</b>${word}</span>`).join('')}</div>
       <p class="md-line ${tone(f)}">${escapeHtml(status)}</p>
     </div><!--k:answer-->
     ${month || ''}<!--k:month-->
-    ${x.week.length ? `<div class="md-glass"><div class="md-top"><span class="md-kick">This week</span><span class="md-mid">${formatRupees(x.weekTotal)}</span></div>${weekCols(x, 'md-cols')}</div>` : ''}
-    ${x.cards.length ? `<div class="md-glass"><div class="md-top"><span class="md-kick">Owed on cards</span><span class="md-mid">${formatRupees(x.owedCards)}</span></div>${x.bills ? `<span class="md-badge">${bills(x.bills)}</span>` : ''}
+    ${x.week.length && !x.finished ? `<div class="md-glass"><div class="md-top"><span class="md-kick">This week</span><span class="md-mid">${formatRupees(x.weekTotal)}</span></div>${weekCols(x, 'md-cols')}</div>` : ''}
+    ${x.cards.length && !x.finished ? `<div class="md-glass"><div class="md-top"><span class="md-kick">Owed on cards</span><span class="md-mid">${formatRupees(x.owedCards)}</span></div>${x.bills ? `<span class="md-badge">${bills(x.bills)}</span>` : ''}
       <div class="md-bars">${x.cards.map((c) => `<div class="md-bar">${tagHtml(c)}<span class="md-prog"><i style="width:${pct(c.share)}"></i></span><b>${formatRupees(c.amount)}</b></div>`).join('')}</div></div>` : ''}
-    ${x.kept || x.employer ? `<div class="md-split">
+    ${(x.kept || x.employer) && !x.finished ? `<div class="md-split">
       ${x.kept ? `<button type="button" class="md-glass md-lake" id="set-aside-stat">${lake()}<span class="md-lake__text"><span class="md-kick">Kept back</span><span class="md-mid">${formatRupees(x.kept)}</span><small>set aside, not spent yet</small></span></button>` : ''}
       ${x.employer ? `<div class="md-glass md-small"><span class="md-kick">Owed back</span><span class="md-mid md-good">${formatRupees(x.employer)}</span><small class="md-sub">by your employer</small></div>` : ''}
     </div>` : ''}
-    ${x.coming.length ? `<div class="md-glass">
+    ${x.coming.length && !x.finished ? `<div class="md-glass">
       <div class="md-top"><span class="md-kick">Coming up</span><span class="md-sub">${formatRupees(x.stillToPay)} still to pay</span></div>
       <div class="md-steps">${x.coming.map((c) => `<div class="md-step${c.late ? ' late' : ''}"><b>${categoryStyle(c.label).icon}</b><small><em>${escapeHtml(c.label)}</em>${formatRupees(c.amount)}<span>${formatDateNice(c.due)}${c.late ? ' · late' : ''}</span></small></div>`).join('')}</div>
     </div>` : ''}`;

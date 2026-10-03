@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.22.2',
+    items: [
+      {
+        icon: 'summary',
+        title: "Past months look like this month",
+        text: "Going back a month on Summary now keeps the same look: Final for September, the whole month drawn, the figures that were true when it ended, and nothing about today. The empty bar in older months is gone.",
+        guide: [{ view: 'summary', target: '#sum-month-prev', text: "Step back a month: it keeps the same look." }],
+      },
+    ],
+  },
+  {
     version: '5.22.1',
     items: [
       {
