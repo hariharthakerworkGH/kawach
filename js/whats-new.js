@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.21.2',
+    items: [
+      {
+        icon: 'history',
+        title: "What salary paid on salary day counts with it",
+        text: "Rent, EMIs and other commitments with a set day, paid from your salary on salary day, now count in the month they pay for, the same month as the salary. Spread costs like tiffin and everyday spending stay on their date.",
+        guide: [{ view: 'transactions', target: '#hist-net', text: "Salary and the bills it paid that day now count together." }],
+      },
+    ],
+  },
+  {
     version: '5.21.1',
     items: [
       {

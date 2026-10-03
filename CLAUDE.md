@@ -131,6 +131,8 @@ Periods:
   js/spending-month.js): salary landing in a month's last week can count in
   the month it pays for. History asks once; after a yes each salary is
   filed that way (`countsFor` on the payment), and Edit can switch any one.
+  The set-day commitments that salary paid on salary day go with it
+  (`salaryDayPayments`, js/commitments.js): the budget's own rule.
 - The bank balance never raises the budget. It is a separate check that only warns.
 - A commitment is one of two things, asked once on Plan: **must be paid** (rent,
   an EMI, a bill: it has a day and can be late) or **set aside** (groceries,
