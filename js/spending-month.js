@@ -29,7 +29,8 @@ function shiftMonthKey(key, delta) {
 // A payment carries the month it counts for (`countsFor`) once you have said
 // so; History asks the first time and, after a yes, files each salary that
 // way by itself. Without it, a payment counts in the month of its date.
-export const countsFor = (t) => t.countsFor || t.date.slice(0, 7);
+// A payment flagged "apply to next month's commitments" counts there too.
+export const countsFor = (t) => t.countsFor || (t.forNextMonth && t.commitmentId ? shiftMonthKey(t.date.slice(0, 7), 1) : t.date.slice(0, 7));
 export const nextMonthKey = (key) => shiftMonthKey(key, 1);
 
 // A credit that looks like the salary arriving early for next month: into a
@@ -45,7 +46,7 @@ export function salaryLike(t, account, income) {
 
 // The month a single transaction counts towards.
 export function spendingMonthOf(txn, account, cycleAware = true) {
-  if (txn.countsFor) return txn.countsFor;
+  if (txn.countsFor || (txn.forNextMonth && txn.commitmentId)) return countsFor(txn);
   const base = monthKeyOf(txn.date);
   if (!cycleAware) return base;
   if (!account || account.type !== 'card' || !account.billingCycleDay) return base;

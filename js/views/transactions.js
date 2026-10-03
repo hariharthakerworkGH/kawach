@@ -1,5 +1,6 @@
 import { getAll, put, remove, getSetting, setSetting } from '../db.js';
 import { countsFor, nextMonthKey, salaryLike } from '../spending-month.js';
+import { isLoanAccount, loanCommitment } from '../loans.js';
 import { personNamed } from '../people.js';
 import { learnFromAssignment } from '../merchant-rules.js';
 import { formatCurrency, formatRupees, formatMonthYear, formatDateNice } from '../format.js';
@@ -8,7 +9,7 @@ import { categoryIcon } from '../category-icons.js';
 import { isSplit, categorySlices, needsCategory, splitTotal } from '../splits.js';
 import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
-import { isLiveCommitment, byYourOrder } from '../commitments.js';
+import { isLiveCommitment, byYourOrder, salaryDayPayments } from '../commitments.js';
 import { commitmentField, cardPaymentField, isMonthEnd } from './add.js';
 import { looksLikeCardPayment } from '../transfers.js';
 import { isoLocal } from '../frequency.js';
@@ -705,12 +706,29 @@ async function fileSalaries(accounts) {
   if (kind === 'business' || choice === false) return;
   const byId = new Map(accounts.map((a) => [a.id, a]));
   const found = cache.transactions.filter((t) => salaryLike(t, byId.get(t.accountId), income)).sort((a, b) => (a.date < b.date ? 1 : -1));
-  if (choice === true) {
-    for (const t of found) {
-      t.countsFor = nextMonthKey(t.date.slice(0, 7));
+  if (choice !== true) {
+    salaryAsk = found[0] || null;
+    return;
+  }
+  for (const t of found) {
+    t.countsFor = nextMonthKey(t.date.slice(0, 7));
+    await save(t);
+  }
+  // And what that salary paid for the month after, on the day it landed:
+  // rent, EMIs and the other commitments with a set day, from the salary's
+  // date to the month's end. Only for a salary filed ahead, never one you
+  // left in its own month.
+  const homeBanks = new Set(accounts.filter((a) => (a.type === 'bank' || a.type === 'savings') && !a.business).map((a) => a.id));
+  const commitments = [...cache.commitments.filter((c) => !c.space || c.space === 'home'), ...accounts.filter(isLoanAccount).map(loanCommitment).filter(Boolean)];
+  const filed = cache.transactions.filter((t) => t.direction === 'credit' && t.countsFor && t.countsFor === nextMonthKey(t.date.slice(0, 7)) && homeBanks.has(t.accountId));
+  for (const s of filed) {
+    const [y, m] = s.date.split('-').map(Number);
+    const monthEnd = `${s.date.slice(0, 8)}${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`;
+    for (const t of salaryDayPayments(cache.transactions, commitments, s.date, monthEnd, homeBanks)) {
+      t.countsFor = s.countsFor;
       await save(t);
     }
-  } else salaryAsk = found[0] || null;
+  }
 }
 
 // The question, on the month it landed in and on the month it pays for.
@@ -747,7 +765,9 @@ const monthName = (key) => new Date(Number(key.slice(0, 4)), Number(key.slice(5,
 
 // The switch in a payment's Edit panel: money in during a month's last week.
 function salaryMonthField(t) {
-  if (t.direction !== 'credit' || t.isTransfer || t.personId) return '';
+  if (t.isTransfer || t.personId) return '';
+  // Money out only once it has been moved ahead, so it can be put back.
+  if (t.direction === 'debit' && !t.countsFor) return '';
   const [y, m, d] = t.date.split('-').map(Number);
   if (d <= new Date(y, m, 0).getDate() - 7) return '';
   const next = nextMonthKey(t.date.slice(0, 7));

@@ -218,6 +218,25 @@ export function commitmentFromSuggestion(d, id) {
 // Whether a transaction is a payment towards a commitment: its bank wording
 // or ATM cash, otherwise about its amount for a dated one, otherwise (spread
 // through the month) its category.
+/* Paid from the salary, on salary day, for the month after (5.21.2): a
+ * commitment with a set day (rent, an EMI, LIC) paid between the salary
+ * landing and the month's end. The same rule the budget has always kept
+ * (js/free-to-spend.js, carriedOut), for History's months. Anything spread
+ * through a month (tiffin, ATM cash) and everyday spending stay on their
+ * date: the owner's rule, and the reason tiffin is never moved.
+ *   commitments: the live ones, loans' EMIs included
+ *   accountIds: the home bank accounts the money leaves from */
+export function salaryDayPayments(transactions, commitments, from, to, accountIds) {
+  const dated = commitments.filter((c) => !c.spread && frequencyOf(c) === 'monthly' && (!c.accountId || accountIds.has(c.accountId)));
+  const isFor = (t, c) => !(t.notCommitmentIds || []).includes(c.id) && (t.commitmentId ? t.commitmentId === c.id : Boolean(commitmentMatcher(c)?.(t)));
+  return transactions.filter(
+    (t) =>
+      t.direction === 'debit' && !t.isTransfer && !t.countsFor && !t.isReimbursable && !t.personId &&
+      t.date >= from && t.date <= to && accountIds.has(t.accountId) &&
+      (t.forNextMonth || dated.some((c) => isFor(t, c)))
+  );
+}
+
 export function commitmentMatcher(item) {
   const words = entryMatcher(item);
   if (words) return words;

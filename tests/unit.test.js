@@ -5,7 +5,7 @@ import { txn, commitment, rupees } from './fixtures.js';
 import { nextOccurrence } from '../js/frequency.js';
 import { passwordErrorKind } from '../js/pdf-text.js';
 import { sameTransaction, findDuplicates } from '../js/duplicates.js';
-import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments } from '../js/commitments.js';
+import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments, salaryDayPayments } from '../js/commitments.js';
 import { searchHit, newestFirst, dayChart } from '../js/views/transactions.js';
 import { reimbursableTally, tidyFlags } from '../js/reimbursable.js';
 import { versionStatus } from '../js/version.js';
@@ -21,7 +21,7 @@ import { nextRenewal, renewalAfter, renewalsAhead } from '../js/calendar.js';
 import { caPeriods, buildCaReport, toCsv } from '../js/ca-export.js';
 import { planParts } from '../js/views/plan-looks.js';
 import { looksLikeCardPayment } from '../js/transfers.js';
-import { spendingMonthOf, salaryLike, nextMonthKey } from '../js/spending-month.js';
+import { spendingMonthOf, salaryLike, nextMonthKey, countsFor as countsForMonth } from '../js/spending-month.js';
 import { parseAlert, splitAlerts, resolveAccount, findDigits } from '../js/alerts.js';
 import * as hdfcList from '../js/parsers/hdfc-card-current-text.js';
 import * as csvParser from '../js/parsers/csv.js';
@@ -1773,4 +1773,21 @@ test('salary at a month\'s end: spotted in the last week, counted in the month i
   equal(spendingMonthOf(pay('2026-09-30', 9000000, { countsFor: '2026-10' }), bank), '2026-10', 'counted in October once you said so');
   equal(spendingMonthOf(pay('2026-09-30', 9000000), bank), '2026-09', 'and in its own month until then');
   equal(nextMonthKey('2026-12'), '2027-01');
+});
+
+test('paid on salary day for the month after: commitments with a set day move with the salary, spread ones and spending stay', () => {
+  const rent = { id: 'rent', label: 'Rent', amount: 2500000, frequency: 'monthly', dayOfMonth: 30, source: 'fixed' };
+  const tiffin = { id: 'tiffin', label: 'Tiffin', amount: 400000, frequency: 'monthly', spread: true, source: 'fixed', matchText: 'TIFFIN' };
+  const out = (id, date, amount, extra = {}) => ({ id, accountId: 'b', date, amount, direction: 'debit', rawDescription: id.toUpperCase(), ...extra });
+  const rows = [
+    out('rent-paid', '2026-09-30', 2500000),
+    out('tiffin', '2026-09-30', 400000),
+    out('groceries', '2026-09-30', 120000),
+    out('rent-early', '2026-09-20', 2500000),
+    out('moved', '2026-09-30', 6800000, { isTransfer: true }),
+    out('tagged', '2026-09-30', 99900, { commitmentId: 'rent' }),
+  ];
+  const ids = salaryDayPayments(rows, [rent, tiffin], '2026-09-30', '2026-09-30', new Set(['b'])).map((t) => t.id);
+  equal(ids, ['rent-paid', 'tagged'], 'rent paid that day moves; tiffin, groceries, money moved and an earlier day stay');
+  equal(countsForMonth({ date: '2026-09-30', forNextMonth: true, commitmentId: 'rent' }), '2026-10', 'a payment flagged for next month counts there');
 });
