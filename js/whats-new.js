@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.22.1',
+    items: [
+      {
+        icon: 'history',
+        title: "The month in one sentence",
+        text: "Under Net this month, History now says where the difference went: taken from what last month left, or carried into the next. The same thing is no longer said again under the chart.",
+        guide: [{ view: 'transactions', target: '#txn-count', text: "Where this month's difference went." }],
+      },
+    ],
+  },
+  {
     version: '5.22',
     items: [
       {

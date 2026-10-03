@@ -1331,11 +1331,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
   color: var(--k-text-2);
 }
 .k .in-out-legend > span { display: inline-flex; align-items: center; gap: 6px; }
-/* The sentence takes the rest of the line rather than sitting in the middle
-   of the two keys. */
-/* A sentence is not a flex container: making it one turns each word and the
-   bold figure into items and eats the spaces between them. */
-.k .in-out-legend > span:last-child { display: block; flex: 1 1 100%; color: var(--k-text-2); }
 .k .key { display: inline-block; width: 9px; height: 9px; border-radius: 2px; flex: none; }
 .k .key { border-radius: 2px; }
 .k .key-in { background: var(--k-positive); }
