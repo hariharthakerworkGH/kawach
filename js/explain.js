@@ -19,6 +19,7 @@ export const TERMS = {
   'owed back': 'Work costs your employer has not paid back to you yet.',
   'owed on cards': 'Card bills not paid yet, plus what you have spent on cards since.',
   'spent so far': 'Everything spent from the 1st of the month to today.',
+  'spent in all': 'Everything spent in the month, on cards and from the bank, not counting fixed costs.',
   'at an even pace': 'What you would have spent by today if the budget were spread evenly over the month.',
   'biggest day': 'The day you spent the most this month.',
   'this week': 'What you spent in the last seven days.',

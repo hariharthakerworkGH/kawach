@@ -206,6 +206,10 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   top of the screen; then a tab goes to Summary and a screen opened from
   another goes back to it; on Summary at the top it leaves the app. A screen redrawing itself goes through `js/redraw.js`,
   which keeps the scroll position and any open sections.
+- A finished month on Summary is drawn in the same top as the month running
+  (`finished: true`, `topFigures`): "Final for September", Days, the whole
+  month, and nothing about now (this week, owed, coming up). Its budget is
+  worked out from today's commitments, as of the month's last day.
 - Every passphrase box gets a show button, and a passphrase typed twice goes
   red as soon as the two differ (`js/password-field.js`).
 - A card's statement day is never typed in: it comes from its statements
