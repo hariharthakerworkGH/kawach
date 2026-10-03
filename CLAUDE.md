@@ -131,11 +131,17 @@ Periods:
   js/spending-month.js): salary landing in a month's last week can count in
   the month it pays for. History asks once; after a yes each salary is
   filed that way (`countsFor` on the payment), and Edit can switch any one.
-  The set-day commitments that salary paid on salary day go with it
-  (`salaryDayPayments`, js/commitments.js): the budget's own rule.
+  What that salary paid on salary day goes with it (`salaryDayPayments`,
+  js/commitments.js).
 - In and Out (History, its six months, Summary's In/Out/Net) are what
-  reached or left the bank (`cashSide`, js/transfers.js): a card bill counts
-  the day it is paid, a purchase on the card is not added again. Left to
+  reached or left the bank accounts you spend from (`cashSide`,
+  js/transfers.js): a card bill counts the day it is paid, a purchase on the
+  card is not added again, money moved to savings or the loan account is
+  out, and only a move between two spending accounts is neither. History
+  shows what each month brought forward and ends with, and the three add
+  up (`balanceAt`, js/account-metrics.js). After the salary-month yes,
+  everything paid from the salary between its landing and the month's end
+  goes with it, except spread costs (tiffin, ATM), which stay on their date. Left to
   spend is not this: it counts a purchase the day it is swiped, and a card
   bill is never spending there.
 - The bank balance never raises the budget. It is a separate check that only warns.

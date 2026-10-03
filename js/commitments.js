@@ -218,22 +218,24 @@ export function commitmentFromSuggestion(d, id) {
 // Whether a transaction is a payment towards a commitment: its bank wording
 // or ATM cash, otherwise about its amount for a dated one, otherwise (spread
 // through the month) its category.
-/* Paid from the salary, on salary day, for the month after (5.21.2): a
- * commitment with a set day (rent, an EMI, LIC) paid between the salary
- * landing and the month's end. The same rule the budget has always kept
- * (js/free-to-spend.js, carriedOut), for History's months. Anything spread
- * through a month (tiffin, ATM cash) and everyday spending stay on their
- * date: the owner's rule, and the reason tiffin is never moved.
- *   commitments: the live ones, loans' EMIs included
- *   accountIds: the home bank accounts the money leaves from */
+/* Paid from the salary, on salary day, for the month after (5.21.5): every
+ * payment out of the account the salary landed in, from the salary's date to
+ * the month's end - card bills, rent, money sent home or moved to savings -
+ * as the owner pays the coming month from it the day it arrives. (5.21.2
+ * moved only commitments with a set day, which left the card bills behind
+ * and made each month before look short by most of a salary.) Spread costs
+ * stay on their date: tiffin, ATM cash and parking belong to the month they
+ * run in, the owner's rule since September. Never money lent or borrowed, or
+ * a work cost.
+ *   commitments: the live ones, to know which are spread
+ *   accountIds: the bank accounts the salary can land in */
 export function salaryDayPayments(transactions, commitments, from, to, accountIds) {
-  const dated = commitments.filter((c) => !c.spread && frequencyOf(c) === 'monthly' && (!c.accountId || accountIds.has(c.accountId)));
-  const isFor = (t, c) => !(t.notCommitmentIds || []).includes(c.id) && (t.commitmentId ? t.commitmentId === c.id : Boolean(commitmentMatcher(c)?.(t)));
+  const spread = commitments.filter((c) => c.spread);
+  const isSpread = (t) => spread.some((c) => !(t.notCommitmentIds || []).includes(c.id) && (t.commitmentId ? t.commitmentId === c.id : Boolean(commitmentMatcher(c)?.(t))));
   return transactions.filter(
     (t) =>
-      t.direction === 'debit' && !t.isTransfer && !t.countsFor && !t.isReimbursable && !t.personId &&
-      t.date >= from && t.date <= to && accountIds.has(t.accountId) &&
-      (t.forNextMonth || dated.some((c) => isFor(t, c)))
+      t.direction === 'debit' && !t.countsFor && !t.isReimbursable && !t.personId &&
+      t.date >= from && t.date <= to && accountIds.has(t.accountId) && !isSpread(t)
   );
 }
 

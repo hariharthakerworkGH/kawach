@@ -34,6 +34,21 @@ export function bankBalance(account, transactions, asOf = isoLocal(new Date())) 
   return balance;
 }
 
+/* The balance at the end of any day, before the statement's date as well as
+ * after it (5.21.5): before it, the payments between that day and the
+ * statement are taken back out of the printed balance. Only as good as the
+ * statements behind it, so History asks it only for months they cover. */
+export function balanceAt(account, transactions, day) {
+  if (account.knownBalance == null || !account.knownBalanceDate) return null;
+  if (day >= account.knownBalanceDate) return bankBalance(account, transactions, day);
+  let balance = account.knownBalance;
+  for (const t of transactions) {
+    if (t.accountId !== account.id || t.date <= day || afterKnownBalance(account, t)) continue;
+    balance -= t.direction === 'credit' ? t.amount : -t.amount;
+  }
+  return balance;
+}
+
 // Whether a transaction happened after the balance the statement printed.
 // Anything dated later obviously did. On the statement's own date, its own
 // rows are already inside that balance - but a spend you logged, or a bank

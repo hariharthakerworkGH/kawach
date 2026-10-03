@@ -9,7 +9,7 @@ import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, d
 import { searchHit, newestFirst, dayChart } from '../js/views/transactions.js';
 import { reimbursableTally, tidyFlags } from '../js/reimbursable.js';
 import { versionStatus } from '../js/version.js';
-import { cardPosition, bankBalance, statementDayFixes } from '../js/account-metrics.js';
+import { cardPosition, bankBalance, statementDayFixes, balanceAt } from '../js/account-metrics.js';
 import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance, applyTheme } from '../js/appearance.js';
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
@@ -20,7 +20,7 @@ import { peopleStanding, personSpendEffects, lateBack, reminderText } from '../j
 import { nextRenewal, renewalAfter, renewalsAhead } from '../js/calendar.js';
 import { caPeriods, buildCaReport, toCsv } from '../js/ca-export.js';
 import { planParts } from '../js/views/plan-looks.js';
-import { looksLikeCardPayment, cashSide } from '../js/transfers.js';
+import { looksLikeCardPayment, cashSide, spendMoves } from '../js/transfers.js';
 import { spendingMonthOf, salaryLike, nextMonthKey, countsFor as countsForMonth } from '../js/spending-month.js';
 import { parseAlert, splitAlerts, resolveAccount, findDigits } from '../js/alerts.js';
 import * as hdfcList from '../js/parsers/hdfc-card-current-text.js';
@@ -1622,12 +1622,13 @@ test("History's day chart: what went out each day, moves between your own accoun
     { date: '2026-09-10', direction: 'debit', amount: rupees(90000), isTransfer: true },
     { date: '2026-09-01', direction: 'credit', amount: rupees(50000) },
   ];
-  const html = dayChart(rows, '2026-09');
+  const fromBank = (t) => cashSide(t, { type: 'bank' });
+  const html = dayChart(rows, '2026-09', fromBank);
   equal((html.match(/class="hist-days__bar[ "]/g) || []).length, 2, 'a bar for each day something went out');
   equal((html.match(/hist-days__none/g) || []).length, 28, 'and a stub for each of the other 28 days of September');
   ok(html.includes('data-day="2026-09-03"') && html.includes('₹600 out'), 'a day adds up all it paid out');
   ok(html.includes('Biggest day <strong>₹4,200</strong> on 25 Sep'), 'the biggest day is named, not the money moved to savings');
-  equal(dayChart(rows.slice(3), '2026-09'), '', 'a month with nothing going out has no chart');
+  equal(dayChart(rows.slice(3), '2026-09', fromBank), '', 'a month with nothing going out has no chart');
 });
 
 test('the tick gauge lights the ticks up to the share and says it', () => {
@@ -1775,7 +1776,7 @@ test('salary at a month\'s end: spotted in the last week, counted in the month i
   equal(nextMonthKey('2026-12'), '2027-01');
 });
 
-test('paid on salary day for the month after: commitments with a set day move with the salary, spread ones and spending stay', () => {
+test('paid on salary day for the month after: everything from the salary moves with it, spread costs stay', () => {
   const rent = { id: 'rent', label: 'Rent', amount: 2500000, frequency: 'monthly', dayOfMonth: 30, source: 'fixed' };
   const tiffin = { id: 'tiffin', label: 'Tiffin', amount: 400000, frequency: 'monthly', spread: true, source: 'fixed', matchText: 'TIFFIN' };
   const out = (id, date, amount, extra = {}) => ({ id, accountId: 'b', date, amount, direction: 'debit', rawDescription: id.toUpperCase(), ...extra });
@@ -1788,7 +1789,7 @@ test('paid on salary day for the month after: commitments with a set day move wi
     out('tagged', '2026-09-30', 99900, { commitmentId: 'rent' }),
   ];
   const ids = salaryDayPayments(rows, [rent, tiffin], '2026-09-30', '2026-09-30', new Set(['b'])).map((t) => t.id);
-  equal(ids, ['rent-paid', 'tagged'], 'rent paid that day moves; tiffin, groceries, money moved and an earlier day stay');
+  equal(ids, ['rent-paid', 'groceries', 'moved', 'tagged'], 'everything paid from the salary that day moves; tiffin (spread) and an earlier day stay');
   equal(countsForMonth({ date: '2026-09-30', forNextMonth: true, commitmentId: 'rent' }), '2026-10', 'a payment flagged for next month counts there');
 });
 
@@ -1802,4 +1803,33 @@ test('in and out: the card bill counts when paid, the purchase on the card does 
   equal(cashSide({ direction: 'debit', amount: 6800000, isTransfer: true }, bank), null, 'money moved to your other account is neither');
   equal(cashSide({ direction: 'credit', amount: 9000000 }, bank), 'in', 'salary is in');
   equal(cashSide({ direction: 'debit', amount: 2500000 }, bank), 'out', 'rent is out');
+});
+
+test('in and out count only the accounts you spend from; a balance on any past day', () => {
+  equal(cashSide({ direction: 'debit', amount: 2300000 }, { id: 's', type: 'bank', spending: false }), null, 'an EMI leaving the account kept for loans is not out again');
+  equal(cashSide({ direction: 'debit', amount: 50000 }, { id: 'c', type: 'cash' }), null, 'cash spent was out when it left the ATM');
+  equal(cashSide({ direction: 'debit', amount: 50000 }, { id: 'f', type: 'savings' }), null, 'a savings pot neither');
+  const bank = { id: 'b', type: 'bank', knownBalance: 2281438, knownBalanceDate: '2026-10-01' };
+  const tx = [
+    { id: 'sal', accountId: 'b', date: '2026-09-30', amount: 23615800, direction: 'credit', importBatchId: 'i' },
+    { id: 'bills', accountId: 'b', date: '2026-10-01', amount: 23927813, direction: 'debit', importBatchId: 'i' },
+    { id: 'int', accountId: 'b', date: '2026-10-01', amount: 16700, direction: 'credit', importBatchId: 'i' },
+    { id: 'later', accountId: 'b', date: '2026-10-05', amount: 100000, direction: 'debit' },
+  ];
+  equal(balanceAt(bank, tx, '2026-09-30'), 2281438 + 23927813 - 16700, 'the end of 30 Sep: the 1 Oct payments taken back out');
+  equal(balanceAt(bank, tx, '2026-09-29'), 2281438 + 23927813 - 16700 - 23615800, 'and before the salary landed');
+  equal(balanceAt(bank, tx, '2026-10-06'), 2281438 - 100000, 'after the statement: forward as before');
+});
+
+test('money moved out of the main account is out, unless it lands in another account you spend from', () => {
+  const accounts = [{ id: 'hdfc', type: 'bank' }, { id: 'kotak', type: 'bank' }, { id: 'sbi', type: 'bank', spending: false }];
+  const tx = [
+    { id: 'to-sbi', accountId: 'hdfc', date: '2026-09-01', amount: 6800000, direction: 'debit', isTransfer: true, movedTo: 'sbi' },
+    { id: 'in-sbi', accountId: 'sbi', date: '2026-09-01', amount: 6800000, direction: 'credit', isTransfer: true, movedFrom: 'hdfc' },
+    { id: 'to-kotak', accountId: 'hdfc', date: '2026-09-02', amount: 500000, direction: 'debit', isTransfer: true },
+    { id: 'in-kotak', accountId: 'kotak', date: '2026-09-03', amount: 500000, direction: 'credit', isTransfer: true },
+  ];
+  const moves = spendMoves(tx, accounts);
+  const side = (id) => cashSide(tx.find((t) => t.id === id), accounts.find((a) => a.id === tx.find((t) => t.id === id).accountId), moves);
+  equal([side('to-sbi'), side('in-sbi'), side('to-kotak'), side('in-kotak')], ['out', null, null, null], 'to savings: out; between two spending accounts: neither');
 });
