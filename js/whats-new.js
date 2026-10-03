@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.21.4',
+    items: [
+      {
+        icon: 'file',
+        title: "A fuller problem report",
+        text: "Report a problem now also says which month each salary counts in and who a lent or borrowed payment was with (as a number, never a name), so questions about History can be answered from it.",
+        guide: [{ view: 'settings', target: '#diagnostic-btn', text: "Send this when a figure looks wrong." }],
+      },
+    ],
+  },
+  {
     version: '5.21.3',
     items: [
       {
