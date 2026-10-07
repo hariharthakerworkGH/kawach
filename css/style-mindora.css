@@ -146,8 +146,8 @@
   background: var(--k-surface);
   box-shadow: var(--m-shadow);
 }
-:root[data-style="mindora"] #tabs .nav-btn.active { background: color-mix(in srgb, var(--k-accent) 16%, transparent); color: var(--k-accent); border-radius: 14px; }
-:root[data-style="mindora"] #tabs .nav-btn.active .nav-icon { color: var(--k-accent); filter: none; }
+:root[data-style="mindora"] #tabs .nav-btn.active { background: color-mix(in srgb, var(--k-accent) 16%, transparent); color: var(--k-accent-text); border-radius: 14px; }
+:root[data-style="mindora"] #tabs .nav-btn.active .nav-icon { color: var(--k-accent-text); filter: none; }
 
 /* Titles in an italic serif. */
 :root[data-style="mindora"] .app-header #view-title {
@@ -194,7 +194,7 @@
 .md-line.caution { color: var(--k-warning); } .md-line.bad { color: var(--k-negative); }
 .md-split { display: grid; grid-template-columns: 1.1fr 1fr; gap: 12px; margin-bottom: var(--k-3); }
 .md-split .md-glass { margin: 0; }
-.md-stack { display: grid; gap: 12px; align-content: start; }
+
 .md-small { padding: 14px; }
 .md-mid { display: block; margin-top: 8px; font-size: 22px; font-weight: 500; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
 .md-good { color: var(--k-positive); }
@@ -213,7 +213,7 @@
 .md-steps { position: relative; display: flex; justify-content: space-between; padding: 14px 6px 0; }
 .md-steps::before { content: ""; position: absolute; left: 30px; right: 30px; top: 32px; height: 1.5px; background: color-mix(in srgb, var(--k-text) 20%, transparent); }
 .md-step { position: relative; display: grid; justify-items: center; gap: 6px; width: 64px; text-align: center; }
-.md-step b { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--k-accent); border: 1.5px solid var(--k-accent); background: var(--k-surface); }
+.md-step b { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--k-accent-text); border: 1.5px solid var(--k-accent); background: var(--k-surface); }
 .md-step.late b { color: var(--k-negative); border-color: var(--k-negative); }
 .md-step b svg { width: 16px; height: 16px; }
 .md-step small { font-size: 11.5px; font-weight: 500; color: var(--k-text-2); line-height: 1.3; }
@@ -245,7 +245,7 @@
 /* --- Settings and How it looks, in Mindora (5.10) ------------------------
  * The mockup's rows: icons in round frosted circles in sage, section names
  * in the italic serif, choices as soft chips that turn sage. */
-:root[data-style="mindora"] .k-icon { border-radius: 50%; color: var(--k-accent); background: var(--m-glass-strong); border: 1px solid var(--m-edge); }
+:root[data-style="mindora"] .k-icon { border-radius: 50%; color: var(--k-accent-text); background: var(--m-glass-strong); border: 1px solid var(--m-edge); }
 :root[data-style="mindora"] #view-container h3 { font-family: var(--m-serif); font-style: italic; font-weight: 600; font-size: 22px; letter-spacing: 0; text-transform: none; color: var(--k-text); }
 :root[data-style="mindora"] .k-toggle[aria-checked="true"] { background: var(--k-accent); box-shadow: none; }
 :root[data-style="mindora"] .k-toggle[aria-checked="true"]::after { background: #fff; }
@@ -295,7 +295,7 @@
 :root[data-style="mindora"] .k .add-card--amount .amount-input { font-family: var(--m-figure); font-size: 42px; font-weight: 300; letter-spacing: -0.03em; }
 :root[data-style="mindora"] .k .k-quick__chip { border: 1px solid var(--m-edge); background: var(--m-glass); color: var(--k-text-2); font-family: var(--m-figure); }
 :root[data-style="mindora"] .k .k-quick__chip.on { background: var(--k-accent); color: var(--k-accent-ink); border-color: transparent; }
-:root[data-style="mindora"] .k .add-row > .add-row-ic { border-radius: 50%; color: var(--k-accent); background: var(--m-glass-strong); border: 1px solid var(--m-edge); }
+:root[data-style="mindora"] .k .add-row > .add-row-ic { border-radius: 50%; color: var(--k-accent-text); background: var(--m-glass-strong); border: 1px solid var(--m-edge); }
 :root[data-style="mindora"] .k .k-add-sms { background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 
 /* --- Accounts, after the mockup (5.13) -----------------------------------
@@ -304,9 +304,9 @@
  * card with round marks. */
 :root[data-style="mindora"] .acct-total .hero-figures { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 :root[data-style="mindora"] .acct-total .hero-figures > span { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 11px; border-radius: 999px; font: 500 12px var(--m-figure); color: var(--k-text); background: color-mix(in srgb, var(--k-surface) 70%, transparent); font-variant-numeric: tabular-nums; }
-:root[data-style="mindora"] .acct-total .hero-figures > span:nth-child(1) { background: color-mix(in srgb, var(--k-violet) 45%, transparent); }
-:root[data-style="mindora"] .acct-total .hero-figures > span:nth-child(2) { background: color-mix(in srgb, var(--k-magenta) 50%, transparent); }
-:root[data-style="mindora"] .acct-total .hero-figures .muted { color: var(--k-text-2); }
+:root[data-style="mindora"] .acct-total .hero-figures > span:nth-child(1) { background: color-mix(in srgb, var(--k-violet) 24%, transparent); }
+:root[data-style="mindora"] .acct-total .hero-figures > span:nth-child(2) { background: color-mix(in srgb, var(--k-magenta) 24%, transparent); }
+:root[data-style="mindora"] .acct-total .hero-figures .muted { color: var(--k-text); }
 :root[data-style="mindora"] .k .account-group { border-radius: 20px; padding: 4px 16px; }
 :root[data-style="mindora"] .k .account-row .k-brand { border-radius: 50%; }
 :root[data-style="mindora"] .k .account-balance { font-family: var(--m-figure); font-weight: 500; }
@@ -324,12 +324,12 @@
 .pl-top--mindora .is-saved { background: var(--k-magenta); }
 .pl-top--mindora .pl-badges > span { font-family: var(--m-figure); color: var(--k-text); }
 .pl-top--mindora .pl-badges > .is-must { background: color-mix(in srgb, var(--k-surface) 70%, transparent); color: var(--k-text-2); }
-.pl-top--mindora .pl-badges > .is-flex { background: color-mix(in srgb, var(--k-violet) 45%, transparent); }
+.pl-top--mindora .pl-badges > .is-flex { background: color-mix(in srgb, var(--k-violet) 24%, transparent); }
 .pl-top--mindora .pl-badges > .is-free { background: color-mix(in srgb, var(--k-accent) 22%, transparent); }
-.pl-top--mindora .pl-badges > .is-saved { background: color-mix(in srgb, var(--k-magenta) 50%, transparent); }
+.pl-top--mindora .pl-badges > .is-saved { background: color-mix(in srgb, var(--k-magenta) 24%, transparent); }
 .pl-month--mindora { padding: 16px 12px 12px; border-radius: 20px; background: var(--m-glass); border: 1px solid var(--m-edge); box-shadow: var(--m-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); }
 .pl-month--mindora .pl-step::after { height: 1.5px; top: 20px; }
-.pl-month--mindora .pl-step b { font-family: var(--m-figure); font-weight: 600; color: var(--k-accent); border: 1.5px solid var(--k-accent); background: var(--k-surface); }
+.pl-month--mindora .pl-step b { font-family: var(--m-figure); font-weight: 600; color: var(--k-accent-text); border: 1.5px solid var(--k-accent); background: var(--k-surface); }
 .pl-month--mindora .pl-step.is-paid b { color: var(--k-accent-ink); background: var(--k-accent); }
 .pl-month--mindora .pl-step.is-late b { color: var(--k-text); background: var(--k-violet); border-color: var(--k-violet); }
 .pl-month--mindora .pl-step small { font-family: var(--m-figure); }
@@ -347,7 +347,7 @@
 :root[data-style="mindora"] .k #hist-hero .stat-k { display: inline; margin-right: 5px; font: 600 10px var(--m-figure); letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-3); }
 :root[data-style="mindora"] .k #hist-hero .stat-v { font: 500 15px var(--m-figure); }
 :root[data-style="mindora"] .k #hist-hero .stat-v.in { color: var(--k-positive); }
-:root[data-style="mindora"] .k #hist-hero .stat-v.out { color: color-mix(in srgb, var(--k-violet) 55%, var(--k-text)); }
+:root[data-style="mindora"] .k #hist-hero .stat-v.out { color: color-mix(in srgb, var(--k-violet) 22%, var(--k-text)); }
 :root[data-style="mindora"] .k .hist-days-card { border-radius: 20px; background: var(--m-glass); border: 1px solid var(--m-edge); box-shadow: var(--m-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); }
 :root[data-style="mindora"] .k .hist-days-card::before { font: 600 11px var(--m-figure); letter-spacing: .1em; text-transform: uppercase; color: var(--k-text-2); }
 :root[data-style="mindora"] .k .hist-days__bars { gap: 4px; }
@@ -364,7 +364,7 @@
  * share of what is left; the questions as glass rows with round icons. */
 :root[data-style="mindora"] .k-coach .coach-q { border-radius: 20px; margin-bottom: 10px; }
 :root[data-style="mindora"] .k-coach .coach-q .k-icon,
-:root[data-style="mindora"] .k-coach .coach-q [class*="k-brand"] { border-radius: 50%; color: var(--k-accent); background: var(--m-glass-strong); border: 1px solid var(--m-edge); }
+:root[data-style="mindora"] .k-coach .coach-q [class*="k-brand"] { border-radius: 50%; color: var(--k-accent-text); background: var(--m-glass-strong); border: 1px solid var(--m-edge); }
 
 /* 5.23 in Mindora. */
 :root[data-style="mindora"] .k .owed-list { border-radius: 20px; background: var(--m-glass); border: 1px solid var(--m-edge); box-shadow: var(--m-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); }
@@ -388,3 +388,7 @@
 :root[data-style="mindora"] .k .need-row__go .btn-tiny { border: 1px solid var(--m-edge); background: color-mix(in srgb, var(--k-text) 5%, transparent); }
 :root[data-style="mindora"] .explain-pop { border-radius: 16px; border: 1px solid var(--m-edge); background: var(--m-glass-strong); box-shadow: var(--m-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); font-family: var(--m-figure); }
 :root[data-style="mindora"] .explain-pop b { font-family: var(--m-serif); font-style: italic; font-weight: 600; font-size: 17px; color: var(--k-text); }
+
+/* Tab labels are the page's secondary ink, not the faintest, so they read on any colouring (5.26). */
+:root[data-style="mindora"] #tabs .nav-btn { color: var(--k-text-2); }
+:root[data-style="mindora"] #tabs .nav-btn.active { color: var(--k-text); }

@@ -37,7 +37,7 @@ import { assignStyles } from '../js/category-style.js';
 import { searchWords, findCandidates } from '../js/category-match.js';
 import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
-import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, spendingPulse, cashRiver, tickGauge } from '../js/charts.js';
+import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, cashRiver, tickGauge } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
 import { shortStatus, spentLine, spendingHero, monthWaves, monthMountains, monthScale, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
 
@@ -256,19 +256,6 @@ test('the commitment meter handles nothing, everything and too much', () => {
   ok(over.includes('₹1,20,000</span>') && over.includes('meter-radial-v--amount over'), 'over budget says so');
   ok(over.includes('Over by'), 'and names what is over');
   ok(!/NaN|Infinity/.test(over), 'never NaN or Infinity');
-});
-
-test('the pulse needs days before it draws any', () => {
-  equal(spendingPulse({ days: [] }), '', 'no days');
-  equal(spendingPulse({ days: [{ date: '2026-09-26', amount: 100 }] }), '', 'one day is not a shape');
-  const days = [
-    { date: '2026-09-26', amount: rupees(200) },
-    { date: '2026-09-27', amount: rupees(3180) },
-    { date: '2026-09-28', amount: 0 },
-  ];
-  const html = spendingPulse({ days, today: '2026-09-28' });
-  ok(html.includes('pulse-bar--peak'), 'the biggest day is marked');
-  ok(html.includes('pulse-bar--quiet'), 'a day with nothing on it still has a stub');
 });
 
 test('the river only draws when there is a run of months', () => {

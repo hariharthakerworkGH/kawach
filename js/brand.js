@@ -60,16 +60,6 @@ export function brandKey(raw) {
   return tokens[0];
 }
 
-/* What a person should see written, as opposed to what the bank wrote.
- * "PAY*SWIGGY BENGALURU" -> "Swiggy". Falls back to the raw text so a name
- * this cannot improve is still shown rather than lost.
- */
-export function brandLabel(raw) {
-  const key = brandKey(raw);
-  if (!key) return String(raw || '').trim();
-  return key.charAt(0).toUpperCase() + key.slice(1);
-}
-
 /* The initials. One letter for a single word, two for a name made of
  * several, because "SB" reads as State Bank and "S" reads as nothing.
  */

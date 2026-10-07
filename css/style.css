@@ -315,7 +315,7 @@ code {
 }
 
 .nav-btn.active {
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-soft);
 }
 
@@ -397,12 +397,9 @@ code {
   pointer-events: none;
 }
 
-
-
 /* Over budget the figure and the sentence go red. The warning is in the
    words and the number, where it belongs, not drawn as a box around
    everything. */
-
 
 /* Labels are quiet sentence-case text, not tracked capitals: an uppercase
    label above every section is the most recognisable generated-UI tell. */
@@ -562,11 +559,6 @@ input.invalid:focus {
 }
 
 /* Buttons stacked on their own, not inside a card. */
-.button-stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
 
 input:focus, select:focus, button:focus-visible {
   outline: 2px solid var(--accent);
@@ -754,13 +746,6 @@ input:disabled, select:disabled, textarea:disabled {
 /* A link that has to sit in a stack of buttons and look like one of them.
    An <a> is not a <button>: it needs the centring and the line height that
    button styling gives for free. */
-.btn-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  text-align: center;
-}
 
 .btn-tiny {
   padding: var(--space-2xs) var(--space-sm);
@@ -1166,11 +1151,6 @@ h3 {
 /* One line, always. A wrapping name pushed the balance below it out of step
    with the card beside it, which is most of what made the grid look busy.
    The full name is still there on a long press (title). */
-.account-headline {
-  font-size: var(--text-fig-sm);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
 
 /* "+ Spend" and "Edit", side by side in the card's top line. */
 .account-actions-inline {
@@ -1290,7 +1270,7 @@ h3 {
   border: 0;
   padding: var(--space-3xs) 0;
   margin-bottom: var(--space-xs);
-  color: var(--accent);
+  color: var(--accent-text);
   font: inherit;
   font-size: var(--text-body);
   font-weight: 600;
@@ -1392,7 +1372,7 @@ h3 {
   display: inline-block;
   font-size: var(--text-meta);
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
   margin-bottom: var(--space-2xs);
 }
 
@@ -1782,7 +1762,7 @@ h3 {
 .coach-q.active {
   border-color: var(--accent);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .coach-q-icon {
@@ -2064,7 +2044,7 @@ textarea {
   border-radius: var(--radius-pill);
   padding: var(--space-2xs) var(--space-sm);
   background: var(--accent-ink);
-  color: var(--accent);
+  color: var(--accent-text);
   font-family: inherit;
   font-size: var(--text-meta);
   font-weight: 700;
@@ -2172,7 +2152,6 @@ textarea {
   line-height: 1.4;
   color: var(--text-muted);
 }
-
 
 /* A warning is a sentence, not a box. Tinting the strip behind it put a
    second red object on a screen that already has a red figure, which is how
@@ -2398,17 +2377,20 @@ details:has(> .muted-note:last-child) + .bank-card,
 
 .pill.ok {
   background: color-mix(in srgb, var(--in) 16%, transparent);
-  color: var(--in);
+  /* A little of the page's own ink in it, so it reads on its own tint. */
+  color: color-mix(in srgb, var(--in) 66%, var(--text));
 }
 
 .pill.warn {
   background: color-mix(in srgb, var(--warn) 16%, transparent);
-  color: var(--warn);
+  /* A little of the page's own ink in it, so it reads on its own tint. */
+  color: color-mix(in srgb, var(--warn) 66%, var(--text));
 }
 
 .pill.over {
   background: color-mix(in srgb, var(--out) 16%, transparent);
-  color: var(--out);
+  /* A little of the page's own ink in it, so it reads on its own tint. */
+  color: color-mix(in srgb, var(--out) 66%, var(--text));
 }
 
 .commitment-row.is-skipped .commitment-name {
@@ -2545,7 +2527,7 @@ details:has(> .muted-note:last-child) + .bank-card,
   cursor: pointer;
   font-size: var(--text-label);
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
   padding: var(--space-2xs) 0 var(--space-3xs);
 }
 
@@ -2727,7 +2709,7 @@ details:has(> .muted-note:last-child) + .bank-card,
 .plan-chip.on {
   background: var(--accent-soft);
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .plan-other-input {
@@ -2973,7 +2955,6 @@ details:has(> .muted-note:last-child) + .bank-card,
   color: var(--text-muted);
 }
 
-
 /* ---------- Add: the amount is the answer ----------
    PART G. The field is the point of this screen, so it is written the way
    every other answer in Kawach is written: no box around it, the figure at
@@ -3105,7 +3086,6 @@ details:has(> .muted-note:last-child) + .bank-card,
 .hist-step:disabled {
   visibility: hidden;
 }
-
 
 /* Filters as a row of small pills. */
 .hist-chips {
@@ -3329,7 +3309,7 @@ details:has(> .muted-note:last-child) + .bank-card,
 }
 
 .icon-choice.active {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .color-row {
@@ -3571,7 +3551,7 @@ details:has(> .muted-note:last-child) + .bank-card,
 }
 
 .income-kind:has(input:checked) > .icon {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .income-kind:has(input:focus-visible) {
@@ -3584,7 +3564,7 @@ details:has(> .muted-note:last-child) + .bank-card,
   padding: 0 var(--space-2xs);
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: var(--text-micro);
   font-weight: 700;
   vertical-align: 1px;
@@ -3677,7 +3657,7 @@ details:has(> .muted-note:last-child) + .bank-card,
 .money-kind.on {
   border-color: var(--accent);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* An on/off switch: a checkbox drawn as a track and a knob. */
@@ -3815,7 +3795,7 @@ details:has(> .muted-note:last-child) + .bank-card,
 .notes-icon .icon {
   width: 22px;
   height: 22px;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .notes-text {
@@ -3980,7 +3960,7 @@ details:has(> .muted-note:last-child) + .bank-card,
   border: 1px solid var(--accent-line);
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   font: inherit;
   font-size: var(--text-meta);
   font-weight: 700;
@@ -4384,7 +4364,6 @@ summary {
 
 /* Supporting figures sit under a hairline and stay support. */
 
-
 /* The burn line belongs to the figure above it, so it runs to both edges of
    the card instead of sitting in a box of its own. */
 .hero .chart-block {
@@ -4511,12 +4490,6 @@ summary {
   margin: 0 0 0 auto;
 }
 
-
-
-
-
-
-
 /* ---------- Must be paid, or set aside ----------
    One question with two answers, each explaining itself in a line, because
    the difference between "I owe this" and "I have kept this back" is the
@@ -4587,34 +4560,11 @@ summary {
 /* The third figure under the hero is a button, because it opens the list
    that explains it. It must not look like one: it is a stat like the two
    beside it, and only the arrow says it does something. */
-.stat-aside {
-  border: 0;
-  background: none;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.stat-aside .stat-k::after {
-  content: "";
-  display: inline-block;
-  width: 0.34em;
-  height: 0.34em;
-  margin-left: 0.4em;
-  vertical-align: 0.1em;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(-45deg);
-}
-
 
 .view-container > :first-child,
 #dashboard > :first-child {
   margin-top: 0;
 }
-
 
 /* ---------- History ----------
    PART F. A day was a bordered card, and a month is twenty of them stacked,
@@ -4642,7 +4592,7 @@ summary {
 }
 
 .chart-tick {
-  font-size: 9px;
+  font-size: 10.5px;
   fill: var(--text-dim);
 }
 
@@ -4715,7 +4665,6 @@ select.hist-chip,
 select.chip {
   min-height: var(--control-md);
 }
-
 
 /* ---------- The rest of the room ----------
 
@@ -4872,7 +4821,6 @@ select.chip {
   vector-effect: non-scaling-stroke;
   opacity: 0.75;
 }
-
 
 .chart-ring-track {
   fill: none;
@@ -5174,10 +5122,6 @@ body::after {
 /* A label is metadata. It should never carry the same weight as the figure
    beside it - that is most of what makes a screen look cheap. */
 
-
-
-
-
 /* Air around the drawing: it explains the figure above it and needs room to
    be read as a line rather than as texture behind the words. */
 .hero .chart-block {
@@ -5261,7 +5205,6 @@ body::after {
   margin-bottom: var(--space-2xs);
 }
 
-
 /* ---------- Plan: the rows explain the bar ----------
    One dot per row, the same three colours the bar uses. The bar shows the
    proportion, the row names it and gives the figure: said once each. */
@@ -5325,7 +5268,9 @@ body::after {
  * The styles in a row, the colourings as swatch tiles two to a row: each
  * tile is a single colour choice, small enough that pairs read better than a
  * long list of eight. */
-.look-styles { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2xs); padding: var(--space-xs); }
+/* Five styles: three to a row, the last row stretched, so a longer name never has to squeeze. */
+.look-styles { display: flex; flex-wrap: wrap; gap: var(--space-2xs); padding: var(--space-xs); }
+.look-styles > .look-style { flex: 1 1 calc(33.333% - var(--space-2xs)); min-width: 0; }
 .look-style { display: grid; justify-items: center; gap: 2px; padding: var(--space-xs) 0; border-radius: var(--radius-sm); font-size: var(--text-label); font-weight: var(--weight-label); color: var(--text-muted); background: var(--surface-alt); }
 .look-style small { font-size: var(--text-micro); color: var(--text-dim); }
 .look-style.chosen { color: var(--accent-ink); background: var(--accent); font-weight: var(--weight-strong); }

@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.26',
+    items: [
+      {
+        icon: 'eye',
+        title: "Easier to read, easier to tap",
+        text: "Small text, red and green amounts and links were checked on every screen in every look and colour, and made easier to read where they were faint. The tab buttons are easier to tap, the five looks fit the picker on small phones, and some unused code was removed.",
+        guide: [{ view: 'appearance', target: '.look-styles', text: "Pick any look: the writing should read well in all of them." }],
+      },
+    ],
+  },
+  {
     version: '5.25',
     items: [
       {

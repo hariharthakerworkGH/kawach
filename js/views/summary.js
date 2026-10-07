@@ -530,22 +530,6 @@ export function spendingWarning(f) {
   return null;
 }
 
-export function bankWarning(f) {
-  if (f.bankAfterBills == null) return null;
-  // A business owner has no payday to count on: the bank has to cover the
-  // bills from what is in it.
-  const payday = f.incomeKind === 'business' ? null : f.salary.dates[0] || f.salary.nextUnreceived;
-  const next = payday ? `After your next ${incomeWords(f.incomeKind).noun}, the` : 'After the';
-  if (f.bankBeforeCards < 0)
-    return payday
-      ? `Your bank is ${formatRupees(-f.bankBeforeCards)} short of what it has to pay before your ${incomeWords(f.incomeKind).noun} on ${formatDateNice(payday)}.`
-      : `Your bank is ${formatRupees(-f.bankBeforeCards)} short of what it has to pay this month.`;
-  if (f.bankAfterBills < 0) return `${next} card bills and next month's commitments, your bank would be ${formatRupees(-f.bankAfterBills)} short.`;
-  if (f.bankLevel === 'warning')
-    return `${next} bills, only ${formatRupees(f.bankAfterBills)} would be left in your bank - less than the ${formatRupees(f.keep)} you save each month.`;
-  return null;
-}
-
 const breakdownLine = (label, amount, sign, note = '') =>
   `<div class="totals-row"><span>${label}${note ? `<br><span class="muted-note">${note}</span>` : ''}</span><span class="${sign === '+' ? 'in' : 'out'}">${sign === '+' ? '+' : '−'}${formatRupees(Math.abs(amount))}</span></div>`;
 

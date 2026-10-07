@@ -69,7 +69,7 @@ export async function render(container, params = {}) {
         <span class="k-switch-row__text" id="add-repeats-label">Repeats every month
           <span class="k-switch-row__sub">Counts it in your plan, not just today</span>
         </span>
-        <input type="checkbox" id="add-repeats" class="k-vis-hidden">
+        <input type="checkbox" id="add-repeats" class="k-vis-hidden" tabindex="-1" aria-hidden="true">
         <button type="button" class="k-toggle" id="add-repeats-toggle" role="switch"
                 aria-checked="false" aria-labelledby="add-repeats-label"></button>
       </div>
@@ -667,7 +667,7 @@ function reimbursableSwitch(id, label, sub, hidden = false) {
       <span class="k-switch-row__text" id="${id}-label">${label}
         <span class="k-switch-row__sub" id="${id}-sub">${sub}</span>
       </span>
-      <input type="checkbox" id="${id}" class="k-vis-hidden">
+      <input type="checkbox" id="${id}" class="k-vis-hidden" tabindex="-1" aria-hidden="true">
       <button type="button" class="k-toggle" id="${id}-toggle" role="switch"
               aria-checked="false" aria-labelledby="${id}-label"></button>
     </div>`;

@@ -488,9 +488,6 @@
   text-shadow: var(--k-glow-text);
 }
 
-.k-hero__figure--negative { color: var(--k-negative); text-shadow: var(--k-glow-negative); }
-.k-hero__figure--positive { color: var(--k-positive); text-shadow: var(--k-glow-positive); }
-
 /* --- Metric: a label above a figure, stacked, never side by side ----- */
 .k-metric { display: flex; flex-direction: column; gap: 2px; }
 .k-metric__k {
@@ -584,20 +581,6 @@
   color: var(--k-text);
   box-shadow: var(--k-glow-cyan);
 }
-
-.k-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px var(--k-2);
-  border-radius: var(--k-r-xs);
-  font-size: var(--k-caption);
-  font-weight: var(--k-w-fig);
-  letter-spacing: var(--k-track-caption);
-  text-transform: uppercase;
-}
-.k-tag--pos { background: color-mix(in srgb, var(--k-positive) 16%, transparent); color: var(--k-positive); }
-.k-tag--neg { background: color-mix(in srgb, var(--k-negative) 16%, transparent); color: var(--k-negative); }
-.k-tag--warn { background: color-mix(in srgb, var(--k-warning) 16%, transparent); color: var(--k-warning); }
 
 /* --- Segmented control: one track, one lit cell --------------------- */
 .k-seg {
@@ -708,7 +691,6 @@
   color: var(--k-tint, var(--k-accent));
   font-size: var(--k-icon-md);
 }
-.k-icon--lg { width: 46px; height: 46px; border-radius: var(--k-r-md); font-size: var(--k-icon-lg); }
 
 /* --- Rows: content on a surface, not a box per item ----------------- */
 .k-rows { display: flex; flex-direction: column; }
@@ -736,7 +718,6 @@
 .k-row__meta { display: block; font-size: var(--k-label); color: var(--k-text-3); margin-top: 2px; }
 .k-row__value { font-size: var(--k-value-sm); font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; }
 .k-row__value--pos { color: var(--k-positive); }
-.k-row__value--neg { color: var(--k-negative); }
 
 /* --- Disclosure: one turning arrow in the whole product ------------- */
 .k-disclose > summary {
@@ -777,7 +758,7 @@
   border: 1px solid var(--k-hairline);
   box-shadow: var(--k-inner-top), var(--k-shadow-soft);
 }
-.k-insight--warn { border-color: color-mix(in srgb, var(--k-warning) 26%, transparent); }
+
 .k-insight__title { font-size: var(--k-body); font-weight: var(--k-w-strong); }
 .k-insight__body { font-size: var(--k-label); color: var(--k-text-2); line-height: var(--k-lh-body); }
 
@@ -785,29 +766,9 @@
    One family of strokes, set here so no drawing can invent its own. Red is
    not a chart colour: it is kept for money that has actually gone. */
 .k-chart { display: block; width: 100%; overflow: visible; }
-.k-chart__line {
-  fill: none;
-  stroke: var(--k-accent);
-  stroke-width: 2.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--k-accent) 55%, transparent));
-}
+
 /* The thing a line is measured against is never lit. That is its job. */
-.k-chart__ref {
-  fill: none;
-  stroke: var(--k-text-3);
-  stroke-width: 2;
-  stroke-dasharray: 4 6;
-  opacity: 0.7;
-  vector-effect: non-scaling-stroke;
-}
-.k-chart__area { stroke: none; }
-.k-chart__dot { fill: var(--k-accent); filter: drop-shadow(0 0 7px color-mix(in srgb, var(--k-accent) 70%, transparent)); }
-.k-chart__halo { fill: color-mix(in srgb, var(--k-accent) 20%, transparent); }
-.k-chart__track { fill: color-mix(in srgb, var(--k-surface-elev) 55%, transparent); }
-.k-chart__bar { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--k-accent) 32%, transparent)); }
+
 .k-chart__tick { font-size: 10px; fill: var(--k-text-3); font-family: var(--k-font); }
 .k-chart__ring-track { fill: none; stroke: color-mix(in srgb, var(--k-surface-elev) 70%, transparent); stroke-width: 9; }
 .k-chart__ring-fill {
@@ -817,7 +778,6 @@
   stroke-linecap: round;
   filter: drop-shadow(0 0 8px color-mix(in srgb, var(--k-accent) 45%, transparent));
 }
-.k-chart__note { margin: var(--k-3) 0 0; font-size: var(--k-label); color: var(--k-text-2); }
 
 /* A meter is a chart with one value. */
 .k-meter { height: 10px; border-radius: var(--k-r-pill); background: color-mix(in srgb, var(--k-surface-elev) 60%, transparent); overflow: hidden; }
@@ -862,7 +822,7 @@
 .k-nav__item[aria-current="page"] { color: var(--k-text); font-weight: var(--k-w-fig); }
 .k-nav__dot { width: 20px; height: 20px; display: grid; place-items: center; }
 .k-nav__item[aria-current="page"] .k-nav__dot {
-  color: var(--k-accent);
+  color: var(--k-accent-text);
   filter: drop-shadow(0 0 9px color-mix(in srgb, var(--k-accent) 55%, transparent));
 }
 
@@ -914,16 +874,6 @@
 @keyframes k-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes k-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @keyframes k-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-@keyframes k-draw { from { stroke-dashoffset: var(--k-len, 1000); } to { stroke-dashoffset: 0; } }
-@keyframes k-grow { from { transform: scaleX(0); } to { transform: none; } }
-
-.k-enter > * { animation: k-rise var(--k-t-slow) var(--k-ease) backwards; }
-.k-enter > :nth-child(1) { animation-delay: 0ms; }
-.k-enter > :nth-child(2) { animation-delay: 60ms; }
-.k-enter > :nth-child(3) { animation-delay: 120ms; }
-.k-enter > :nth-child(4) { animation-delay: 180ms; }
-.k-enter > :nth-child(5) { animation-delay: 240ms; }
-.k-enter > :nth-child(6) { animation-delay: 300ms; }
 
 /* Said once, for the whole system: when the phone asks for less movement,
    nothing moves. The state still changes; it stops sliding into it. */
@@ -1256,7 +1206,7 @@ body:has(#view-container.k) .bottom-nav {
 body:has(#view-container.k) .nav-btn { color: var(--k-text-3); }
 body:has(#view-container.k) .nav-btn.active { background: none; color: var(--k-text); }
 body:has(#view-container.k) .nav-btn.active .nav-icon {
-  color: var(--k-accent);
+  color: var(--k-accent-text);
   filter: drop-shadow(0 0 9px color-mix(in srgb, var(--k-accent) 55%, transparent));
 }
 
@@ -1590,7 +1540,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 }
 .k .k-add-sms:active { background-color: var(--k-surface-press); }
 .k .k-add-sms__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.k .k-add-sms__go { color: var(--k-accent); font-size: var(--k-value); flex: none; }
+.k .k-add-sms__go { color: var(--k-accent-text); font-size: var(--k-value); flex: none; }
 
 /* --- the amount, still the answer this screen exists for ------------- */
 .k .amount-hero { margin-bottom: var(--k-5); }
@@ -1745,7 +1695,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
   border-bottom: 1px solid var(--k-hairline);
 }
 .k .k-sheet__title { font-size: var(--k-heading); font-weight: var(--k-w-strong); flex: 1; }
-.k .k-sheet__close { min-height: var(--k-tap); padding: 0 var(--k-3); color: var(--k-accent); font-weight: var(--k-w-fig); }
+.k .k-sheet__close { min-height: var(--k-tap); padding: 0 var(--k-3); color: var(--k-accent-text); font-weight: var(--k-w-fig); }
 .k .k-sheet__scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; margin: 0 calc(var(--k-5) * -1); padding: 0 var(--k-5); }
 
 /* A category is a row, not a chip: a name you read, at a size you can hit. */
@@ -1835,7 +1785,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
   text-wrap: balance;
 }
 /* The emphasised clause in a lede. One per sentence, never two. */
-.k-editorial__em { color: var(--k-accent); font-weight: var(--k-w-fig); }
+.k-editorial__em { color: var(--k-accent-text); font-weight: var(--k-w-fig); }
 .k-editorial__figure {
   font-size: var(--k-display);
   font-weight: var(--k-w-strong);
@@ -1874,7 +1824,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 }
 .k-delta--good { --k-tint: var(--k-positive); }
 .k-delta--bad { --k-tint: var(--k-negative); }
-.k-delta--flat { --k-tint: var(--k-text-3); }
 
 /* --- Context: the same truth, emphasised for the moment ---------------
    "42,500 available" and "8,240 left for 6 days" are the same kind of fact.
@@ -2010,23 +1959,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 /* Spending pulse. One bar a day. Height is the amount; the lit bar is the
    day being pointed at. Bars keep a minimum height so a quiet day reads as
    "nearly nothing" rather than as missing data. */
-.k-pulse { display: flex; align-items: flex-end; gap: 2px; height: 92px; }
-.k-pulse__bar {
-  display: block;
-  flex: 1;
-  min-height: 3px;
-  height: var(--k-h, 10%);
-  border-radius: 2px 2px 1px 1px;
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--k-accent) 70%, transparent),
-    color-mix(in srgb, var(--k-accent) 22%, transparent));
-  transition: height var(--k-t-draw) var(--k-ease);
-}
-.k-pulse__bar--peak {
-  background: linear-gradient(180deg, var(--k-accent), color-mix(in srgb, var(--k-violet) 55%, transparent));
-  box-shadow: 0 0 10px color-mix(in srgb, var(--k-accent) 40%, transparent);
-}
-.k-pulse__bar--quiet { background: color-mix(in srgb, var(--k-text-3) 22%, transparent); }
 
 /* Share. What replaced the bubble constellation: the same question, legible
    at 320px, and it stays legible with fourteen categories instead of seven.
@@ -2268,8 +2200,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .account-detail { padding: 0 0 var(--k-4); }
 .k .account-detail > :first-child { margin-top: 0; }
 
-.k .account-meter { margin: 0 0 var(--k-3); }
-
 /* The latest payments: rows again, one level in, with no surface of their
    own. A list inside a list does not need a second box around it. */
 /* Indented to sit under the account name, so the payments read as belonging
@@ -2321,8 +2251,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
   font-size: var(--k-label);
 }
 .k .account-block .totals-row + .totals-row { border-top: 1px solid var(--k-hairline); }
-
-.k .account-headline { font-size: var(--k-value); font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; }
 
 /* --- the account form ------------------------------------------------
    Two things here were already wrong before this screen was migrated, and
@@ -2724,17 +2652,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 
 /* --- when the money goes ---------------------------------------------- */
 .k .pulse { display: flex; align-items: flex-end; gap: 2px; height: 76px; margin-top: var(--k-2); }
-.k .pulse-bar {
-  display: block;
-  flex: 1;
-  min-height: 3px;
-  height: var(--h, 6%);
-  border-radius: 2px 2px 1px 1px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent) 70%, transparent), color-mix(in srgb, var(--k-accent) 22%, transparent));
-}
-.k .pulse-bar--peak { background: linear-gradient(180deg, var(--k-accent), color-mix(in srgb, var(--k-violet) 55%, transparent)); box-shadow: 0 0 10px color-mix(in srgb, var(--k-accent) 38%, transparent); }
-.k .pulse-bar--quiet { background: color-mix(in srgb, var(--k-text-3) 22%, transparent); }
-.k .pulse-bar--today { outline: 1px solid color-mix(in srgb, var(--k-accent) 55%, transparent); outline-offset: 1px; }
 
 /* --- money in against money out --------------------------------------- */
 .k .river-legend { display: flex; flex-wrap: wrap; gap: var(--k-2) var(--k-4); margin-top: var(--k-2); font-size: var(--k-caption); color: var(--k-text-2); }
@@ -2832,11 +2749,9 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 }
 
 /* --- Kawach's own artwork on an empty screen -------------------------- */
-.k .empty-state-art { display: block; margin: 0 auto var(--k-4); color: var(--k-accent); opacity: .85; }
+.k .empty-state-art { display: block; margin: 0 auto var(--k-4); color: var(--k-accent-text); opacity: .85; }
 .k .river-fold { margin-top: var(--k-3); }
 .k .river-fold > summary { color: var(--k-text-2); font-size: var(--k-label); }
-
-
 
 /* Form controls, scrollbars and the like follow the chosen daylight too,
    otherwise a forced-light app still draws a dark dropdown. */
@@ -2907,8 +2822,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .split-dot--bank { background: color-mix(in srgb, var(--k-text-3) 46%, transparent); }
 /* One figure and its total on a line, with the word under it like every
    other stat on this screen. */
-.k .stat-wide { align-items: flex-start; }
-.k .stat-of { color: var(--k-text-3); font-weight: 400; }
 
 /* The same payment written down twice. The two rows are shown as one group
    so the pair reads as a pair, and the amount they share sits above them
@@ -2951,7 +2864,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
   min-height: var(--k-tap);
   margin: 0;
   padding: 0 var(--k-1);
-  color: var(--k-accent);
+  color: var(--k-accent-text);
   font-size: var(--k-label);
 }
 
@@ -3042,7 +2955,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 }
 .k .bank-refund span:last-child { font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .k .bank-late { margin: var(--k-2) 0 0; color: var(--k-warning); }
-.k .stat-sub { display: block; margin-top: 2px; font-size: var(--k-caption); color: var(--k-warning); }
 
 /* ---- Summary: the ring, and one card of rows (4.22) ----------------------
  * The ring is the Summary's headline: a thick arc for the share of the budget
@@ -3086,7 +2998,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .summary-row__k small { font-size: var(--k-caption); font-weight: 400; color: var(--k-text-3); }
 .k .summary-row__k .summary-row__late { color: var(--k-warning); }
 .k .summary-row__v { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.k .summary-row__v--cards { color: var(--k-cyan); }
+.k .summary-row__v--cards { color: var(--k-accent-text); }
 .k .summary-row__v--back { color: var(--k-positive); }
 .k .summary-row--tap { cursor: pointer; }
 .k .summary-row--tap:active { background: var(--k-surface-press); }
@@ -3181,11 +3093,11 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .plan-strip svg { display: block; width: 100%; height: auto; overflow: visible; }
 .k .plan-strip__axis { stroke: color-mix(in srgb, var(--k-text) 18%, transparent); stroke-width: 1.2; }
 .k .plan-strip__today { stroke: var(--k-cyan); stroke-width: 1.2; stroke-dasharray: 3 4; }
-.k .plan-strip__today-label { fill: var(--k-cyan); font-size: 8.5px; font-weight: 700; letter-spacing: 0.06em; text-anchor: middle; text-transform: uppercase; }
-.k .plan-strip__tick { fill: var(--k-text-3); font-size: 8.5px; text-anchor: middle; font-variant-numeric: tabular-nums; }
-.k .plan-strip__bar text { font-size: 8px; font-weight: 700; text-anchor: middle; letter-spacing: 0.03em; }
+.k .plan-strip__today-label { fill: var(--k-accent-text); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-anchor: middle; text-transform: uppercase; }
+.k .plan-strip__tick { fill: var(--k-text-3); font-size: 10px; text-anchor: middle; font-variant-numeric: tabular-nums; }
+.k .plan-strip__bar text { font-size: 10px; font-weight: 700; text-anchor: middle; letter-spacing: 0.03em; }
 .k .plan-strip__bar.is-due rect { fill: var(--k-cyan); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--k-cyan) 60%, transparent)); }
-.k .plan-strip__bar.is-due text { fill: var(--k-cyan); }
+.k .plan-strip__bar.is-due text { fill: var(--k-accent-text); }
 .k .plan-strip__bar.is-paid rect { fill: color-mix(in srgb, var(--k-text) 20%, transparent); }
 .k .plan-strip__bar.is-paid text { fill: var(--k-text-3); }
 .k .plan-strip__bar.is-late rect { fill: var(--k-negative); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--k-negative) 60%, transparent)); }
@@ -3226,8 +3138,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .hist-days__bar.is-top { background: var(--k-cyan); box-shadow: 0 0 12px color-mix(in srgb, var(--k-cyan) 55%, transparent); }
 .k .hist-days__bar:focus-visible { outline: 2px solid var(--k-text); outline-offset: 2px; }
 .k .hist-days__none { height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--k-text) 8%, transparent); }
-.k .hist-days__top { margin: var(--k-2) 0 0; font-size: var(--k-caption); color: var(--k-text-3); }
-.k .hist-days__top strong { color: var(--k-cyan); font-variant-numeric: tabular-nums; }
+
 .k .hist-day { scroll-margin-top: 80px; }
 .k .hist-day.is-picked .hist-day-card { animation: day-picked 1.4s var(--k-ease); }
 @keyframes day-picked { 0%, 35% { box-shadow: 0 0 0 1.5px var(--k-cyan), 0 0 22px color-mix(in srgb, var(--k-cyan) 35%, transparent); } }
@@ -3251,7 +3162,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .coach-hub g path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .k .coach-hub__shield { stroke: var(--k-cyan); stroke-width: 3; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--k-cyan) 60%, transparent)); }
 .k .coach-hub__rupee { stroke: var(--k-text); stroke-width: 6.6; }
-.k .coach-hub__note { margin: var(--k-2) 0 var(--k-3); text-align: center; font-size: var(--k-caption); color: var(--k-cyan); letter-spacing: 0.04em; }
+.k .coach-hub__note { margin: var(--k-2) 0 var(--k-3); text-align: center; font-size: var(--k-caption); color: var(--k-accent-text); letter-spacing: 0.04em; }
 .is-arriving .coach-hub__arc--outer { animation: hub-draw-outer 1.1s var(--k-ease) 120ms both; }
 .is-arriving .coach-hub__arc--inner { animation: hub-draw-inner 1.1s var(--k-ease) 260ms both; }
 @keyframes hub-draw-outer { from { stroke-dasharray: 0 100; } }
@@ -3321,7 +3232,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .tracking-ring--over .tracking-ring__arc { stroke: var(--k-negative) !important; }
 .tracking-ring figcaption { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
 .tracking-ring figcaption b { font-size: 1.05rem; font-weight: 300; font-variant-numeric: tabular-nums; }
-.tracking-ring figcaption small { font-size: 0.56rem; color: var(--k-text-3); line-height: 1.2; max-width: 7ch; margin: 2px auto 0; }
+.tracking-ring figcaption small { font-size: 0.66rem; color: var(--k-text-3); line-height: 1.2; max-width: 7ch; margin: 2px auto 0; }
 .is-arriving .tracking-ring__arc { animation: hero-ring-in 1100ms var(--k-ease) both; }
 .is-arriving .tracking-ring:nth-child(2) .tracking-ring__arc { animation-delay: 120ms; }
 .is-arriving .tracking-ring:nth-child(3) .tracking-ring__arc { animation-delay: 240ms; }
@@ -3350,7 +3261,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 
 /* Pill columns: this week with today lit, what is owed on each card. */
 .pills-card { display: grid; gap: var(--k-2); padding: var(--k-2); }
-.pills-row { display: flex; align-items: center; justify-content: space-between; gap: var(--k-3); padding: var(--k-3) var(--k-4); border-radius: var(--k-r-md); background: color-mix(in srgb, var(--k-text) 3%, transparent); }
+.pills-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--k-3); padding: var(--k-3) var(--k-4); border-radius: var(--k-r-md); background: color-mix(in srgb, var(--k-text) 3%, transparent); }
 .pills-row small { display: block; font-size: var(--k-label); color: var(--k-text-3); }
 .pills-row b { display: block; margin-top: 4px; font-size: 1.7rem; font-weight: 300; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .pill-cols { display: flex; gap: 6px; height: 64px; flex: none; }
@@ -3359,7 +3270,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .pills-row--cards .pill-col i { background: color-mix(in oklch, var(--k-grad-1b) 22%, var(--k-surface)); }
 .pill-col--lit i { background: linear-gradient(180deg, var(--k-grad-3a), var(--k-grad-3b)); box-shadow: 0 0 12px color-mix(in srgb, var(--k-grad-3a) 45%, transparent); }
 .pills-row--cards .pill-col--lit i { background: linear-gradient(180deg, var(--k-grad-1a), var(--k-grad-1b)); box-shadow: 0 0 12px color-mix(in srgb, var(--k-grad-1a) 45%, transparent); }
-.pill-col small { font-size: 0.56rem; color: var(--k-text-3); white-space: nowrap; overflow: hidden; max-width: 30px; text-align: center; }
+.pill-col small { font-size: 0.66rem; color: var(--k-text-3); white-space: nowrap; overflow: hidden; max-width: 30px; text-align: center; }
 .pills-row--cards .pill-cols { height: 72px; }
 .pills-row--cards .pill-col { width: 26px; }
 /* A card's bar names it (5.10): its name over its last digits, centred under it. */
@@ -3407,9 +3318,9 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .amount-hero .amount-wave { display: block; width: 100%; height: auto; margin: var(--k-2) 0 0; fill: none; stroke: var(--k-grad-2-ink); stroke-width: 2; opacity: 0.55; }
 .k .amount-hero .amount-wave circle { fill: var(--k-grad-2-ink); stroke: none; }
 .k .amount-hero .direction-toggle { background: rgb(255 255 255 / 0.92); border: 0; padding: 4px; box-shadow: 0 6px 14px rgb(0 0 0 / 0.15); }
-.k .amount-hero .k-seg__btn { color: #8a8a8a; font-weight: var(--k-w-strong); letter-spacing: 0.06em; text-transform: uppercase; font-size: var(--k-caption); }
-.k .amount-hero .k-seg__btn[aria-selected="true"] { background: none; color: #222; box-shadow: none; }
-.k .amount-hero .k-seg__btn + .k-seg__btn { border-left: 1px solid #ddd; border-radius: 0 999px 999px 0; }
+.k .amount-hero .k-seg__btn { color: color-mix(in srgb, black 62%, white); font-weight: var(--k-w-strong); letter-spacing: 0.06em; text-transform: uppercase; font-size: var(--k-caption); }
+.k .amount-hero .k-seg__btn[aria-selected="true"] { background: none; color: color-mix(in srgb, black 87%, white); box-shadow: none; }
+.k .amount-hero .k-seg__btn + .k-seg__btn { border-left: 1px solid color-mix(in srgb, black 13%, white); border-radius: 0 999px 999px 0; }
 .k .k-picker.is-chosen { border-color: transparent; background: linear-gradient(90deg, var(--k-grad-1a), var(--k-grad-1b)); color: var(--k-grad-1-ink); }
 .k .k-picker.is-chosen::after { border-color: var(--k-grad-1-ink); }
 .k .add-form .k-btn--primary { background: linear-gradient(90deg, var(--k-grad-1a), var(--k-grad-1b)); color: var(--k-grad-1-ink); box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--k-grad-1b) 70%, transparent); }
@@ -3456,7 +3367,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k #hist-hero .hero-amount { font-weight: 300; letter-spacing: -0.035em; }
 .k .hist-days__bar { background: linear-gradient(180deg, var(--k-grad-1a), var(--k-grad-1b)); opacity: 0.55; }
 .k .hist-days__bar.is-top { opacity: 1; background: linear-gradient(180deg, var(--k-grad-1a), var(--k-grad-1b)); box-shadow: 0 0 12px color-mix(in srgb, var(--k-grad-1a) 55%, transparent); }
-.k .hist-days__top strong { color: var(--k-grad-1a); }
+
 .k .hist-cat { border-radius: 50%; }
 .k .hist-day.is-picked .hist-day-card { animation-name: day-picked-charts; }
 @keyframes day-picked-charts { 0%, 35% { box-shadow: 0 0 0 1.5px var(--k-grad-1a), 0 0 22px color-mix(in srgb, var(--k-grad-1a) 35%, transparent); } }
@@ -3746,3 +3657,12 @@ body:has(#view-container.k) .app-header {
 .k .people-sums span { color: var(--k-text-2); }
 .k .people-sums b.pos { color: color-mix(in srgb, var(--k-positive) 70%, var(--k-text)); }
 .k .sum-needs__head, .k .need-row__t small, .k .sum-more__s, .k .setup-card__sub, .k .setup-step__body small { color: var(--k-text-2); }
+
+/* --- Tap targets, the last few without one (5.26) ------------------------
+ * The app widens small controls with an invisible strip (see the 44px rules
+ * above and in style.css). These had none: the tab buttons were separated by
+ * dead margin, so a thumb between two labels hit nothing. The margin is now a
+ * transparent border, which keeps the look and puts the gap inside the target. */
+.nav-btn { margin-inline: 0; border-inline: var(--space-3xs) solid transparent; background-clip: padding-box; }
+.k .k-quick__chip, .k .pk-dash, .k button.waves__k, .k .hist-step, .pf-month, .money-kind, .btn-secondary.btn-block { min-height: var(--k-tap); }
+.muted-note a { display: inline-block; padding: 14px 4px; margin: -14px -4px; }

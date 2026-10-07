@@ -362,35 +362,6 @@ export function radialMeter({ committed = 0, income = 0, size = 150 }) {
     </div>`;
 }
 
-/* --- 09 When the money goes -------------------------------------------
- * Answers: where in this period does my spending actually happen?
- *   days   [{ date, amount }] one entry a day, oldest first (paise)
- *   today  the date to light up
- * A quiet day keeps a stub so it reads as "almost nothing", never as a gap
- * in the data.
- */
-export function spendingPulse({ days = [], today = '' }) {
-  const usable = days.filter((d) => d && Number.isFinite(d.amount));
-  if (usable.length < MIN_POINTS) return '';
-  const peak = usable.reduce((m, d) => Math.max(m, d.amount), 0);
-  if (!(peak > 0)) return '';
-  const biggest = usable.reduce((a, b) => (b.amount > a.amount ? b : a), usable[0]);
-
-  const bars = usable
-    .map((d) => {
-      const h = Math.round((d.amount / peak) * 100);
-      const cls = d.date === biggest.date ? ' pulse-bar--peak' : d.amount <= peak * 0.06 ? ' pulse-bar--quiet' : '';
-      const mark = d.date === today ? ' pulse-bar--today' : '';
-      return `<i class="pulse-bar${cls}${mark}" style="--h:${Math.max(3, h)}%"></i>`;
-    })
-    .join('');
-
-  const when = new Date(biggest.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-  const label = `Daily spending across the period. The biggest day is ${when}, ${formatRupees(biggest.amount)}.`;
-  return `<div class="pulse" role="img" aria-label="${esc(label)}">${bars}</div>
-    ${note(`Biggest day: <b>${esc(when)}, ${formatRupees(biggest.amount)}</b>`)}`;
-}
-
 /* --- 10 Money in against money out ------------------------------------
  * Answers: is more coming in than going out, and how has that changed?
  *   months  [{ label, in, out }] oldest first (paise)

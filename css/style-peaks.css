@@ -15,7 +15,7 @@
   --p-paper: color-mix(in srgb, var(--k-text) 94%, var(--k-surface));
   --p-ink: var(--k-bg);
   --p-ink-2: color-mix(in srgb, var(--k-bg) 72%, var(--k-text));
-  --p-ink-3: color-mix(in srgb, var(--k-bg) 58%, var(--k-text));
+  --p-ink-3: color-mix(in srgb, var(--k-bg) 76%, var(--k-text));
   /* What a warning is mixed toward to be read on the panel: deeper on a
      pale panel, lighter on the dark one a light colouring gets. */
   --p-shade: black;
@@ -32,10 +32,11 @@
   --k-text-2: var(--p-ink-2);
   --k-text-3: var(--p-ink-3);
   --k-hairline: color-mix(in srgb, var(--p-ink) 10%, transparent);
-  --k-negative: color-mix(in srgb, var(--k-negative-raw, #d33) 70%, var(--p-shade));
-  --k-warning: color-mix(in srgb, var(--k-warning-raw, #c80) 62%, var(--p-shade));
+  --k-negative: color-mix(in srgb, var(--k-negative-raw, #d33) 56%, var(--p-shade));
+  --k-warning: color-mix(in srgb, var(--k-warning-raw, #c80) 50%, var(--p-shade));
+  --k-positive: color-mix(in srgb, var(--k-positive-raw, #2a7) 52%, var(--p-shade));
 }
-:root[data-style="peaks"] { --k-negative-raw: var(--k-negative); --k-warning-raw: var(--k-warning); }
+:root[data-style="peaks"] { --k-negative-raw: var(--k-negative); --k-warning-raw: var(--k-warning); --k-positive-raw: var(--k-positive); }
 /* No coloured glow or daylight sheen over the panel. */
 :root[data-style="peaks"] .k .hero::before,
 :root[data-style="peaks"] .k .hero::after { content: none; }
@@ -106,8 +107,9 @@
  * raised unit, and the rest of the hero's figures along its foot. Then the
  * mountains, slate cards, bars with each card named, and the month's
  * payments as dashes on a line with pines out of the corner. */
-.pk-panel { position: relative; display: grid; grid-template-columns: 140px 1fr; gap: 14px 16px; align-items: center; padding: 16px 18px 18px; border-radius: 18px; margin-bottom: var(--k-3); background: var(--p-paper); color: var(--p-ink); box-shadow: 0 18px 30px -12px rgb(0 0 0 / 0.6);
-  --k-negative: color-mix(in srgb, var(--k-negative-raw, #d33) 70%, var(--p-shade)); --k-warning: color-mix(in srgb, var(--k-warning-raw, #c80) 62%, var(--p-shade)); }
+.pk-panel { position: relative; display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 14px 16px; align-items: center; padding: 16px 18px 18px; border-radius: 18px; margin-bottom: var(--k-3); background: var(--p-paper); color: var(--p-ink); box-shadow: 0 18px 30px -12px rgb(0 0 0 / 0.6);
+  --k-negative: color-mix(in srgb, var(--k-negative-raw, #d33) 56%, var(--p-shade)); --k-warning: color-mix(in srgb, var(--k-warning-raw, #c80) 50%, var(--p-shade));
+  --k-positive: color-mix(in srgb, var(--k-positive-raw, #2a7) 52%, var(--p-shade)); }
 .pk-top { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; }
 .pk-panel .pk-lab, .pk-panel .pk-tiny { color: var(--p-ink-2); }
 .pk-ring { position: relative; width: 140px; height: 140px; }
@@ -126,7 +128,7 @@
 .pk-n sup { font-size: .38em; font-weight: 500; letter-spacing: 0; vertical-align: .9em; margin-left: 2px; opacity: .6; }
 .pk-n--l { font-size: 34px; } .pk-n--m { font-size: 24px; } .pk-n--s { font-size: 20px; }
 .pk-hot { color: var(--k-grad-1a); font-weight: 650; }
-.pk-panel .pk-hot { color: color-mix(in srgb, var(--k-grad-1a) 75%, var(--p-shade)); }
+.pk-panel .pk-hot { color: color-mix(in srgb, var(--k-grad-1a) 52%, var(--p-shade)); }
 .pk-foot { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--p-ink) 10%, transparent); }
 .pk-foot b { display: block; margin-top: 3px; font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .pk-foot .pk-tiny { margin: 0; }
@@ -212,8 +214,7 @@ button.pk-card { cursor: pointer; }
 :root[data-style="peaks"] .k-row__value,
 :root[data-style="peaks"] .stat-v,
 :root[data-style="peaks"] .totals-row span:last-child,
-:root[data-style="peaks"] .waves__k b,
-:root[data-style="peaks"] .tracking-ring__mid b { font-weight: 300; }
+:root[data-style="peaks"] .waves__k b { font-weight: 300; }
 :root[data-style="peaks"] .tracking-stats small,
 :root[data-style="peaks"] .hero-label,
 :root[data-style="peaks"] .k-row__meta { letter-spacing: .02em; }
@@ -297,8 +298,8 @@ button.pk-card { cursor: pointer; }
  * quiet square icons and thin figures. */
 :root[data-style="peaks"] .k #hist-hero .hero-under { display: flex; gap: 24px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--p-ink) 10%, transparent); }
 :root[data-style="peaks"] .k #hist-hero .stat-v { font-size: 20px; font-weight: 300; }
-:root[data-style="peaks"] .k #hist-hero .stat-v.in { color: color-mix(in srgb, var(--k-grad-2a) 55%, var(--p-shade)); }
-:root[data-style="peaks"] .k #hist-hero .stat-v.out { color: color-mix(in srgb, var(--k-grad-1a) 75%, var(--p-shade)); }
+:root[data-style="peaks"] .k #hist-hero .stat-v.in { color: color-mix(in srgb, var(--k-grad-2a) 42%, var(--p-shade)); }
+:root[data-style="peaks"] .k #hist-hero .stat-v.out { color: color-mix(in srgb, var(--k-grad-1a) 52%, var(--p-shade)); }
 :root[data-style="peaks"] .k .hist-days-card { border-radius: 14px; background: linear-gradient(180deg, color-mix(in srgb, var(--k-surface), white 3%), var(--k-surface)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 10px 22px -10px rgb(0 0 0 / 0.6); }
 :root[data-style="peaks"] .k .hist-days-card::before { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--k-text-3); }
 :root[data-style="peaks"] .k .hist-days__bar { border-radius: 2px; background: color-mix(in srgb, var(--k-grad-1a) 45%, transparent); }
@@ -326,7 +327,7 @@ button.pk-card { cursor: pointer; }
 .ct-gauge__k { font: 400 7.5px var(--k-font); fill: var(--p-ink-2); }
 .ct-top--peaks .pk-figs { gap: 10px; }
 .ct-top--peaks .pk-n--m { font-size: 20px; }
-.ct-safe { color: color-mix(in srgb, var(--k-grad-2a) 55%, var(--p-shade)); }
+.ct-safe { color: color-mix(in srgb, var(--k-grad-2a) 42%, var(--p-shade)); }
 :root[data-style="peaks"] .k-coach .coach-q { border-radius: 14px; margin-bottom: 8px; }
 :root[data-style="peaks"] .k-coach .coach-q .k-icon,
 :root[data-style="peaks"] .k-coach .coach-q [class*="k-brand"] { border-radius: 10px; color: var(--k-grad-1a); background: color-mix(in srgb, var(--k-text) 8%, transparent); }
@@ -352,3 +353,23 @@ button.pk-card { cursor: pointer; }
 :root[data-style="peaks"] .k .need-row__ic { border-radius: 9px; }
 :root[data-style="peaks"] .explain-pop { border-radius: 12px; border: 1px solid color-mix(in srgb, var(--k-grad-1a) 40%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--k-surface-elev), white 4%), var(--k-surface-elev)); box-shadow: 0 14px 28px -8px rgb(0 0 0 / 0.65), 0 0 18px color-mix(in srgb, var(--k-grad-1a) 18%, transparent); }
 :root[data-style="peaks"] .explain-pop b { color: var(--k-text); letter-spacing: .02em; }
+
+/* The smallest phones (320px): a slimmer ring, so the figures beside it still fit. */
+@media (max-width: 340px) {
+  .pk-panel { grid-template-columns: 112px minmax(0, 1fr); gap: 12px; padding-inline: 14px; }
+  .pk-ring, .pk-donut { width: 112px; height: 112px; }
+  .pk-ring__mid b { font-size: 19px; }
+  .pk-n--l { font-size: 28px; }
+}
+
+/* In a light colouring the panel turns dark, so the tones are mixed toward white instead of black,
+   and the tab bar is a shade of the light page rather than a dark slab (5.26). */
+:root[data-style="peaks"][data-theme="light"] .k .hero,
+:root[data-style="peaks"][data-theme="light"] .pk-panel {
+  --k-negative: color-mix(in srgb, var(--k-negative-raw) 26%, white);
+  --k-warning: color-mix(in srgb, var(--k-warning-raw) 26%, white);
+  --k-positive: color-mix(in srgb, var(--k-positive-raw) 26%, white);
+}
+:root[data-style="peaks"][data-theme="light"] .k .hero .hero-amount.negative { color: var(--k-negative); }
+:root[data-style="peaks"][data-theme="light"] .pk-panel .pk-hot { color: color-mix(in srgb, var(--k-grad-1a) 30%, white); }
+:root[data-style="peaks"][data-theme="light"] #tabs.bottom-nav { background: color-mix(in srgb, var(--k-bg), black 8%); }
