@@ -13,12 +13,15 @@ import { cardPosition, bankBalance, statementDayFixes, balanceAt } from '../js/a
 import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance, applyTheme } from '../js/appearance.js';
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
+import { cardWorkSplit } from '../js/views/accounts.js';
 import { mood, comingUp, keptBack, topFigures, instrumentDial, instrumentTop } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
 import { termFor } from '../js/explain.js';
 import { peopleStanding, personSpendEffects, lateBack, reminderText } from '../js/people.js';
 import { nextRenewal, renewalAfter, renewalsAhead } from '../js/calendar.js';
-import { caPeriods, buildCaReport, toCsv } from '../js/ca-export.js';
+import { caPeriods, buildCaReport, toXlsx, toPdf } from '../js/ca-export.js';
+import { excelDate } from '../js/xlsx.js';
+import { textWidth, wrap, pdfSafe } from '../js/pdf-write.js';
 import { planParts } from '../js/views/plan-looks.js';
 import { looksLikeCardPayment, cashSide, spendMoves, isCardBill } from '../js/transfers.js';
 import { spendingMonthOf, salaryLike, nextMonthKey, countsFor as countsForMonth } from '../js/spending-month.js';
@@ -392,7 +395,7 @@ test('a look that was never offered falls back to the one that was', () => {
     equal(appearance('nothing-by-this-name'), null);
     localStorage.removeItem(key);
     for (const name of Object.keys(CHOICES)) equal(appearance(name), CHOICES[name].fallback, name);
-    equal(appearance('style'), 'tactile', 'with nothing chosen, Kawach opens in Tactile (5.17)');
+    equal(appearance('style'), 'instrument', 'with nothing chosen, Kawach opens in Instrument (5.27; Tactile before)');
   } finally {
     if (before === null) localStorage.removeItem(key);
     else localStorage.setItem(key, before);
@@ -1512,12 +1515,11 @@ test('Instrument: the dial lights up to what is spent, red past an even pace; th
   const off = (dial.match(/in-dial__m--off/g) || []).length;
   equal(on + ahead + off, 61, 'every mark is lit, ahead of pace or dark');
   ok(ahead > 0 && on > 0 && off > 0, 'spent ₹22,580 of ₹31,500 on day 12 is past an even pace: some red, some amber, some unlit');
-  ok(dial.includes('EVEN PACE') && dial.includes('₹8,920') && dial.includes('₹22,580 spent of ₹31,500'), 'the flag, the figure and the words under it');
-  const early = instrumentDial(topFigures({ ...f, daysIntoCycle: 1, daysToClose: 30 }), false);
-  const label = early.match(/<text class="in-dial__cap" x="([\d.]+)"[^>]*>EVEN PACE/);
-  ok(label && Number(label[1]) >= 26, 'a pace near the start of the scale keeps its label inside the drawing');
+  ok(dial.includes('in-dial__flag') && !dial.includes('EVEN PACE') && dial.includes('₹8,920') && dial.includes('₹22,580 spent of ₹31,500'), 'the flag, the figure and the words under it');
+  const legend = instrumentTop(f, 'x', '').match(/<p class="in-legend">.*?<\/p>/);
+  ok(legend && legend[0].includes('Even pace by today') && legend[0].includes('₹12,194'), 'what the flag is, in words under the dial, never on it (the words ran into the marks near the start)');
   const done = instrumentDial(topFigures({ ...f, finished: true }), false);
-  ok(!done.includes('EVEN PACE') && !done.includes('in-dial__m--ahead'), 'a finished month has no pace: no flag, no red');
+  ok(!done.includes('in-dial__flag') && !done.includes('in-dial__m--ahead') && !instrumentTop({ ...f, finished: true }, 'x', '').includes('in-legend'), 'a finished month has no pace: no flag, no red, no legend');
   ok(instrumentDial(x, true).includes('in-dial__fig is-negative'), 'a negative figure is red');
   const top = instrumentTop(f, 'Over pace.', '<!--m-->');
   ok(top.includes('<!--k:answer-->') && top.includes('<!--k:month-->') && top.includes('Over pace.') && top.includes('in-hero'), 'the same hooks every style leaves for the month and the answer');
@@ -1790,9 +1792,35 @@ test('for your CA: financial years, totals without money moved, and a spreadshee
   });
   equal(report.rows.length, 4, 'only the period, money moved included in the list');
   equal(report.lanes.map((l) => [l.name, l.moneyIn, l.moneyOut]), [['Home', 5000000, 2000000], ['The Shop', 0, 30000]], 'money moved left out of the totals; the business on its own');
-  const csv = toCsv(report);
-  ok(csv.includes("'=cmd") && !csv.includes(',=cmd'), 'a description starting with = is not a formula');
-  ok(csv.includes('2026-05-05,Bank,Home,rent,Rent,,20000.00,'), 'paise kept, money out in its column');
+  // The workbook: a real zip of XML, dates as dates, money as numbers, text never a formula.
+  const bytes = toXlsx(report);
+  equal([bytes[0], bytes[1]], [0x50, 0x4b], 'a zip');
+  const entries = {};
+  const dv = new DataView(bytes.buffer);
+  let at = 0;
+  while (dv.getUint32(at, true) === 0x04034b50) {
+    const size = dv.getUint32(at + 18, true);
+    const nameLen = dv.getUint16(at + 26, true);
+    const name = new TextDecoder().decode(bytes.slice(at + 30, at + 30 + nameLen));
+    entries[name] = new TextDecoder().decode(bytes.slice(at + 30 + nameLen, at + 30 + nameLen + size));
+    at += 30 + nameLen + size;
+  }
+  ok(['[Content_Types].xml', 'xl/workbook.xml', 'xl/styles.xml', 'xl/worksheets/sheet1.xml', 'xl/worksheets/sheet2.xml'].every((n) => entries[n]), 'every part Excel needs');
+  ok(entries['xl/workbook.xml'].includes('name="Summary"') && entries['xl/workbook.xml'].includes('name="Payments"'), 'two sheets');
+  const pay = entries['xl/worksheets/sheet2.xml'];
+  ok(pay.includes(`<v>${excelDate('2026-05-05')}</v>`) && pay.includes('<v>20000</v>'), 'the rent: a real date and the number 20000');
+  ok(pay.includes('<t xml:space="preserve">=cmd</t>') && !pay.includes('<f>=cmd'), 'a description starting with = is text, never a formula');
+  ok(pay.includes('SUMIF(H2:H5,"Yes",G2:G5)') && pay.includes('<pane ySplit="1"') && pay.includes('<autoFilter ref="A1:I5"/>'), 'totals that add only counted rows, a frozen header, a filter');
+  ok(entries['xl/worksheets/sheet1.xml'].includes('Kept (in less out)') && entries['xl/worksheets/sheet1.xml'].includes('The Shop'), 'the summary: by lane, kept');
+  equal(excelDate('2026-05-05') - excelDate('2026-05-04'), 1, 'a day is one');
+  // The PDF: a header, the figures and a trailer whose offset points at the table.
+  const pdf = new TextDecoder('latin1').decode(toPdf(report));
+  ok(pdf.startsWith('%PDF-1.4') && pdf.trimEnd().endsWith('%%EOF'), 'a PDF');
+  const xref = Number(pdf.match(/startxref\n(\d+)/)[1]);
+  equal(pdf.slice(xref, xref + 4), 'xref', 'the table is where the trailer says');
+  ok(pdf.includes('Money for the financial year 2026-27') && pdf.includes('Rs 20,000') && pdf.includes('Page 1 of 1') && !pdf.includes('₹'), 'the figures in rupees as "Rs", never the sign the fonts lack');
+  equal(pdfSafe('₹5 – “x” 日'), 'Rs 5 - "x" ?', 'what the fonts cannot draw becomes ?');
+  ok(textWidth('Money', 10) > 0 && wrap('one two three four five six seven', 40, 8, 2).length === 2 && wrap('one two three four five six seven', 40, 8, 2)[1].endsWith('...'), 'text is measured and wrapped, cut with dots when too long');
 });
 
 test('salary at a month\'s end: spotted in the last week, counted in the month it pays for once you say so', () => {
@@ -1879,4 +1907,15 @@ test('a card bill is never counted as spending by category, since the card purch
   equal([spent.get('food'), spent.get('bills')], [rupees(500), rupees(200)], 'food counted once; only the real electricity bill is "Bills"');
   ok(isCardBill(tx[1], accounts[0]) && isCardBill(tx[2], accounts[0]), 'a card bill, said or worded like one');
   ok(!isCardBill({ direction: 'debit', rawDescription: 'CRED CLUB RENT PAYMENT' }, accounts[1]), 'a purchase on a card is not a bill, whatever its words');
+});
+
+test('a card shows yours, work and the fixed costs still to come, and the bill to expect', () => {
+  const w = { cycle: rupees(2000), owed: rupees(2000), coming: rupees(1999), items: [{ label: 'Claude', amount: rupees(1999) }] };
+  const html = cardWorkSplit({ id: 'c1' }, rupees(5000), w);
+  ok(html.includes('class="coming"') && html.includes('Fixed, to come <b>₹1,999</b>') && html.includes('Yours <b>₹3,000</b>') && html.includes('Work, owed back <b>₹2,000</b>'), 'three parts');
+  ok(html.includes('Bill about</span><b>₹6,999</b>'), 'spent so far plus what is still to be charged');
+  ok(html.includes('Claude ₹1,999'), 'the fixed costs are named');
+  const onlyFixed = cardWorkSplit({ id: 'c1' }, rupees(3000), { cycle: 0, owed: 0, coming: rupees(649), items: [] });
+  ok(onlyFixed.includes('Bill about</span><b>₹3,649</b>') && !onlyFixed.includes('Work, owed back'), 'no work costs: yours and fixed only');
+  equal(cardWorkSplit({ id: 'c1' }, rupees(3000), { cycle: 0, owed: 0, coming: 0, items: [] }), '', 'nothing to say, nothing drawn');
 });

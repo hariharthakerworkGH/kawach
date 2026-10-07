@@ -1662,3 +1662,17 @@ test('spends already filed under Income are put right', async () => {
   const after = Object.fromEntries((await getAll('transactions')).map((t) => [t.id, t.categoryId || null]));
   equal([after.wrong, after.unknown, after.salary], ['cat-food', null, 'cat-income'], 'the salary is left as Income');
 });
+
+test('a card knows which of your fixed costs it has still to be charged before its statement day (the bill to expect)', async () => {
+  await seedBasics();
+  await putAll('recurring', [
+    commitment({ label: 'Netflix', amount: 649, dayOfMonth: 20, accountId: 'card', matchText: 'NETFLIX' }),
+    commitment({ label: 'Gym', amount: 1000, dayOfMonth: 3, accountId: 'card', matchText: 'GYM' }),
+    commitment({ label: 'House Rent', amount: 20000 }),
+  ]);
+  await putAll('transactions', [txn({ accountId: 'card', date: '2026-09-03', amount: 1000, rawDescription: 'GYM' })]);
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  const card = f.cards.find((c) => c.account.id === 'card');
+  paise(card.comingFixed, rupees(649));
+  equal(card.comingItems.map((i) => i.label).join(), 'Netflix', 'the gym was already charged on the 3rd; the rent is paid from the bank, so neither is "to come" on the card');
+});

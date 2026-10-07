@@ -272,8 +272,8 @@ anything not meant for the public goes in `_private`, never in `_work`.
 Tactile, Peaks, Mindora, Instrument) and thirteen colourings, chosen in How it looks
 (`js/looks.js`). Charts is the base every screen is built on; the other
 three are layers over it, restyling what they have caught up with and
-falling back to Charts elsewhere. **Tactile is the default style (5.17), and
-every new feature gets its look in Tactile first**; Charts, Peaks and
+falling back to Charts elsewhere. **Instrument is the default style (5.27; Tactile
+was from 5.17), and every new feature gets its look in Instrument first**; Charts, Peaks and
 Mindora are brought up to date together in a "mass update" (the last one was
 5.24: the short Summary's cards, the explain bubble, Lent and borrowed and the
 salary question in each look's own card language) - never ship anything that
@@ -282,8 +282,8 @@ budget, a ruled month chart, cells for bars, one lit colour: amber, ice or
 lime). It is not a copy: it SHARES Tactile's markup and rules - every selector
 in `css/style-tactile.css` is written `:root:is([data-style="tactile"],
 [data-style="instrument"])` - and repaints them by redefining the `--t-*`
-values in `css/style-instrument.css`, which loads after it. So a feature built
-in Tactile arrives in Instrument for free, and its own file only holds what
+values in `css/style-instrument.css`, which loads after it. So a feature built for either
+(Instrument first, since 5.27) arrives in the other for free, and its own file only holds what
 Tactile has no equivalent of (radii, cell bars, the flush tab bar, the dial in
 `summary-looks.js` `instrumentDial`, the chart `monthScale` in `summary.js`).
 `plan.js`, `coach.js`, `add.js` and `transactions.js` list it beside the others.

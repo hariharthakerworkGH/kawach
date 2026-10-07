@@ -63,7 +63,7 @@ export function topFigures(f) {
   const asideTotal = aside.reduce((s, t) => s + t.amount, 0);
   // `work` is the part of a card's amount that is a work cost, owed back by the
   // employer (5.23), so what you spent yourself and what is the company's show apart.
-  const cards = (f.cards || []).filter((c) => onCard(c) > 0).map((c) => ({ ...cardTag(c.account), amount: onCard(c), work: Math.min(onCard(c), c.workCycle || 0) }));
+  const cards = (f.cards || []).filter((c) => onCard(c) > 0).map((c) => ({ ...cardTag(c.account), amount: onCard(c), work: Math.min(onCard(c), c.workCycle || 0), coming: c.comingFixed || 0 }));
   const cardTop = Math.max(1, ...cards.map((c) => c.amount));
   return {
     left: f.free,
@@ -101,6 +101,8 @@ export function topFigures(f) {
 const ofLimit = (x) => (x.limit > 0 ? `${formatRupees(x.spent)} of ${formatRupees(x.limit)}` : formatRupees(x.spent));
 // A card's bar: the share it is of the biggest, with the work part of it, which
 // the employer pays back, marked inside it.
+// What the card is still to be charged of the fixed costs set on Plan, under its amount (5.27).
+const comingNote = (c, fmt = formatRupees) => (c.coming ? `<small class="card-work card-coming">+${fmt(c.coming)} fixed to come</small>` : '');
 const cardBar = (c) => `<i style="width:${pct(c.share)}">${c.work ? `<u class="card-work-bar" style="width:${pct(c.work / Math.max(1, c.amount))}"></u>` : ''}</i>`;
 const pct = (v) => `${Math.round(Math.min(1, Math.max(0, v)) * 100)}%`;
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -145,7 +147,7 @@ export function tactileTop(f, status, month, heroHtml = '') {
     ${x.week.length && !x.finished ? `<div class="tl-card"><div class="tl-top"><span class="tl-k">This week</span><b class="tl-mid">${formatRupees(x.weekTotal)}</b></div>${weekCols(x, 'tl-cols')}</div>` : ''}
     ${x.finished ? '' : `<div class="tl-list" data-owed-anchor>
       ${x.cards.length ? `<div class="tl-item tl-item--cards"><span class="tl-ibox">${icon('card')}</span><span class="tl-grow"><span class="tl-t">Owed on cards</span>${x.bills ? `<span class="tl-badge">${bills(x.bills)}</span>` : ''}</span><span class="tl-v">${formatRupees(x.owedCards)}</span>
-        <div class="tl-cards">${x.cards.map((c) => `<div class="tl-cardrow">${tagHtml(c)}<span class="tl-thin">${cardBar(c)}</span><span class="tl-cardamt">${formatRupees(c.amount)}${c.work ? `<small class="card-work">${formatRupees(c.work)} work</small>` : ''}</span></div>`).join('')}</div></div>` : ''}
+        <div class="tl-cards">${x.cards.map((c) => `<div class="tl-cardrow">${tagHtml(c)}<span class="tl-thin">${cardBar(c)}</span><span class="tl-cardamt">${formatRupees(c.amount)}${c.work ? `<small class="card-work">${formatRupees(c.work)} work</small>` : ''}${comingNote(c)}</span></div>`).join('')}</div></div>` : ''}
       ${x.kept ? row(categoryIcon('piggy'), 'Kept back', 'set aside, not spent yet', formatRupees(x.kept), '', 'set-aside-stat') : ''}
       ${x.employer ? row(categoryIcon('income'), 'Owed back', 'by your employer', formatRupees(x.employer), 'tl-ok', 'owed-back-stat') : ''}
     </div>`}
@@ -178,14 +180,11 @@ export function instrumentDial(x, negative) {
   const [nx2, ny2] = pt(ang(fs), R - 26);
   const [z0x, z0y] = pt(ang(0), R - 36);
   const [z1x, z1y] = pt(ang(1), R - 36);
+  // The flag has no words on the dial (they ran into the marks when the pace was near
+  // the start); instrumentTop says what it is in one line under the dial.
   const flag = x.finished || !(x.limit > 0) ? '' : (() => {
     const [fx, fy] = pt(ang(fp), R + 9);
-    const [lx, ly] = pt(ang(fp), R + 24);
-    // The label is kept inside the drawing: a pace near either end of the scale
-    // would otherwise put it off the edge.
-    const anchor = lx < 62 ? 'start' : lx > 264 ? 'end' : 'middle';
-    const labelX = Math.min(300, Math.max(26, lx));
-    return `<path class="in-dial__flag" d="M${n1(fx)} ${n1(fy)} l-4 -6 l8 0z" transform="rotate(${n1(ang(fp))} ${n1(fx)} ${n1(fy)})"/><text class="in-dial__cap" x="${n1(labelX)}" y="${n1(ly + 3)}" text-anchor="${anchor}">EVEN PACE</text>`;
+    return `<path class="in-dial__flag" d="M${n1(fx)} ${n1(fy)} l-4 -6 l8 0z" transform="rotate(${n1(ang(fp))} ${n1(fx)} ${n1(fy)})"/>`;
   })();
   const total = x.limit > 0 ? formatRupees(x.limit) : '';
   return `<svg class="in-dial" viewBox="0 0 326 236" role="img" aria-label="${formatRupees(x.spent)} spent${x.limit > 0 ? ` of ${total}` : ''}${flag ? `, an even pace would be ${formatRupees(x.pace)} by now` : ''}">
@@ -205,6 +204,7 @@ export function instrumentTop(f, status, month) {
   const hero = `<div class="tl-hero in-hero ${f.free < 0 ? 'is-negative' : ''}">
       <div class="tl-top"><span class="tl-k">Budget dial</span><span class="tl-period">${x.period}</span></div>
       ${instrumentDial(x, f.free < 0)}
+      ${x.finished || !(x.limit > 0) ? '' : `<p class="in-legend"><i class="in-legend__flag"></i>Even pace by today <b>${formatRupees(x.pace)}</b></p>`}
       <p class="in-status ${tone(f)}"><span class="in-led"></span><span>${escapeHtml(status)}</span></p>
       <div class="tl-stats">
         <div><span class="tl-k">Spent</span><b>${formatRupees(x.spent)}</b></div>
@@ -281,7 +281,7 @@ export function peaksTop(f, status, month) {
     ${month || ''}<!--k:month-->
     ${x.week.length && !x.finished ? `<div class="pk-card pk-week"><div class="pk-row"><span class="pk-lab">This week</span><span class="pk-n pk-n--s">${sup(plain(x.weekTotal))}</span></div>${weekLine(x)}</div>` : ''}
     ${x.cards.length && !x.finished ? `<div class="pk-card"><div class="pk-row"><span class="pk-lab">Owed on cards${x.bills ? ` · <span class="pk-hot">${bills(x.bills)}</span>` : ''}</span><span class="pk-n pk-n--m">${sup(plain(x.owedCards))}</span></div>
-      <div class="pk-bars">${x.cards.map((c) => `<div class="pk-bar">${tagHtml(c)}<span class="pk-trk">${cardBar(c)}</span><b>${plain(c.amount)}${c.work ? `<small class="card-work">${plain(c.work)} work</small>` : ''}</b></div>`).join('')}</div></div>` : ''}
+      <div class="pk-bars">${x.cards.map((c) => `<div class="pk-bar">${tagHtml(c)}<span class="pk-trk">${cardBar(c)}</span><b>${plain(c.amount)}${c.work ? `<small class="card-work">${plain(c.work)} work</small>` : ''}${comingNote(c, plain)}</b></div>`).join('')}</div></div>` : ''}
     ${(x.kept || x.employer) && !x.finished ? `<div class="pk-two" data-owed-anchor>
       ${x.kept ? `<button type="button" class="pk-card" id="set-aside-stat"><span class="pk-lab">Kept back</span><span class="pk-n pk-n--m">${sup(plain(x.kept))}</span><span class="pk-tiny">set aside, not spent yet</span></button>` : ''}
       ${x.employer ? `<button type="button" class="pk-card" id="owed-back-stat"><span class="pk-lab">Owed back</span><span class="pk-n pk-n--m pk-good">${sup(plain(x.employer))}</span><span class="pk-tiny">by your employer</span></button>` : ''}
@@ -365,7 +365,7 @@ export function mindoraTop(f, status, month) {
     ${month || ''}<!--k:month-->
     ${x.week.length && !x.finished ? `<div class="md-glass"><div class="md-top"><span class="md-kick">This week</span><span class="md-mid">${formatRupees(x.weekTotal)}</span></div>${weekCols(x, 'md-cols')}</div>` : ''}
     ${x.cards.length && !x.finished ? `<div class="md-glass"><div class="md-top"><span class="md-kick">Owed on cards</span><span class="md-mid">${formatRupees(x.owedCards)}</span></div>${x.bills ? `<span class="md-badge">${bills(x.bills)}</span>` : ''}
-      <div class="md-bars">${x.cards.map((c) => `<div class="md-bar">${tagHtml(c)}<span class="md-prog">${cardBar(c)}</span><b>${formatRupees(c.amount)}${c.work ? `<small class="card-work">${formatRupees(c.work)} work</small>` : ''}</b></div>`).join('')}</div></div>` : ''}
+      <div class="md-bars">${x.cards.map((c) => `<div class="md-bar">${tagHtml(c)}<span class="md-prog">${cardBar(c)}</span><b>${formatRupees(c.amount)}${c.work ? `<small class="card-work">${formatRupees(c.work)} work</small>` : ''}${comingNote(c)}</b></div>`).join('')}</div></div>` : ''}
     ${(x.kept || x.employer) && !x.finished ? `<div class="md-split" data-owed-anchor>
       ${x.kept ? `<button type="button" class="md-glass md-lake" id="set-aside-stat">${lake()}<span class="md-lake__text"><span class="md-kick">Kept back</span><span class="md-mid">${formatRupees(x.kept)}</span><small>set aside, not spent yet</small></span></button>` : ''}
       ${x.employer ? `<button type="button" class="md-glass md-small" id="owed-back-stat"><span class="md-kick">Owed back</span><span class="md-mid md-good">${formatRupees(x.employer)}</span><small class="md-sub">by your employer</small></button>` : ''}

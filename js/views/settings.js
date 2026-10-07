@@ -5,7 +5,7 @@ import { formatDateNice } from '../format.js';
 import { remindersEnabled, reminderDaysBefore, permissionState, enableReminders, disableReminders, refreshSchedule } from '../reminders.js';
 import { buildDiagnosticReport } from '../diagnostics.js';
 import { isoLocal } from '../frequency.js';
-import { caPeriods, caReport, toCsv, reportHtml } from '../ca-export.js';
+import { caPeriods, caReport, toXlsx, toPdf, saveFile } from '../ca-export.js';
 import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
 import { getSyncConfig, saveSyncConfig, clearSyncConfig, syncNow, testToken, getSyncPassphrase, setSyncPassphrase, turnOnGoogleSync } from '../sync.js';
@@ -104,7 +104,7 @@ export async function render(container, params = {}) {
             .join('')}</select>
         </label>
         <div class="ca-actions">
-          <button type="button" class="k-btn k-btn--secondary" id="ca-csv">${icon('file')} Spreadsheet</button>
+          <button type="button" class="k-btn k-btn--secondary" id="ca-xlsx">${icon('file')} Excel</button>
           <button type="button" class="k-btn k-btn--secondary" id="ca-pdf">${icon('file')} PDF</button>
         </div>
         <p class="muted-note">Not locked with your passphrase. Share it only with your CA.</p>
@@ -197,45 +197,23 @@ export async function render(container, params = {}) {
     });
   }
 
-  // For your CA: the spreadsheet is saved as a file; the PDF is the report
-  // printed with the phone's own "Save as PDF", the only way to make one
-  // without loading anything.
+  // For your CA: an Excel workbook and a PDF, both real files made here and saved
+  // to the downloads, named for the period (js/ca-export.js).
   const caPeriod = () => caPeriods(isoLocal(new Date())).find((p) => p.id === container.querySelector('#ca-period').value);
-  container.querySelector('#ca-csv').addEventListener('click', async () => {
-    const period = caPeriod();
-    const report = await caReport(period);
-    if (!report.rows.length) return showToast('No payments in that period');
-    const url = URL.createObjectURL(new Blob([toCsv(report)], { type: 'text/csv;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `kawach-${period.id}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-    showToast(`Saved ${report.rows.length} payments`);
-  });
-  container.querySelector('#ca-pdf').addEventListener('click', async () => {
-    const period = caPeriod();
-    const report = await caReport(period);
-    if (!report.rows.length) return showToast('No payments in that period');
-    const sheet = document.createElement('div');
-    sheet.id = 'print-report';
-    sheet.innerHTML = reportHtml(report);
-    document.body.append(sheet);
-    document.body.classList.add('printing');
-    // The PDF is named after the page's title.
-    const title = document.title;
-    document.title = `Kawach ${period.label.replace(/ so far$/, '')}`;
-    const done = () => {
-      sheet.remove();
-      document.body.classList.remove('printing');
-      document.title = title;
-      window.removeEventListener('afterprint', done);
-    };
-    window.addEventListener('afterprint', done);
-    window.print();
-  });
+  const caFile = (button, make, extension, type) =>
+    container.querySelector(button).addEventListener('click', async () => {
+      const period = caPeriod();
+      const report = await caReport(period);
+      if (!report.rows.length) return showToast('No payments in that period');
+      try {
+        saveFile(make(report), `kawach-${period.id}.${extension}`, type);
+        showToast(`Saved kawach-${period.id}.${extension}`);
+      } catch {
+        showToast('Could not make the file');
+      }
+    });
+  caFile('#ca-xlsx', toXlsx, 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  caFile('#ca-pdf', toPdf, 'pdf', 'application/pdf');
 
   const diagnosticStatus = container.querySelector('#diagnostic-status');
   container.querySelector('#diagnostic-btn').addEventListener('click', async () => {

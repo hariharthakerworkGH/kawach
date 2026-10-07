@@ -539,7 +539,7 @@ export async function computeFreeToSpend(now = new Date()) {
     );
     const { amount, detail } = commitmentDueInWindow(item, { today, windowEnd: cardPeriod.end, bankEntries: entries });
     const card = cardAccounts.find((a) => a.id === item.accountId);
-    if (amount > 0) cardUpcoming.push({ label: item.label, amount, detail: `${card ? card.label : 'card'} · ${detail}` });
+    if (amount > 0) cardUpcoming.push({ label: item.label, amount, accountId: item.accountId, detail: `${card ? card.label : 'card'} · ${detail}` });
   }
 
   // Card bills: a billed statement due before the salary has to be paid from
@@ -822,6 +822,12 @@ export async function computeFreeToSpend(now = new Date()) {
     c.workCycle = transactions
       .filter((t) => isWorkCost(t) && t.accountId === c.account.id && t.date > (c.cycleStart || monthStart) && t.date <= today)
       .reduce((t, x) => t + x.amount, 0);
+    // The fixed costs set on Plan that this card has still to be charged before
+    // its statement day. With what is on the card already, they are the bill to
+    // expect (5.27): the cycle's spending plus these.
+    const coming = cardUpcoming.filter((u) => u.accountId === c.account.id);
+    c.comingFixed = coming.reduce((t, u) => t + u.amount, 0);
+    c.comingItems = coming.map((u) => ({ label: u.label, amount: u.amount }));
   }
   const refundOverdue = late.length ? { amount: late.reduce((s, x) => s + x.amount, 0), since: late.map((x) => x.dueBy).sort()[0] } : null;
   // The same spending, laid out by day, for the burn drawing on Summary

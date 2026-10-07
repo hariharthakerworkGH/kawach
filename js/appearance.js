@@ -17,12 +17,12 @@ const KEY = 'kawach-appearance';
 
 export const CHOICES = {
   // The style screens are built in (js/looks.js): only those that are ready.
-  // Tactile is the default since 5.17 (the owner's choice): new features are
-  // built in it first and spread to the others together.
+  // Instrument is the default since 5.27 (the owner's choice; Tactile was from
+  // 5.17): new features are built in it first and spread to the others together.
   style: {
     label: 'Style',
     question: 'Which style?',
-    fallback: 'tactile',
+    fallback: 'instrument',
     where: '',
     options: STYLES.filter((s) => s.ready).map((s) => ({ value: s.id, label: s.name, note: s.note })),
   },

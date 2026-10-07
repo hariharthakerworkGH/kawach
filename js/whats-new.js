@@ -12,6 +12,29 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.27',
+    items: [
+      {
+        icon: 'eye',
+        title: "Instrument is now the look Kawach opens in",
+        text: "The dark, precise look with the budget dial is the new default. Anyone who picked a look keeps it; the others can pick any of the five in How it looks. The even pace flag on the dial is now explained under it instead of printed over it.",
+        guide: [{ view: 'appearance', target: '.look-styles', text: "Pick any look here." }],
+      },
+      {
+        icon: 'card',
+        title: "Your next card bill, before it arrives",
+        text: "Each card on Accounts now adds the fixed costs you set on Plan that it has still to be charged, to what is on it already, and says the bill to expect. The bar shows yours, work and fixed costs apart.",
+        guide: [{ view: 'accounts', target: '.card-split', text: "Yours, work and fixed costs still to come, then the bill to expect." }],
+      },
+      {
+        icon: 'file',
+        title: "Excel and PDF made properly",
+        text: "For your CA now saves a real Excel workbook (a summary sheet and every payment, with dates and amounts that add up) and a PDF report, instead of a plain spreadsheet and a print page. Plan's month line is also shorter.",
+        guide: [{ view: 'settings', target: '.ca-card', text: "Pick a period, then Excel or PDF." }],
+      },
+    ],
+  },
+  {
     version: '5.26',
     items: [
       {

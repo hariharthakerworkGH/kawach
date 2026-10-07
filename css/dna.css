@@ -378,31 +378,6 @@
    Two fixed layers behind everything: the near field at the top, where the
    light comes from, and the far field, which keeps the room lit all the way
    down instead of stopping below the fold. Both are enormous and weak. */
-.k-atmosphere::before,
-.k-atmosphere::after {
-  content: "";
-  position: fixed;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.k-atmosphere::before {
-  inset: -12% -20% auto -20%;
-  height: 56vh;
-  background:
-    radial-gradient(62% 70% at 14% 0%, color-mix(in srgb, var(--k-cyan) var(--k-atm-cyan), transparent), transparent 72%),
-    radial-gradient(54% 66% at 92% 3%, color-mix(in srgb, var(--k-violet) var(--k-atm-violet), transparent), transparent 74%);
-}
-
-.k-atmosphere::after {
-  inset: 0;
-  background:
-    radial-gradient(84% 46% at -16% 34%, color-mix(in srgb, var(--k-cyan) var(--k-atm-magenta), transparent), transparent 74%),
-    radial-gradient(74% 44% at 118% 58%, color-mix(in srgb, var(--k-magenta) var(--k-atm-magenta), transparent), transparent 72%),
-    radial-gradient(80% 40% at 110% 100%, color-mix(in srgb, var(--k-atm-warm-hue) var(--k-atm-warm), transparent), transparent 70%);
-}
-
-.k-atmosphere > * { position: relative; z-index: 1; }
 
 /* --- The one reset -------------------------------------------------
    The system sized everything as if padding were inside the box, but never
@@ -438,14 +413,6 @@
   box-shadow: var(--k-inner-top);
 }
 
-.k-pane--focus {
-  background-color: var(--k-glass-3);
-  -webkit-backdrop-filter: blur(var(--k-blur-3));
-  backdrop-filter: blur(var(--k-blur-3));
-  border-color: var(--k-border-subtle);
-  box-shadow: var(--k-inner-top), var(--k-shadow-elev);
-}
-
 /* --- Hero: one per screen, and it holds four things ------------------ */
 .k-hero {
   position: relative;
@@ -471,40 +438,13 @@
 }
 .k-hero > * { position: relative; }
 
-.k-hero__label,
 .k-label {
   font-size: var(--k-label);
   font-weight: var(--k-w-label);
   color: var(--k-text-2);
 }
 
-.k-hero__figure {
-  font-size: var(--k-hero);
-  font-weight: var(--k-w-strong);
-  letter-spacing: var(--k-track-hero);
-  line-height: var(--k-lh-tight);
-  font-variant-numeric: tabular-nums;
-  margin: var(--k-2) 0 var(--k-1);
-  text-shadow: var(--k-glow-text);
-}
-
 /* --- Metric: a label above a figure, stacked, never side by side ----- */
-.k-metric { display: flex; flex-direction: column; gap: 2px; }
-.k-metric__k {
-  font-size: var(--k-caption);
-  font-weight: var(--k-w-label);
-  letter-spacing: var(--k-track-caption);
-  text-transform: uppercase;
-  color: var(--k-text-3);
-}
-.k-metric__v {
-  font-size: var(--k-value);
-  font-weight: var(--k-w-fig);
-  letter-spacing: var(--k-track-title);
-  font-variant-numeric: tabular-nums;
-}
-.k-metric__v--pos { color: var(--k-positive); }
-.k-metric__v--neg { color: var(--k-negative); }
 
 /* --- Buttons: one geometry, three voices ---------------------------- */
 .k-btn {
@@ -546,27 +486,9 @@
 .k-btn--ghost:active { background: var(--k-surface-press); }
 
 /* --- Chip and pill: small, and their target is not ------------------- */
-.k-chip {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--k-2);
-  min-height: var(--k-ctl-sm);
-  padding: 0 var(--k-4);
-  border-radius: var(--k-r-pill);
-  border: 1px solid var(--k-hairline);
-  background: var(--k-glass-1);
-  color: var(--k-text-2);
-  font-family: inherit;
-  font-size: var(--k-label);
-  font-weight: var(--k-w-label);
-  cursor: pointer;
-  transition: background var(--k-t-fast) var(--k-ease), border-color var(--k-t-fast) var(--k-ease);
-}
+
 /* A glyph may be small. Its target may not. This strip is invisible, adds
    nothing to the layout, and is the size of a fingertip. */
-.k-chip::before,
-.k-nav__item::before,
 .k-seg__btn::before,
 .k-toggle::before {
   content: "";
@@ -574,12 +496,6 @@
   inset: 50% 0 auto 0;
   height: var(--k-tap);
   transform: translateY(-50%);
-}
-.k-chip[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--k-accent) 14%, transparent);
-  border-color: color-mix(in srgb, var(--k-accent) 42%, transparent);
-  color: var(--k-text);
-  box-shadow: var(--k-glow-cyan);
 }
 
 /* --- Segmented control: one track, one lit cell --------------------- */
@@ -765,19 +681,8 @@
 /* --- Charts ---------------------------------------------------------
    One family of strokes, set here so no drawing can invent its own. Red is
    not a chart colour: it is kept for money that has actually gone. */
-.k-chart { display: block; width: 100%; overflow: visible; }
 
 /* The thing a line is measured against is never lit. That is its job. */
-
-.k-chart__tick { font-size: 10px; fill: var(--k-text-3); font-family: var(--k-font); }
-.k-chart__ring-track { fill: none; stroke: color-mix(in srgb, var(--k-surface-elev) 70%, transparent); stroke-width: 9; }
-.k-chart__ring-fill {
-  fill: none;
-  stroke: url(#kRing);
-  stroke-width: 9;
-  stroke-linecap: round;
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--k-accent) 45%, transparent));
-}
 
 /* A meter is a chart with one value. */
 .k-meter { height: 10px; border-radius: var(--k-r-pill); background: color-mix(in srgb, var(--k-surface-elev) 60%, transparent); overflow: hidden; }
@@ -790,41 +695,6 @@
 }
 
 /* --- Bottom navigation: part of the shell, not another card --------- */
-.k-nav {
-  position: sticky;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--k-1);
-  padding: var(--k-2) var(--k-2) calc(var(--k-2) + env(safe-area-inset-bottom));
-  background: color-mix(in srgb, var(--k-bg-elev) 80%, transparent);
-  -webkit-backdrop-filter: blur(var(--k-blur-3));
-  backdrop-filter: blur(var(--k-blur-3));
-  border-top: 1px solid var(--k-hairline);
-}
-.k-nav__item {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: var(--k-2) 0;
-  border: 0;
-  background: none;
-  color: var(--k-text-3);
-  font: inherit;
-  font-size: var(--k-caption);
-  font-weight: var(--k-w-label);
-  cursor: pointer;
-  transition: color var(--k-t-fast) var(--k-ease);
-}
-.k-nav__item[aria-current="page"] { color: var(--k-text); font-weight: var(--k-w-fig); }
-.k-nav__dot { width: 20px; height: 20px; display: grid; place-items: center; }
-.k-nav__item[aria-current="page"] .k-nav__dot {
-  color: var(--k-accent-text);
-  filter: drop-shadow(0 0 9px color-mix(in srgb, var(--k-accent) 55%, transparent));
-}
 
 /* --- Sheet ---------------------------------------------------------- */
 .k-scrim { position: fixed; inset: 0; background: oklch(0% 0 0 / 0.55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
@@ -846,24 +716,11 @@
 .k-sheet__grip { width: 40px; height: 4px; border-radius: var(--k-r-pill); background: var(--k-border-emphasis); margin: 0 auto var(--k-4); }
 
 /* --- Empty and loading ---------------------------------------------- */
-.k-empty { text-align: center; padding: var(--k-10) var(--k-5); color: var(--k-text-2); }
-.k-empty__title { font-size: var(--k-heading); font-weight: var(--k-w-strong); color: var(--k-text); margin-bottom: var(--k-2); }
-.k-skeleton {
-  border-radius: var(--k-r-sm);
-  background: linear-gradient(90deg,
-    color-mix(in srgb, var(--k-surface-elev) 50%, transparent) 0%,
-    color-mix(in srgb, var(--k-surface-elev) 80%, transparent) 50%,
-    color-mix(in srgb, var(--k-surface-elev) 50%, transparent) 100%);
-  background-size: 200% 100%;
-  animation: k-shimmer 1.4s linear infinite;
-}
 
 /* --- Focus: one ring, everywhere ------------------------------------ */
 .k :focus-visible,
 .k-btn:focus-visible,
-.k-chip:focus-visible,
 .k-row:focus-visible,
-.k-nav__item:focus-visible,
 .k-seg__btn:focus-visible {
   outline: 2px solid var(--k-accent);
   outline-offset: 2px;
@@ -1751,14 +1608,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
      L3  .k-pane--focus  22px blur             opened, chosen, pointed at
      L4  .k-hero         30px blur             one per screen, the answer
    --------------------------------------------------------------------- */
-.k-pane--flat {
-  background-color: var(--k-surface);
-  background-image: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  border-color: var(--k-hairline);
-  box-shadow: none;
-}
 
 /* --- Editorial composition -------------------------------------------
    A figure on its own is a readout. A figure with a sentence built around
@@ -1774,56 +1623,16 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
    lede is set at the heading size and a lighter weight than the figure, so
    it introduces without competing.
    --------------------------------------------------------------------- */
-.k-editorial { display: flex; flex-direction: column; }
-.k-editorial__lede {
-  font-size: var(--k-heading);
-  font-weight: var(--k-w-label);
-  line-height: var(--k-lh-snug);
-  letter-spacing: var(--k-track-title);
-  color: var(--k-text);
-  margin: 0 0 var(--k-3);
-  text-wrap: balance;
-}
+
 /* The emphasised clause in a lede. One per sentence, never two. */
-.k-editorial__em { color: var(--k-accent-text); font-weight: var(--k-w-fig); }
-.k-editorial__figure {
-  font-size: var(--k-display);
-  font-weight: var(--k-w-strong);
-  letter-spacing: var(--k-track-display);
-  line-height: var(--k-lh-tight);
-  font-variant-numeric: tabular-nums;
-}
-.k-editorial__figure--hero { font-size: var(--k-hero); letter-spacing: var(--k-track-hero); }
+
 /* The line under the figure: what period it covers, and what it is against.
    Baseline-aligned so the two read as one line rather than two stacked. */
-.k-editorial__tail {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: var(--k-2) var(--k-3);
-  margin-top: var(--k-2);
-  font-size: var(--k-label);
-  color: var(--k-text-2);
-}
 
 /* A change against a previous period. The arrow is part of the text, so it
    survives being read aloud, and the colour is the money colour, never a
    decorative one. Down is not automatically good: a fall in income is not a
    win, so the direction class is set by the caller, never inferred here. */
-.k-delta {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px var(--k-2);
-  border-radius: var(--k-r-pill);
-  font-size: var(--k-label);
-  font-weight: var(--k-w-fig);
-  font-variant-numeric: tabular-nums;
-  background: color-mix(in srgb, var(--k-tint, var(--k-text-3)) 14%, transparent);
-  color: var(--k-tint, var(--k-text-2));
-}
-.k-delta--good { --k-tint: var(--k-positive); }
-.k-delta--bad { --k-tint: var(--k-negative); }
 
 /* --- Context: the same truth, emphasised for the moment ---------------
    "42,500 available" and "8,240 left for 6 days" are the same kind of fact.
@@ -1878,18 +1687,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 /* The figure and the qualifier on one baseline: "8,240 left for 6 days".
    Keeping the qualifier out of the figure is what stops a person reading
    the number as something it is not. */
-.k-context__v {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: var(--k-2);
-  margin-top: 3px;
-  font-size: var(--k-value);
-  font-weight: var(--k-w-fig);
-  font-variant-numeric: tabular-nums;
-  color: var(--k-text);
-}
-.k-context__qual { font-size: var(--k-label); font-weight: var(--k-w-body); color: var(--k-text-2); }
+
 .k-context__note { margin: var(--k-2) 0 0; font-size: var(--k-label); color: var(--k-text-2); line-height: var(--k-lh-body); }
 
 /* --- Charts 2.0 -------------------------------------------------------
@@ -1923,38 +1721,9 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
  * The axis is zoomed, so the lines are labelled with their own values
  * instead. On a phone, direct labels beat an axis nobody reads.
  */
-.k-river__band { fill: color-mix(in srgb, var(--k-positive) 16%, transparent); stroke: none; }
-.k-river__line {
-  fill: none;
-  stroke: var(--k-tint, var(--k-accent));
-  stroke-width: 2.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-.k-river__cap { fill: var(--k-tint, var(--k-accent)); }
 
 /* Radial commitment meter. The figure sits in the hole, because the hole is
    the only place a ring leaves room for it. */
-.k-radial { position: relative; display: grid; place-items: center; }
-.k-radial__svg { display: block; width: 100%; height: auto; transform: rotate(-90deg); }
-.k-radial__mid {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  text-align: center;
-  pointer-events: none;
-}
-.k-radial__v {
-  font-size: var(--k-display);
-  font-weight: var(--k-w-strong);
-  letter-spacing: var(--k-track-display);
-  line-height: var(--k-lh-tight);
-  font-variant-numeric: tabular-nums;
-}
-.k-radial__k { font-size: var(--k-caption); color: var(--k-text-3); }
 
 /* Spending pulse. One bar a day. Height is the amount; the lit bar is the
    day being pointed at. Bars keep a minimum height so a quiet day reads as
@@ -1965,66 +1734,17 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
    A bubble chart of category shares is a beautiful way to make a person
    squint at a small circle to find out whether it is bigger than another
    small circle. A ranked bar answers it at a glance. */
-.k-share { display: flex; flex-direction: column; gap: var(--k-3); }
-.k-share__row { display: grid; grid-template-columns: 1fr auto; gap: var(--k-1) var(--k-3); align-items: baseline; }
-.k-share__name { font-size: var(--k-label); color: var(--k-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.k-share__v { font-size: var(--k-label); font-weight: var(--k-w-fig); font-variant-numeric: tabular-nums; color: var(--k-text-2); }
-.k-share__track {
-  display: block;
-  grid-column: 1 / -1;
-  height: 6px;
-  border-radius: var(--k-r-pill);
-  background: color-mix(in srgb, var(--k-surface-elev) 60%, transparent);
-  overflow: hidden;
-}
-.k-share__fill {
-  /* A bar has to be a block, whatever element the caller reached for. */
-  display: block;
-  height: 100%;
-  width: var(--k-w, 10%);
-  border-radius: var(--k-r-pill);
-  background: linear-gradient(90deg,
-    color-mix(in srgb, var(--k-tint, var(--k-accent)) 90%, transparent),
-    color-mix(in srgb, var(--k-tint, var(--k-accent)) 45%, transparent));
-  transition: width var(--k-t-draw) var(--k-ease);
-}
 
 /* A legend is a label, not a chart. Kept small and never lit. */
-.k-legend { display: flex; flex-wrap: wrap; gap: var(--k-2) var(--k-4); margin-top: var(--k-3); }
-.k-legend__item { display: inline-flex; align-items: center; gap: 6px; font-size: var(--k-caption); color: var(--k-text-2); }
-.k-legend__dot { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--k-tint, var(--k-accent)); flex: none; }
 
 /* --- States: what the app says when it worked, or did not -------------
    One shape for both, because they are the same event with different news,
    and a person should not have to learn two layouts to find out which.
    --------------------------------------------------------------------- */
-.k-state {
-  --k-tint: var(--k-positive);
-  display: flex;
-  gap: var(--k-3);
-  align-items: flex-start;
-  padding: var(--k-3) var(--k-4);
-  border-radius: var(--k-r-md);
-  background-color: var(--k-glass-2);
-  border: 1px solid color-mix(in srgb, var(--k-tint) 30%, transparent);
-  box-shadow: var(--k-inner-top);
-}
-.k-state--error { --k-tint: var(--k-negative); }
-.k-state__mark { flex: none; color: var(--k-tint); font-size: var(--k-icon-md); line-height: 1.2; }
-.k-state__title { font-size: var(--k-body); font-weight: var(--k-w-fig); }
-.k-state__body { font-size: var(--k-label); color: var(--k-text-2); }
 
 /* Pull to refresh. The ring is the distance pulled, so it is feedback, not
    a spinner pretending the app is busy. */
-.k-refresh { display: grid; place-items: center; height: 56px; }
-.k-refresh__ring {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 2.5px solid var(--k-border);
-  border-top-color: var(--k-accent);
-  animation: k-spin 900ms linear infinite;
-}
+
 @keyframes k-spin { to { transform: rotate(360deg); } }
 
 /* --- Motion, as classes ----------------------------------------------
@@ -2042,8 +1762,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 /* A figure changing to another figure. It moves a little and settles: the
    movement is what tells you it changed, since two numbers of the same size
    in the same place otherwise just swap without being noticed. */
-.k-count { display: inline-block; font-variant-numeric: tabular-nums; transition: transform var(--k-t-fast) var(--k-ease); }
-.k-count--tick { animation: k-tick var(--k-t-slow) var(--k-ease); }
+
 @keyframes k-tick {
   0% { transform: translateY(0.14em); opacity: 0.35; }
   100% { transform: none; opacity: 1; }
@@ -2051,7 +1770,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 
 /* A row arriving in a list it was not in a moment ago. It comes from the
    direction it came from - the top - and settles rather than bouncing. */
-.k-settle { animation: k-settle var(--k-t-slow) var(--k-ease) backwards; }
+
 @keyframes k-settle {
   from { opacity: 0; transform: translateY(-10px) scale(0.99); }
   to { opacity: 1; transform: none; }
@@ -2059,31 +1778,15 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 
 /* A meter or a bar filling toward its target, used by the radial and the
    share rows. Held here so a drawing cannot invent its own timing. */
-.k-fill-in { animation: k-fill var(--k-t-draw) var(--k-ease) backwards; }
+
 @keyframes k-fill { from { stroke-dashoffset: var(--k-len, 1000); } to { stroke-dashoffset: var(--k-off, 0); } }
 
 /* The delta pill has to be corrected for daylight after it is defined,
    which is here rather than up with the other light-mode rules: a colour
    set by the later rule wins whatever the media query says. */
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) .k-delta {
-    /* Darken the lightness and nothing else. Mixing toward the ink dragged
-       the hue with it - a green delta came out cyan at 202 - because oklch
-       interpolates hue as happily as lightness. Black has no hue to lend,
-       and the relative form below does not interpolate at all. */
-    color: color-mix(in oklch, var(--k-tint, var(--k-text-2)) 68%, oklch(0% 0 0));
-    color: oklch(from var(--k-tint, var(--k-text-2)) 38% c h);
-  }
-}
+
 /* generated from the block above by tools/theme; do not edit by hand */
-:root[data-theme="light"] .k-delta {
-    /* Darken the lightness and nothing else. Mixing toward the ink dragged
-       the hue with it - a green delta came out cyan at 202 - because oklch
-       interpolates hue as happily as lightness. Black has no hue to lend,
-       and the relative form below does not interpolate at all. */
-    color: color-mix(in oklch, var(--k-tint, var(--k-text-2)) 68%, oklch(0% 0 0));
-    color: oklch(from var(--k-tint, var(--k-text-2)) 38% c h);
-  }
+
 /* ---------------------------------------------------------------------
    MIGRATION · Accounts  (phase 9E)
    Scoped by `.k` on the Accounts container, exactly as the others are.
@@ -3563,6 +3266,7 @@ body:has(#view-container.k) .app-header {
 
 /* --- what is work on a card ------------------------------------------------- */
 .k .card-work { display: block; font-size: 10.5px; font-weight: 500; color: color-mix(in srgb, var(--k-positive) 62%, var(--k-text)); font-variant-numeric: tabular-nums; }
+.k .card-work.card-coming { color: var(--k-text-3); }
 .k .tl-thin i, .k .md-prog i { position: relative; }
 .k .card-work-bar { position: absolute; top: 0; right: 0; bottom: 0; border-radius: inherit; background: var(--k-positive); }
 .k .card-split { display: grid; gap: 6px; padding: 0 0 var(--k-3); }
@@ -3570,10 +3274,15 @@ body:has(#view-container.k) .app-header {
 .k .card-split__bar i { display: block; height: 100%; }
 .k .card-split__bar .own { background: var(--k-accent); }
 .k .card-split__bar .work { background: var(--k-positive); }
-.k .card-split__key { display: flex; justify-content: space-between; gap: var(--k-3); font-size: var(--k-caption); color: var(--k-text-2); }
+.k .card-split__bar .coming { background: repeating-linear-gradient(135deg, var(--k-text-2) 0 3px, transparent 3px 6px); }
+.k .card-split__key { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px var(--k-3); font-size: var(--k-caption); color: var(--k-text-2); }
 .k .card-split__key span { display: inline-flex; align-items: center; gap: 6px; }
 .k .card-split__key span::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--k-accent); }
 .k .card-split__key .work::before { background: var(--k-positive); }
+.k .card-split__key .coming::before { background: repeating-linear-gradient(135deg, var(--k-text-2) 0 2px, transparent 2px 4px); border: 1px solid var(--k-text-3); }
+.k .card-split__coming { margin: 0; font-size: var(--k-caption); color: var(--k-text-3); }
+.k .card-split__bill { display: flex; justify-content: space-between; align-items: baseline; margin: 2px 0 0; padding-top: 6px; border-top: 1px solid var(--k-hairline); font-size: var(--k-label); color: var(--k-text-2); }
+.k .card-split__bill b { font-size: var(--k-body); font-weight: 600; color: var(--k-text); font-variant-numeric: tabular-nums; }
 .k .card-split__key b { margin-left: 2px; font-weight: 600; color: var(--k-text); font-variant-numeric: tabular-nums; }
 .k .card-split__note { margin: 0; padding: 0 0 var(--k-3); font-size: var(--k-caption); color: var(--k-positive); }
 

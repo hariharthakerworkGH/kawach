@@ -75,7 +75,7 @@ export async function render(container) {
   // two screens can never disagree; Home's only, as that calculation is.
   const homeFigures = space === 'home' ? await computeFreeToSpend() : null;
   // What part of each card is work, owed back by the employer (5.23).
-  workByCard = new Map(((homeFigures && homeFigures.cards) || []).map((c) => [c.account.id, { cycle: c.workCycle || 0, owed: c.workOwed || 0 }]));
+  workByCard = new Map(((homeFigures && homeFigures.cards) || []).map((c) => [c.account.id, { cycle: c.workCycle || 0, owed: c.workOwed || 0, coming: c.comingFixed || 0, items: c.comingItems || [] }]));
   // Copies saved by overlapping statement imports are left out of every
   // balance here, the same as on the Summary.
   const duplicateIds = new Set(findDuplicates(allTransactions).map((t) => t.id));
@@ -696,20 +696,27 @@ const openPeople = new Set();
 // Work costs on each card, from the same figures as Summary (set in render).
 let workByCard = new Map();
 
-/* On a card: what you spent yourself and what was for work, which your
- * employer pays back, apart. A bar of the two, then their amounts. */
-function cardWorkSplit(account, cycleSpend) {
-  const w = workByCard.get(account.id);
-  if (!w || (!w.cycle && !w.owed)) return '';
+/* On a card: what you spent yourself, what was for work (your employer pays it
+ * back), and the fixed costs you set on Plan that this card has still to be
+ * charged before its statement day (5.27). The three together are the bill to
+ * expect, said once as "Bill about". A bar of the three, then their amounts. */
+export function cardWorkSplit(account, cycleSpend, w = workByCard.get(account.id)) {
+  if (!w || (!w.cycle && !w.owed && !w.coming)) return '';
   const work = Math.min(Math.max(0, cycleSpend), w.cycle);
   const own = Math.max(0, cycleSpend - work);
-  if (!work) {
+  const coming = Math.max(0, w.coming || 0);
+  if (!work && !coming) {
     return `<p class="card-split__note">${formatRupees(w.owed)} of work costs on this card still owed back by your employer</p>`;
   }
-  const total = Math.max(1, own + work);
-  return `<div class="card-split" role="img" aria-label="${formatRupees(own)} yours, ${formatRupees(work)} work, owed back by your employer">
-      <div class="card-split__bar"><i class="own" style="width:${((own / total) * 100).toFixed(1)}%"></i><i class="work" style="width:${((work / total) * 100).toFixed(1)}%"></i></div>
-      <div class="card-split__key"><span class="own">Yours <b>${formatRupees(own)}</b></span><span class="work">Work, owed back <b>${formatRupees(work)}</b></span></div>
+  const total = Math.max(1, own + work + coming);
+  const seg = (cls, v) => (v > 0 ? `<i class="${cls}" style="width:${((v / total) * 100).toFixed(1)}%"></i>` : '');
+  const key = (cls, label, v) => (v > 0 ? `<span class="${cls}">${label} <b>${formatRupees(v)}</b></span>` : '');
+  const names = (w.items || []).slice(0, 3).map((i) => `${escapeHtml(i.label)} ${formatRupees(i.amount)}`).join(' · ');
+  return `<div class="card-split" role="img" aria-label="${formatRupees(own)} yours${work ? `, ${formatRupees(work)} work, owed back by your employer` : ''}${coming ? `, ${formatRupees(coming)} of your fixed costs still to be charged` : ''}. The bill to expect is about ${formatRupees(own + work + coming)}.">
+      <div class="card-split__bar">${seg('own', own)}${seg('work', work)}${seg('coming', coming)}</div>
+      <div class="card-split__key">${key('own', 'Yours', own)}${key('work', 'Work, owed back', work)}${key('coming', 'Fixed, to come', coming)}</div>
+      ${coming ? `<p class="card-split__coming">${names}${(w.items || []).length > 3 ? ` · +${w.items.length - 3} more` : ''}</p>` : ''}
+      <p class="card-split__bill"><span>Bill about</span><b>${formatRupees(own + work + coming)}</b></p>
     </div>`;
 }
 

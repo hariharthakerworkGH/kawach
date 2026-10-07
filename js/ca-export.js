@@ -1,5 +1,6 @@
-/* For your CA (5.21): a month or a financial year, as a spreadsheet of every
- * payment and as a short report to save as a PDF.
+/* For your CA (5.21; the files made properly in 5.27): a month or a financial
+ * year, as an Excel workbook (a summary sheet and every payment) and as a PDF
+ * report, both real files written here (js/xlsx.js, js/pdf-write.js).
  *
  * A chartered accountant asks the same things every year: what came in, what
  * went out and on what, which of it was the business's, and what was paid on a
@@ -18,6 +19,8 @@ import { findDuplicates } from './duplicates.js';
 import { categorySlices } from './splits.js';
 import { isLoanAccount, loanPayments, assignLoanPayments } from './loans.js';
 import { isCardBill } from './transfers.js';
+import { xlsxBook } from './xlsx.js';
+import { createPdf, A4, wrap, fit } from './pdf-write.js';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -132,52 +135,207 @@ export async function caReport(period) {
   return buildCaReport({ transactions, accounts, categories, people, businesses: Array.isArray(businesses) ? businesses : [], period, today: isoLocal(new Date()) });
 }
 
-// A field for a spreadsheet: quoted when it holds a comma, a quote or a line
-// break, and never read as a formula (a description starting with "=" or "+"
-// would otherwise run in Excel).
-const cell = (v) => {
-  let s = String(v ?? '');
-  if (/^[=+\-@]/.test(s) && !/^-?\d/.test(s)) s = `'${s}`;
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
+const heading = (period) => `Money for ${period.label.replace(/ so far$/, '').replace(/^Financial year/, 'the financial year')}`;
+const NOTE = 'Money moved between your own accounts, and card bill payments (the purchases are counted on the card), are listed but left out of the totals.';
+const LOAN_NOTE = "Interest is the bank's own figure where its loan statement was imported, and otherwise worked out from the rate. Check it against the bank's interest certificate.";
+const counted = (r) => !r.t.isTransfer && !r.bill;
 
-/* Every payment, one per line, for a spreadsheet. Starts with a byte-order
- * mark so Excel reads the ₹ and Indian names correctly. */
-export function toCsv(report) {
-  const head = ['Date', 'Account', 'For', 'Description', 'Category', 'Money in', 'Money out', 'Note'];
-  const lines = report.rows.map((r) => [r.date, r.account, r.lane, r.description, r.category, r.moneyIn ? rupees(r.moneyIn) : '', r.moneyOut ? rupees(r.moneyOut) : '', r.note].map(cell).join(','));
-  return `﻿${[head.join(','), ...lines].join('\r\n')}\r\n`;
+/* The workbook: a Summary sheet (what came in and went out, by category, and the loans),
+ * then every payment on its own sheet with real dates and numbers, a Counted column
+ * and totals that add only what counts. */
+export function toXlsx(report) {
+  const { period } = report;
+  const m = (v) => ({ v: v / 100, s: 'money' });
+  const sum = [[{ v: heading(period), s: 'title' }], [{ v: `${fullDate(period.from)} to ${fullDate(period.to)}, made with Kawach on ${fullDate(report.made)}`, s: 'note' }], [{ v: NOTE, s: 'note' }], []];
+  for (const l of report.lanes) {
+    sum.push([{ v: l.name, s: 'section' }, { v: '', s: 'section' }]);
+    sum.push(['Money in', m(l.moneyIn)], ['Money out', m(l.moneyOut)], [{ v: 'Kept (in less out)', s: 'bold' }, { v: (l.moneyIn - l.moneyOut) / 100, s: 'moneyBold' }], []);
+    sum.push([{ v: 'Money in, by category', s: 'head' }, { v: 'Amount', s: 'head' }], ...l.inBy.map((r) => [r.name, m(r.amount)]), []);
+    sum.push([{ v: 'Money out, by category', s: 'head' }, { v: 'Amount', s: 'head' }], ...l.outBy.map((r) => [r.name, m(r.amount)]), []);
+  }
+  if (report.loans.length) {
+    sum.push([{ v: 'Loans', s: 'section' }, { v: '', s: 'section' }, { v: '', s: 'section' }, { v: '', s: 'section' }]);
+    sum.push(['Loan', 'Paid', 'Interest', 'Principal'].map((v) => ({ v, s: 'head' })));
+    for (const l of report.loans) sum.push([l.name, m(l.paid), m(l.interest), m(l.principal)]);
+    sum.push([{ v: LOAN_NOTE, s: 'note' }]);
+  }
+  const head = ['Date', 'Account', 'For', 'Description', 'Category', 'Money in', 'Money out', 'Counted in totals', 'Note'].map((v) => ({ v, s: 'head' }));
+  const rows = report.rows.map((r) => [
+    { v: r.date, date: true },
+    { v: r.account, s: 'wrap' },
+    r.lane,
+    { v: r.description, s: 'wrap' },
+    { v: r.category, s: 'wrap' },
+    r.moneyIn ? m(r.moneyIn) : '',
+    r.moneyOut ? m(r.moneyOut) : '',
+    counted(r) ? 'Yes' : 'No',
+    { v: r.note, s: 'wrap' },
+  ]);
+  const last = rows.length + 1;
+  const total = (pick) => report.rows.filter(counted).reduce((t, r) => t + pick(r), 0) / 100;
+  const totals = [
+    { v: 'Total', s: 'section' },
+    { v: '', s: 'section' },
+    { v: '', s: 'section' },
+    { v: '', s: 'section' },
+    { v: 'Counted rows only', s: 'section' },
+    { v: total((r) => r.moneyIn), s: 'moneyBold', f: `SUMIF(H2:H${last},"Yes",F2:F${last})` },
+    { v: total((r) => r.moneyOut), s: 'moneyBold', f: `SUMIF(H2:H${last},"Yes",G2:G${last})` },
+  ];
+  return xlsxBook([
+    { name: 'Summary', rows: sum, widths: [44, 18, 18, 18], grid: false },
+    { name: 'Payments', rows: [head, ...rows, totals], widths: [13, 22, 12, 40, 24, 16, 16, 12, 44], freeze: 1, filter: `A1:I${last}`, landscape: true },
+  ]);
 }
 
-const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const inr = (paise) => `₹${Math.round(paise / 100).toLocaleString('en-IN')}`;
-
-/* The report, as plain printable HTML: totals first, then every payment. */
-export function reportHtml(report) {
+/* The report as a PDF: totals first (by lane, then by category), the loans, then every
+ * payment as a table that carries its header onto each page. */
+export function toPdf(report) {
   const { period } = report;
-  const table = (rows) => `<table><tbody>${rows.map((r) => `<tr><td>${esc(r.name)}</td><td class="n">${inr(r.amount)}</td></tr>`).join('')}</tbody></table>`;
-  return `
-    <header><h1>Money for ${esc(period.label.replace(/ so far$/, '').replace(/^Financial year/, 'the financial year'))}</h1>
-      <p>${fullDate(period.from)} to ${fullDate(period.to)} · made with Kawach on ${fullDate(report.made)} · money moved between your own accounts is left out of the totals</p></header>
-    ${report.lanes
-      .map(
-        (l) => `<section><h2>${esc(l.name)}</h2>
-          <p class="sums"><span>Money in <b>${inr(l.moneyIn)}</b></span><span>Money out <b>${inr(l.moneyOut)}</b></span></p>
-          <div class="cols"><div><h3>Money in</h3>${table(l.inBy)}</div><div><h3>Money out</h3>${table(l.outBy)}</div></div>
-        </section>`
-      )
-      .join('')}
-    ${
-      report.loans.length
-        ? `<section><h2>Loans</h2><table><thead><tr><th>Loan</th><th class="n">Paid</th><th class="n">Interest</th><th class="n">Principal</th></tr></thead><tbody>${report.loans
-            .map((l) => `<tr><td>${esc(l.name)}</td><td class="n">${inr(l.paid)}</td><td class="n">${inr(l.interest)}</td><td class="n">${inr(l.principal)}</td></tr>`)
-            .join('')}</tbody></table><p class="small">Interest is the bank's own figure where its loan statement was imported, and otherwise worked out from the rate. Check it against the bank's interest certificate.</p></section>`
-        : ''
+  const L = 36;
+  const R = A4.w - 36;
+  const W = R - L;
+  const doc = createPdf({ title: heading(period) });
+  let y = 0;
+  const page = () => {
+    doc.newPage();
+    y = 44;
+  };
+  const need = (h) => {
+    if (y + h > A4.h - 50) page();
+  };
+  const money = (p) => `Rs ${Math.round(p / 100).toLocaleString('en-IN')}`;
+  page();
+  doc.text(L, y, heading(period), { size: 18, bold: true });
+  y += 16;
+  doc.text(L, y, `${fullDate(period.from)} to ${fullDate(period.to)}  |  made with Kawach on ${fullDate(report.made)}`, { size: 8.5, gray: 0.35 });
+  y += 12;
+  for (const line of wrap(NOTE, W, 8.5, 2)) {
+    doc.text(L, y, line, { size: 8.5, gray: 0.35 });
+    y += 11;
+  }
+  y += 6;
+  const colW = (W - 24) / 2;
+  const list = (x, rows, title) => {
+    let yy = y;
+    doc.text(x, yy, title, { size: 9, bold: true, gray: 0.25 });
+    yy += 4;
+    doc.rule(x, yy, x + colW);
+    yy += 11;
+    for (const r of rows) {
+      doc.text(x, yy, fit(r.name, colW - 70, 9), { size: 9 });
+      doc.text(x + colW, yy, money(r.amount), { size: 9, align: 'right' });
+      yy += 12.5;
     }
-    <section><h2>Every payment (${report.rows.length})</h2>
-      <table class="all"><thead><tr><th>Date</th><th>Account</th><th>Description</th><th>Category</th><th class="n">In</th><th class="n">Out</th></tr></thead><tbody>${report.rows
-        .map(
-          (r) => `<tr${r.t.isTransfer ? ' class="moved"' : ''}><td>${r.date}</td><td>${esc(r.account)}${r.lane !== 'Home' ? ` (${esc(r.lane)})` : ''}</td><td>${esc(r.description)}${r.note ? `<br><i>${esc(r.note)}</i>` : ''}</td><td>${esc(r.category)}</td><td class="n">${r.moneyIn ? inr(r.moneyIn) : ''}</td><td class="n">${r.moneyOut ? inr(r.moneyOut) : ''}</td></tr>`
-        )
-        .join('')}</tbody></table></section>`;
+    return yy;
+  };
+  for (const l of report.lanes) {
+    need(70);
+    y += 8;
+    doc.text(L, y, l.name, { size: 13, bold: true });
+    y += 4;
+    doc.rule(L, y, R, { gray: 0.5 });
+    y += 14;
+    doc.text(L, y, `Money in  ${money(l.moneyIn)}`, { size: 10, bold: true });
+    doc.text(L + 190, y, `Money out  ${money(l.moneyOut)}`, { size: 10, bold: true });
+    doc.text(L + 380, y, `Kept  ${money(l.moneyIn - l.moneyOut)}`, { size: 10, bold: true });
+    y += 18;
+    // The two lists side by side, a page at a time when they are long.
+    let i = 0;
+    let o = 0;
+    while (i < l.inBy.length || o < l.outBy.length) {
+      need(40);
+      const room = Math.max(1, Math.floor((A4.h - 60 - y - 20) / 12.5));
+      const a = l.inBy.slice(i, i + room);
+      const b = l.outBy.slice(o, o + room);
+      const ya = list(L, a, i ? 'Money in (continued)' : 'Money in');
+      const yb = list(L + colW + 24, b, o ? 'Money out (continued)' : 'Money out');
+      y = Math.max(ya, yb) + 4;
+      i += a.length;
+      o += b.length;
+      if (i < l.inBy.length || o < l.outBy.length) page();
+    }
+  }
+  if (report.loans.length) {
+    need(70);
+    y += 8;
+    doc.text(L, y, 'Loans', { size: 13, bold: true });
+    y += 4;
+    doc.rule(L, y, R, { gray: 0.5 });
+    y += 13;
+    const right = [R - 180, R - 90, R];
+    doc.text(L, y, 'Loan', { size: 9, bold: true, gray: 0.25 });
+    ['Paid', 'Interest', 'Principal'].forEach((h, k) => doc.text(right[k], y, h, { size: 9, bold: true, gray: 0.25, align: 'right' }));
+    y += 12;
+    for (const loan of report.loans) {
+      need(16);
+      doc.text(L, y, fit(loan.name, 250, 9), { size: 9 });
+      [loan.paid, loan.interest, loan.principal].forEach((v, k) => doc.text(right[k], y, money(v), { size: 9, align: 'right' }));
+      y += 12.5;
+    }
+    for (const line of wrap(LOAN_NOTE, W, 8, 2)) {
+      doc.text(L, y + 2, line, { size: 8, gray: 0.35 });
+      y += 10;
+    }
+  }
+  // Every payment.
+  const cols = [
+    { k: 'date', x: L, w: 50 },
+    { k: 'account', x: L + 54, w: 82 },
+    { k: 'desc', x: L + 140, w: 168 },
+    { k: 'cat', x: L + 312, w: 82 },
+    { k: 'in', x: R - 72, w: 66, right: true },
+    { k: 'out', x: R, w: 66, right: true },
+  ];
+  const header = () => {
+    doc.fill(L, y - 9, W, 14, 0.12);
+    const labels = { date: 'Date', account: 'Account', desc: 'Description', cat: 'Category', in: 'In', out: 'Out' };
+    for (const c of cols) doc.text(c.right ? c.x - 3 : c.x + 2, y + 1, labels[c.k], { size: 7.5, bold: true, gray: 1, align: c.right ? 'right' : 'left' });
+    y += 14;
+  };
+  // On the same page when there is room for a heading and a few rows, else a fresh one.
+  need(110);
+  y += 14;
+  doc.text(L, y, `Every payment (${report.rows.length})`, { size: 13, bold: true });
+  y += 18;
+  header();
+  const size = 7.5;
+  for (const r of report.rows) {
+    const desc = wrap(r.description + (r.note ? `  (${r.note})` : ''), cols[2].w, size, 3);
+    const acct = wrap(r.account + (r.lane !== 'Home' ? ` (${r.lane})` : ''), cols[1].w, size, 2);
+    const cat = wrap(r.category, cols[3].w, size, 2);
+    const lines = Math.max(desc.length, acct.length, cat.length);
+    const h = lines * 9.2 + 3.5;
+    if (y + h > A4.h - 50) {
+      page();
+      header();
+    }
+    const gray = counted(r) ? 0 : 0.5;
+    const draw = (c, arr) => arr.forEach((t, k) => doc.text(c.x, y + k * 9.2, t, { size, gray }));
+    doc.text(cols[0].x, y, r.date, { size, gray });
+    draw(cols[1], acct);
+    draw(cols[2], desc);
+    draw(cols[3], cat);
+    if (r.moneyIn) doc.text(cols[4].x, y, money(r.moneyIn), { size, gray, align: 'right' });
+    if (r.moneyOut) doc.text(cols[5].x, y, money(r.moneyOut), { size, gray, align: 'right' });
+    y += h;
+    doc.rule(L, y - 7.5, R, { gray: 0.88, width: 0.4 });
+  }
+  doc.eachPage((n, of) => {
+    doc.text(L, A4.h - 28, 'Kawach', { size: 8, gray: 0.5 });
+    doc.text(R, A4.h - 28, `Page ${n} of ${of}`, { size: 8, gray: 0.5, align: 'right' });
+  });
+  return doc.finish();
+}
+
+/* Hands a file to the person: saved to the phone's downloads. */
+export function saveFile(bytes, name, type) {
+  const url = URL.createObjectURL(new Blob([bytes], { type }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
