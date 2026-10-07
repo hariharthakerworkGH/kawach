@@ -89,7 +89,7 @@ function heroTemplate(snapshot) {
   const over = leftAtEnd < 0;
   const pct = c.free > 0 ? Math.min(100, Math.round((projected / c.free) * 100)) : 100;
   const style = document.documentElement.dataset.style;
-  if (['tactile', 'peaks', 'mindora'].includes(style)) {
+  if (['tactile', 'peaks', 'mindora', 'instrument'].includes(style)) {
     return coachTop(style, {
       left: pace === 0 ? '-' : formatRupees(leftAtEnd),
       over,
@@ -439,7 +439,7 @@ function noteTemplate(n) {
 function coachTop(style, f) {
   const pct = `${Math.round(f.share * 100)}%`;
   const neg = f.over ? ' is-negative' : '';
-  if (style === 'tactile') {
+  if (style === 'tactile' || style === 'instrument') {
     return `<section class="tl-hero ct-top${neg}">
         <div class="tl-top"><span class="tl-k">Left at this pace</span><span class="tl-period">by ${f.by}</span></div>
         <div class="tl-big">${f.left}</div>

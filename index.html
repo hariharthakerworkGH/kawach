@@ -55,7 +55,7 @@
     // it is as light or dark as the phone, else Charts on a dark phone and
     // burning flame light on a light one. READY and LIGHT must match
     // js/looks.js.
-    var READY = { tactile: 1, peaks: 1, mindora: 1 };
+    var READY = { tactile: 1, peaks: 1, mindora: 1, instrument: 1 };
     var LIGHT = { 'flame-light': 1, mindora: 1 };
     // Tactile unless another style was chosen (the default since 5.17).
     var st = a.style === 'charts' ? 'charts' : READY[a.style] ? a.style : 'tactile';
@@ -101,6 +101,7 @@
 <link rel="stylesheet" href="./css/style-tactile.css">
 <link rel="stylesheet" href="./css/style-peaks.css">
 <link rel="stylesheet" href="./css/style-mindora.css">
+<link rel="stylesheet" href="./css/style-instrument.css">
 <style>
   /* The opening (4.17.1). Inline so it is on screen in the first frame.
 

@@ -139,7 +139,7 @@ export async function render(container) {
   // NEW (5.14): Tactile, Peaks and Mindora draw the month and the top their
   // own way (plan-looks.js), from the same rows and figures.
   const style = document.documentElement.dataset.style;
-  const looks = ['tactile', 'peaks', 'mindora'].includes(style);
+  const looks = ['tactile', 'peaks', 'mindora', 'instrument'].includes(style);
   const stateOf = (t) => (t.status === 'skipped' ? 'skipped' : t.status === 'paid' ? 'paid' : t.status === 'late' ? 'late' : 'due');
   const thisMonth = inBusiness
     ? ''

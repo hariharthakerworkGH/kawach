@@ -1,5 +1,5 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
-import { tactileTop, peaksTop, mindoraTop, keptBack, chartsComing, cardTag, tagHtml } from './summary-looks.js';
+import { tactileTop, peaksTop, mindoraTop, instrumentTop, keptBack, chartsComing, cardTag, tagHtml } from './summary-looks.js';
 import { icon } from '../icons.js';
 import { isFixed, isLiveCommitment, coveredByFixed, commitmentFromSuggestion } from '../commitments.js';
 import { isoLocal, hasDueDate, frequencyOf } from '../frequency.js';
@@ -697,7 +697,9 @@ function asideRing(f) {
  * each day took on its own along the bottom, the biggest day marked. From
  * the 1st to today; the days to come are not drawn. Exported for a test. */
 export function monthWaves(f) {
-  if (typeof document !== 'undefined' && document.documentElement.dataset.style === 'peaks') return monthMountains(f);
+  const look = typeof document !== 'undefined' ? document.documentElement.dataset.style : '';
+  if (look === 'peaks') return monthMountains(f);
+  if (look === 'instrument') return monthScale(f);
   const totals = f.spendDays || [];
   const daily = (f.spendByDay || []).map((d) => d.amount || 0);
   const n = totals.length;
@@ -747,6 +749,68 @@ export function monthWaves(f) {
       <div class="waves__key">
         <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b><span class="waves__lab">${f.finished ? 'You spent' : "You've spent"}</span></span>
         <span class="waves__k waves--pace"><b>${formatRupees(Math.round(pace[n - 1]))}</b><span class="waves__lab">Budget so far</span></span>
+        <button type="button" class="waves__k waves--day" data-pick-day="${bigDay}"><b>${formatRupees(daily[bigDay])} · ${formatDateNice(f.spendByDay[bigDay].date)}</b><span class="waves__lab">Most in one day</span></button>
+      </div>
+    </div>`;
+}
+
+/* NEW (5.25, the Instrument style): the same month as a ruled scale. Straight
+ * lines, not waves: a grid with its rupee marks down the side, a tick for every
+ * day of the whole month along the bottom (the days to come are empty, so the
+ * chart says how much month is left), each day a thin bar, the running total as
+ * one line against the budget's dashed line and the even pace as a second.
+ * It carries the same data hooks as monthWaves, so dragging to read a day
+ * (wireCharts) is unchanged. Exported for a test. */
+export function monthScale(f) {
+  const totals = f.spendDays || [];
+  const daily = (f.spendByDay || []).map((d) => d.amount || 0);
+  const n = totals.length;
+  if (n < 2 || !(f.limit > 0) || !totals.some((v) => v > 0)) return '';
+  const monthDays = Math.max(n, (f.daysIntoCycle || n) + (f.daysToClose || 1) - 1);
+  const pace = totals.map((_, i) => (f.limit * (i + 1)) / monthDays);
+  const W = 340, H = 196, L = 44, R = 12, T = 14, B = 150;
+  const top = Math.max(f.limit, ...totals) * 1.06;
+  const x = (i) => L + (i / (monthDays - 1)) * (W - L - R);
+  const y = (v) => B - (v / top) * (B - T);
+  // A step of 1, 2 or 5 in the rupee scale's own units that gives three or four marks.
+  const rupees = top / 100;
+  const mag = 10 ** Math.floor(Math.log10(rupees / 3));
+  const step = [1, 2, 5, 10].map((m) => m * mag).find((v) => rupees / v <= 5) * 100;
+  const short = (paise) => {
+    const r = paise / 100;
+    return r === 0 ? '0' : r >= 100000 ? `₹${+(r / 100000).toFixed(1)}L` : r >= 1000 ? `₹${+(r / 1000).toFixed(1)}K` : `₹${r}`;
+  };
+  const grid = [];
+  for (let v = 0; v <= top; v += step) grid.push(v);
+  const rule = grid.map((v) => `<line class="scale__rule" x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text class="scale__lab" x="${L - 8}" y="${(y(v) + 3.5).toFixed(1)}" text-anchor="end">${short(v)}</text>`).join('');
+  // The day number under a tick, for the days to come as well as the days gone.
+  const first = new Date(`${f.spendByDay[0].date}T12:00`);
+  const dayAt = (i) => new Date(first.getFullYear(), first.getMonth(), first.getDate() + i).getDate();
+  const marked = new Set([0, monthDays - 1, ...Array.from({ length: Math.floor((monthDays - 1) / 5) }, (_, k) => (k + 1) * 5)]);
+  const ticks = Array.from({ length: monthDays }, (_, i) => `<line class="scale__tick${i < n ? ' is-gone' : ''}" x1="${x(i).toFixed(1)}" x2="${x(i).toFixed(1)}" y1="${B}" y2="${B + (marked.has(i) ? 8 : 4)}"/>${marked.has(i) ? `<text class="waves__tick${i < n ? '' : ' is-ahead'}" x="${x(i).toFixed(1)}" y="${B + 21}" text-anchor="middle">${dayAt(i)}</text>` : ''}`).join('');
+  const bigDay = daily.indexOf(Math.max(...daily));
+  const dmax = Math.max(...daily) || 1;
+  const bw = Math.max(2, Math.min(7, ((W - L - R) / (monthDays - 1)) * 0.5));
+  const bars = daily.map((v, i) => (v > 0 ? `<rect class="waves__bar${i === bigDay ? ' is-top' : ''}" data-bar="${i}" x="${(x(i) - bw / 2).toFixed(1)}" y="${(B - (v / dmax) * 46).toFixed(1)}" width="${bw.toFixed(1)}" height="${((v / dmax) * 46).toFixed(1)}"/>` : '')).join('');
+  const poly = (vals) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  const days = daily.map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(pace[i]), +x(i).toFixed(1), +y(totals[i]).toFixed(1)]);
+  const last = n - 1;
+  return `<div class="totals-card waves-card scale-card" ${chartData(days, +x(0).toFixed(1), +x(last).toFixed(1), W, f)}>
+      ${chartHead(f)}
+      <svg class="waves scale no-swipe" viewBox="0 0 ${W} ${H}" role="img" aria-label="${f.finished ? 'The month' : 'This month so far'}: ${formatRupees(totals[last])} spent against ${formatRupees(Math.round(pace[last]))} of budget so far, out of ${formatRupees(f.limit)}. Most in one day: ${formatRupees(daily[bigDay])} on ${formatDateNice(f.spendByDay[bigDay].date)}.">
+        ${rule}
+        <line class="scale__budget" x1="${L}" x2="${W - R}" y1="${y(f.limit).toFixed(1)}" y2="${y(f.limit).toFixed(1)}"/>
+        <text class="scale__budget-lab" x="${W - R}" y="${(y(f.limit) - 6).toFixed(1)}" text-anchor="end">BUDGET ${formatRupees(f.limit)}</text>
+        ${ticks}${bars}
+        <path class="waves__line waves--pace" d="${poly(pace)}"/>
+        <path class="waves__line waves--spent" d="${poly(totals)}"/>
+        <line class="waves__guide" data-guide x1="${x(last).toFixed(1)}" x2="${x(last).toFixed(1)}" y1="${T - 4}" y2="${B}"/>
+        <circle class="waves__dot" data-dot cx="${x(last).toFixed(1)}" cy="${y(totals[last]).toFixed(1)}" r="4.5"/>
+      </svg>
+      <p class="chart-readout" data-readout aria-live="polite">${chartReadout(days[last], dayWord(days[last][0]), f.finished)}</p>
+      <div class="waves__key">
+        <span class="waves__k waves--spent"><b>${formatRupees(totals[last])}</b><span class="waves__lab">${f.finished ? 'You spent' : "You've spent"}</span></span>
+        <span class="waves__k waves--pace"><b>${formatRupees(Math.round(pace[last]))}</b><span class="waves__lab">Budget so far</span></span>
         <button type="button" class="waves__k waves--day" data-pick-day="${bigDay}"><b>${formatRupees(daily[bigDay])} · ${formatDateNice(f.spendByDay[bigDay].date)}</b><span class="waves__lab">Most in one day</span></button>
       </div>
     </div>`;
@@ -1086,7 +1150,7 @@ function incomeLine(f) {
 
 const monthShort = (month) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(month.slice(5, 7)) - 1];
 
-const LOOK_TOPS = { tactile: tactileTop, peaks: peaksTop, mindora: mindoraTop };
+const LOOK_TOPS = { tactile: tactileTop, peaks: peaksTop, mindora: mindoraTop, instrument: instrumentTop };
 
 function renderCardsHero(f, opts = {}) {
   const past = opts.past || null;

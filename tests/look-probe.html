@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="../css/style-tactile.css">
 <link rel="stylesheet" href="../css/style-peaks.css">
 <link rel="stylesheet" href="../css/style-mindora.css">
+<link rel="stylesheet" href="../css/style-instrument.css">
 </head>
 <body>
 <header class="app-header"><h1 id="view-title">Summary</h1></header>
@@ -45,7 +46,7 @@
     ],
   };
   const style = root.dataset.style;
-  const tops = { tactile: looks.tactileTop, peaks: looks.peaksTop, mindora: looks.mindoraTop };
+  const tops = { tactile: looks.tactileTop, peaks: looks.peaksTop, mindora: looks.mindoraTop, instrument: looks.instrumentTop };
   // ?finished=1: the month as it reads once it is over (5.22.2).
   if (q.get('finished') === '1') f.finished = true;
   const status = f.finished ? 'Final for October' : spendingStatus(f);

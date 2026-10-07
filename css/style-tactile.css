@@ -1,5 +1,10 @@
 /* The Tactile style (5.6): a layer over Charts, the default style.
  *
+ * Since 5.25 Instrument shares these rules (every selector below is written
+ * :root:is([data-style="tactile"], [data-style="instrument"]), the same weight
+ * as before) and repaints them flat through the --t-* values in
+ * style-instrument.css, which loads after this file.
+ *
  * Switched on by data-style="tactile" on <html> (js/looks.js). It changes
  * the material, not the screens: surfaces are raised (a lit top edge, a dark
  * lower edge, a deep shadow), fields and tracks are wells pressed into them,
@@ -10,7 +15,7 @@
  * until the mass update restyles it. Colours all come from the colouring.
  */
 
-:root[data-style="tactile"] {
+:root:is([data-style="tactile"], [data-style="instrument"]) {
   --t-raise: linear-gradient(180deg, color-mix(in srgb, var(--k-surface), white 6%), var(--k-surface));
   --t-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 -1px 0 rgb(0 0 0 / 0.45), 0 2px 3px rgb(0 0 0 / 0.5), 0 12px 22px rgb(0 0 0 / 0.42);
   --t-well: color-mix(in srgb, var(--k-bg), black 25%);
@@ -19,7 +24,7 @@
   --t-knob: radial-gradient(circle at 35% 30%, #f1ece6, #9a918a 70%, #6d6661);
 }
 /* Daylight: the same shapes, with the light from above much softer. */
-:root[data-style="tactile"][data-theme="light"] {
+:root:is([data-style="tactile"], [data-style="instrument"])[data-theme="light"] {
   --t-raise: linear-gradient(180deg, color-mix(in srgb, var(--k-surface), white 40%), var(--k-surface));
   --t-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 -1px 0 rgb(0 0 0 / 0.06), 0 2px 3px rgb(0 0 0 / 0.08), 0 10px 20px rgb(0 0 0 / 0.08);
   --t-well: color-mix(in srgb, var(--k-bg), black 5%);
@@ -27,54 +32,54 @@
 }
 
 /* Raised surfaces. */
-:root[data-style="tactile"] .k .totals-card,
-:root[data-style="tactile"] .k .breakdown-list,
-:root[data-style="tactile"] .k .cat-list,
-:root[data-style="tactile"] .k .empty-state,
-:root[data-style="tactile"] .k .hero,
-:root[data-style="tactile"] .k-pane,
-:root[data-style="tactile"] .k-insight,
-:root[data-style="tactile"] .k-context,
-:root[data-style="tactile"] .k-coach .coach-q,
-:root[data-style="tactile"] .k .hist-day-card,
-:root[data-style="tactile"] .totals-card,
-:root[data-style="tactile"] .k .hero-under {
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .totals-card,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .breakdown-list,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .cat-list,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .empty-state,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hero,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-pane,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-insight,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-coach .coach-q,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-day-card,
+:root:is([data-style="tactile"], [data-style="instrument"]) .totals-card,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hero-under {
   border-radius: 18px;
   background: var(--t-raise);
   border: 0;
   box-shadow: var(--t-shadow);
 }
-:root[data-style="tactile"] .k .totals-card .totals-card { background: none; box-shadow: none; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .totals-card .totals-card { background: none; box-shadow: none; }
 
 /* Wells: fields, choosers, tracks. */
-:root[data-style="tactile"] .k-input,
-:root[data-style="tactile"] .k-select,
-:root[data-style="tactile"] .k .k-picker,
-:root[data-style="tactile"] .k .hist-search,
-:root[data-style="tactile"] .k select.hist-chip,
-:root[data-style="tactile"] .k-seg,
-:root[data-style="tactile"] .pills-row,
-:root[data-style="tactile"] input[type="text"],
-:root[data-style="tactile"] input[type="number"],
-:root[data-style="tactile"] input[type="password"],
-:root[data-style="tactile"] input[type="search"],
-:root[data-style="tactile"] select {
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-input,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-select,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .k-picker,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-search,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k select.hist-chip,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-seg,
+:root:is([data-style="tactile"], [data-style="instrument"]) .pills-row,
+:root:is([data-style="tactile"], [data-style="instrument"]) input[type="text"],
+:root:is([data-style="tactile"], [data-style="instrument"]) input[type="number"],
+:root:is([data-style="tactile"], [data-style="instrument"]) input[type="password"],
+:root:is([data-style="tactile"], [data-style="instrument"]) input[type="search"],
+:root:is([data-style="tactile"], [data-style="instrument"]) select {
   background: var(--t-well);
   background-image: none;
   border: 1px solid transparent;
   box-shadow: var(--t-well-shadow);
 }
-:root[data-style="tactile"] .k-input:focus-visible,
-:root[data-style="tactile"] .k-select:focus-visible,
-:root[data-style="tactile"] input:focus-visible {
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-input:focus-visible,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-select:focus-visible,
+:root:is([data-style="tactile"], [data-style="instrument"]) input:focus-visible {
   border-color: var(--k-accent);
   box-shadow: var(--t-well-shadow), 0 0 10px color-mix(in srgb, var(--k-accent) 30%, transparent);
 }
 
 /* The main action: a bevelled pill in the accent, ringed in metal. */
-:root[data-style="tactile"] .k-btn--primary,
-:root[data-style="tactile"] .k .add-form .k-btn--primary,
-:root[data-style="tactile"] .btn-primary {
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-btn--primary,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .add-form .k-btn--primary,
+:root:is([data-style="tactile"], [data-style="instrument"]) .btn-primary {
   background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 12%), color-mix(in srgb, var(--k-accent), black 18%));
   color: var(--k-accent-ink);
   border: 0;
@@ -83,54 +88,54 @@
 }
 
 /* A chosen segment, tab or chip is a raised pill in the accent. */
-:root[data-style="tactile"] .k-seg__btn[aria-selected="true"],
-:root[data-style="tactile"] .chip.active,
-:root[data-style="tactile"] .dir-btn.active,
-:root[data-style="tactile"] .seg-btn.active {
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-seg__btn[aria-selected="true"],
+:root:is([data-style="tactile"], [data-style="instrument"]) .chip.active,
+:root:is([data-style="tactile"], [data-style="instrument"]) .dir-btn.active,
+:root:is([data-style="tactile"], [data-style="instrument"]) .seg-btn.active {
   background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 10%), color-mix(in srgb, var(--k-accent), black 15%));
   color: var(--k-accent-ink);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 3px 6px rgb(0 0 0 / 0.4);
 }
 
 /* Switches: a well with a metal knob; on, the well fills with the accent. */
-:root[data-style="tactile"] .k-toggle { background: var(--t-well); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] .k-toggle::after { background: var(--t-knob); box-shadow: 0 0 0 2px color-mix(in srgb, var(--k-bg), black 20%), 0 3px 6px rgb(0 0 0 / 0.55); }
-:root[data-style="tactile"] .k-toggle[aria-checked="true"] { background: color-mix(in srgb, var(--k-accent), black 30%); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] .k-toggle[aria-checked="true"]::after { background: var(--t-knob); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-toggle { background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-toggle::after { background: var(--t-knob); box-shadow: 0 0 0 2px color-mix(in srgb, var(--k-bg), black 20%), 0 3px 6px rgb(0 0 0 / 0.55); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-toggle[aria-checked="true"] { background: color-mix(in srgb, var(--k-accent), black 30%); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-toggle[aria-checked="true"]::after { background: var(--t-knob); }
 
 /* Add: the amount on a raised card in a well, not on a gradient. */
-:root[data-style="tactile"] .k .amount-hero { background: var(--t-raise); box-shadow: var(--t-shadow); color: var(--k-text); }
-:root[data-style="tactile"] .k .amount-hero .hero-label,
-:root[data-style="tactile"] .k .amount-hero .amount-prefix,
-:root[data-style="tactile"] .k .amount-hero .amount-input { color: var(--k-text); }
-:root[data-style="tactile"] .k .amount-hero .amount-input-wrap { background: var(--t-well); box-shadow: var(--t-well-shadow); border-radius: var(--k-r-md); padding: 0 var(--k-4); }
-:root[data-style="tactile"] .k .amount-hero .amount-input-wrap::after { display: none; }
-:root[data-style="tactile"] .k .amount-hero .amount-wave { stroke: var(--k-accent); opacity: 0.7; }
-:root[data-style="tactile"] .k .amount-hero .amount-wave circle { fill: var(--k-accent); }
-:root[data-style="tactile"] .k .amount-hero .direction-toggle { background: var(--t-well); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] .k .amount-hero .k-seg__btn { color: var(--k-text-2); }
-:root[data-style="tactile"] .k .amount-hero .k-seg__btn[aria-selected="true"] { color: var(--k-accent-ink); }
-:root[data-style="tactile"] .k .k-picker.is-chosen { background: var(--t-well); color: var(--k-text); border-color: var(--k-accent); box-shadow: var(--t-well-shadow), 0 0 10px color-mix(in srgb, var(--k-accent) 30%, transparent); }
-:root[data-style="tactile"] .k .k-picker.is-chosen::after { border-color: var(--k-text-2); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .amount-hero { background: var(--t-raise); box-shadow: var(--t-shadow); color: var(--k-text); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .amount-hero .hero-label,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .amount-hero .amount-prefix,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .amount-hero .amount-input { color: var(--k-text); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .amount-hero .amount-input-wrap { background: var(--t-well); box-shadow: var(--t-well-shadow); border-radius: var(--k-r-md); padding: 0 var(--k-4); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .amount-hero .amount-input-wrap::after { display: none; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .amount-hero .amount-wave { stroke: var(--k-accent); opacity: 0.7; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .amount-hero .amount-wave circle { fill: var(--k-accent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .amount-hero .direction-toggle { background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .amount-hero .k-seg__btn { color: var(--k-text-2); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .amount-hero .k-seg__btn[aria-selected="true"] { color: var(--k-accent-ink); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .k-picker.is-chosen { background: var(--t-well); color: var(--k-text); border-color: var(--k-accent); box-shadow: var(--t-well-shadow), 0 0 10px color-mix(in srgb, var(--k-accent) 30%, transparent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .k-picker.is-chosen::after { border-color: var(--k-text-2); }
 
 /* Rings and bars sit in wells. */
-:root[data-style="tactile"] .tracking-ring__track { stroke: var(--t-well); }
-:root[data-style="tactile"] .k .plan-flex__track,
-:root[data-style="tactile"] .k .coach-share { background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .tracking-ring__track { stroke: var(--t-well); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .plan-flex__track,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .coach-share { background: var(--t-well); box-shadow: var(--t-well-shadow); }
 
 /* The tab bar is a well; the current tab is raised in the accent.
  * #tabs outweighs the id in dna.css's own tab rule (a :has() would work too, but costs a style recalculation on every change). */
-:root[data-style="tactile"] #tabs.bottom-nav { background: var(--t-well); border-top: 0; box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] #tabs .nav-btn.active {
+:root:is([data-style="tactile"], [data-style="instrument"]) #tabs.bottom-nav { background: var(--t-well); border-top: 0; box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) #tabs .nav-btn.active {
   color: var(--k-accent-ink);
   background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 10%), color-mix(in srgb, var(--k-accent), black 15%));
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 3px 6px rgb(0 0 0 / 0.45);
 }
-:root[data-style="tactile"] #tabs .nav-btn.active .nav-icon { color: inherit; filter: none; }
+:root:is([data-style="tactile"], [data-style="instrument"]) #tabs .nav-btn.active .nav-icon { color: inherit; filter: none; }
 
 /* Screen titles, engraved. */
-:root[data-style="tactile"] #view-title { text-shadow: 0 -1px 0 rgb(0 0 0 / 0.7), 0 1px 0 rgb(255 255 255 / 0.08); }
-:root[data-style="tactile"][data-theme="light"] #view-title { text-shadow: 0 1px 0 rgb(255 255 255 / 0.9); }
+:root:is([data-style="tactile"], [data-style="instrument"]) #view-title { text-shadow: 0 -1px 0 rgb(0 0 0 / 0.7), 0 1px 0 rgb(255 255 255 / 0.08); }
+:root:is([data-style="tactile"], [data-style="instrument"])[data-theme="light"] #view-title { text-shadow: 0 1px 0 rgb(255 255 255 / 0.9); }
 
 /* --- Summary's top, Tactile's own layout (5.9, summary-looks.js) ---------
  * The mockup's instrument card: a big engraved figure, a pressed-in bar
@@ -173,10 +178,10 @@ button.tl-item { cursor: pointer; }
 
 /* The tab bar floats as the mockup's dock: an inset track, the current tab a
  * raised pill in the accent. The page ends 14px higher for it. */
-:root[data-style="tactile"] #tabs.bottom-nav { margin: 0 14px 14px; padding: 5px; border-radius: 24px; box-shadow: var(--t-well-shadow), 0 0 0 1.5px color-mix(in srgb, var(--k-text) 12%, transparent); }
-:root[data-style="tactile"] #tabs .nav-btn.active { border-radius: 18px; }
-:root[data-style="tactile"] body { padding-bottom: calc(var(--nav-height, 84px) + var(--space-lg) + 14px); }
-:root[data-style="tactile"] .app-header #view-title { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+:root:is([data-style="tactile"], [data-style="instrument"]) #tabs.bottom-nav { margin: 0 14px 14px; padding: 5px; border-radius: 24px; box-shadow: var(--t-well-shadow), 0 0 0 1.5px color-mix(in srgb, var(--k-text) 12%, transparent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) #tabs .nav-btn.active { border-radius: 18px; }
+:root:is([data-style="tactile"], [data-style="instrument"]) body { padding-bottom: calc(var(--nav-height, 84px) + var(--space-lg) + 14px); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .app-header #view-title { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
 
 /* 5.10: the same figures as every style, in Tactile's material. */
 .tl-top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--k-3); }
@@ -207,17 +212,17 @@ button.tl-item { cursor: pointer; }
  * The mockup's rows: icons sit in pressed-in wells with a copper outline,
  * section names are engraved capitals over a groove, rows are divided by a
  * groove (a dark line with light under it), choices are raised pills. */
-:root[data-style="tactile"] .k-icon { border-radius: 10px; color: var(--k-accent); background: var(--t-well); border: 1px solid color-mix(in srgb, var(--k-text) 16%, transparent); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] #view-container h3 { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-2); padding-bottom: 7px; border-bottom: 1px solid rgb(0 0 0 / 0.4); box-shadow: 0 1px 0 rgb(255 255 255 / 0.05); text-shadow: 0 -1px 0 rgb(0 0 0 / 0.6); }
-:root[data-style="tactile"] .k-row + .k-row { border-top: 1px solid rgb(0 0 0 / 0.42); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04); }
-:root[data-style="tactile"] .money-kind,
-:root[data-style="tactile"] .look-option.look-style { border: 0; border-radius: 999px; background: var(--t-raise); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 3px 6px rgb(0 0 0 / 0.45); color: var(--k-text-2); }
-:root[data-style="tactile"] .money-kind.on,
-:root[data-style="tactile"] .look-option.look-style.chosen { color: var(--k-accent-ink); background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 10%), color-mix(in srgb, var(--k-accent), black 15%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--t-metal), inset 0 1px 0 rgb(255 255 255 / 0.28); }
-:root[data-style="tactile"] .look-styles { background: var(--t-well); box-shadow: var(--t-well-shadow); border-radius: 999px; }
-:root[data-style="tactile"] .look-option.look-swatch { background: var(--t-raise); border: 0; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 3px rgb(0 0 0 / 0.45), 0 6px 12px rgb(0 0 0 / 0.3); }
-:root[data-style="tactile"] .look-option.look-swatch.chosen { box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--k-accent), 0 0 12px color-mix(in srgb, var(--k-accent) 40%, transparent); }
-:root[data-style="tactile"] .k .hero-under { padding: var(--k-4); margin-top: var(--k-3); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-icon { border-radius: 10px; color: var(--k-accent); background: var(--t-well); border: 1px solid color-mix(in srgb, var(--k-text) 16%, transparent); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) #view-container h3 { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-2); padding-bottom: 7px; border-bottom: 1px solid rgb(0 0 0 / 0.4); box-shadow: 0 1px 0 rgb(255 255 255 / 0.05); text-shadow: 0 -1px 0 rgb(0 0 0 / 0.6); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-row + .k-row { border-top: 1px solid rgb(0 0 0 / 0.42); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .money-kind,
+:root:is([data-style="tactile"], [data-style="instrument"]) .look-option.look-style { border: 0; border-radius: 999px; background: var(--t-raise); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 3px 6px rgb(0 0 0 / 0.45); color: var(--k-text-2); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .money-kind.on,
+:root:is([data-style="tactile"], [data-style="instrument"]) .look-option.look-style.chosen { color: var(--k-accent-ink); background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 10%), color-mix(in srgb, var(--k-accent), black 15%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--t-metal), inset 0 1px 0 rgb(255 255 255 / 0.28); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .look-styles { background: var(--t-well); box-shadow: var(--t-well-shadow); border-radius: 999px; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .look-option.look-swatch { background: var(--t-raise); border: 0; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 3px rgb(0 0 0 / 0.45), 0 6px 12px rgb(0 0 0 / 0.3); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .look-option.look-swatch.chosen { box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--k-accent), 0 0 12px color-mix(in srgb, var(--k-accent) 40%, transparent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hero-under { padding: var(--k-4); margin-top: var(--k-3); }
 .tl-label { display: flex; justify-content: space-between; align-items: baseline; }
 .tl-still { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--k-text-2); }
 
@@ -225,62 +230,62 @@ button.tl-item { cursor: pointer; }
  * The alert banner: a warm strip with a lit rim, the mark in amber (red for
  * an alert). The month stepper: the board's pagination, raised round
  * buttons either side of the month in an inset pill. */
-:root[data-style="tactile"] .k-context--alert,
-:root[data-style="tactile"] .k-context--attention {
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context--alert,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context--attention {
   --t-alarm: var(--k-warning);
   border: 0;
   border-radius: 14px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--t-alarm) 30%, var(--k-surface)), color-mix(in srgb, var(--t-alarm) 18%, var(--k-bg)));
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px color-mix(in srgb, var(--t-alarm) 42%, transparent), 0 6px 14px rgb(0 0 0 / 0.45);
 }
-:root[data-style="tactile"] .k-context--alert { --t-alarm: var(--k-negative); }
-:root[data-style="tactile"] .k-context--alert .k-context__mark,
-:root[data-style="tactile"] .k-context--attention .k-context__mark { color: var(--t-alarm); background: var(--t-well); box-shadow: var(--t-well-shadow); border: 0; }
-:root[data-style="tactile"] .k-context--alert .k-context__k,
-:root[data-style="tactile"] .k-context--attention .k-context__k { color: color-mix(in srgb, var(--t-alarm), white 35%); }
-:root[data-style="tactile"] .k-context--alert .k-context__note,
-:root[data-style="tactile"] .k-context--attention .k-context__note { color: color-mix(in srgb, var(--t-alarm) 18%, var(--k-text)); }
-:root[data-style="tactile"] .hist-month { gap: 10px; }
-:root[data-style="tactile"] .hist-month .hist-step { width: 44px; height: 44px; border-radius: 50%; color: var(--k-text-2); background: var(--t-raise); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 3px 6px rgb(0 0 0 / 0.55); }
-:root[data-style="tactile"] .hist-month .hist-step:disabled { opacity: .4; }
-:root[data-style="tactile"] .hist-month .hist-month-name { padding: 9px 20px; border-radius: 999px; background: var(--t-well); box-shadow: var(--t-well-shadow); font-size: 15px; }
-:root[data-style="tactile"] .k select.hist-chip { border-radius: 999px; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context--alert { --t-alarm: var(--k-negative); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context--alert .k-context__mark,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context--attention .k-context__mark { color: var(--t-alarm); background: var(--t-well); box-shadow: var(--t-well-shadow); border: 0; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context--alert .k-context__k,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context--attention .k-context__k { color: color-mix(in srgb, var(--t-alarm), white 35%); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context--alert .k-context__note,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context--attention .k-context__note { color: color-mix(in srgb, var(--t-alarm) 18%, var(--k-text)); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .hist-month { gap: 10px; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .hist-month .hist-step { width: 44px; height: 44px; border-radius: 50%; color: var(--k-text-2); background: var(--t-raise); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 3px 6px rgb(0 0 0 / 0.55); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .hist-month .hist-step:disabled { opacity: .4; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .hist-month .hist-month-name { padding: 9px 20px; border-radius: 999px; background: var(--t-well); box-shadow: var(--t-well-shadow); font-size: 15px; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k select.hist-chip { border-radius: 999px; }
 
 /* --- Add, after the mockup (5.12) ----------------------------------------
  * Money out and in as the board's tabs; the amount on a raised card in an
  * inset field with a glowing copper edge, the merchant under it; recent
  * categories as raised pills, the chosen one copper; the rest as raised
  * rows with icons in wells; the bank SMS a dark pill at the foot. */
-:root[data-style="tactile"] .k .add-card { border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
-:root[data-style="tactile"] .k .add-card .k-label,
-:root[data-style="tactile"] .k .add-card .hero-label { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-3); }
-:root[data-style="tactile"] .k .add-card--amount .amount-input-wrap { background: var(--t-well); border: 1px solid var(--k-accent); box-shadow: var(--t-well-shadow), 0 0 10px color-mix(in srgb, var(--k-accent) 28%, transparent); }
-:root[data-style="tactile"] .k .add-card--amount .amount-prefix { font-size: 24px; font-weight: 700; color: var(--k-text-3); }
-:root[data-style="tactile"] .k .add-card--amount .amount-input { font-weight: 760; letter-spacing: -0.04em; text-shadow: 0 2px 6px rgb(0 0 0 / 0.5); }
-:root[data-style="tactile"] .k .k-quick__chip { border: 0; color: var(--k-text-2); background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 22%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 6px 10px rgb(0 0 0 / 0.45); }
-:root[data-style="tactile"] .k .k-quick__chip svg { color: var(--k-accent); }
-:root[data-style="tactile"] .k .k-quick__chip.on { color: var(--k-accent-ink); background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 10%), color-mix(in srgb, var(--k-accent), black 18%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--t-metal), inset 0 1px 0 rgb(255 255 255 / 0.3), 0 6px 10px rgb(0 0 0 / 0.45); }
-:root[data-style="tactile"] .k .k-quick__chip.on svg { color: currentColor; }
-:root[data-style="tactile"] .k .add-row > .add-row-ic { color: var(--k-accent); background: var(--t-well); box-shadow: var(--t-well-shadow); border: 1px solid color-mix(in srgb, var(--k-text) 16%, transparent); }
-:root[data-style="tactile"] .k .add-row + .add-row { border-top: 1px solid rgb(0 0 0 / 0.42); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04); }
-:root[data-style="tactile"] .k .k-add-sms { border-radius: 999px; background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 20%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 8px 14px rgb(0 0 0 / 0.5); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .add-card { border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .add-card .k-label,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .add-card .hero-label { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-3); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .add-card--amount .amount-input-wrap { background: var(--t-well); border: 1px solid var(--k-accent); box-shadow: var(--t-well-shadow), 0 0 10px color-mix(in srgb, var(--k-accent) 28%, transparent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .add-card--amount .amount-prefix { font-size: 24px; font-weight: 700; color: var(--k-text-3); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .add-card--amount .amount-input { font-weight: 760; letter-spacing: -0.04em; text-shadow: 0 2px 6px rgb(0 0 0 / 0.5); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .k-quick__chip { border: 0; color: var(--k-text-2); background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 22%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 6px 10px rgb(0 0 0 / 0.45); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .k-quick__chip svg { color: var(--k-accent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .k-quick__chip.on { color: var(--k-accent-ink); background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 10%), color-mix(in srgb, var(--k-accent), black 18%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--t-metal), inset 0 1px 0 rgb(255 255 255 / 0.3), 0 6px 10px rgb(0 0 0 / 0.45); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .k-quick__chip.on svg { color: currentColor; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .add-row > .add-row-ic { color: var(--k-accent); background: var(--t-well); box-shadow: var(--t-well-shadow); border: 1px solid color-mix(in srgb, var(--k-text) 16%, transparent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .add-row + .add-row { border-top: 1px solid rgb(0 0 0 / 0.42); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .k-add-sms { border-radius: 999px; background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 20%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 8px 14px rgb(0 0 0 / 0.5); }
 
 /* --- Accounts, after the mockup (5.13) -----------------------------------
  * The total on a raised card, what sits beside it in an inset table under
  * it; each account a raised row of its own with its mark in a well; the
  * loan's progress a pressed-in bar. */
-:root[data-style="tactile"] .acct-total .hero-figures { display: grid; gap: 0; margin-top: 16px; padding: 4px 14px; border-radius: 12px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] .acct-total .hero-figures > span { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; font-weight: 680; font-variant-numeric: tabular-nums; color: var(--k-text); }
-:root[data-style="tactile"] .acct-total .hero-figures > span + span { border-top: 1px solid var(--k-hairline); }
-:root[data-style="tactile"] .acct-total .hero-figures .muted { font-weight: 400; color: var(--k-text-2); }
-:root[data-style="tactile"] .k .account-group { display: grid; gap: 8px; padding: 0; background: none; border: 0; box-shadow: none; }
-:root[data-style="tactile"] .k .account-block { border-radius: 14px; padding: 2px 14px; background: var(--t-raise); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 3px rgb(0 0 0 / 0.45), 0 6px 12px rgb(0 0 0 / 0.3); }
-:root[data-style="tactile"] .k .account-block + .account-block { border-top: 0; }
-:root[data-style="tactile"] .k .account-row .k-brand { border-radius: 10px; box-shadow: var(--t-well-shadow), 0 0 0 1px color-mix(in srgb, var(--k-text) 16%, transparent); }
-:root[data-style="tactile"] .k .account-balance { font-weight: 700; }
-:root[data-style="tactile"] .acct-total .hero-figures { width: 100%; box-sizing: border-box; justify-items: stretch; }
-:root[data-style="tactile"] .acct-total .hero-figures > span { width: 100%; }
-:root[data-style="tactile"] .acct-total .hero-figures { grid-template-columns: 1fr; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .acct-total .hero-figures { display: grid; gap: 0; margin-top: 16px; padding: 4px 14px; border-radius: 12px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .acct-total .hero-figures > span { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; font-weight: 680; font-variant-numeric: tabular-nums; color: var(--k-text); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .acct-total .hero-figures > span + span { border-top: 1px solid var(--k-hairline); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .acct-total .hero-figures .muted { font-weight: 400; color: var(--k-text-2); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .account-group { display: grid; gap: 8px; padding: 0; background: none; border: 0; box-shadow: none; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .account-block { border-radius: 14px; padding: 2px 14px; background: var(--t-raise); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 3px rgb(0 0 0 / 0.45), 0 6px 12px rgb(0 0 0 / 0.3); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .account-block + .account-block { border-top: 0; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .account-row .k-brand { border-radius: 10px; box-shadow: var(--t-well-shadow), 0 0 0 1px color-mix(in srgb, var(--k-text) 16%, transparent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .account-balance { font-weight: 700; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .acct-total .hero-figures { width: 100%; box-sizing: border-box; justify-items: stretch; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .acct-total .hero-figures > span { width: 100%; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .acct-total .hero-figures { grid-template-columns: 1fr; }
 
 /* --- Plan, after the mockup (5.14) ---------------------------------------
  * The budget on a raised card over an inset bar split into its parts
@@ -301,78 +306,78 @@ button.tl-item { cursor: pointer; }
 .pl-month--tactile .pl-step.is-paid b { color: #fff; background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--k-accent), white 18%), color-mix(in srgb, var(--k-accent), black 18%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--k-accent), 0 0 16px color-mix(in srgb, var(--k-violet) 55%, transparent); }
 .pl-month--tactile .pl-step.is-late b { color: #fff; background: radial-gradient(circle at 40% 30%, var(--k-negative), color-mix(in srgb, var(--k-negative), black 35%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--k-negative), 0 0 16px color-mix(in srgb, var(--k-negative) 55%, transparent); }
 .pl-month--tactile .pl-step.is-due b { color: var(--k-accent); }
-:root[data-style="tactile"] .k .plan-flex__track { height: 8px; border-radius: 4px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] .k .plan-flex__track i { border-radius: 4px; background: linear-gradient(90deg, var(--k-accent), var(--k-violet)); box-shadow: 0 0 6px color-mix(in srgb, var(--k-violet) 50%, transparent); }
-:root[data-style="tactile"] .k .plan-flex__row.is-warn .plan-flex__track i { background: linear-gradient(90deg, color-mix(in srgb, var(--k-warning), black 30%), var(--k-warning)); }
-:root[data-style="tactile"] .k .plan-flex__row.is-over .plan-flex__track i { background: linear-gradient(90deg, color-mix(in srgb, var(--k-negative), black 30%), var(--k-negative)); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .plan-flex__track { height: 8px; border-radius: 4px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .plan-flex__track i { border-radius: 4px; background: linear-gradient(90deg, var(--k-accent), var(--k-violet)); box-shadow: 0 0 6px color-mix(in srgb, var(--k-violet) 50%, transparent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .plan-flex__row.is-warn .plan-flex__track i { background: linear-gradient(90deg, color-mix(in srgb, var(--k-warning), black 30%), var(--k-warning)); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .plan-flex__row.is-over .plan-flex__track i { background: linear-gradient(90deg, color-mix(in srgb, var(--k-negative), black 30%), var(--k-negative)); }
 .plan-month .pl-month--tactile { background: var(--t-well); box-shadow: var(--t-well-shadow); }
 
 /* --- History, after the mockup (5.15) ------------------------------------
  * In and out in an inset table on the raised net card; the days in an
  * inset well on a raised card of their own, copper bars, the biggest lit;
  * each day under an engraved heading, its payments raised rows. */
-:root[data-style="tactile"] .k #hist-hero .hero-under { display: grid; gap: 0; padding: 4px 14px; border-radius: 12px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] .k #hist-hero .stat { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; }
-:root[data-style="tactile"] .k #hist-hero .stat + .stat { border-top: 1px solid var(--k-hairline); }
-:root[data-style="tactile"] .k #hist-hero .stat-k { font-size: 14.5px; text-transform: none; letter-spacing: 0; color: var(--k-text-2); }
-:root[data-style="tactile"] .k #hist-hero .stat-v { font-size: 15px; font-weight: 700; }
-:root[data-style="tactile"] .k .hist-days-card { border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
-:root[data-style="tactile"] .k .hist-days-card::before { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-2); }
-:root[data-style="tactile"] .k .hist-days-card .hist-days__bars { padding: 12px 10px 6px; border-radius: 12px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] .k .hist-days__bar { background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 6%), color-mix(in srgb, var(--k-accent), black 35%)); opacity: .55; }
-:root[data-style="tactile"] .k .hist-days__bar.is-top { opacity: 1; box-shadow: 0 0 12px color-mix(in srgb, var(--k-violet) 55%, transparent); }
-:root[data-style="tactile"] .k .hist-day-head { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-2); padding-bottom: 7px; border-bottom: 1px solid rgb(0 0 0 / 0.4); box-shadow: 0 1px 0 rgb(255 255 255 / 0.05); margin-bottom: 8px; }
-:root[data-style="tactile"] .k .hist-day-card { display: grid; gap: 8px; padding: 0; background: none; box-shadow: none; border-radius: 0; }
-:root[data-style="tactile"] .k .hist-day-card .hist-row { border-radius: 14px; background: var(--t-raise); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 3px rgb(0 0 0 / 0.45), 0 6px 12px rgb(0 0 0 / 0.3); border-top: 0; padding-inline: 12px; }
-:root[data-style="tactile"] .k .hist-cat { border-radius: 10px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] .k .txn-amount { font-weight: 700; }
-:root[data-style="tactile"] .k .hist-day-card { grid-template-columns: minmax(0, 1fr); }
-:root[data-style="tactile"] .k #hist-hero .stat { flex-direction: row; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k #hist-hero .hero-under { display: grid; gap: 0; padding: 4px 14px; border-radius: 12px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k #hist-hero .stat { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k #hist-hero .stat + .stat { border-top: 1px solid var(--k-hairline); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k #hist-hero .stat-k { font-size: 14.5px; text-transform: none; letter-spacing: 0; color: var(--k-text-2); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k #hist-hero .stat-v { font-size: 15px; font-weight: 700; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-days-card { border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-days-card::before { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-2); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-days-card .hist-days__bars { padding: 12px 10px 6px; border-radius: 12px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-days__bar { background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 6%), color-mix(in srgb, var(--k-accent), black 35%)); opacity: .55; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-days__bar.is-top { opacity: 1; box-shadow: 0 0 12px color-mix(in srgb, var(--k-violet) 55%, transparent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-day-head { font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; color: var(--k-text-2); padding-bottom: 7px; border-bottom: 1px solid rgb(0 0 0 / 0.4); box-shadow: 0 1px 0 rgb(255 255 255 / 0.05); margin-bottom: 8px; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-day-card { display: grid; gap: 8px; padding: 0; background: none; box-shadow: none; border-radius: 0; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-day-card .hist-row { border-radius: 14px; background: var(--t-raise); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 3px rgb(0 0 0 / 0.45), 0 6px 12px rgb(0 0 0 / 0.3); border-top: 0; padding-inline: 12px; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-cat { border-radius: 10px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .txn-amount { font-weight: 700; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-day-card { grid-template-columns: minmax(0, 1fr); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k #hist-hero .stat { flex-direction: row; }
 
 /* --- Coach, after the mockup (5.16) --------------------------------------
  * Left at this pace on a raised card, the three figures in wells, the share
  * of what is left as a pressed-in bar; the questions as raised rows. */
-:root[data-style="tactile"] .k-coach .coach-q { border-radius: 14px; margin-bottom: 8px; }
-:root[data-style="tactile"] .k-coach .coach-q .k-icon,
-:root[data-style="tactile"] .k-coach .coach-q [class*="k-brand"] { border-radius: 10px; background: var(--t-well); box-shadow: var(--t-well-shadow); color: var(--k-accent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-coach .coach-q { border-radius: 14px; margin-bottom: 8px; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-coach .coach-q .k-icon,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-coach .coach-q [class*="k-brand"] { border-radius: 10px; background: var(--t-well); box-shadow: var(--t-well-shadow); color: var(--k-accent); }
 
 /* --- The short Summary in Tactile (5.18): the board's own parts ----------
  * The set-up steps as its glowing copper process, the progress an inset bar,
  * Needs you as raised rows with icons in wells, the fold a raised card. */
-:root[data-style="tactile"] .k .setup-card,
-:root[data-style="tactile"] .k .sum-needs,
-:root[data-style="tactile"] .k .sum-more,
-:root[data-style="tactile"] .k .setup-strip { border: 0; border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
-:root[data-style="tactile"] .k .setup-progress { height: 10px; border-radius: 5px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] .k .setup-progress i { background: linear-gradient(90deg, color-mix(in srgb, var(--k-accent), black 15%), var(--k-violet)); box-shadow: 0 0 8px color-mix(in srgb, var(--k-violet) 50%, transparent); }
-:root[data-style="tactile"] .k .setup-step__n { color: var(--k-text-2); background: var(--t-raise); border: 0; box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 22%, transparent), 0 4px 8px rgb(0 0 0 / 0.5); }
-:root[data-style="tactile"] .k .setup-step.is-next .setup-step__n,
-:root[data-style="tactile"] .k .setup-step.is-done .setup-step__n { color: #fff; background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--k-accent), white 18%), color-mix(in srgb, var(--k-accent), black 18%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--k-accent), 0 0 16px color-mix(in srgb, var(--k-violet) 55%, transparent); }
-:root[data-style="tactile"] .k .need-row__ic { color: var(--tint); background: var(--t-well); box-shadow: var(--t-well-shadow); border: 1px solid color-mix(in srgb, var(--k-text) 14%, transparent); }
-:root[data-style="tactile"] .k .need-row + .need-row,
-:root[data-style="tactile"] .k .need-more { border-top: 1px solid rgb(0 0 0 / 0.42); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04); }
-:root[data-style="tactile"] .k .need-row__go .btn-tiny { border: 0; color: var(--k-text); background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 20%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 6px 10px rgb(0 0 0 / 0.45); }
-:root[data-style="tactile"] .k .sum-calm { border-radius: 14px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] .k .sum-more__body .tl-hero { display: none; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .setup-card,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .sum-needs,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .sum-more,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .setup-strip { border: 0; border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .setup-progress { height: 10px; border-radius: 5px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .setup-progress i { background: linear-gradient(90deg, color-mix(in srgb, var(--k-accent), black 15%), var(--k-violet)); box-shadow: 0 0 8px color-mix(in srgb, var(--k-violet) 50%, transparent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .setup-step__n { color: var(--k-text-2); background: var(--t-raise); border: 0; box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 22%, transparent), 0 4px 8px rgb(0 0 0 / 0.5); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .setup-step.is-next .setup-step__n,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .setup-step.is-done .setup-step__n { color: #fff; background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--k-accent), white 18%), color-mix(in srgb, var(--k-accent), black 18%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--k-accent), 0 0 16px color-mix(in srgb, var(--k-violet) 55%, transparent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .need-row__ic { color: var(--tint); background: var(--t-well); box-shadow: var(--t-well-shadow); border: 1px solid color-mix(in srgb, var(--k-text) 14%, transparent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .need-row + .need-row,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .need-more { border-top: 1px solid rgb(0 0 0 / 0.42); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .need-row__go .btn-tiny { border: 0; color: var(--k-text); background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 20%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 6px 10px rgb(0 0 0 / 0.45); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .sum-calm { border-radius: 14px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .sum-more__body .tl-hero { display: none; }
 
 /* The bubble in Tactile: a raised card with a thin copper rim. */
-:root[data-style="tactile"] .explain-pop { border: 0; border-radius: 14px; background: var(--t-raise); box-shadow: 0 0 0 1px color-mix(in srgb, var(--k-accent) 55%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 14px 26px rgb(0 0 0 / 0.55); }
-:root[data-style="tactile"] .explain-pop b { color: var(--k-text); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .explain-pop { border: 0; border-radius: 14px; background: var(--t-raise); box-shadow: 0 0 0 1px color-mix(in srgb, var(--k-accent) 55%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 14px 26px rgb(0 0 0 / 0.55); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .explain-pop b { color: var(--k-text); }
 
 /* Lent and borrowed in Tactile: the totals as inset wells, the initials in
    small wells of their own. */
-:root[data-style="tactile"] .k .people-sums > div { border: 0; border-radius: 14px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] .k .add-people .k-brand,
-:root[data-style="tactile"] .k .person-open .k-brand { background: var(--t-well); box-shadow: var(--t-well-shadow); color: var(--k-text); }
-:root[data-style="tactile"] .k .hist-salary { border: 0; border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .people-sums > div { border: 0; border-radius: 14px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .add-people .k-brand,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .person-open .k-brand { background: var(--t-well); box-shadow: var(--t-well-shadow); color: var(--k-text); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-salary { border: 0; border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
 
 /* 5.23 in Tactile: the new panels are raised, the readouts and tick boxes wells. */
-:root[data-style="tactile"] .k .owed-list { border: 0; border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
-:root[data-style="tactile"] .k .chart-readout { border-radius: 12px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] .k .chart-head b { font-weight: 650; }
-:root[data-style="tactile"] .k .card-split__bar { background: var(--t-well); box-shadow: var(--t-well-shadow); }
-:root[data-style="tactile"] .k .hist-days__title { font-size: 12px; font-weight: 650; letter-spacing: .08em; color: var(--k-text-2); }
-:root[data-style="tactile"] .k .hist-flag input[type="checkbox"],
-:root[data-style="tactile"] .k .checkbox-row input[type="checkbox"] { border: 0; background: var(--t-well); box-shadow: var(--t-well-shadow), 0 0 0 1.5px color-mix(in srgb, var(--k-text) 22%, transparent); }
-:root[data-style="tactile"] .k .hist-flag input[type="checkbox"]:checked,
-:root[data-style="tactile"] .k .checkbox-row input[type="checkbox"]:checked { background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 10%), color-mix(in srgb, var(--k-accent), black 18%)); box-shadow: 0 0 10px color-mix(in srgb, var(--k-accent) 45%, transparent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .owed-list { border: 0; border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .chart-readout { border-radius: 12px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .chart-head b { font-weight: 650; }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .card-split__bar { background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-days__title { font-size: 12px; font-weight: 650; letter-spacing: .08em; color: var(--k-text-2); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-flag input[type="checkbox"],
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .checkbox-row input[type="checkbox"] { border: 0; background: var(--t-well); box-shadow: var(--t-well-shadow), 0 0 0 1.5px color-mix(in srgb, var(--k-text) 22%, transparent); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .hist-flag input[type="checkbox"]:checked,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k .checkbox-row input[type="checkbox"]:checked { background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 10%), color-mix(in srgb, var(--k-accent), black 18%)); box-shadow: 0 0 10px color-mix(in srgb, var(--k-accent) 45%, transparent); }

@@ -230,6 +230,177 @@
   --warn: #865916;
 }
 
+/* Instrument amber (dark) */
+:root[data-colour="instrument"] {
+  --k-bg: #0b0d10;
+  --k-bg-elev: #0e1115;
+  --k-surface: #12151a;
+  --k-surface-elev: #1a1d22;
+  --k-surface-hero: #22252b;
+  --k-surface-press: #1d2126;
+  --k-text: #eef1f5;
+  --k-text-2: #aab3be;
+  --k-text-3: #8a95a2;
+  --k-hairline: rgb(238 241 245 / 0.07);
+  --k-border-subtle: rgb(238 241 245 / 0.11);
+  --k-border: rgb(238 241 245 / 0.15);
+  --k-border-emphasis: rgb(238 241 245 / 0.24);
+  --k-cyan: #ffb020;
+  --k-cyan-deep: #ae781c;
+  --k-violet: #ff8a3d;
+  --k-magenta: #46d68c;
+  --k-accent-ink: #1a1203;
+  --k-positive: #46d68c;
+  --k-negative: #ff6b5b;
+  --k-warning: #ffcf5a;
+  --k-grad-1a: #ffb020;
+  --k-grad-1b: #ff8a3d;
+  --k-grad-2a: #46d68c;
+  --k-grad-2b: #8a95a2;
+  --k-grad-3a: #ffcf5a;
+  --k-grad-3b: #ffb020;
+  --k-grad-1-ink: #14161a;
+  --k-grad-2-ink: #14161a;
+  --k-grad-3-ink: #14161a;
+  --bg: #0b0d10;
+  --bg-elevated: #0e1115;
+  --surface: #12151a;
+  --surface-alt: #1a1d22;
+  --surface-hi: #23272c;
+  --text: #eef1f5;
+  --text-muted: #aab3be;
+  --text-dim: #8a95a2;
+  --border: #2f3237;
+  --border-hi: #43464b;
+  --surface-press: #1d2126;
+  --surface-selected: #362e24;
+  --text-disabled: #59616a;
+  --accent: #ffb020;
+  --accent-ink: #1a1203;
+  --accent-soft: #3a3125;
+  --accent-line: #8a652f;
+  --violet: #ff8a3d;
+  --violet-soft: #3b2b25;
+  --emerald: #46d68c;
+  --in: #46d68c;
+  --out: #ff6b5b;
+  --warn: #ffcf5a;
+}
+
+/* Instrument ice (dark) */
+:root[data-colour="instrument-ice"] {
+  --k-bg: #0b0d10;
+  --k-bg-elev: #0e1115;
+  --k-surface: #12151a;
+  --k-surface-elev: #1a1d22;
+  --k-surface-hero: #22252b;
+  --k-surface-press: #1d2126;
+  --k-text: #eef1f5;
+  --k-text-2: #aab3be;
+  --k-text-3: #8a95a2;
+  --k-hairline: rgb(238 241 245 / 0.07);
+  --k-border-subtle: rgb(238 241 245 / 0.11);
+  --k-border: rgb(238 241 245 / 0.15);
+  --k-border-emphasis: rgb(238 241 245 / 0.24);
+  --k-cyan: #5ad1ff;
+  --k-cyan-deep: #1b90b7;
+  --k-violet: #3b8fe0;
+  --k-magenta: #46d68c;
+  --k-accent-ink: #021622;
+  --k-positive: #46d68c;
+  --k-negative: #ff6b5b;
+  --k-warning: #ffb020;
+  --k-grad-1a: #5ad1ff;
+  --k-grad-1b: #3b8fe0;
+  --k-grad-2a: #46d68c;
+  --k-grad-2b: #8a95a2;
+  --k-grad-3a: #ffb020;
+  --k-grad-3b: #5ad1ff;
+  --k-grad-1-ink: #14161a;
+  --k-grad-2-ink: #14161a;
+  --k-grad-3-ink: #14161a;
+  --bg: #0b0d10;
+  --bg-elevated: #0e1115;
+  --surface: #12151a;
+  --surface-alt: #1a1d22;
+  --surface-hi: #23272c;
+  --text: #eef1f5;
+  --text-muted: #aab3be;
+  --text-dim: #8a95a2;
+  --border: #2f3237;
+  --border-hi: #43464b;
+  --surface-press: #1d2126;
+  --surface-selected: #20323d;
+  --text-disabled: #59616a;
+  --accent: #5ad1ff;
+  --accent-ink: #021622;
+  --accent-soft: #223541;
+  --accent-line: #3b758e;
+  --violet: #3b8fe0;
+  --violet-soft: #1c2b3c;
+  --emerald: #46d68c;
+  --in: #46d68c;
+  --out: #ff6b5b;
+  --warn: #ffb020;
+}
+
+/* Instrument lime (dark) */
+:root[data-colour="instrument-lime"] {
+  --k-bg: #0b0d10;
+  --k-bg-elev: #0e1115;
+  --k-surface: #12151a;
+  --k-surface-elev: #1a1d22;
+  --k-surface-hero: #22252b;
+  --k-surface-press: #1d2126;
+  --k-text: #eef1f5;
+  --k-text-2: #aab3be;
+  --k-text-3: #8a95a2;
+  --k-hairline: rgb(238 241 245 / 0.07);
+  --k-border-subtle: rgb(238 241 245 / 0.11);
+  --k-border: rgb(238 241 245 / 0.15);
+  --k-border-emphasis: rgb(238 241 245 / 0.24);
+  --k-cyan: #b6f23c;
+  --k-cyan-deep: #7fad1b;
+  --k-violet: #7ccf2a;
+  --k-magenta: #46d68c;
+  --k-accent-ink: #101c02;
+  --k-positive: #46d68c;
+  --k-negative: #ff6b5b;
+  --k-warning: #ffb020;
+  --k-grad-1a: #b6f23c;
+  --k-grad-1b: #7ccf2a;
+  --k-grad-2a: #46d68c;
+  --k-grad-2b: #8a95a2;
+  --k-grad-3a: #ffb020;
+  --k-grad-3b: #b6f23c;
+  --k-grad-1-ink: #14161a;
+  --k-grad-2-ink: #14161a;
+  --k-grad-3-ink: #14161a;
+  --bg: #0b0d10;
+  --bg-elevated: #0e1115;
+  --surface: #12151a;
+  --surface-alt: #1a1d22;
+  --surface-hi: #23272c;
+  --text: #eef1f5;
+  --text-muted: #aab3be;
+  --text-dim: #8a95a2;
+  --border: #2f3237;
+  --border-hi: #43464b;
+  --surface-press: #1d2126;
+  --surface-selected: #2b3727;
+  --text-disabled: #59616a;
+  --accent: #b6f23c;
+  --accent-ink: #101c02;
+  --accent-soft: #2e3b28;
+  --accent-line: #658639;
+  --violet: #7ccf2a;
+  --violet-soft: #253525;
+  --emerald: #46d68c;
+  --in: #46d68c;
+  --out: #ff6b5b;
+  --warn: #ffb020;
+}
+
 /* Ember dusk (dark) */
 :root[data-colour="ember-dusk"] {
   --k-bg: #101c30;

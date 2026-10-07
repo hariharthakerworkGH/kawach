@@ -154,7 +154,7 @@ export async function render(container, params = {}) {
   // own card, as their mockups have them, and the day chart gets a card of
   // its own. The elements move with their ids, so filling them in later is
   // unchanged.
-  if (['tactile', 'peaks', 'mindora'].includes(document.documentElement.dataset.style)) {
+  if (['tactile', 'peaks', 'mindora', 'instrument'].includes(document.documentElement.dataset.style)) {
     container.querySelector('#hist-net').after(container.querySelector('#hist-stats'));
     container.querySelector('#hist-days').classList.add('hist-days-card');
   }

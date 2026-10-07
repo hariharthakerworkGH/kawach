@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.25',
+    items: [
+      {
+        icon: 'eye',
+        title: "A fifth look: Instrument",
+        text: "Dark and precise, like a gauge cluster. Summary gets a dial that lights up as you spend and turns red where you are ahead of an even pace, and the month is a ruled chart with every day marked. Amber is the lit colour; ice and lime are in Colours. Your own look is not changed.",
+        guide: [{ view: 'appearance', target: '.look-styles', text: "Tap Instrument to try it." }],
+      },
+    ],
+  },
+  {
     version: '5.24',
     items: [
       {

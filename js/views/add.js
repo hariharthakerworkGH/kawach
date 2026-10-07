@@ -720,7 +720,7 @@ function byRecentUse(categories, transactions) {
  * keeps the order it was built in. */
 function arrangeAdd(container) {
   const style = document.documentElement.dataset.style;
-  if (!['tactile', 'peaks', 'mindora'].includes(style)) return;
+  if (!['tactile', 'peaks', 'mindora', 'instrument'].includes(style)) return;
   const form = container.querySelector('#add-form');
   const hero = form.querySelector('.amount-hero');
   const toggle = hero.querySelector('.direction-toggle');

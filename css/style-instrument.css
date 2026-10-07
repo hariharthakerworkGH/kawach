@@ -1,0 +1,316 @@
+/* The Instrument style (5.25): a layer over Charts, built on Tactile's layouts.
+ *
+ * Switched on by data-style="instrument" on <html> (js/looks.js). Dark and
+ * precise, like a gauge cluster: a near-black housing, panels a step lighter
+ * with a hairline edge instead of a shadow, square-ish corners, small
+ * capitals with wide spacing for every label, figures in tabular numerals, and
+ * ONE lit colour (the colouring's accent) for what is chosen, what is lit on a
+ * scale and what is pressed. Red means ahead of pace or out, green means in.
+ *
+ * It reuses Tactile's markup and rules (css/style-tactile.css writes its
+ * selectors for both styles) and repaints them by redefining the --t-* values
+ * that file draws from: a raised card becomes a flat panel, a well a recessed
+ * panel, a shadow a hairline. What this file adds is only what Tactile has no
+ * equivalent of: the radii, the lit bars made of cells, the flush tab bar, the
+ * dial (summary-looks.js instrumentDial) and the ruled month chart.
+ * Colours all come from the colouring, so it also works in a light colouring.
+ */
+
+:root[data-style="instrument"] {
+  --in-rule: color-mix(in srgb, var(--k-text) 11%, var(--k-surface));
+  --in-rule-hi: color-mix(in srgb, var(--k-text) 20%, var(--k-surface));
+  --in-r: 6px;
+  --in-r-sm: 4px;
+  --in-label: 10.5px;
+  --in-track: color-mix(in srgb, var(--k-text) 16%, var(--k-surface));
+  /* The Tactile values, made flat: a panel, a recessed panel, a hairline. */
+  --t-raise: var(--k-surface);
+  --t-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 0 0 1px var(--in-rule), 0 1px 0 rgb(0 0 0 / 0.6);
+  --t-well: var(--k-surface-elev);
+  --t-well-shadow: inset 0 0 0 1px var(--in-rule);
+  --t-metal: var(--in-rule-hi);
+  --t-knob: color-mix(in srgb, var(--k-text) 85%, var(--k-surface));
+}
+:root[data-style="instrument"][data-theme="light"] {
+  --t-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 0 0 1px var(--in-rule), 0 1px 0 rgb(0 0 0 / 0.08);
+}
+
+/* The housing: a faint graph-paper grain at the top of every screen. */
+:root[data-style="instrument"] body { background-image: linear-gradient(var(--in-rule) 1px, transparent 1px), linear-gradient(90deg, var(--in-rule) 1px, transparent 1px); background-size: 26px 26px; background-repeat: repeat; background-attachment: local; }
+:root[data-style="instrument"] body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: linear-gradient(180deg, transparent 0, var(--k-bg) 62%); pointer-events: none; }
+
+/* Corners: every panel, row and well, from 14-18px down to 6px. */
+:root[data-style="instrument"] .k .totals-card,
+:root[data-style="instrument"] .k .breakdown-list,
+:root[data-style="instrument"] .k .cat-list,
+:root[data-style="instrument"] .k .empty-state,
+:root[data-style="instrument"] .k .hero,
+:root[data-style="instrument"] .k-pane,
+:root[data-style="instrument"] .k-insight,
+:root[data-style="instrument"] .k-context,
+:root[data-style="instrument"] .k-coach .coach-q,
+:root[data-style="instrument"] .k .hist-day-card,
+:root[data-style="instrument"] .k .hero-under,
+:root[data-style="instrument"] .tl-hero,
+:root[data-style="instrument"] .tl-card,
+:root[data-style="instrument"] .tl-item,
+:root[data-style="instrument"] .tl-stats > div,
+:root[data-style="instrument"] .pl-top--tactile,
+:root[data-style="instrument"] .pl-month--tactile,
+:root[data-style="instrument"] .pl-seg,
+:root[data-style="instrument"] .k .add-card,
+:root[data-style="instrument"] .k .account-block,
+:root[data-style="instrument"] .k .hist-days-card,
+:root[data-style="instrument"] .k .hist-days-card .hist-days__bars,
+:root[data-style="instrument"] .k .hist-day-card .hist-row,
+:root[data-style="instrument"] .k .setup-card,
+:root[data-style="instrument"] .k .sum-needs,
+:root[data-style="instrument"] .k .sum-more,
+:root[data-style="instrument"] .k .setup-strip,
+:root[data-style="instrument"] .k .sum-calm,
+:root[data-style="instrument"] .k .owed-list,
+:root[data-style="instrument"] .k .hist-salary,
+:root[data-style="instrument"] .k .people-sums > div,
+:root[data-style="instrument"] .k .chart-readout,
+:root[data-style="instrument"] .k #hist-hero .hero-under,
+:root[data-style="instrument"] .acct-total .hero-figures,
+:root[data-style="instrument"] .explain-pop,
+:root[data-style="instrument"] .k .need-row__ic,
+:root[data-style="instrument"] .tl-ibox,
+:root[data-style="instrument"] .k .hist-cat,
+:root[data-style="instrument"] .k .k-icon,
+:root[data-style="instrument"] .k-icon { border-radius: var(--in-r); }
+:root[data-style="instrument"] .tl-ibox,
+:root[data-style="instrument"] .k .need-row__ic,
+:root[data-style="instrument"] .k .hist-cat,
+:root[data-style="instrument"] .k .add-row > .add-row-ic,
+:root[data-style="instrument"] .k .account-row .k-brand,
+:root[data-style="instrument"] .k .k-icon,
+:root[data-style="instrument"] .k-icon { border-radius: var(--in-r-sm); }
+/* A panel's top left and bottom right carry a small registration mark. */
+:root[data-style="instrument"] .tl-hero,
+:root[data-style="instrument"] .tl-card,
+:root[data-style="instrument"] .pl-top--tactile,
+:root[data-style="instrument"] .k .add-card { position: relative; }
+:root[data-style="instrument"] .tl-hero::before,
+:root[data-style="instrument"] .tl-card::before,
+:root[data-style="instrument"] .pl-top--tactile::before,
+:root[data-style="instrument"] .k .add-card::before { content: ""; position: absolute; left: 0; top: 0; width: 8px; height: 8px; border: 1px solid var(--in-rule-hi); border-width: 1px 0 0 1px; border-top-left-radius: var(--in-r); pointer-events: none; }
+
+/* Labels: small capitals, wide spacing. */
+.tl-k, .tl-label,
+:root[data-style="instrument"] .k .add-card .k-label,
+:root[data-style="instrument"] .k .add-card .hero-label,
+:root[data-style="instrument"] .k .hist-days-card::before,
+:root[data-style="instrument"] .k .hist-days__title,
+:root[data-style="instrument"] .k .hist-day-head,
+:root[data-style="instrument"] #view-container h3 { font-size: var(--in-label); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+:root[data-style="instrument"] #view-container h3,
+:root[data-style="instrument"] .k .hist-day-head { color: var(--k-text-3); text-shadow: none; border-bottom: 1px solid var(--in-rule); box-shadow: none; }
+.tl-stats .tl-k { font-size: 10px; letter-spacing: .12em; white-space: nowrap; }
+:root[data-style="instrument"] .tl-period { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+:root[data-style="instrument"] .app-header #view-title { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; text-shadow: none; }
+
+/* Figures: light and large, set tight. */
+:root[data-style="instrument"] .tl-big { font-weight: 300; letter-spacing: -0.035em; text-shadow: none; }
+:root[data-style="instrument"] .tl-mid,
+:root[data-style="instrument"] .tl-stats b { font-weight: 500; }
+:root[data-style="instrument"] .k .add-card--amount .amount-input { font-weight: 300; text-shadow: none; letter-spacing: -0.03em; }
+:root[data-style="instrument"] .k .add-card--amount .amount-prefix { font-weight: 300; }
+
+/* Dividers are hairlines, not a groove. */
+:root[data-style="instrument"] .k-row + .k-row,
+:root[data-style="instrument"] .k .add-row + .add-row,
+:root[data-style="instrument"] .k .need-row + .need-row,
+:root[data-style="instrument"] .k .need-more { border-top: 1px solid var(--in-rule); box-shadow: none; }
+
+/* Rows are panels with a hairline, lit on their left edge when pressed. */
+:root[data-style="instrument"] .tl-item,
+:root[data-style="instrument"] .k .account-block,
+:root[data-style="instrument"] .k .hist-day-card .hist-row { box-shadow: 0 0 0 1px var(--in-rule); }
+:root[data-style="instrument"] .tl-ibox { color: var(--k-accent); border-color: color-mix(in srgb, var(--k-accent) 55%, transparent); background: color-mix(in srgb, var(--k-accent) 10%, transparent); box-shadow: none; }
+:root[data-style="instrument"] .tl-badge { border-radius: var(--in-r-sm); color: var(--k-accent-ink); background: var(--k-warning); box-shadow: none; text-transform: uppercase; letter-spacing: .08em; font-size: 10.5px; }
+:root[data-style="instrument"] .tl-v.tl-ok { color: var(--k-positive); }
+
+/* Fields and choosers: recessed, square, lit edge when focused. */
+:root[data-style="instrument"] .k-input,
+:root[data-style="instrument"] .k-select,
+:root[data-style="instrument"] .k .k-picker,
+:root[data-style="instrument"] .k .hist-search,
+:root[data-style="instrument"] .k select.hist-chip,
+:root[data-style="instrument"] input[type="text"],
+:root[data-style="instrument"] input[type="number"],
+:root[data-style="instrument"] input[type="password"],
+:root[data-style="instrument"] input[type="search"],
+:root[data-style="instrument"] select { border-radius: var(--in-r-sm); border: 1px solid var(--in-rule-hi); box-shadow: none; }
+:root[data-style="instrument"] .k-seg,
+:root[data-style="instrument"] .pills-row,
+:root[data-style="instrument"] .k .amount-hero .direction-toggle { border-radius: var(--in-r); border: 1px solid var(--in-rule-hi); box-shadow: none; }
+:root[data-style="instrument"] .k-input:focus-visible,
+:root[data-style="instrument"] .k-select:focus-visible,
+:root[data-style="instrument"] input:focus-visible { border-color: var(--k-accent); box-shadow: 0 0 0 1px var(--k-accent); }
+
+/* The lit colour: chosen segments, chips and tabs are a flat fill of it. */
+:root[data-style="instrument"] .k-seg__btn,
+:root[data-style="instrument"] .chip,
+:root[data-style="instrument"] .dir-btn,
+:root[data-style="instrument"] .seg-btn { border-radius: var(--in-r-sm); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+:root[data-style="instrument"] .k-seg__btn[aria-selected="true"],
+:root[data-style="instrument"] .chip.active,
+:root[data-style="instrument"] .dir-btn.active,
+:root[data-style="instrument"] .seg-btn.active { background: var(--k-accent); color: var(--k-accent-ink); box-shadow: none; }
+:root[data-style="instrument"] .k .k-picker.is-chosen { box-shadow: 0 0 0 1px var(--k-accent); }
+:root[data-style="instrument"] .k .k-quick__chip { border-radius: var(--in-r-sm); background: var(--t-well); box-shadow: 0 0 0 1px var(--in-rule-hi); color: var(--k-text-2); }
+:root[data-style="instrument"] .k .k-quick__chip.on { color: var(--k-text); background: color-mix(in srgb, var(--k-accent) 14%, var(--k-surface)); box-shadow: inset 2px 0 0 var(--k-accent), 0 0 0 1px color-mix(in srgb, var(--k-accent) 45%, transparent); }
+:root[data-style="instrument"] .k .k-quick__chip.on svg { color: var(--k-accent); }
+
+/* The main action: a solid slab of the lit colour with a glow. */
+:root[data-style="instrument"] .k-btn--primary,
+:root[data-style="instrument"] .k .add-form .k-btn--primary,
+:root[data-style="instrument"] .btn-primary { border-radius: var(--in-r); background: var(--k-accent); color: var(--k-accent-ink); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; box-shadow: 0 0 26px -8px var(--k-accent), inset 0 1px 0 rgb(255 255 255 / 0.35); }
+:root[data-style="instrument"] .k .need-row__go .btn-tiny { border-radius: var(--in-r-sm); border: 1px solid var(--in-rule-hi); background: var(--t-well); box-shadow: none; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+:root[data-style="instrument"] .k .k-add-sms { border-radius: var(--in-r); box-shadow: 0 0 0 1px var(--in-rule-hi); }
+
+/* Switches: a square track, a square knob. */
+:root[data-style="instrument"] .k-toggle { border-radius: var(--in-r-sm); box-shadow: inset 0 0 0 1px var(--in-rule-hi); }
+:root[data-style="instrument"] .k-toggle::after { border-radius: 2px; box-shadow: none; }
+:root[data-style="instrument"] .k-toggle[aria-checked="true"] { background: var(--k-accent); box-shadow: 0 0 14px -4px var(--k-accent); }
+:root[data-style="instrument"] .k-toggle[aria-checked="true"]::after { background: var(--k-accent-ink); }
+:root[data-style="instrument"] .k .k-switch-row:has(#add-reimb:checked) .k-toggle,
+:root[data-style="instrument"] .k .k-switch-row:has(#add-settle:checked) .k-toggle { background: var(--k-positive); }
+:root[data-style="instrument"] .k .k-switch-row:has(#add-reimb:checked) .k-toggle::after,
+:root[data-style="instrument"] .k .k-switch-row:has(#add-settle:checked) .k-toggle::after { background: var(--k-accent-ink); }
+:root[data-style="instrument"] .k .hist-flag input[type="checkbox"],
+:root[data-style="instrument"] .k .checkbox-row input[type="checkbox"] { border-radius: 2px; box-shadow: inset 0 0 0 1.5px var(--in-rule-hi); }
+:root[data-style="instrument"] .k .hist-flag input[type="checkbox"]:checked,
+:root[data-style="instrument"] .k .checkbox-row input[type="checkbox"]:checked { background: var(--k-accent); box-shadow: 0 0 10px -2px var(--k-accent); }
+
+/* The tab bar: a flush rail, the current tab lit by a bar above it. */
+:root[data-style="instrument"] #tabs.bottom-nav { margin: 0; padding: 0; border-radius: 0; background: color-mix(in srgb, var(--k-bg) 94%, black); border-top: 1px solid var(--in-rule-hi); box-shadow: none; }
+:root[data-style="instrument"] body { padding-bottom: calc(var(--nav-height, 84px) + var(--space-lg)); }
+:root[data-style="instrument"] #tabs .nav-btn { border-radius: 0; font-size: 9.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+:root[data-style="instrument"] #tabs .nav-btn.active { position: relative; color: var(--k-accent); background: none; box-shadow: none; }
+:root[data-style="instrument"] #tabs .nav-btn.active::before { content: ""; position: absolute; top: -1px; left: 22%; right: 22%; height: 2px; background: var(--k-accent); box-shadow: 0 0 12px var(--k-accent); }
+:root[data-style="instrument"] #tabs .nav-btn.active .nav-icon { color: var(--k-accent); }
+
+/* The month stepper: one rectangle, a step either side of the month. */
+:root[data-style="instrument"] .hist-month { gap: 0; border: 1px solid var(--in-rule-hi); border-radius: var(--in-r); background: var(--k-surface); overflow: hidden; }
+:root[data-style="instrument"] .hist-month .hist-step { width: 44px; height: 42px; border-radius: 0; background: none; box-shadow: none; }
+:root[data-style="instrument"] .hist-month .hist-month-name { flex: 1; padding: 0; border-radius: 0; background: none; box-shadow: none; border-inline: 1px solid var(--in-rule); font-size: 12.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; text-align: center; line-height: 42px; }
+
+/* Settings and How it looks. */
+:root[data-style="instrument"] .money-kind,
+:root[data-style="instrument"] .look-option.look-style { border-radius: var(--in-r-sm); background: var(--t-well); box-shadow: 0 0 0 1px var(--in-rule-hi); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+:root[data-style="instrument"] .money-kind.on,
+:root[data-style="instrument"] .look-option.look-style.chosen { background: var(--k-accent); color: var(--k-accent-ink); box-shadow: none; }
+:root[data-style="instrument"] .look-styles { border-radius: var(--in-r); box-shadow: 0 0 0 1px var(--in-rule-hi); }
+:root[data-style="instrument"] .look-option.look-swatch { border-radius: var(--in-r); box-shadow: 0 0 0 1px var(--in-rule); }
+:root[data-style="instrument"] .look-option.look-swatch.chosen { box-shadow: 0 0 0 1px var(--k-accent), 0 0 14px -4px var(--k-accent); }
+:root[data-style="instrument"] .k-context--alert,
+:root[data-style="instrument"] .k-context--attention { border-radius: var(--in-r); background: color-mix(in srgb, var(--t-alarm) 10%, var(--k-surface)); box-shadow: inset 2px 0 0 var(--t-alarm), 0 0 0 1px color-mix(in srgb, var(--t-alarm) 40%, transparent); }
+:root[data-style="instrument"] .explain-pop { box-shadow: 0 0 0 1px var(--k-accent), 0 16px 30px rgb(0 0 0 / 0.6); }
+:root[data-style="instrument"] .explain-pop b { color: var(--k-accent); text-transform: uppercase; letter-spacing: .1em; font-size: 11px; }
+
+/* Bars made of cells, like a level meter: a lit run on a dark track. */
+:root[data-style="instrument"] {
+  --in-cells: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 7px);
+}
+:root[data-style="instrument"] .tl-prog,
+:root[data-style="instrument"] .tl-thin,
+:root[data-style="instrument"] .k .plan-flex__track,
+:root[data-style="instrument"] .k .setup-progress,
+:root[data-style="instrument"] .k .card-split__bar,
+:root[data-style="instrument"] .k .coach-share { border-radius: 2px; background: var(--in-track); box-shadow: none; }
+:root[data-style="instrument"] .tl-prog { height: 24px; }
+:root[data-style="instrument"] .tl-prog i,
+:root[data-style="instrument"] .tl-thin i,
+:root[data-style="instrument"] .k .plan-flex__track i,
+:root[data-style="instrument"] .k .setup-progress i { border-radius: 0; background: var(--k-accent); box-shadow: none; -webkit-mask-image: var(--in-cells); mask-image: var(--in-cells); }
+:root[data-style="instrument"] .tl-prog i.caution { background: var(--k-warning); }
+:root[data-style="instrument"] .tl-prog i.bad { background: var(--k-negative); }
+:root[data-style="instrument"] .tl-prog--aside i { background: var(--k-positive); }
+:root[data-style="instrument"] .tl-prog > span { text-shadow: none; font-size: 12px; }
+:root[data-style="instrument"] .k .plan-flex__row.is-warn .plan-flex__track i { background: var(--k-warning); }
+:root[data-style="instrument"] .k .plan-flex__row.is-over .plan-flex__track i { background: var(--k-negative); }
+:root[data-style="instrument"] .tl-cols i { border-radius: 1px; background: var(--in-track); box-shadow: none; }
+:root[data-style="instrument"] .tl-cols i.lit { background: var(--k-accent); box-shadow: 0 0 12px -2px var(--k-accent); }
+:root[data-style="instrument"] .k .hist-days__bar { border-radius: 1px; background: var(--k-accent); opacity: .5; }
+:root[data-style="instrument"] .k .hist-days__bar.is-top { background: var(--k-negative); opacity: 1; box-shadow: none; }
+:root[data-style="instrument"] .pl-seg { padding: 3px; gap: 2px; }
+:root[data-style="instrument"] .pl-seg i { border-radius: 1px; }
+:root[data-style="instrument"] .pl-top--tactile .is-must { background: var(--k-accent); }
+:root[data-style="instrument"] .pl-top--tactile .is-flex { background: var(--k-warning); }
+:root[data-style="instrument"] .pl-top--tactile .is-free { background: var(--k-text-3); }
+:root[data-style="instrument"] .pl-top--tactile .is-saved { background: var(--k-positive); }
+/* The month's steps: square marks, the paid ones lit. */
+.pl-month--tactile .pl-step b { border-radius: var(--in-r-sm); }
+:root[data-style="instrument"] .pl-month--tactile .pl-step b { border-radius: var(--in-r-sm); color: var(--k-text-2); background: var(--k-surface-elev); box-shadow: 0 0 0 1px var(--in-rule-hi); }
+:root[data-style="instrument"] .pl-month--tactile .pl-step::after { background: var(--in-track); }
+:root[data-style="instrument"] .pl-month--tactile .pl-step.is-paid::after { background: var(--k-accent); box-shadow: 0 0 8px -2px var(--k-accent); }
+:root[data-style="instrument"] .pl-month--tactile .pl-step.is-paid b { color: var(--k-accent-ink); background: var(--k-accent); box-shadow: 0 0 14px -2px var(--k-accent); }
+:root[data-style="instrument"] .pl-month--tactile .pl-step.is-late b { color: #fff; background: var(--k-negative); box-shadow: 0 0 14px -2px var(--k-negative); }
+:root[data-style="instrument"] .pl-month--tactile .pl-step.is-due b { color: var(--k-accent); }
+:root[data-style="instrument"] .plan-month .pl-month--tactile { background: var(--k-surface-elev); }
+
+/* --- Summary's dial (summary-looks.js instrumentDial) --------------------- */
+.in-hero { padding-bottom: 0; overflow: hidden; }
+.in-hero .tl-stats { margin-inline: calc(var(--k-4) * -1); gap: 0; margin-top: 0; border-top: 1px solid var(--in-rule); }
+:root[data-style="instrument"] .in-hero .tl-stats > div { border-radius: 0; background: none; box-shadow: none; padding: 11px var(--k-4) 12px; }
+:root[data-style="instrument"] .in-hero .tl-stats > div + div { border-left: 1px solid var(--in-rule); }
+:root[data-style="instrument"] .in-hero .tl-prog--aside { margin: 0 calc(var(--k-4) * -1); border-radius: 0; border-top: 1px solid var(--in-rule); height: 28px; }
+.in-dial { display: block; width: 100%; height: auto; margin-top: 4px; }
+.in-dial__m { stroke-width: 1.6; stroke: var(--in-track); }
+.in-dial__m.is-major { stroke-width: 2.4; }
+.in-dial__m--on { stroke: var(--k-accent); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--k-accent) 70%, transparent)); }
+.in-dial__m--ahead { stroke: var(--k-negative); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--k-negative) 70%, transparent)); }
+.in-dial__needle { stroke: var(--k-text); stroke-width: 3; }
+.in-dial__flag { fill: var(--k-text); }
+.in-dial__cap { fill: var(--k-text-3); font-size: 10px; font-weight: 600; letter-spacing: .22em; font-family: var(--k-font); }
+.in-dial__end { fill: var(--k-text-3); font-size: 10.5px; font-family: var(--k-font); }
+.in-dial__fig { fill: var(--k-text); font-size: 46px; font-weight: 300; letter-spacing: -1.2px; font-family: var(--k-font); font-variant-numeric: tabular-nums; }
+.in-dial__fig.is-negative { fill: var(--k-negative); }
+.in-dial__sub { fill: var(--k-text-2); font-size: 12.5px; font-family: var(--k-font); font-variant-numeric: tabular-nums; }
+.in-status { display: flex; align-items: flex-start; gap: 10px; margin: 0 calc(var(--k-4) * -1); padding: 11px var(--k-4); border-top: 1px solid var(--in-rule); font-size: 13.5px; color: var(--k-text-2); }
+.in-led { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--k-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--k-accent) 22%, transparent), 0 0 10px var(--k-accent); }
+.in-status.caution .in-led { background: var(--k-warning); box-shadow: 0 0 0 2px color-mix(in srgb, var(--k-warning) 22%, transparent), 0 0 10px var(--k-warning); }
+.in-status.bad .in-led { background: var(--k-negative); box-shadow: 0 0 0 2px color-mix(in srgb, var(--k-negative) 22%, transparent), 0 0 10px var(--k-negative); }
+.in-status.caution { color: var(--k-warning); } .in-status.bad { color: var(--k-negative); }
+
+/* --- The ruled month chart (summary.js monthScale) ------------------------ */
+.scale { overflow: visible; }
+.scale__rule { stroke: var(--in-rule); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.scale__lab { fill: var(--k-text-3); font-size: 10px; font-family: var(--k-font); }
+.scale__budget { stroke: var(--k-text-2); stroke-width: 1; stroke-dasharray: 2 4; vector-effect: non-scaling-stroke; }
+.scale__budget-lab { fill: var(--k-text-2); font-size: 10px; font-weight: 600; letter-spacing: .1em; font-family: var(--k-font); }
+.scale__tick { stroke: var(--in-track); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.scale__tick.is-gone { stroke: var(--k-text-3); }
+.scale .waves__line { stroke-linejoin: miter; stroke-width: 1.8; }
+.scale .waves__line.waves--spent { stroke: var(--k-accent); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--k-accent) 70%, transparent)); }
+.scale .waves__line.waves--pace { stroke: var(--k-text-2); stroke-dasharray: 5 5; opacity: .8; }
+.k .scale .waves__bar { fill: var(--k-accent); opacity: .55; rx: 0; }
+.k .scale .waves__bar.is-top { fill: var(--k-negative); opacity: 1; }
+.k .scale .waves__bar.is-picked { fill: var(--k-text); opacity: 1; }
+.scale .waves__dot { fill: var(--k-bg); stroke: var(--k-accent); stroke-width: 2; }
+.k .scale .waves__guide { stroke: var(--k-text); opacity: .5; stroke-dasharray: none; }
+.scale-card .waves__k::before { border-radius: 1px; width: 9px; height: 9px; background: currentColor; border: 0; }
+.scale-card .waves__k.waves--spent::before { color: var(--k-accent); }
+.scale-card .waves__k.waves--pace::before { color: var(--k-text-2); }
+.scale-card .waves__k.waves--day::before { color: var(--k-negative); }
+
+/* --- Corrections found rendering every screen (5.25) ---------------------- */
+:root[data-style="instrument"] .k-btn,
+:root[data-style="instrument"] .btn-secondary,
+:root[data-style="instrument"] .btn-tiny,
+:root[data-style="instrument"] .hist-select-btn { border-radius: var(--in-r); }
+:root[data-style="instrument"] .k-btn--secondary,
+:root[data-style="instrument"] .btn-secondary { border: 1px solid var(--in-rule-hi); background: var(--t-well); box-shadow: none; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: 12.5px; }
+:root[data-style="instrument"] .k .hero-amount { font-weight: 300; letter-spacing: -0.035em; text-shadow: none; }
+/* A bar with its words above it and its cells under them (Spent, Set aside, the
+   coach's pace): words over cells are unreadable, so they never overlap. */
+:root[data-style="instrument"] .tl-prog { display: grid; grid-template-rows: auto 10px; height: auto; margin-top: 14px; background: none; border-radius: 0; overflow: visible; }
+:root[data-style="instrument"] .tl-prog > span { grid-row: 1; grid-column: 1; position: static; height: auto; padding: 0 0 7px; font-size: 12px; font-weight: 500; color: var(--k-text-2); }
+:root[data-style="instrument"] .tl-prog > span > span:last-child { font-weight: 600; color: var(--k-text); }
+:root[data-style="instrument"] .tl-prog::after { content: ""; grid-row: 2; grid-column: 1; height: 10px; border-radius: 2px; background: var(--in-track); }
+:root[data-style="instrument"] .tl-prog i { grid-row: 2; grid-column: 1; position: relative; inset: auto; z-index: 1; height: 10px; justify-self: start; }
+:root[data-style="instrument"] .in-hero .tl-prog--aside { margin: 0 calc(var(--k-4) * -1); padding: 12px var(--k-4) 14px; border-top: 1px solid var(--in-rule); height: auto; }
+.k .scale .waves__tick { fill: var(--k-text-2); } .k .scale .waves__tick.is-ahead { fill: var(--k-text-3); }

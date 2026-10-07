@@ -18,6 +18,7 @@ export const STYLES = [
   { id: 'tactile', name: 'Tactile', ready: true, note: 'Raised cards, pressed-in fields, metal switches.' },
   { id: 'peaks', name: 'Peaks', ready: true, note: 'A pale panel up top, the month as mountains.' },
   { id: 'mindora', name: 'Mindora', ready: true, note: 'Frosted glass over a misty ridge, sage and serif.' },
+  { id: 'instrument', name: 'Instrument', ready: true, note: 'Dark and precise: a dial, ruled scales, one lit colour.' },
 ];
 
 // Ground, accent, second accent, money in: the four dots a swatch shows.
@@ -26,6 +27,9 @@ export const COLOURINGS = [
   { id: 'tactile', name: 'Tactile copper', mode: 'dark', bg: '#222125', dots: ['#38373c', '#b0552f', '#e2906a', '#d9d2cb'] },
   { id: 'peaks', name: 'Peaks slate', mode: 'dark', bg: '#1c2328', dots: ['#eef6f6', '#fd8242', '#f6b74c', '#1efae0'] },
   { id: 'mindora', name: 'Mindora mist', mode: 'light', bg: '#dfe6e7', dots: ['#f1f5f4', '#4e786c', '#e8aeb7', '#a7c7e7'] },
+  { id: 'instrument', name: 'Instrument amber', mode: 'dark', bg: '#0b0d10', dots: ['#12151a', '#ffb020', '#ff8a3d', '#46d68c'] },
+  { id: 'instrument-ice', name: 'Instrument ice', mode: 'dark', bg: '#0b0d10', dots: ['#12151a', '#5ad1ff', '#3b8fe0', '#46d68c'] },
+  { id: 'instrument-lime', name: 'Instrument lime', mode: 'dark', bg: '#0b0d10', dots: ['#12151a', '#b6f23c', '#7ccf2a', '#46d68c'] },
   { id: 'ember-dusk', name: 'Ember dusk', mode: 'dark', bg: '#101c30', dots: ['#143041', '#e2773a', '#ffcb68', '#5fb3a8'] },
   { id: 'strawberry-night', name: 'Strawberry night', mode: 'dark', bg: '#142030', dots: ['#1e3442', '#ff5c8d', '#a83a78', '#85a3b2'] },
   { id: 'flame-light', name: 'Burning flame, light', mode: 'light', bg: '#eee9df', dots: ['#f8f5ef', '#a35139', '#ffb162', '#2c3b4d'] },
@@ -38,7 +42,7 @@ export const COLOURINGS = [
 // the phone (each style brings one), otherwise Charts on a dark phone and
 // burning flame light on a light one. Mindora's own colouring is light.
 export const AUTO = { dark: 'charts', light: 'flame-light' };
-const OWN = { charts: 'charts', tactile: 'tactile', peaks: 'peaks', mindora: 'mindora' };
+const OWN = { charts: 'charts', tactile: 'tactile', peaks: 'peaks', mindora: 'mindora', instrument: 'instrument' };
 
 /* The colouring a style brings with it. */
 export const ownColouring = (style) => OWN[style] || AUTO.dark;

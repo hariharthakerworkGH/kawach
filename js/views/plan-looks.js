@@ -34,7 +34,7 @@ export function planTop(style, f) {
     .map((p) => `<i class="is-${p.id}" style="flex:${p.amount}"></i>`)
     .join('')}</div>`;
   const amount = `<span class="${f.budget != null && f.budget < 0 ? 'is-negative' : ''}">${f.budget != null ? formatRupees(f.budget) : '-'}</span>`;
-  if (style === 'tactile') {
+  if (style === 'tactile' || style === 'instrument') {
     return `<section class="pl-top pl-top--tactile">
         <div class="tl-top"><span class="tl-k">Budget each month</span><span class="tl-period">comes in ${formatRupees(f.income)}</span></div>
         <div class="tl-big">${amount}</div>
@@ -81,6 +81,8 @@ export function planTop(style, f) {
  * own: { label, day, amount, state: 'paid' | 'due' | 'late' }. */
 export function planMonth(style, rows, now = new Date()) {
   if (!rows.length) return '';
+  // Instrument draws the month as Tactile's steps (its CSS repaints them).
+  if (style === 'instrument') style = 'tactile';
   const today = now.getDate();
   const words = { paid: 'paid', late: 'late', skipped: 'skipped this month', due: 'still to pay' };
   const said = (r) => `${r.label}, ${formatRupees(r.amount)} on the ${ordinal(r.day)}: ${words[r.state] || words.due}. Tap to mark it paid, skip it or see its payments.`;

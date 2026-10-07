@@ -119,11 +119,11 @@ const weekCols = (x, cls) => {
 };
 
 /* --- Tactile: a raised instrument, then plain rows ----------------------- */
-export function tactileTop(f, status, month) {
+export function tactileTop(f, status, month, heroHtml = '') {
   const x = topFigures(f);
   const row = (ic, t, s, v, cls = '', id = '') =>
     `<${id ? `button type="button" id="${id}"` : 'div'} class="tl-item"><span class="tl-ibox">${ic}</span><span class="tl-grow"><span class="tl-t">${t}</span>${s ? `<span class="tl-s">${s}</span>` : ''}</span><span class="tl-v ${cls}">${v}</span>${id ? `<span class="tl-chev">${icon('forward')}</span>` : ''}</${id ? 'button' : 'div'}>`;
-  return `<div class="tl-hero ${f.free < 0 ? 'is-negative' : ''}">
+  const hero = `<div class="tl-hero ${f.free < 0 ? 'is-negative' : ''}">
       <div class="tl-top"><span class="tl-k">Left to spend</span><span class="tl-period">${x.period}</span></div>
       <div class="tl-big">${formatRupees(x.left)}</div>
       <div class="tl-stats">
@@ -139,7 +139,8 @@ export function tactileTop(f, status, month) {
       </div>
       <div class="tl-ticks">${'<i></i>'.repeat(11)}</div>
       <p class="tl-line ${tone(f)}">${escapeHtml(status)}</p>
-    </div><!--k:answer-->
+    </div>`;
+  return `${heroHtml || hero}<!--k:answer-->
     ${month || ''}<!--k:month-->
     ${x.week.length && !x.finished ? `<div class="tl-card"><div class="tl-top"><span class="tl-k">This week</span><b class="tl-mid">${formatRupees(x.weekTotal)}</b></div>${weekCols(x, 'tl-cols')}</div>` : ''}
     ${x.finished ? '' : `<div class="tl-list" data-owed-anchor>
@@ -149,6 +150,70 @@ export function tactileTop(f, status, month) {
       ${x.employer ? row(categoryIcon('income'), 'Owed back', 'by your employer', formatRupees(x.employer), 'tl-ok', 'owed-back-stat') : ''}
     </div>`}
     ${x.coming.length && !x.finished ? `<div class="tl-label"><span>Coming up</span><span class="tl-still">${formatRupees(x.stillToPay)} still to pay</span></div><div class="tl-list">${x.coming.map((c) => row(categoryStyle(c.label).icon, escapeHtml(c.label), `${formatDateNice(c.due)}${c.late ? ' · late' : ''}`, formatRupees(c.amount), c.late ? 'tl-bad' : '')).join('')}</div>` : ''}`;
+}
+
+/* --- Instrument: a dial, then Tactile's rows (5.25) ---------------------- */
+// The budget as 240 degrees of scale, sixty marks. Marks up to the even pace
+// are lit in the accent; the marks past it up to what is spent are lit red, so
+// "ahead of pace" is something you see, not something you work out. A white
+// mark is where you are, a small flag is where an even spread would be. A
+// finished month has no pace: its marks are all one colour. Exported for a test.
+export function instrumentDial(x, negative) {
+  const cx = 163, cy = 148, R = 124, N = 60, sweep = 240;
+  const fs = x.limit > 0 ? Math.min(1, Math.max(0, x.spent / x.limit)) : 1;
+  const fp = x.finished || !(x.limit > 0) ? 1 : Math.min(1, Math.max(0, x.pace / x.limit));
+  const ang = (f) => -sweep / 2 + f * sweep;
+  const pt = (a, r) => [cx + r * Math.sin((a * Math.PI) / 180), cy - r * Math.cos((a * Math.PI) / 180)];
+  const n1 = (v) => v.toFixed(1);
+  let marks = '';
+  for (let i = 0; i <= N; i++) {
+    const f = i / N;
+    const major = i % 5 === 0;
+    const [x1, y1] = pt(ang(f), R);
+    const [x2, y2] = pt(ang(f), R - (major ? 18 : 11));
+    const lit = f <= fs + 1e-9 ? (f <= fp + 1e-9 ? 'on' : 'ahead') : 'off';
+    marks += `<line class="in-dial__m in-dial__m--${lit}${major ? ' is-major' : ''}" x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}"/>`;
+  }
+  const [nx1, ny1] = pt(ang(fs), R + 5);
+  const [nx2, ny2] = pt(ang(fs), R - 26);
+  const [z0x, z0y] = pt(ang(0), R - 36);
+  const [z1x, z1y] = pt(ang(1), R - 36);
+  const flag = x.finished || !(x.limit > 0) ? '' : (() => {
+    const [fx, fy] = pt(ang(fp), R + 9);
+    const [lx, ly] = pt(ang(fp), R + 24);
+    // The label is kept inside the drawing: a pace near either end of the scale
+    // would otherwise put it off the edge.
+    const anchor = lx < 62 ? 'start' : lx > 264 ? 'end' : 'middle';
+    const labelX = Math.min(300, Math.max(26, lx));
+    return `<path class="in-dial__flag" d="M${n1(fx)} ${n1(fy)} l-4 -6 l8 0z" transform="rotate(${n1(ang(fp))} ${n1(fx)} ${n1(fy)})"/><text class="in-dial__cap" x="${n1(labelX)}" y="${n1(ly + 3)}" text-anchor="${anchor}">EVEN PACE</text>`;
+  })();
+  const total = x.limit > 0 ? formatRupees(x.limit) : '';
+  return `<svg class="in-dial" viewBox="0 0 326 236" role="img" aria-label="${formatRupees(x.spent)} spent${x.limit > 0 ? ` of ${total}` : ''}${flag ? `, an even pace would be ${formatRupees(x.pace)} by now` : ''}">
+      ${marks}
+      <line class="in-dial__needle" x1="${n1(nx1)}" y1="${n1(ny1)}" x2="${n1(nx2)}" y2="${n1(ny2)}"/>
+      ${flag}
+      <text class="in-dial__end" x="${n1(z0x)}" y="${n1(z0y + 22)}" text-anchor="middle">₹0</text>
+      ${total ? `<text class="in-dial__end" x="${n1(z1x)}" y="${n1(z1y + 22)}" text-anchor="middle">${total}</text>` : ''}
+      <text class="in-dial__cap" x="${cx}" y="${cy - 46}" text-anchor="middle">LEFT TO SPEND</text>
+      <text class="in-dial__fig${negative ? ' is-negative' : ''}" x="${cx}" y="${cy + 8}" text-anchor="middle">${formatRupees(x.left)}</text>
+      <text class="in-dial__sub" x="${cx}" y="${cy + 32}" text-anchor="middle">${x.limit > 0 ? `${formatRupees(x.spent)} spent of ${total}` : `${formatRupees(x.spent)} spent`}</text>
+    </svg>`;
+}
+
+export function instrumentTop(f, status, month) {
+  const x = topFigures(f);
+  const hero = `<div class="tl-hero in-hero ${f.free < 0 ? 'is-negative' : ''}">
+      <div class="tl-top"><span class="tl-k">Budget dial</span><span class="tl-period">${x.period}</span></div>
+      ${instrumentDial(x, f.free < 0)}
+      <p class="in-status ${tone(f)}"><span class="in-led"></span><span>${escapeHtml(status)}</span></p>
+      <div class="tl-stats">
+        <div><span class="tl-k">Spent</span><b>${formatRupees(x.spent)}</b></div>
+        <div><span class="tl-k">Budget</span><b>${formatRupees(x.limit)}</b></div>
+        <div><span class="tl-k">${x.finished ? 'Days' : 'A day'}</span><b>${x.finished ? x.monthDays : x.perDay > 0 ? formatRupees(x.perDay) : '-'}</b></div>
+      </div>
+      ${x.asideUsed != null ? `<div class="tl-prog tl-prog--aside"><i style="width:${pct(x.asideUsed)}"></i><span><span>Set aside used</span><span>${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}</span></span></div>` : ''}
+    </div>`;
+  return tactileTop(f, status, month, hero);
 }
 
 /* --- Peaks: the pale panel with a donut, the mountains, slate cards ------ */

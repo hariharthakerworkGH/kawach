@@ -13,7 +13,7 @@ import { cardPosition, bankBalance, statementDayFixes, balanceAt } from '../js/a
 import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance, applyTheme } from '../js/appearance.js';
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
-import { mood, comingUp, keptBack, topFigures } from '../js/views/summary-looks.js';
+import { mood, comingUp, keptBack, topFigures, instrumentDial, instrumentTop } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
 import { termFor } from '../js/explain.js';
 import { peopleStanding, personSpendEffects, lateBack, reminderText } from '../js/people.js';
@@ -39,7 +39,7 @@ import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, spendingPulse, cashRiver, tickGauge } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
-import { shortStatus, spentLine, spendingHero, monthWaves, monthMountains, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
+import { shortStatus, spentLine, spendingHero, monthWaves, monthMountains, monthScale, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -440,6 +440,10 @@ test('colourings: follow the phone, carry over an old light or dark choice', () 
   equal(colouringFor('auto', true, 'mindora').id, 'mindora', "in Mindora, a light phone gets Mindora's own light colouring");
   equal(colouringFor('auto', false, 'mindora').id, 'charts', 'and a dark phone a dark one, Charts');
   equal(styleFor('mindora'), 'mindora', 'Mindora is ready');
+  equal(styleFor('instrument'), 'instrument', 'Instrument is ready');
+  equal(colouringFor('auto', false, 'instrument').id, 'instrument', 'in Instrument, a dark phone gets Instrument amber');
+  equal(colouringFor('auto', true, 'instrument').id, 'flame-light', 'and a light phone burning flame light, as Instrument is dark');
+  ok(['instrument', 'instrument-ice', 'instrument-lime'].every((id) => COLOURINGS.some((c) => c.id === id && c.mode === 'dark')), 'Instrument comes in amber, ice and lime');
   equal(styleFor('no-such'), 'charts', 'a style that does not exist is drawn as Charts');
   ok(COLOURINGS.every((c) => c.mode === 'light' || c.mode === 'dark'));
   const key = 'kawach-appearance';
@@ -1502,6 +1506,40 @@ test('the Summary tracking card: rings for budget spent, month gone and set-asid
   ok(spendingHero(base, 'full', 'Final for September').includes('stroke-dasharray="100.0 100"'), 'a finished month has its month ring full');
   ok(!spendingHero(base, 'plain').includes('hero--tracking'), 'the plain look has no rings');
   ok(!spendingHero({ ...base, tracker: [] }, 'full').includes('set aside used'), 'no set-asides followed, no third ring');
+});
+
+test('Instrument: the dial lights up to what is spent, red past an even pace; the chart is a ruled scale of the whole month', () => {
+  const days = Array.from({ length: 12 }, (_, i) => `2026-10-${String(i + 1).padStart(2, '0')}`);
+  const daily = [800, 2400, 600, 1900, 5200, 900, 1500, 700, 3100, 1200, 2600, 840].map(rupees);
+  let run = 0;
+  const f = {
+    limit: rupees(31500), free: rupees(8920), spentThisCycle: rupees(22580), used: 22580 / 31500, level: 'warning', daysIntoCycle: 12, daysToClose: 20,
+    spendDays: daily.map((d) => (run += d)), spendByDay: days.map((date, i) => ({ date, amount: daily[i] })),
+    cardBills: [], cards: [], tracker: [], totals: {}, cycleStart: '2026-10-01', cycleKey: '2026-10-31', perDay: rupees(446),
+  };
+  const x = topFigures(f);
+  const dial = instrumentDial(x, false);
+  equal((dial.match(/<line class="in-dial__m /g) || []).length, 61, 'sixty-one marks on a scale of sixty steps');
+  const on = (dial.match(/in-dial__m--on/g) || []).length;
+  const ahead = (dial.match(/in-dial__m--ahead/g) || []).length;
+  const off = (dial.match(/in-dial__m--off/g) || []).length;
+  equal(on + ahead + off, 61, 'every mark is lit, ahead of pace or dark');
+  ok(ahead > 0 && on > 0 && off > 0, 'spent ₹22,580 of ₹31,500 on day 12 is past an even pace: some red, some amber, some unlit');
+  ok(dial.includes('EVEN PACE') && dial.includes('₹8,920') && dial.includes('₹22,580 spent of ₹31,500'), 'the flag, the figure and the words under it');
+  const early = instrumentDial(topFigures({ ...f, daysIntoCycle: 1, daysToClose: 30 }), false);
+  const label = early.match(/<text class="in-dial__cap" x="([\d.]+)"[^>]*>EVEN PACE/);
+  ok(label && Number(label[1]) >= 26, 'a pace near the start of the scale keeps its label inside the drawing');
+  const done = instrumentDial(topFigures({ ...f, finished: true }), false);
+  ok(!done.includes('EVEN PACE') && !done.includes('in-dial__m--ahead'), 'a finished month has no pace: no flag, no red');
+  ok(instrumentDial(x, true).includes('in-dial__fig is-negative'), 'a negative figure is red');
+  const top = instrumentTop(f, 'Over pace.', '<!--m-->');
+  ok(top.includes('<!--k:answer-->') && top.includes('<!--k:month-->') && top.includes('Over pace.') && top.includes('in-hero'), 'the same hooks every style leaves for the month and the answer');
+  const scale = monthScale(f);
+  equal((scale.match(/class="scale__tick/g) || []).length, 31, 'a tick for every day of the month, those to come included');
+  ok(scale.includes('data-chart-days') && scale.includes('Most in one day') && scale.includes('BUDGET ₹31,500'), 'readable day by day, with the budget marked');
+  ok(/₹10K|₹20K|₹30K/.test(scale) && scale.includes('scale__rule'), 'a ruled scale with rupee marks down the side');
+  ok(scale.includes('waves__bar is-top'), 'the biggest day is marked');
+  equal(monthScale({ ...f, spendDays: [rupees(500)] }), '', 'one day is not yet a picture');
 });
 
 test('Summary waves and week: from the 1st to today, the biggest day marked, owed per card as Owed on cards adds it up', () => {
