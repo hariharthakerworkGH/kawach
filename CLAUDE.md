@@ -261,6 +261,11 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   `js/version.js`, and `APP_SHELL` must list every js file, both stylesheets
   and the font, or the app breaks offline.
 
+**Plans stay on the laptop (5.26.1).** `expense-tracker-versions/_private/` holds
+the master plan, the design notes (`docs/`), the component lab (`lab/`) and the
+old `versions/` stubs. The release tool publishes everything under `_work`, so
+anything not meant for the public goes in `_private`, never in `_work`.
+
 ## Design
 
 **Styles and colourings (5.0).** Kawach comes in five styles (Charts,

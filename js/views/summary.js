@@ -94,7 +94,7 @@ export async function render(container) {
   }
   const list = await businesses();
   space = await activeSpace();
-  // Summary is the first screen on the new visual system, docs/KAWACH-DESIGN-DNA.md.
+  // Summary is the first screen on the new visual system, the design notes kept on the laptop.
   // The shell follows it through `body:has(#dashboard)` in css/dna.css, so
   // nothing has to be cleaned up on the way out. Nothing about what is
   // calculated or shown changes here: only how it looks.
