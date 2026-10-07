@@ -1,5 +1,5 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
-import { tactileTop, peaksTop, mindoraTop, instrumentTop, keptBack, chartsComing, cardTag, tagHtml } from './summary-looks.js';
+import { tactileTop, peaksTop, mindoraTop, instrumentTop, keptBack, chartsComing, chartsCards } from './summary-looks.js';
 import { icon } from '../icons.js';
 import { isFixed, isLiveCommitment, coveredByFixed, commitmentFromSuggestion } from '../commitments.js';
 import { isoLocal, hasDueDate, frequencyOf } from '../frequency.js';
@@ -941,22 +941,8 @@ export function weekPills(f) {
   const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const col = (h, lit, label) => `<span class="pill-col${lit ? ' pill-col--lit' : ''}"><i style="height:${Math.max(8, h * 100).toFixed(0)}%"></i><small>${label}</small></span>`;
   const weekCols = days.map((d, i) => col((d.amount || 0) / top, i === days.length - 1, DOW[new Date(`${d.date}T12:00`).getDay()])).join('');
-  // What each card is owed: its unpaid bill and what has gone on it since,
-  // the same two figures "Owed on cards" adds up (renderOwed).
-  const onCard = (c) => Math.max(0, (c.owed || 0) + (c.unpaid || 0));
-  const cards = (f.cards || []).filter((c) => onCard(c) > 0);
-  const owed = Math.max(0, ((f.totals && f.totals.owedCards) || 0) + ((f.totals && f.totals.unpaidBills) || 0));
-  const cardTop = Math.max(...cards.map(onCard), 1);
-  const most = cards.reduce((m, c) => (onCard(c) > (m ? onCard(m) : 0) ? c : m), null);
   return `<div class="totals-card pills-card">
       <div class="pills-row"><div><small>This week</small><b>${formatRupees(week)}</b></div><div class="pill-cols">${weekCols}</div></div>
-      ${
-        cards.length
-          ? `<div class="pills-row pills-row--cards"><div><small>Owed on cards</small><b>${formatRupees(owed)}</b></div><div class="pill-cols">${cards
-              .map((c) => col(onCard(c) / cardTop, c === most, tagHtml(cardTag(c.account))))
-              .join('')}</div></div>`
-          : ''
-      }
     </div>`;
 }
 
@@ -1172,6 +1158,7 @@ function renderCardsHero(f, opts = {}) {
     : spendingHero(shown, short ? 'full' : appearance('summary'), past ? `Final for ${past.name}` : null, short ? shortStatus(f) : null) + `<!--k:answer-->
     ${past ? '' : monthWaves(f)}<!--k:month-->
     ${past ? '' : weekPills(f)}
+    ${past ? '' : chartsCards(f)}
     ${past && ['full', 'short'].includes(appearance('summary')) ? '' : `<div class="summary-rows summary-strip">
       ${['full', 'short'].includes(appearance('summary')) ? '' : spentLine(f.spentThisCycle, f.limit, spendSpark(f.spendByDay))}
       ${past ? '' : stillSetAside(f)}

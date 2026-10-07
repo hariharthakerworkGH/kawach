@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.28',
+    items: [
+      {
+        icon: 'eye',
+        title: "Every look is up to date again",
+        text: "Charts, Tactile, Peaks and Mindora now show each card as yours, owed by the company and planned, in their own style. Plan's month line says how many are paid and reminds you to tap a step. Tactile's month steps are round again.",
+        guide: [{ view: 'appearance', target: '.look-styles', text: "Try any look: each card says the same three things." }],
+      },
+    ],
+  },
+  {
     version: '5.27.2',
     items: [
       {

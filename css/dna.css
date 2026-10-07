@@ -2970,18 +2970,13 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .pill-cols { display: flex; gap: 6px; height: 64px; flex: none; }
 .pill-col { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; width: 18px; }
 .pill-col i { display: block; width: 100%; border-radius: 6px; background: color-mix(in oklch, var(--k-grad-3a) 18%, var(--k-surface)); }
-.pills-row--cards .pill-col i { background: color-mix(in oklch, var(--k-grad-1b) 22%, var(--k-surface)); }
+
 .pill-col--lit i { background: linear-gradient(180deg, var(--k-grad-3a), var(--k-grad-3b)); box-shadow: 0 0 12px color-mix(in srgb, var(--k-grad-3a) 45%, transparent); }
-.pills-row--cards .pill-col--lit i { background: linear-gradient(180deg, var(--k-grad-1a), var(--k-grad-1b)); box-shadow: 0 0 12px color-mix(in srgb, var(--k-grad-1a) 45%, transparent); }
+
 .pill-col small { font-size: 0.66rem; color: var(--k-text-3); white-space: nowrap; overflow: hidden; max-width: 30px; text-align: center; }
-.pills-row--cards .pill-cols { height: 72px; }
-.pills-row--cards .pill-col { width: 26px; }
+
 /* A card's bar names it (5.10): its name over its last digits, centred under it. */
-.pills-row--cards .pill-cols { gap: 10px; height: 88px; }
-.pills-row--cards .pill-col small { overflow: visible; }
-.pills-row--cards .pill-col { width: 44px; }
-.pills-row--cards .pill-col i { width: 26px; }
-.pills-row--cards .pill-col small { max-width: 48px; font-size: 0.6rem; line-height: 1.2; }
+
 .is-arriving .pill-col i { animation: grow-up 600ms var(--k-ease) both; transform-origin: bottom; }
 
 /* The strip: the figures under the cards, a coloured line under each. */
@@ -3385,3 +3380,12 @@ body:has(#view-container.k) .app-header {
 .nav-btn { margin-inline: 0; border-inline: var(--space-3xs) solid transparent; background-clip: padding-box; }
 .k .k-quick__chip, .k .pk-dash, .k button.waves__k, .k .hist-step, .pf-month, .money-kind, .btn-secondary.btn-block { min-height: var(--k-tap); }
 .muted-note a { display: inline-block; padding: 14px 4px; margin: -14px -4px; }
+
+/* --- Charts: the cards as rows of yours, owed by the company and planned (5.28) --- */
+.k .ch-cards { display: grid; gap: 10px; padding: var(--k-4); }
+.k .ch-cards__head { display: flex; align-items: center; gap: var(--k-3); }
+.k .ch-cards__k { font-size: var(--k-label); color: var(--k-text-2); }
+.k .ch-cards__head > b { margin-left: auto; font-size: var(--k-value); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--k-text); }
+.k .ch-cardrow { display: grid; grid-template-columns: 74px minmax(0, 1fr) 84px; gap: 6px 10px; align-items: center; font-size: 12.5px; color: var(--k-text-2); }
+.k .ch-cardrow > b { text-align: right; font-weight: 700; color: var(--k-text); font-variant-numeric: tabular-nums; }
+.k .ch-track { position: relative; display: block; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--k-text) 10%, transparent); overflow: hidden; }

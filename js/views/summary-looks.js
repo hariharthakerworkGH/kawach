@@ -399,6 +399,17 @@ function lake() {
     </svg>`;
 }
 
+/* --- Charts: each card as yours, owed by the company and planned (5.28) --- */
+// Charts used to show the cards as columns of amounts only. It now says what the other looks
+// say, in rows, with the same words.
+export function chartsCards(f) {
+  const x = topFigures(f);
+  if (!x.cards.length || x.finished) return '';
+  return `<div class="totals-card ch-cards"><div class="ch-cards__head"><span class="ch-cards__k">Owed on cards</span>${x.bills ? `<span class="tl-badge">${bills(x.bills)}</span>` : ''}<b>${formatRupees(x.owedCards)}</b></div>${x.cards
+    .map((c) => `<div class="ch-cardrow">${tagHtml(c)}<span class="ch-track">${cardBar(c)}</span><b>${formatRupees(c.amount)}</b>${cardKey(c)}</div>`)
+    .join('')}${cardLegend(x.cards)}</div>`;
+}
+
 /* --- Charts: what it lacked of the set - what is coming up --------------- */
 export function chartsComing(f) {
   const x = topFigures(f);

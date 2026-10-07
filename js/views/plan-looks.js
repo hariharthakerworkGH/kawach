@@ -105,5 +105,6 @@ export function planMonth(style, rows, now = new Date()) {
   return `<div class="pl-month pl-month--${style}">
       <div class="pl-steps no-swipe" style="--pl-n:${rows.length}; --pl-done:${done}">${rows.map(step).join('')}</div>
       <p class="pl-today">${done} of ${rows.length} paid · today is the ${ordinal(today)}</p>
+      <p class="pl-hint">Tap a step to mark paid or skip</p>
     </div>`;
 }

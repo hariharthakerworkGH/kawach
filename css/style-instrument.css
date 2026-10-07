@@ -98,7 +98,8 @@
 :root[data-style="instrument"] .k .add-card::before { content: ""; position: absolute; left: 0; top: 0; width: 8px; height: 8px; border: 1px solid var(--in-rule-hi); border-width: 1px 0 0 1px; border-top-left-radius: var(--in-r); pointer-events: none; }
 
 /* Labels: small capitals, wide spacing. */
-.tl-k, .tl-label,
+:root[data-style="instrument"] .tl-k,
+:root[data-style="instrument"] .tl-label,
 :root[data-style="instrument"] .k .add-card .k-label,
 :root[data-style="instrument"] .k .add-card .hero-label,
 :root[data-style="instrument"] .k .hist-days-card::before,
@@ -107,7 +108,7 @@
 :root[data-style="instrument"] #view-container h3 { font-size: var(--in-label); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
 :root[data-style="instrument"] #view-container h3,
 :root[data-style="instrument"] .k .hist-day-head { color: var(--k-text-3); text-shadow: none; border-bottom: 1px solid var(--in-rule); box-shadow: none; }
-.tl-stats .tl-k { font-size: 10.5px; letter-spacing: .12em; white-space: nowrap; }
+:root[data-style="instrument"] .tl-stats .tl-k { font-size: 10.5px; letter-spacing: .12em; white-space: nowrap; }
 :root[data-style="instrument"] .tl-period { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
 :root[data-style="instrument"] .app-header #view-title { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; text-shadow: none; }
 
@@ -243,7 +244,6 @@
 :root[data-style="instrument"] .pl-top--tactile .is-free { background: var(--k-text-3); }
 :root[data-style="instrument"] .pl-top--tactile .is-saved { background: var(--k-positive); }
 /* The month's steps: square marks, the paid ones lit. */
-.pl-month--tactile .pl-step b { border-radius: var(--in-r-sm); }
 :root[data-style="instrument"] .pl-month--tactile .pl-step b { border-radius: var(--in-r-sm); color: var(--k-text-2); background: var(--k-surface-elev); box-shadow: 0 0 0 1px var(--in-rule-hi); }
 :root[data-style="instrument"] .pl-month--tactile .pl-step::after { background: var(--in-track); }
 :root[data-style="instrument"] .pl-month--tactile .pl-step.is-paid::after { background: var(--k-accent); box-shadow: 0 0 8px -2px var(--k-accent); }
