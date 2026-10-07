@@ -18,10 +18,10 @@ export const TERMS = {
   'kept back': 'Money you set aside this month and have not spent yet. It is still yours.',
   'owed back': 'Work costs your employer has not paid back to you yet.',
   'owed on cards': 'Card bills not paid yet, plus what you have spent on cards since.',
-  'spent so far': 'Everything spent from the 1st of the month to today.',
-  'spent in all': 'Everything spent in the month, on cards and from the bank, not counting fixed costs.',
-  'at an even pace': 'What you would have spent by today if the budget were spread evenly over the month.',
-  'biggest day': 'The day you spent the most this month.',
+  "you've spent": 'Everything spent from the 1st of the month to today, on cards and from the bank, not counting fixed costs.',
+  'you spent': 'Everything spent in the month, on cards and from the bank, not counting fixed costs.',
+  'budget so far': 'What you could have spent by today if your budget were spread evenly over the month. Below the line is good.',
+  'most in one day': 'The most you spent in a single day this month. Tap it to see that day.',
   'this week': 'What you spent in the last seven days.',
   'this month': 'Each day of this month, from the 1st to today.',
   'coming up': 'Fixed costs still to pay this month, with their dates.',
@@ -53,7 +53,7 @@ export const TERMS = {
 // like "Out" elsewhere on a screen never turns into a link.
 const LABELS = [
   '.hero-label', '.tl-k', '.md-kick', '.pk-lab', '.pk-tiny', '.stat-k', '.tracking-stats small',
-  '.waves__k', '.summary-row__k', '.tl-t', '.tl-label > span', '.hero-figures .muted', '.pl-legend > span',
+  '.waves__lab', '.summary-row__k', '.tl-t', '.tl-label > span', '.hero-figures .muted', '.pl-legend > span',
   '.sum-needs__head', '.people-sums span', '.people-sec .account-group-label', '.ch-coming__k', '.ch-coming__still', '.pk-coming .pk-tiny', '.plan-sums .totals-row > span:first-child',
 ].join(', ');
 

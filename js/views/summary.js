@@ -6,7 +6,7 @@ import { isoLocal, hasDueDate, frequencyOf } from '../frequency.js';
 import { formatCurrency, formatDateNice, formatRupees } from '../format.js';
 import { cardBillDue } from '../account-metrics.js';
 import { computeFreeToSpend } from '../free-to-spend.js';
-import { burnLine, runwayBar, radialMeter, spendingPulse, allocationRing } from '../charts.js';
+import { burnLine, runwayBar, radialMeter, allocationRing } from '../charts.js';
 import { detectRecurring, nextDueDate } from '../recurring.js';
 import { detectAnomalies } from '../anomalies.js';
 import { categoryStyle } from '../category-style.js';
@@ -19,7 +19,7 @@ import { APP_VERSION, versionStatus, checkForUpdate } from '../version.js';
 import { getSyncConfig, getSyncPassphrase } from '../sync.js';
 import { dataSafety } from './settings.js';
 import { pendingCount } from '../alert-inbox.js';
-import { applyLearnedCategories } from '../merchant-rules.js';
+import { applyLearnedCategories, incomeSpendCount, fixIncomeSpends } from '../merchant-rules.js';
 import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
 import { redraw } from '../redraw.js';
@@ -29,7 +29,7 @@ import { incomeWords, businesses, activeSpace, setCurrentSpace, accountInSpace, 
 import { taxDates, renews, renewalsAhead, renewalAfter } from '../calendar.js';
 import { escapeHtml, escapeAttr, sectionHead, pill, hero, panel } from '../ui.js';
 import { lateBack, reminderText, shareReminder } from '../people.js';
-import { cashSide, spendMoves } from '../transfers.js';
+import { cashSide, spendMoves, isCardBill } from '../transfers.js';
 
 let currentRange = 'this-month';
 
@@ -351,6 +351,7 @@ async function renderDashboard(container) {
     dashboardEl.innerHTML = `${monthNav(viewMonth, months)}${renderSpendingLimit(done, { past })}
       <button type="button" class="btn-secondary btn-block" id="sum-month-payments">See ${past.name}'s payments</button>`;
     wireMonthNav();
+    wireCharts(dashboardEl);
     dashboardEl.querySelector('#sum-month-payments').addEventListener('click', () => {
       container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'transactions', month: past.key } }));
     });
@@ -415,6 +416,7 @@ async function renderDashboard(container) {
   }
 
   wireMonthNav();
+  wireCharts(dashboardEl);
 
   // The set-aside figure opens the list that explains it, rather than being
   // a number with nowhere to go.
@@ -450,6 +452,23 @@ async function renderDashboard(container) {
       const btn = e.target.closest(selector);
       if (btn && dashboardEl.contains(btn)) handler(btn);
     });
+  // Owed back opens the work costs behind it: what each was, how much of it
+  // is still owed, and the refunds that have come in (5.23).
+  const showOwed = (open) => {
+    const btn = dashboardEl.querySelector('#owed-back-stat');
+    const anchor = btn && btn.closest('[data-owed-anchor]');
+    if (!btn || !anchor) return;
+    owedOpen = open;
+    btn.setAttribute('aria-expanded', String(open));
+    dashboardEl.querySelector('#owed-back-list')?.remove();
+    if (open) anchor.insertAdjacentHTML('afterend', owedListHtml(fts));
+  };
+  on('#owed-back-stat', (btn) => showOwed(btn.getAttribute('aria-expanded') !== 'true'));
+  // The list stays open when the screen draws itself again (a sync, a tap on Mark paid).
+  if (owedOpen) showOwed(true);
+  on('.owed-row[data-search]', (b) => {
+    container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'transactions', month: b.dataset.month, search: b.dataset.search } }));
+  });
   on('.commitment-mark-paid', (b) => toggleCycle(b.dataset.id, b.dataset.key, 'paidCycles', true, (l) => `${l} marked paid for this cycle`));
   on('.commitment-unmark', (b) => toggleCycle(b.dataset.id, b.dataset.key, 'paidCycles', false, (l) => `${l}: back to unpaid`));
   on('.commitment-skip', (b) => toggleCycle(b.dataset.id, b.dataset.key, 'skippedCycles', true, (l) => `${l} skipped this cycle`));
@@ -587,7 +606,7 @@ function renderOwed(f, { cards = true } = {}) {
   const onCards = Math.max(0, ((f.totals && f.totals.owedCards) || 0) + ((f.totals && f.totals.unpaidBills) || 0));
   const employer = (f.reimbursable && f.reimbursable.owed) || 0;
   if ((!cards || !f.cards.length) && !employer) return '';
-  return `<div class="summary-owed">
+  return `<div class="summary-owed" data-owed-anchor>
       ${
         cards && f.cards.length
           ? `<div class="summary-row"><span class="summary-row__k">Owed on cards<small>unpaid bills and new spending</small></span><span class="summary-row__v summary-row__v--cards">${formatRupees(onCards)}</span></div>`
@@ -595,7 +614,7 @@ function renderOwed(f, { cards = true } = {}) {
       }
       ${
         employer
-          ? `<div class="summary-row"><span class="summary-row__k">Owed back<small>by your employer</small>${f.refundOverdue ? `<small class="summary-row__late">${formatRupees(f.refundOverdue.amount)} late, since ${formatDateNice(f.refundOverdue.since)}</small>` : ''}</span><span class="summary-row__v summary-row__v--back">${formatRupees(employer)}</span></div>`
+          ? `<button type="button" class="summary-row summary-row--tap" id="owed-back-stat"><span class="summary-row__k">Owed back<small>by your employer</small>${f.refundOverdue ? `<small class="summary-row__late">${formatRupees(f.refundOverdue.amount)} late, since ${formatDateNice(f.refundOverdue.since)}</small>` : ''}</span><span class="summary-row__v summary-row__v--back">${formatRupees(employer)}</span></button>`
           : ''
       }
     </div>`;
@@ -686,13 +705,12 @@ export function monthWaves(f) {
   const monthDays = (f.daysIntoCycle || n) + (f.daysToClose || 1) - 1;
   const pace = totals.map((_, i) => (f.limit * (i + 1)) / monthDays);
   const top = Math.max(...totals, ...pace) * 1.08;
-  const W = 340, H = 150, base = 138;
+  const W = 340, H = 156, base = 132;
   // A little room at each end, so the first and last day's marks are whole.
   const x = (i) => 10 + (i / (n - 1)) * (W - 20);
   const y = (v) => base - (v / top) * (base - 24);
   const bigDay = daily.indexOf(Math.max(...daily));
   const dmax = Math.max(...daily) || 1;
-  const yd = (v) => base - (v / dmax) * 46;
   const smooth = (pts) => pts.reduce((d, [px, py], i) => {
     if (!i) return `M${px.toFixed(1)} ${py.toFixed(1)}`;
     const [qx, qy] = pts[i - 1];
@@ -701,24 +719,85 @@ export function monthWaves(f) {
   }, '');
   const layer = (vals, fy, cls) => {
     const d = smooth(vals.map((v, i) => [x(i), fy(v)]));
-    return `<path class="waves__fill ${cls}" d="${d} L${x(vals.length - 1).toFixed(1)} ${H} L${x(0).toFixed(1)} ${H} Z"/><path class="waves__line ${cls}" d="${d}"/>`;
+    return `<path class="waves__fill ${cls}" d="${d} L${x(vals.length - 1).toFixed(1)} ${base} L${x(0).toFixed(1)} ${base} Z"/><path class="waves__line ${cls}" d="${d}"/>`;
   };
-  const [bx, by] = [x(bigDay), yd(daily[bigDay])];
-  const tipX = Math.max(34, Math.min(W - 34, bx));
-  return `<div class="totals-card waves-card">
-      <svg class="waves" viewBox="0 0 ${W} ${H}" role="img" aria-label="This month so far: ${formatRupees(totals[n - 1])} spent against ${formatRupees(Math.round(pace[n - 1]))} at an even pace. Biggest day ${formatRupees(daily[bigDay])} on ${formatDateNice(f.spendByDay[bigDay].date)}.">
+  // Each day is a bar, so the picture says what a day cost; the line adds them
+  // up against the budget's own line. (Before 5.23 the days were a third wave,
+  // and a tag stuck on the biggest day made every month read as one number.)
+  const bw = Math.max(2, Math.min(9, ((W - 20) / (n - 1)) * 0.55));
+  const bars = daily
+    .map((v, i) => (v > 0 ? `<rect class="waves__bar" data-bar="${i}" x="${(x(i) - bw / 2).toFixed(1)}" y="${(base - (v / dmax) * 44).toFixed(1)}" width="${bw.toFixed(1)}" height="${((v / dmax) * 44).toFixed(1)}" rx="2"/>` : ''))
+    .join('');
+  const ticks = [...new Set([0, Math.round((n - 1) / 3), Math.round((2 * (n - 1)) / 3), n - 1])]
+    .map((k) => `<text class="waves__tick" x="${x(k).toFixed(1)}" y="${H - 3}" text-anchor="middle">${Number(f.spendByDay[k].date.slice(8))}</text>`)
+    .join('');
+  const days = daily.map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(pace[i]), +x(i).toFixed(1), +y(totals[i]).toFixed(1)]);
+  const last = n - 1;
+  return `<div class="totals-card waves-card" ${chartData(days, 10, W - 10, W, f)}>
+      ${chartHead(f)}
+      <svg class="waves no-swipe" viewBox="0 0 ${W} ${H}" role="img" aria-label="${f.finished ? 'The month' : 'This month so far'}: ${formatRupees(totals[n - 1])} spent against ${formatRupees(Math.round(pace[n - 1]))} of budget so far. Most in one day: ${formatRupees(daily[bigDay])} on ${formatDateNice(f.spendByDay[bigDay].date)}.">
+        ${bars}
         ${layer(pace, y, 'waves--pace')}
         ${layer(totals, y, 'waves--spent')}
-        ${layer(daily, yd, 'waves--day')}
-        <circle class="waves__dot" cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="4.5"/>
-        <g class="waves__tip"><rect x="${(tipX - 30).toFixed(1)}" y="${Math.max(2, by - 32).toFixed(1)}" width="60" height="20" rx="6"/><text x="${tipX.toFixed(1)}" y="${(Math.max(2, by - 32) + 14).toFixed(1)}" text-anchor="middle">${formatRupees(daily[bigDay])}</text></g>
+        <line class="waves__guide" data-guide x1="${x(last).toFixed(1)}" x2="${x(last).toFixed(1)}" y1="8" y2="${base}"/>
+        <circle class="waves__dot" data-dot cx="${x(last).toFixed(1)}" cy="${y(totals[last]).toFixed(1)}" r="4.5"/>
+        ${ticks}
       </svg>
+      <p class="chart-readout" data-readout aria-live="polite">${chartReadout(days[last], dayWord(days[last][0]), f.finished)}</p>
       <div class="waves__key">
-        <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b>${f.finished ? 'spent in all' : 'spent so far'}</span>
-        <span class="waves__k waves--pace"><b>${formatRupees(Math.round(pace[n - 1]))}</b>at an even pace</span>
-        <span class="waves__k waves--day"><b>${formatDateNice(f.spendByDay[bigDay].date)}</b>biggest day</span>
+        <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b><span class="waves__lab">${f.finished ? 'You spent' : "You've spent"}</span></span>
+        <span class="waves__k waves--pace"><b>${formatRupees(Math.round(pace[n - 1]))}</b><span class="waves__lab">Budget so far</span></span>
+        <button type="button" class="waves__k waves--day" data-pick-day="${bigDay}"><b>${formatRupees(daily[bigDay])} · ${formatDateNice(f.spendByDay[bigDay].date)}</b><span class="waves__lab">Most in one day</span></button>
       </div>
     </div>`;
+}
+
+/* The words every month chart shares (5.23): what it is, what to tap, and the
+ * line that says what the day under your finger was. */
+const chartHead = (f) =>
+  `<div class="chart-head"><b>${f.finished ? 'How the month went' : 'How this month is going'}</b><small>Each bar is a day. The line adds them up, against your budget. Drag across to read a day.</small></div>`;
+const chartData = (days, x0, x1, w, f) => `data-chart-days='${JSON.stringify(days)}' data-x0="${x0}" data-x1="${x1}" data-w="${w}" ${f.finished ? 'data-finished="1"' : ''}`;
+const dayWord = (iso) => (iso === isoLocal(new Date()) ? 'Today' : new Date(`${iso}T12:00`).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }));
+export const chartReadout = (d, label, finished = false) =>
+  `${label}: spent ${formatRupees(d[1])} that day · ${formatRupees(d[2])} ${finished ? 'by then' : 'so far'} · budget so far ${formatRupees(d[3])}`;
+
+/* Drag across a month chart to read any day: a guide line and a dot follow the
+ * finger, and the line under the chart says what that day was. */
+function wireCharts(root) {
+  root.querySelectorAll('[data-chart-days]').forEach((card) => {
+    if (card.dataset.wired) return;
+    card.dataset.wired = '1';
+    const days = JSON.parse(card.dataset.chartDays);
+    const svg = card.querySelector('svg');
+    const readout = card.querySelector('[data-readout]');
+    const guide = card.querySelector('[data-guide]');
+    const dot = card.querySelector('[data-dot]');
+    const [x0, x1, w] = [Number(card.dataset.x0), Number(card.dataset.x1), Number(card.dataset.w)];
+    const finished = Boolean(card.dataset.finished);
+    const show = (i) => {
+      const d = days[i];
+      guide.setAttribute('x1', d[4]);
+      guide.setAttribute('x2', d[4]);
+      dot.setAttribute('cx', d[4]);
+      dot.setAttribute('cy', d[5]);
+      card.querySelectorAll('[data-bar]').forEach((b) => b.classList.toggle('is-picked', Number(b.dataset.bar) === i));
+      readout.textContent = chartReadout(d, dayWord(d[0]), finished);
+    };
+    const at = (clientX) => {
+      const r = svg.getBoundingClientRect();
+      const vx = ((clientX - r.left) / r.width) * w;
+      return Math.max(0, Math.min(days.length - 1, Math.round(((vx - x0) / (x1 - x0)) * (days.length - 1))));
+    };
+    let dragging = false;
+    svg.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      svg.setPointerCapture?.(e.pointerId);
+      show(at(e.clientX));
+    });
+    svg.addEventListener('pointermove', (e) => dragging && show(at(e.clientX)));
+    ['pointerup', 'pointercancel'].forEach((t) => svg.addEventListener(t, () => (dragging = false)));
+    card.querySelector('[data-pick-day]')?.addEventListener('click', (e) => show(Number(e.currentTarget.dataset.pickDay)));
+  });
 }
 
 /* NEW (5.7, the Peaks style): the same month as a mountain range. Each day's
@@ -730,7 +809,7 @@ export function monthWaves(f) {
 // Each drawing gets its own gradient ids, so two drawings on one page never
 // share one.
 let mountainsDrawn = 0;
-export function monthMountains(f, head = '') {
+export function monthMountains(f) {
   const totals = f.spendDays || [];
   const daily = (f.spendByDay || []).map((d) => d.amount || 0);
   const n = Math.min(totals.length, daily.length);
@@ -777,8 +856,11 @@ export function monthMountains(f, head = '') {
   const paceY = base - (10 + Math.sqrt(Math.min(1, evenDay / peak)) * 112);
   const ticks = [...new Set([0, Math.round((n - 1) / 3), Math.round((2 * (n - 1)) / 3), n - 1])]
     .map((i) => `<text class="mountains__tick" x="${xs(i).toFixed(1)}" y="${H - 2}" text-anchor="middle">${Number(f.spendByDay[i].date.slice(8))}</text>`).join('');
-  return `<div class="totals-card waves-card mountains-card">${head}
-      <svg class="mountains" viewBox="0 0 ${W} ${H}" role="img" aria-label="This month so far: ${formatRupees(totals[n - 1])} spent; an even day is ${formatRupees(Math.round(evenDay))}. Biggest day ${formatRupees(daily[bigDay])} on ${formatDateNice(f.spendByDay[bigDay].date)}.">
+  const days = daily.slice(0, n).map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(evenDay * (i + 1)), +xs(i).toFixed(1), +front[i * STEP][1].toFixed(1)]);
+  const lastD = days[n - 1];
+  return `<div class="totals-card waves-card mountains-card" ${chartData(days, 8, W - 14, W, f)}>
+      ${chartHead(f)}
+      <svg class="mountains no-swipe" viewBox="0 0 ${W} ${H}" role="img" aria-label="${f.finished ? 'The month' : 'This month so far'}: ${formatRupees(totals[n - 1])} spent; an even day of the budget is ${formatRupees(Math.round(evenDay))}. Most in one day: ${formatRupees(daily[bigDay])} on ${formatDateNice(f.spendByDay[bigDay].date)}.">
         <defs>
           <linearGradient id="${id}-front" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="mountains__front-top"/><stop offset="1" class="mountains__front-foot"/></linearGradient>
           <linearGradient id="${id}-lit" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="mountains__lit-top"/><stop offset="0.9" class="mountains__lit-foot"/></linearGradient>
@@ -788,12 +870,15 @@ export function monthMountains(f, head = '') {
         ${lit}
         <line class="mountains__pace" x1="8" x2="${end.toFixed(1)}" y1="${paceY.toFixed(1)}" y2="${paceY.toFixed(1)}"/>
         <text class="mountains__pace-k" x="${(end - 2).toFixed(1)}" y="${(paceY - 5).toFixed(1)}" text-anchor="end">${formatRupees(Math.round(evenDay))} a day</text>
+        <line class="waves__guide" data-guide x1="${lastD[4]}" x2="${lastD[4]}" y1="8" y2="${base}"/>
+        <circle class="waves__dot" data-dot cx="${lastD[4]}" cy="${lastD[5]}" r="4"/>
         ${ticks}
       </svg>
+      <p class="chart-readout" data-readout aria-live="polite">${chartReadout(lastD, dayWord(lastD[0]), f.finished)}</p>
       <div class="waves__key">
-        <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b>${f.finished ? 'spent in all' : 'spent so far'}</span>
-        <span class="waves__k waves--pace"><b>${formatRupees(Math.round(evenDay * n))}</b>at an even pace</span>
-        <span class="waves__k waves--day"><b>${formatDateNice(f.spendByDay[bigDay].date)}</b>biggest day</span>
+        <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b><span class="waves__lab">${f.finished ? 'You spent' : "You've spent"}</span></span>
+        <span class="waves__k waves--pace"><b>${formatRupees(Math.round(evenDay * n))}</b><span class="waves__lab">Budget so far</span></span>
+        <button type="button" class="waves__k waves--day" data-pick-day="${bigDay}"><b>${formatRupees(daily[bigDay])} · ${formatDateNice(f.spendByDay[bigDay].date)}</b><span class="waves__lab">Most in one day</span></button>
       </div>
     </div>`;
 }
@@ -922,7 +1007,9 @@ function moneyShape(f, { meter: withMeter = true } = {}) {
 
   // The short version leaves "committed" to Plan, where it is worked out.
   const meter = withMeter ? radialMeter({ committed, income }) : '';
-  const pulse = spendingPulse({ days: f.spendByDay || [], today: f.today });
+  // (5.23) The days are drawn once, in the month chart; "When it goes" was the
+  // same bars again.
+  const pulse = '';
 
   // Your bank cash, and how much of it a card bill will take.
   //
@@ -1030,10 +1117,10 @@ function renderCardsHero(f, opts = {}) {
   // running, so going back a month never changes the look. It says "Final for
   // September" where the pace was, shows the whole month, and leaves out what
   // is about now (this week, what is owed, what is coming).
-  const lookTop = ['full', 'short'].includes(appearance('summary')) && (past || f.limit > 0) && LOOK_TOPS[style];
+  const lookTop = ['full', 'short'].includes(appearance('summary')) && f.limit != null && LOOK_TOPS[style];
   const drawn = past ? { ...shown, finished: true } : f;
   const top = lookTop
-    ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), style === 'peaks' ? monthMountains(drawn, `<div class="pk-head"><span class="pk-lab">${past ? past.name : 'This month'}</span></div>`) : monthWaves(drawn))
+    ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), style === 'peaks' ? monthMountains(drawn) : monthWaves(drawn))
     : spendingHero(shown, short ? 'full' : appearance('summary'), past ? `Final for ${past.name}` : null, short ? shortStatus(f) : null) + `<!--k:answer-->
     ${past ? '' : monthWaves(f)}<!--k:month-->
     ${past ? '' : weekPills(f)}
@@ -1206,6 +1293,33 @@ function biggestSpends(f) {
 
 // Enough of a bank narration to recognise the payment, without the reference
 // numbers that make up most of its length.
+/* The work costs behind "Owed back": oldest first, each with what is still owed
+ * of it, then the refunds that have come in. Tapping one opens it in History. */
+let owedOpen = false;
+function owedListHtml(f) {
+  const r = f.reimbursable || {};
+  const items = r.items || [];
+  const refunds = r.refunds || [];
+  const late = f.refundOverdue ? f.refundOverdue.since : null;
+  const row = (i) => `<button type="button" class="owed-row" data-month="${i.date.slice(0, 7)}" data-search="${escapeAttr(shortDescription(i.description).slice(0, 18))}">
+      <span class="owed-row__d">${formatDateNice(i.date)}</span>
+      <span class="owed-row__t">${escapeHtml(shortDescription(i.description))}<small>${escapeHtml(i.account)}${i.amount < i.cost ? ` · ${formatRupees(i.cost - i.amount)} of ${formatRupees(i.cost)} paid back` : ''}</small></span>
+      <span class="owed-row__v">${formatRupees(i.amount)}</span>
+    </button>`;
+  return `<div class="owed-list" id="owed-back-list">
+      <div class="owed-list__head"><span>Work costs not paid back yet</span><b>${formatRupees(r.owed || 0)}</b></div>
+      ${items.length ? items.map(row).join('') : '<p class="owed-list__none">Nothing is waiting.</p>'}
+      ${late ? `<p class="owed-list__late">Some of this is late, since ${formatDateNice(late)}.</p>` : ''}
+      ${
+        refunds.length
+          ? `<div class="owed-list__head owed-list__head--sub"><span>Paid back so far</span></div>
+             ${refunds.map((x) => `<div class="owed-row owed-row--in"><span class="owed-row__d">${formatDateNice(x.date)}</span><span class="owed-row__t">Your employer<small>${escapeHtml(x.account)}</small></span><span class="owed-row__v">+${formatRupees(x.amount)}</span></div>`).join('')}`
+          : ''
+      }
+      <p class="owed-list__tip">Got paid back? Open the payment in History or when adding it, and tick "This pays back a work cost".</p>
+    </div>`;
+}
+
 function shortDescription(text) {
   const words = String(text)
     .replace(/\d{5,}/g, ' ')
@@ -1532,6 +1646,8 @@ async function renderAttention(container, transactions, fts = null) {
   // it has already learned. Offering "sort 94 of these for me" is a far better
   // answer than "136 need a category".
   const autoSortable = uncategorized.length ? await applyLearnedCategories({ dryRun: true }) : 0;
+  // Spends filed under Income (before 5.23 the matcher could do that).
+  const incomeSpends = await incomeSpendCount();
 
   const dueCards = accounts
     .map((a) => ({ account: a, bill: cardBillDue(a) }))
@@ -1584,6 +1700,9 @@ async function renderAttention(container, transactions, fts = null) {
   if (short) urgent.push(...lateRows, ...renewRows);
 
   const rows = [
+    incomeSpends
+      ? todo(icon('tag'), `${incomeSpends} spend${incomeSpends === 1 ? '' : 's'} filed as Income`, 'Money going out is never income', '<button type="button" class="btn-tiny primary" id="fix-income-btn">Fix</button>', 'is-alert')
+      : '',
     driveDays != null
       ? driveDays >= 7
         ? todo(icon('backup'), 'Back up to Google Drive', `Last one ${driveDays} days ago`, '<button type="button" class="btn-tiny primary" id="go-drive-btn">Back up</button>')
@@ -1743,6 +1862,16 @@ async function renderAttention(container, transactions, fts = null) {
       autoBtn.textContent = 'Sorting…';
       const n = await applyLearnedCategories();
       showToast(`Sorted ${n} transaction${n === 1 ? '' : 's'}`);
+      redraw(container, () => render(container));
+    });
+  }
+
+  const fixIncome = el.querySelector('#fix-income-btn');
+  if (fixIncome) {
+    fixIncome.addEventListener('click', async () => {
+      fixIncome.disabled = true;
+      const { cleared, sorted } = await fixIncomeSpends();
+      showToast(`Fixed ${cleared}: ${sorted} sorted again, ${cleared - sorted} need a category`);
       redraw(container, () => render(container));
     });
   }
@@ -1950,7 +2079,7 @@ async function renderContent(container) {
     monthKey
       ? transactions.filter((t) => spendingMonthOf(t, byAccountId.get(t.accountId), cycleAware) === monthKey)
       : transactions.filter((t) => t.date >= from && t.date <= to)
-  ).filter((t) => !t.isTransfer && accountInSpace(space)(byAccountId.get(t.accountId) || {}));
+  ).filter((t) => !t.isTransfer && !isCardBill(t, byAccountId.get(t.accountId)) && accountInSpace(space)(byAccountId.get(t.accountId) || {}));
 
   // In, Out and Net are what reached or left the bank (cashSide): the card
   // bill counts when it is paid, a purchase on the card does not count again.
@@ -1988,7 +2117,7 @@ async function renderContent(container) {
   if (comparison) {
     const prevOut = transactions
       .filter((t) => {
-        if (t.isTransfer || t.direction !== 'debit') return false;
+        if (t.isTransfer || t.direction !== 'debit' || isCardBill(t, byAccountId.get(t.accountId))) return false;
         // Compare against the same slice of the previous spending month, so a
         // half-finished month isn't measured against a complete one.
         if (monthKey) {

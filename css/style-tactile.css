@@ -263,7 +263,7 @@ button.tl-item { cursor: pointer; }
 :root[data-style="tactile"] .k .k-quick__chip.on svg { color: currentColor; }
 :root[data-style="tactile"] .k .add-row > .add-row-ic { color: var(--k-accent); background: var(--t-well); box-shadow: var(--t-well-shadow); border: 1px solid color-mix(in srgb, var(--k-text) 16%, transparent); }
 :root[data-style="tactile"] .k .add-row + .add-row { border-top: 1px solid rgb(0 0 0 / 0.42); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04); }
-:root[data-style="tactile"] .k .add-form ~ .k-add-sms { border-radius: 999px; background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 20%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 8px 14px rgb(0 0 0 / 0.5); }
+:root[data-style="tactile"] .k .k-add-sms { border-radius: 999px; background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 20%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 8px 14px rgb(0 0 0 / 0.5); }
 
 /* --- Accounts, after the mockup (5.13) -----------------------------------
  * The total on a raised card, what sits beside it in an inset table under
@@ -365,3 +365,14 @@ button.tl-item { cursor: pointer; }
 :root[data-style="tactile"] .k .add-people .k-brand,
 :root[data-style="tactile"] .k .person-open .k-brand { background: var(--t-well); box-shadow: var(--t-well-shadow); color: var(--k-text); }
 :root[data-style="tactile"] .k .hist-salary { border: 0; border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
+
+/* 5.23 in Tactile: the new panels are raised, the readouts and tick boxes wells. */
+:root[data-style="tactile"] .k .owed-list { border: 0; border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
+:root[data-style="tactile"] .k .chart-readout { border-radius: 12px; background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] .k .chart-head b { font-weight: 650; }
+:root[data-style="tactile"] .k .card-split__bar { background: var(--t-well); box-shadow: var(--t-well-shadow); }
+:root[data-style="tactile"] .k .hist-days__title { font-size: 12px; font-weight: 650; letter-spacing: .08em; color: var(--k-text-2); }
+:root[data-style="tactile"] .k .hist-flag input[type="checkbox"],
+:root[data-style="tactile"] .k .checkbox-row input[type="checkbox"] { border: 0; background: var(--t-well); box-shadow: var(--t-well-shadow), 0 0 0 1.5px color-mix(in srgb, var(--k-text) 22%, transparent); }
+:root[data-style="tactile"] .k .hist-flag input[type="checkbox"]:checked,
+:root[data-style="tactile"] .k .checkbox-row input[type="checkbox"]:checked { background: linear-gradient(180deg, color-mix(in srgb, var(--k-accent), white 10%), color-mix(in srgb, var(--k-accent), black 18%)); box-shadow: 0 0 10px color-mix(in srgb, var(--k-accent) 45%, transparent); }

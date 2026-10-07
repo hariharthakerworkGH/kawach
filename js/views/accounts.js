@@ -74,6 +74,8 @@ export async function render(container) {
   // banks. The same figures Summary shows, from the same calculation, so the
   // two screens can never disagree; Home's only, as that calculation is.
   const homeFigures = space === 'home' ? await computeFreeToSpend() : null;
+  // What part of each card is work, owed back by the employer (5.23).
+  workByCard = new Map(((homeFigures && homeFigures.cards) || []).map((c) => [c.account.id, { cycle: c.workCycle || 0, owed: c.workOwed || 0 }]));
   // Copies saved by overlapping statement imports are left out of every
   // balance here, the same as on the Summary.
   const duplicateIds = new Set(findDuplicates(allTransactions).map((t) => t.id));
@@ -691,6 +693,26 @@ function renderGroup(title, accounts, transactions, importBatches, editingAccoun
  * The figures come from the same calculation as Summary (js/people.js). */
 const openPeople = new Set();
 
+// Work costs on each card, from the same figures as Summary (set in render).
+let workByCard = new Map();
+
+/* On a card: what you spent yourself and what was for work, which your
+ * employer pays back, apart. A bar of the two, then their amounts. */
+function cardWorkSplit(account, cycleSpend) {
+  const w = workByCard.get(account.id);
+  if (!w || (!w.cycle && !w.owed)) return '';
+  const work = Math.min(Math.max(0, cycleSpend), w.cycle);
+  const own = Math.max(0, cycleSpend - work);
+  if (!work) {
+    return `<p class="card-split__note">${formatRupees(w.owed)} of work costs on this card still owed back by your employer</p>`;
+  }
+  const total = Math.max(1, own + work);
+  return `<div class="card-split" role="img" aria-label="${formatRupees(own)} yours, ${formatRupees(work)} work, owed back by your employer">
+      <div class="card-split__bar"><i class="own" style="width:${((own / total) * 100).toFixed(1)}%"></i><i class="work" style="width:${((work / total) * 100).toFixed(1)}%"></i></div>
+      <div class="card-split__key"><span class="own">Yours <b>${formatRupees(own)}</b></span><span class="work">Work, owed back <b>${formatRupees(work)}</b></span></div>
+    </div>`;
+}
+
 function peopleGroup(standing, accounts) {
   const open = standing.filter((s) => s.owed !== 0);
   if (!open.length) return '';
@@ -998,6 +1020,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
             : '',
           { spendable: true }
         )}
+        ${cardWorkSplit(account, cycleSpend)}
         ${renderBill(bill, account)}
       </div>
     `;

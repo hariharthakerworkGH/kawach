@@ -19,6 +19,7 @@ import { bankBalance } from '../account-metrics.js';
 import { incomeType, incomeWords, businessPlan, isBusinessCategory, businesses, activeSpace, commitmentInSpace, accountInSpace } from '../business.js';
 import { escapeHtml, emptyState, sectionHead, hero } from '../ui.js';
 import { askConfirm } from '../dialog.js';
+import { showToast } from '../toast.js';
 
 let adding = false;
 let editingId = null;
@@ -139,11 +140,11 @@ export async function render(container) {
   // own way (plan-looks.js), from the same rows and figures.
   const style = document.documentElement.dataset.style;
   const looks = ['tactile', 'peaks', 'mindora'].includes(style);
-  const stateOf = (t) => (t.status === 'paid' ? 'paid' : t.status === 'late' ? 'late' : 'due');
+  const stateOf = (t) => (t.status === 'skipped' ? 'skipped' : t.status === 'paid' ? 'paid' : t.status === 'late' ? 'late' : 'due');
   const thisMonth = inBusiness
     ? ''
     : (looks
-        ? planMonth(style, monthRows(tracker, [...fixed, ...loanItems]).map(({ t, day }) => ({ label: t.label, day, amount: t.amount, state: stateOf(t) })), now)
+        ? planMonth(style, monthRows(tracker, [...fixed, ...loanItems]).map(({ t, day }) => ({ id: t.id, label: t.label, day, amount: t.amount, state: stateOf(t) })), now)
         : monthStrip(tracker, [...fixed, ...loanItems], now)) + flexBars(tracker);
 
   // `k-plan` scopes the rules for classes this screen shares with Summary,
@@ -485,6 +486,79 @@ export async function render(container) {
     });
   }
 
+  // NEW (5.23): the month's steps are tappable: mark one paid, skip it, see its
+  // payments or edit it. Paid and skipped are saved against this month, the same
+  // as Summary's buttons (a per-cycle choice kept on the commitment).
+  const openMonthItem = (id) => {
+    const t = tracker.find((x) => x.id === id);
+    if (!t) return;
+    document.querySelector('#month-sheet')?.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'month-sheet';
+    sheet.className = 'k';
+    const state = t.status === 'skipped' ? 'Skipped this month: not in the budget' : t.status === 'late' ? 'Late' : t.status === 'paid' ? (t.marked ? 'Marked paid' : 'Paid') : t.status === 'part' ? `Part paid, ${formatRupees(t.left)} to go` : 'Still to pay';
+    const own = t.kind !== 'loan' && fixed.some((f) => f.id === t.id);
+    const btn = (cls, text, hint) => `<button type="button" class="k-row month-act ${cls}"><span class="k-row__body"><span class="k-row__title">${text}</span><span class="k-row__meta">${hint}</span></span></button>`;
+    sheet.innerHTML = `<div class="k-scrim" data-close></div>
+      <div class="k-sheet" role="dialog" aria-modal="true" aria-label="${escapeHtml(t.label)}">
+        <div class="k-sheet__grip"></div>
+        <div class="k-sheet__head"><span class="k-sheet__title">${escapeHtml(t.label)}</span><button type="button" class="k-btn k-btn--ghost k-sheet__close" data-close>Done</button></div>
+        <p class="month-sheet__line"><b>${formatRupees(t.amount)}</b> · ${state}</p>
+        <div class="k-rows">
+          ${own && t.status !== 'skipped' ? (t.marked ? btn('month-unpaid', 'Back to unpaid', 'You had marked it paid') : t.status === 'paid' ? '' : btn('month-paid', 'Mark paid', 'Paid in cash or from somewhere Kawach cannot see')) : ''}
+          ${own ? (t.status === 'skipped' ? btn('month-unskip', 'Count it again', 'Put it back in this month') : btn('month-skip', 'Skip this month', 'Not paying it this month: it comes out of the budget')) : ''}
+          ${btn('month-see', 'See its payments', 'Find them in History')}
+          ${own ? btn('month-edit', 'Edit', 'Change the amount, the day or what it matches') : ''}
+        </div>
+      </div>`;
+    // On the page itself, not the screen: the screen sits below the tab bar, and a
+    // sheet inside it left its last button behind the bar.
+    document.body.append(sheet);
+    const close = () => {
+      sheet.remove();
+      window.removeEventListener('hashchange', close);
+    };
+    window.addEventListener('hashchange', close);
+    sheet.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
+    sheet.addEventListener('keydown', (e) => e.key === 'Escape' && close());
+    sheet.querySelector('.k-sheet').querySelector('.month-act, .k-sheet__close').focus();
+    const cycle = (field, on, message) => async () => {
+      const item = (await getAll('recurring')).find((r) => r.id === t.id);
+      if (!item) return;
+      const set = new Set(item[field] || []);
+      if (on) set.add(t.cycleKey);
+      else set.delete(t.cycleKey);
+      await put('recurring', { ...item, [field]: [...set].sort().slice(-12) });
+      showToast(message(item.label));
+      close();
+      redraw(container, () => render(container));
+    };
+    const on = (cls, fn) => sheet.querySelector(cls)?.addEventListener('click', fn);
+    on('.month-paid', cycle('paidCycles', true, (l) => `${l} marked paid`));
+    on('.month-unpaid', cycle('paidCycles', false, (l) => `${l}: back to unpaid`));
+    on('.month-skip', cycle('skippedCycles', true, (l) => `${l} skipped this month`));
+    on('.month-unskip', cycle('skippedCycles', false, (l) => `${l} is back for this month`));
+    on('.month-see', () => {
+      close();
+      container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'transactions', search: t.label.split(/\s+/).slice(0, 2).join(' ') } }));
+    });
+    on('.month-edit', () => {
+      close();
+      editingId = t.id;
+      adding = false;
+      redraw(container, () => render(container)).then(() => container.querySelector('#fixed-form')?.scrollIntoView({ block: 'center' }));
+    });
+  };
+  container.querySelectorAll('[data-month-item]').forEach((el) => {
+    el.addEventListener('click', () => openMonthItem(el.dataset.monthItem));
+    el.addEventListener('keydown', (e) => {
+      if (el.tagName === 'g' && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        openMonthItem(el.dataset.monthItem);
+      }
+    });
+  });
+
   container.querySelectorAll('.fixed-edit').forEach((btn) => {
     btn.addEventListener('click', async () => {
       editingId = btn.dataset.id;
@@ -743,12 +817,12 @@ export function monthStrip(tracker, items, now = new Date()) {
       const group = sameDay(day);
       const cx = x(day) + (group.findIndex((r) => r.t === t) - (group.length - 1) / 2) * 11;
       const h = 12 + Math.sqrt(Math.max(0, t.amount) / top) * 58;
-      const state = t.status === 'paid' ? 'paid' : t.status === 'late' ? 'late' : 'due';
-      const said = `${t.label}, ${formatRupees(t.amount)} on the ${ordinal(day)}: ${state === 'paid' ? 'paid' : state === 'late' ? 'late' : 'still to pay'}`;
+      const state = t.status === 'skipped' ? 'skipped' : t.status === 'paid' ? 'paid' : t.status === 'late' ? 'late' : 'due';
+      const said = `${t.label}, ${formatRupees(t.amount)} on the ${ordinal(day)}: ${state === 'paid' ? 'paid' : state === 'late' ? 'late' : state === 'skipped' ? 'skipped this month' : 'still to pay'}. Tap for what can be done.`;
       const name = escapeHtml(t.label.split(/\s+/)[0].slice(0, 9));
       const room = cx - lastLabel >= 34;
       if (room) lastLabel = cx;
-      return `<g class="plan-strip__bar is-${state}"><title>${escapeHtml(said)}</title>
+      return `<g class="plan-strip__bar is-${state}" data-month-item="${escapeHtml(t.id)}" role="button" tabindex="0"><title>${escapeHtml(said)}</title>
           <rect x="${(cx - 5).toFixed(1)}" y="${(axis - h).toFixed(1)}" width="10" height="${h.toFixed(1)}" rx="3"/>
           ${room ? `<text x="${cx.toFixed(1)}" y="${(axis - h - 6).toFixed(1)}">${name}</text>` : ''}
         </g>`;
@@ -763,7 +837,7 @@ export function monthStrip(tracker, items, now = new Date()) {
         <text class="plan-strip__today-label" x="${x(today).toFixed(1)}" y="8">Today</text>
         ${bars}${ticks}
       </svg>
-      <figcaption class="plan-strip__key"><span class="is-due">Still to pay</span><span class="is-paid">Paid</span>${rows.some((r) => r.t.status === 'late') ? '<span class="is-late">Late</span>' : ''}</figcaption>
+      <figcaption class="plan-strip__key"><span class="is-due">Still to pay</span><span class="is-paid">Paid</span>${rows.some((r) => r.t.status === 'late') ? '<span class="is-late">Late</span>' : ''}${rows.some((r) => r.t.status === 'skipped') ? '<span class="is-skipped">Skipped</span>' : ''}</figcaption>
     </figure>`;
 }
 

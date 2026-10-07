@@ -82,23 +82,26 @@ export function planTop(style, f) {
 export function planMonth(style, rows, now = new Date()) {
   if (!rows.length) return '';
   const today = now.getDate();
-  const said = (r) => `${r.label}, ${formatRupees(r.amount)} on the ${ordinal(r.day)}: ${r.state === 'paid' ? 'paid' : r.state === 'late' ? 'late' : 'still to pay'}`;
+  const words = { paid: 'paid', late: 'late', skipped: 'skipped this month', due: 'still to pay' };
+  const said = (r) => `${r.label}, ${formatRupees(r.amount)} on the ${ordinal(r.day)}: ${words[r.state] || words.due}. Tap to mark it paid, skip it or see its payments.`;
+  // Every one can be tapped (5.23): it opens what can be done with it.
+  const tap = (r) => `data-month-item="${escapeHtml(r.id || '')}"`;
   if (style === 'peaks') {
     const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const at = (d) => pct((Math.min(d, days) - 1) / Math.max(1, days - 1));
     return `<div class="pk-card pl-month"><div class="pk-dashes">${rows
-      .map((r) => `<div class="pk-dash" title="${escapeHtml(said(r))}"><span class="pk-dash__t">${escapeHtml(r.label)}<small>${ordinal(r.day)}</small></span><span class="pk-ln"><i class="${r.state === 'late' ? 'late' : r.state === 'paid' ? 'paid' : ''}" style="left:${at(r.day)}"></i><u style="left:${at(today)}"></u></span><b class="${r.state === 'late' ? 'pl-late' : ''}">${r.state === 'late' ? 'late' : formatRupees(r.amount).replace('₹', '')}</b></div>`)
+      .map((r) => `<button type="button" class="pk-dash is-${r.state}" ${tap(r)} aria-label="${escapeHtml(said(r))}"><span class="pk-dash__t">${escapeHtml(r.label)}<small>${ordinal(r.day)}${r.state === 'skipped' ? ' · skipped' : ''}</small></span><span class="pk-ln"><i class="${r.state === 'late' ? 'late' : r.state === 'paid' ? 'paid' : ''}" style="left:${at(r.day)}"></i><u style="left:${at(today)}"></u></span><b class="${r.state === 'late' ? 'pl-late' : ''}">${r.state === 'late' ? 'late' : r.state === 'skipped' ? 'skipped' : formatRupees(r.amount).replace('₹', '')}</b></button>`)
       .join('')}</div></div>`;
   }
   // Steps on a line: done ticked, late marked, still to pay showing its
   // icon (Tactile) or its day (Mindora). Many of them scroll sideways.
   const done = rows.filter((r) => r.state === 'paid').length;
   const step = (r) => {
-    const mark = r.state === 'paid' ? icon('check') : r.state === 'late' ? icon('alert') : style === 'tactile' ? categoryStyle(r.label).icon : `${r.day}`;
-    return `<div class="pl-step is-${r.state}" title="${escapeHtml(said(r))}"><b>${mark}</b><small><strong>${escapeHtml(r.label)}</strong>${ordinal(r.day)}<span>${formatRupees(r.amount)}</span></small></div>`;
+    const mark = r.state === 'paid' ? icon('check') : r.state === 'late' ? icon('alert') : r.state === 'skipped' ? icon('ban') : style === 'tactile' ? categoryStyle(r.label).icon : `${r.day}`;
+    return `<button type="button" class="pl-step is-${r.state}" ${tap(r)} aria-label="${escapeHtml(said(r))}"><b>${mark}</b><small><strong>${escapeHtml(r.label)}</strong>${ordinal(r.day)}<span>${r.state === 'skipped' ? 'skipped' : formatRupees(r.amount)}</span></small></button>`;
   };
   return `<div class="pl-month pl-month--${style}">
       <div class="pl-steps no-swipe" style="--pl-n:${rows.length}; --pl-done:${done}">${rows.map(step).join('')}</div>
-      <p class="pl-today">Today is the ${ordinal(today)} · ${done} of ${rows.length} paid</p>
+      <p class="pl-today">Today is the ${ordinal(today)} · ${done} of ${rows.length} paid · tap one to mark it paid or skip it</p>
     </div>`;
 }

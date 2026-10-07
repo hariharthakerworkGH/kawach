@@ -177,6 +177,15 @@ export function spendMoves(transactions, accounts) {
   return ids;
 }
 
+/* A payment out of a bank account that pays a card's bill. The purchases it pays
+ * are already counted, by category, on the card, so a bill counted again as
+ * spending is the same money twice: Coach once said "Bills & Utilities is
+ * running hot, ₹84,347" because two card bills were filed under it (5.23). */
+export function isCardBill(t, account) {
+  if (t.direction !== 'debit' || (account && account.type === 'card')) return false;
+  return Boolean(t.paysCardId || looksLikeCardPayment(t, 'bank'));
+}
+
 export function looksLikeCardPayment(t, type) {
   const desc = t.rawDescription || '';
   if (type === 'card') return t.direction === 'credit' && PAYMENT_IN_RE.test(desc);

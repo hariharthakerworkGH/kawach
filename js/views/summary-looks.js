@@ -61,7 +61,9 @@ export function topFigures(f) {
   const monthDays = (f.daysIntoCycle || 0) + (f.daysToClose || 1) - 1;
   const aside = (f.tracker || []).filter((t) => t.setAside && !t.skipped && t.status !== 'untracked' && t.amount > 0);
   const asideTotal = aside.reduce((s, t) => s + t.amount, 0);
-  const cards = (f.cards || []).filter((c) => onCard(c) > 0).map((c) => ({ ...cardTag(c.account), amount: onCard(c) }));
+  // `work` is the part of a card's amount that is a work cost, owed back by the
+  // employer (5.23), so what you spent yourself and what is the company's show apart.
+  const cards = (f.cards || []).filter((c) => onCard(c) > 0).map((c) => ({ ...cardTag(c.account), amount: onCard(c), work: Math.min(onCard(c), c.workCycle || 0) }));
   const cardTop = Math.max(1, ...cards.map((c) => c.amount));
   return {
     left: f.free,
@@ -97,6 +99,9 @@ export function topFigures(f) {
 // "₹63,128 of ₹9,733": once the commitments are more than the income there is no
 // budget to be "of" (a finished month can be like that), so only what was spent.
 const ofLimit = (x) => (x.limit > 0 ? `${formatRupees(x.spent)} of ${formatRupees(x.limit)}` : formatRupees(x.spent));
+// A card's bar: the share it is of the biggest, with the work part of it, which
+// the employer pays back, marked inside it.
+const cardBar = (c) => `<i style="width:${pct(c.share)}">${c.work ? `<u class="card-work-bar" style="width:${pct(c.work / Math.max(1, c.amount))}"></u>` : ''}</i>`;
 const pct = (v) => `${Math.round(Math.min(1, Math.max(0, v)) * 100)}%`;
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const dow = (iso) => DOW[new Date(`${iso}T12:00`).getDay()];
@@ -106,8 +111,10 @@ const plain = (v) => formatRupees(v).replace('₹', '');
 // The week as columns, today lit: the same in every style, drawn by its CSS.
 const weekCols = (x, cls) => {
   const top = Math.max(1, ...x.week.map((d) => d.amount || 0));
-  return `<div class="${cls}" role="img" aria-label="This week ${formatRupees(x.weekTotal)}">${x.week
-    .map((d, i) => `<span><i class="${i === x.week.length - 1 ? 'lit' : ''}" style="height:${Math.max(6, ((d.amount || 0) / top) * 100).toFixed(0)}%"></i><small>${dow(d.date)}</small></span>`)
+  // Each day says what it was (5.23): a bar with no figure told you the shape
+  // of a week and nothing else.
+  return `<div class="${cls}" role="img" aria-label="Spent each day of this week, ${formatRupees(x.weekTotal)} in all: ${x.week.map((d) => `${dow(d.date)} ${formatRupees(d.amount || 0)}`).join(', ')}">${x.week
+    .map((d, i) => `<span><i class="${i === x.week.length - 1 ? 'lit' : ''}" style="height:${Math.max(6, ((d.amount || 0) / top) * 100).toFixed(0)}%"></i><small>${dow(d.date)}</small><em>${d.amount ? formatRupees(d.amount) : '-'}</em></span>`)
     .join('')}</div>`;
 };
 
@@ -135,11 +142,11 @@ export function tactileTop(f, status, month) {
     </div><!--k:answer-->
     ${month || ''}<!--k:month-->
     ${x.week.length && !x.finished ? `<div class="tl-card"><div class="tl-top"><span class="tl-k">This week</span><b class="tl-mid">${formatRupees(x.weekTotal)}</b></div>${weekCols(x, 'tl-cols')}</div>` : ''}
-    ${x.finished ? '' : `<div class="tl-list">
+    ${x.finished ? '' : `<div class="tl-list" data-owed-anchor>
       ${x.cards.length ? `<div class="tl-item tl-item--cards"><span class="tl-ibox">${icon('card')}</span><span class="tl-grow"><span class="tl-t">Owed on cards</span>${x.bills ? `<span class="tl-badge">${bills(x.bills)}</span>` : ''}</span><span class="tl-v">${formatRupees(x.owedCards)}</span>
-        <div class="tl-cards">${x.cards.map((c) => `<div class="tl-cardrow">${tagHtml(c)}<span class="tl-thin"><i style="width:${pct(c.share)}"></i></span><span class="tl-cardamt">${formatRupees(c.amount)}</span></div>`).join('')}</div></div>` : ''}
+        <div class="tl-cards">${x.cards.map((c) => `<div class="tl-cardrow">${tagHtml(c)}<span class="tl-thin">${cardBar(c)}</span><span class="tl-cardamt">${formatRupees(c.amount)}${c.work ? `<small class="card-work">${formatRupees(c.work)} work</small>` : ''}</span></div>`).join('')}</div></div>` : ''}
       ${x.kept ? row(categoryIcon('piggy'), 'Kept back', 'set aside, not spent yet', formatRupees(x.kept), '', 'set-aside-stat') : ''}
-      ${x.employer ? row(categoryIcon('income'), 'Owed back', 'by your employer', formatRupees(x.employer), 'tl-ok') : ''}
+      ${x.employer ? row(categoryIcon('income'), 'Owed back', 'by your employer', formatRupees(x.employer), 'tl-ok', 'owed-back-stat') : ''}
     </div>`}
     ${x.coming.length && !x.finished ? `<div class="tl-label"><span>Coming up</span><span class="tl-still">${formatRupees(x.stillToPay)} still to pay</span></div><div class="tl-list">${x.coming.map((c) => row(categoryStyle(c.label).icon, escapeHtml(c.label), `${formatDateNice(c.due)}${c.late ? ' · late' : ''}`, formatRupees(c.amount), c.late ? 'tl-bad' : '')).join('')}</div>` : ''}`;
 }
@@ -209,10 +216,10 @@ export function peaksTop(f, status, month) {
     ${month || ''}<!--k:month-->
     ${x.week.length && !x.finished ? `<div class="pk-card pk-week"><div class="pk-row"><span class="pk-lab">This week</span><span class="pk-n pk-n--s">${sup(plain(x.weekTotal))}</span></div>${weekLine(x)}</div>` : ''}
     ${x.cards.length && !x.finished ? `<div class="pk-card"><div class="pk-row"><span class="pk-lab">Owed on cards${x.bills ? ` · <span class="pk-hot">${bills(x.bills)}</span>` : ''}</span><span class="pk-n pk-n--m">${sup(plain(x.owedCards))}</span></div>
-      <div class="pk-bars">${x.cards.map((c) => `<div class="pk-bar">${tagHtml(c)}<span class="pk-trk"><i style="width:${pct(c.share)}"></i></span><b>${plain(c.amount)}</b></div>`).join('')}</div></div>` : ''}
-    ${(x.kept || x.employer) && !x.finished ? `<div class="pk-two">
+      <div class="pk-bars">${x.cards.map((c) => `<div class="pk-bar">${tagHtml(c)}<span class="pk-trk">${cardBar(c)}</span><b>${plain(c.amount)}${c.work ? `<small class="card-work">${plain(c.work)} work</small>` : ''}</b></div>`).join('')}</div></div>` : ''}
+    ${(x.kept || x.employer) && !x.finished ? `<div class="pk-two" data-owed-anchor>
       ${x.kept ? `<button type="button" class="pk-card" id="set-aside-stat"><span class="pk-lab">Kept back</span><span class="pk-n pk-n--m">${sup(plain(x.kept))}</span><span class="pk-tiny">set aside, not spent yet</span></button>` : ''}
-      ${x.employer ? `<div class="pk-card"><span class="pk-lab">Owed back</span><span class="pk-n pk-n--m pk-good">${sup(plain(x.employer))}</span><span class="pk-tiny">by your employer</span></div>` : ''}
+      ${x.employer ? `<button type="button" class="pk-card" id="owed-back-stat"><span class="pk-lab">Owed back</span><span class="pk-n pk-n--m pk-good">${sup(plain(x.employer))}</span><span class="pk-tiny">by your employer</span></button>` : ''}
     </div>` : ''}
     ${x.coming.length && !x.finished ? `<div class="pk-card pk-coming">
       <div class="pk-lab">Coming up</div>
@@ -293,10 +300,10 @@ export function mindoraTop(f, status, month) {
     ${month || ''}<!--k:month-->
     ${x.week.length && !x.finished ? `<div class="md-glass"><div class="md-top"><span class="md-kick">This week</span><span class="md-mid">${formatRupees(x.weekTotal)}</span></div>${weekCols(x, 'md-cols')}</div>` : ''}
     ${x.cards.length && !x.finished ? `<div class="md-glass"><div class="md-top"><span class="md-kick">Owed on cards</span><span class="md-mid">${formatRupees(x.owedCards)}</span></div>${x.bills ? `<span class="md-badge">${bills(x.bills)}</span>` : ''}
-      <div class="md-bars">${x.cards.map((c) => `<div class="md-bar">${tagHtml(c)}<span class="md-prog"><i style="width:${pct(c.share)}"></i></span><b>${formatRupees(c.amount)}</b></div>`).join('')}</div></div>` : ''}
-    ${(x.kept || x.employer) && !x.finished ? `<div class="md-split">
+      <div class="md-bars">${x.cards.map((c) => `<div class="md-bar">${tagHtml(c)}<span class="md-prog">${cardBar(c)}</span><b>${formatRupees(c.amount)}${c.work ? `<small class="card-work">${formatRupees(c.work)} work</small>` : ''}</b></div>`).join('')}</div></div>` : ''}
+    ${(x.kept || x.employer) && !x.finished ? `<div class="md-split" data-owed-anchor>
       ${x.kept ? `<button type="button" class="md-glass md-lake" id="set-aside-stat">${lake()}<span class="md-lake__text"><span class="md-kick">Kept back</span><span class="md-mid">${formatRupees(x.kept)}</span><small>set aside, not spent yet</small></span></button>` : ''}
-      ${x.employer ? `<div class="md-glass md-small"><span class="md-kick">Owed back</span><span class="md-mid md-good">${formatRupees(x.employer)}</span><small class="md-sub">by your employer</small></div>` : ''}
+      ${x.employer ? `<button type="button" class="md-glass md-small" id="owed-back-stat"><span class="md-kick">Owed back</span><span class="md-mid md-good">${formatRupees(x.employer)}</span><small class="md-sub">by your employer</small></button>` : ''}
     </div>` : ''}
     ${x.coming.length && !x.finished ? `<div class="md-glass">
       <div class="md-top"><span class="md-kick">Coming up</span><span class="md-sub">${formatRupees(x.stillToPay)} still to pay</span></div>

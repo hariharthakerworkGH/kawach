@@ -3602,3 +3602,133 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .hist-carry[hidden] { display: none; }
 .k .hist-carry span { white-space: nowrap; }
 .k .hist-carry b { font-weight: 600; color: var(--k-text-2); font-variant-numeric: tabular-nums; }
+
+/* =======================================================================
+   5.23 - month charts that say what they are, work costs, tappable months,
+   and the alignment fixes found going through every screen
+   ===================================================================== */
+
+/* The header is solid down to its last sliver: at 62% a figure scrolling
+   under it showed through behind the title and the two collided. */
+body:has(#view-container.k) .app-header {
+  background: linear-gradient(180deg, var(--k-bg) 0%, var(--k-bg) 90%, transparent 100%);
+}
+
+/* --- the month chart ---------------------------------------------------- */
+.k .chart-head { display: grid; gap: 2px; padding: 0 var(--k-4) var(--k-2); }
+.k .chart-head b { font-size: var(--k-body); font-weight: var(--k-w-fig); color: var(--k-text); }
+.k .chart-head small { font-size: var(--k-caption); line-height: 1.35; color: var(--k-text-2); }
+.k .waves__bar { fill: color-mix(in srgb, var(--k-grad-1a) 40%, transparent); }
+.k .waves__bar.is-picked { fill: var(--k-grad-1a); }
+.k .waves__guide { stroke: var(--k-text-2); stroke-width: 1; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
+.k .waves__tick { fill: var(--k-text-2); font-size: 10.5px; font-family: var(--k-font); }
+.k .waves, .k .mountains { touch-action: pan-y; cursor: crosshair; }
+.k .chart-readout { margin: var(--k-2) var(--k-4) 0; padding: 9px 12px; border-radius: var(--k-r-sm); font-size: var(--k-label); line-height: 1.4; color: var(--k-text); background: color-mix(in srgb, var(--k-text) 6%, transparent); }
+.k .waves__key { padding-inline: var(--k-4); }
+.k .waves__k { grid-template-columns: 14px 140px minmax(0, 1fr); }
+.k button.waves__k { width: 100%; margin: 0; padding: 0; border: 0; border-radius: 6px; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.k button.waves__k:active { background: var(--k-surface-press); }
+
+/* --- Owed back opens its list --------------------------------------------- */
+.k #owed-back-stat { cursor: pointer; font: inherit; text-align: left; }
+.k #owed-back-stat[aria-expanded="true"] { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--k-positive) 60%, transparent); }
+.k .owed-list { margin: var(--k-3) 0; padding: var(--k-3) var(--k-4); border-radius: var(--k-r-lg); background: var(--k-surface); border: 1px solid var(--k-hairline); animation: owed-in 180ms ease-out both; }
+@keyframes owed-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .k .owed-list { animation: none; } }
+.k .owed-list__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--k-3); padding: 2px 0 var(--k-2); font-size: var(--k-caption); font-weight: var(--k-w-fig); letter-spacing: var(--k-track-caption); text-transform: uppercase; color: var(--k-text-2); }
+.k .owed-list__head b { font-size: var(--k-label); letter-spacing: 0; color: var(--k-positive); font-variant-numeric: tabular-nums; }
+.k .owed-list__head--sub { margin-top: var(--k-3); padding-top: var(--k-3); border-top: 1px solid var(--k-hairline); }
+.k .owed-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: var(--k-3); align-items: center; width: 100%; margin: 0; padding: 10px 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; }
+.k button.owed-row { cursor: pointer; }
+.k button.owed-row:active { background: var(--k-surface-press); }
+.k .owed-row + .owed-row { border-top: 1px solid var(--k-hairline); }
+.k .owed-row__d { font-size: var(--k-label); color: var(--k-text-2); }
+.k .owed-row__t { display: grid; gap: 1px; min-width: 0; font-size: var(--k-body); }
+.k .owed-row__t small { font-size: var(--k-caption); color: var(--k-text-2); }
+.k .owed-row__v { font-weight: 600; font-variant-numeric: tabular-nums; }
+.k .owed-row--in .owed-row__v { color: var(--k-positive); }
+.k .owed-list__late { margin: var(--k-2) 0 0; font-size: var(--k-caption); color: var(--k-warning); }
+.k .owed-list__tip, .k .owed-list__none { margin: var(--k-3) 0 0; font-size: var(--k-caption); line-height: 1.4; color: var(--k-text-2); }
+
+/* --- what is work on a card ------------------------------------------------- */
+.k .card-work { display: block; font-size: 10.5px; font-weight: 500; color: color-mix(in srgb, var(--k-positive) 62%, var(--k-text)); font-variant-numeric: tabular-nums; }
+.k .tl-thin i, .k .md-prog i { position: relative; }
+.k .card-work-bar { position: absolute; top: 0; right: 0; bottom: 0; border-radius: inherit; background: var(--k-positive); }
+.k .card-split { display: grid; gap: 6px; padding: 0 0 var(--k-3); }
+.k .card-split__bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--k-text) 8%, transparent); }
+.k .card-split__bar i { display: block; height: 100%; }
+.k .card-split__bar .own { background: var(--k-accent); }
+.k .card-split__bar .work { background: var(--k-positive); }
+.k .card-split__key { display: flex; justify-content: space-between; gap: var(--k-3); font-size: var(--k-caption); color: var(--k-text-2); }
+.k .card-split__key span { display: inline-flex; align-items: center; gap: 6px; }
+.k .card-split__key span::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--k-accent); }
+.k .card-split__key .work::before { background: var(--k-positive); }
+.k .card-split__key b { margin-left: 2px; font-weight: 600; color: var(--k-text); font-variant-numeric: tabular-nums; }
+.k .card-split__note { margin: 0; padding: 0 0 var(--k-3); font-size: var(--k-caption); color: var(--k-positive); }
+
+/* --- this month's steps: tappable, with a sheet ----------------------------- */
+.k button.pl-step, .k button.pk-dash { margin: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
+.k button.pk-dash { width: 100%; text-align: left; }
+.k button.pl-step:focus-visible, .k button.pk-dash:focus-visible { outline-offset: 3px; }
+.k .pl-step.is-skipped b { border-style: dashed; opacity: .6; }
+.k .pl-step.is-skipped small { opacity: .6; }
+.k .pk-dash.is-skipped { opacity: .55; }
+.k .plan-strip__bar { cursor: pointer; }
+.k .plan-strip__bar.is-skipped rect { fill: color-mix(in srgb, var(--k-text) 14%, transparent); }
+.k .plan-strip__bar.is-skipped text { fill: var(--k-text-2); }
+.k .plan-strip__key .is-skipped { color: var(--k-text-2); }
+#month-sheet .k-scrim { z-index: 40; }
+#month-sheet .k-sheet { z-index: 41; max-height: 78vh; display: flex; flex-direction: column; }
+.month-sheet__line { margin: var(--k-3) 0 var(--k-2); font-size: var(--k-label); color: var(--k-text-2); }
+.month-sheet__line b { color: var(--k-text); font-variant-numeric: tabular-nums; }
+.month-act { width: 100%; text-align: left; }
+
+/* --- the week's columns say what each day was -------------------------------- */
+.k .tl-cols, .k .md-cols, .k .pk-cols { height: 98px; }
+.k .tl-cols em, .k .md-cols em, .k .pk-cols em { font-style: normal; font-size: 10.5px; line-height: 1; color: var(--k-text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* --- History: what went out each day ------------------------------------------ */
+.k .hist-days__title { margin: 0 0 var(--k-3); font-size: var(--k-caption); font-weight: var(--k-w-fig); letter-spacing: var(--k-track-caption); text-transform: uppercase; color: var(--k-text-2); }
+.k .hist-days__col { flex: 1 1 0; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 1px; margin: 0; padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
+.k .hist-days__col .hist-days__bar { display: block; width: 100%; flex: none; }
+.k .hist-days__col.is-picked .hist-days__bar { opacity: 1; box-shadow: 0 0 10px color-mix(in srgb, var(--k-grad-1a) 55%, transparent); }
+.k .hist-days__col:focus-visible { outline: 2px solid var(--k-text); outline-offset: 2px; }
+.k .seg-fixed { display: block; width: 100%; min-height: 3px; border-radius: 2px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--k-text) 34%, transparent) 0 2px, transparent 2px 4px); }
+.k .seg-fixed.is-cut { clip-path: polygon(0 4px, 25% 0, 50% 4px, 75% 0, 100% 4px, 100% 100%, 0 100%); }
+.k .hist-days__ticks { display: flex; justify-content: space-between; margin-top: 4px; font-size: 10.5px; color: var(--k-text-2); font-variant-numeric: tabular-nums; }
+.k .hist-days__read { margin: var(--k-2) 0 0; font-size: var(--k-caption); line-height: 1.4; color: var(--k-text-2); }
+.k .hist-days__read strong { color: var(--k-text); font-variant-numeric: tabular-nums; }
+.k .hist-days__fixed { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0 0; font-size: var(--k-caption); line-height: 1.4; color: var(--k-text-2); }
+.k .hist-days__fixed i { flex: none; width: 12px; height: 8px; margin-top: 4px; border-radius: 2px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--k-text) 34%, transparent) 0 2px, transparent 2px 4px); }
+
+/* --- tick boxes: ours, not the browser's orange square ------------------------ */
+.k .hist-flag input[type="checkbox"], .k .checkbox-row input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none;
+  flex: none; display: grid; place-content: center;
+  width: 24px; height: 24px; margin: 0;
+  border-radius: 8px; border: 1.5px solid var(--k-border-emphasis); background: var(--k-surface);
+  cursor: pointer; transition: background var(--k-t-fast) var(--k-ease), border-color var(--k-t-fast) var(--k-ease);
+}
+.k .hist-flag input[type="checkbox"]::after, .k .checkbox-row input[type="checkbox"]::after {
+  content: ""; width: 12px; height: 7px; margin-top: -2px;
+  border-left: 2.5px solid var(--k-accent-ink); border-bottom: 2.5px solid var(--k-accent-ink);
+  transform: rotate(-45deg) scale(0); transition: transform var(--k-t-fast) var(--k-ease);
+}
+.k .hist-flag input[type="checkbox"]:checked, .k .checkbox-row input[type="checkbox"]:checked { background: var(--k-accent); border-color: var(--k-accent); }
+.k .hist-flag input[type="checkbox"]:checked::after, .k .checkbox-row input[type="checkbox"]:checked::after { transform: rotate(-45deg) scale(1); }
+.k .hist-flag input[type="checkbox"]:disabled { opacity: .45; cursor: default; }
+.k .hist-flag, .k .checkbox-row { gap: var(--k-3); align-items: center; line-height: 1.35; }
+.k .hist-flag > span, .k .checkbox-row > span { flex: 1; min-width: 0; }
+
+/* --- a payment's Edit panel: one rhythm -------------------------------------- */
+.k .txn-edit-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--k-2); align-items: stretch; }
+.k .txn-edit-row .rv-field[type="date"] { flex: none; width: 100%; min-height: 44px; }
+.k .txn-edit-row .direction-toggle { align-self: stretch; }
+.k .hist-time { justify-content: space-between; }
+.k .hist-edit .rv-field { width: 100%; }
+
+/* Small text that was already here, brought up to AA on the light looks. */
+.k .waves__key, .k .pl-today, .k .pl-step small { color: var(--k-text-2); }
+.k button.waves__k { min-height: 36px; }
+.k .waves__key { gap: 2px; }
+.k .hist-days__bar.is-cut { clip-path: polygon(0 4px, 25% 0, 50% 4px, 75% 0, 100% 4px, 100% 100%, 0 100%); }

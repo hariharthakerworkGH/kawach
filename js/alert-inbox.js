@@ -129,12 +129,16 @@ export async function saveAlert(item, edits) {
   };
   if (transaction.time === undefined) delete transaction.time;
   if (edits.commitmentId) transaction.commitmentId = edits.commitmentId;
+  // Work costs and what pays them back (js/reimbursable.js): only the flag
+  // that fits the way the money went.
+  if (edits.direction === 'debit' && edits.isReimbursable) transaction.isReimbursable = true;
+  if (edits.direction === 'credit' && edits.isSettlement) transaction.isSettlement = true;
   if (edits.paysCardId) transaction.paysCardId = edits.paysCardId;
   // Your call on transfer-or-not sticks, and automatic detection won't undo it.
   if (edits.transferDecided) transaction.transferManual = true;
 
   await put('transactions', transaction);
-  if (transaction.categoryId) await learnFromAssignment(transaction.rawDescription, transaction.categoryId);
+  if (transaction.categoryId) await learnFromAssignment(transaction.rawDescription, transaction.categoryId, transaction.direction);
 
   // Remember which account this card number belongs to, so the next alert
   // from it lands in the right place without asking.

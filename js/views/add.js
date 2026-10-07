@@ -11,6 +11,7 @@ import { isBusinessCategory, isBusinessAccount, activeSpace, accountInSpace } fr
 import { escapeHtml } from '../ui.js';
 import { brandMark } from '../brand.js';
 import { peopleStanding, personNamed, updatePerson } from '../people.js';
+import { isIncomeCategory } from '../merchant-rules.js';
 
 export async function render(container, params = {}) {
   const [categories, allAccounts, recurring, space, transactions, people] = await Promise.all([
@@ -96,8 +97,8 @@ export async function render(container, params = {}) {
     <button type="button" class="k-insight k-add-sms" id="add-from-alert">
       <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('inbox')}</span>
       <span class="k-add-sms__body">
-        <span class="k-insight__title">Got a bank SMS?</span>
-        <span class="k-insight__body">Paste it and Kawach fills this in for you.</span>
+        <span class="k-insight__title">Paste a bank message</span>
+        <span class="k-insight__body">Kawach reads it and fills this in for you.</span>
       </span>
       <span class="k-add-sms__go" aria-hidden="true">→</span>
     </button>
@@ -164,6 +165,12 @@ export async function render(container, params = {}) {
         </button>
       </div>
 
+      <!-- CHANGED (5.23): work costs are on the form itself, not under More. One
+           row for money out, one for money in; only the one that fits the
+           Spent/Received choice is shown. -->
+      ${reimbursableSwitch('add-reimb', 'Work cost', 'Your employer will pay this back')}
+      ${reimbursableSwitch('add-settle', 'Pays back a work cost', 'Money your employer paid back', true)}
+
       ${detailFields}
 
       <!-- Quiet, because the app works this out on its own nearly always. -->
@@ -171,10 +178,6 @@ export async function render(container, params = {}) {
         <summary>More</summary>
         <div class="k-add-more__body">
           ${commitmentField(commitments)}
-          <!-- NEW: work costs. One row for money out, one for money in; only
-               the one that fits the Spent/Received choice is shown. -->
-          ${reimbursableSwitch('add-reimb', 'Reimbursable (Work)', 'Your employer will pay this back')}
-          ${reimbursableSwitch('add-settle', 'Settles a reimbursement', 'Money your employer paid back', true)}
           <!-- NEW: a bill paid in the last two days of a month for the next
                one. Shown only then, and works only once a commitment is
                chosen above, because it has to say which one it pays. -->
@@ -203,7 +206,7 @@ export async function render(container, params = {}) {
             </button>
             ${catList
               .map(
-                (c) => `<button type="button" class="k-row k-cat-row chip" data-cat="${c.id}" data-business="${isBusinessCategory(c) ? '1' : ''}">
+                (c) => `<button type="button" class="k-row k-cat-row chip" data-cat="${c.id}" data-business="${isBusinessCategory(c) ? '1' : ''}" data-income="${isIncomeCategory(c) ? '1' : ''}">
                   <span class="k-icon" style="--k-tint:${categoryStyle(c.name).color}">${categoryStyle(c.name).icon}</span>
                   <span class="k-row__body"><span class="k-row__title">${escapeHtml(c.name)}</span></span>
                   <span class="k-cat-row__tick" aria-hidden="true"></span>
@@ -335,6 +338,7 @@ export async function render(container, params = {}) {
       showWorkRows();
       showNextMonthRow();
       showPersonMode();
+      fitCategories();
     });
   });
 
@@ -420,7 +424,8 @@ export async function render(container, params = {}) {
       if (business) commitmentEl.value = '';
     }
     container.querySelectorAll('#add-categories .chip[data-cat]:not([data-cat=""])').forEach((chip) => {
-      chip.hidden = (chip.dataset.business === '1') !== business;
+      // Income is for money coming in: not offered for a spend.
+      chip.hidden = (chip.dataset.business === '1') !== business || (direction === 'debit' && chip.dataset.income === '1');
       if (chip.hidden && chip.dataset.cat === categoryId) {
         categoryId = null;
         container.querySelectorAll('#add-categories .chip').forEach((c) => c.classList.toggle('active', c.dataset.cat === ''));
@@ -517,6 +522,8 @@ export async function render(container, params = {}) {
     if (!transaction.commitmentId) delete transaction.commitmentId;
     // NEW: only the flag that fits the direction is ever written.
     if (direction === 'debit' && reimbEl.checked) transaction.isReimbursable = true;
+    // Never Income for a spend, whatever slipped through.
+    if (direction === 'debit' && categories.some((c) => c.id === transaction.categoryId && isIncomeCategory(c))) transaction.categoryId = null;
     if (direction === 'credit' && settleEl.checked) transaction.isSettlement = true;
     // NEW: only with a commitment to apply it to (the switch is disabled
     // without one, and this is the second lock).
@@ -727,7 +734,7 @@ function arrangeAdd(container) {
   if (style === 'mindora') card.append(toggle);
   else form.prepend(toggle);
   card.append(hero.querySelector('.amount-field'), field('add-desc'));
-  head.append(container.querySelector('#add-cat-open').closest('.k-field'));
+  head.append(container.querySelector('#add-cat-open').closest('.k-field'), field('add-reimb'), field('add-settle'));
   const account = field('add-account');
   const quick = account.parentElement !== form ? account.closest('details') : null;
   const mark = (el, name) => {
@@ -751,5 +758,5 @@ function arrangeAdd(container) {
   const person = container.querySelector('#add-person');
   person.classList.add('add-card', 'add-card--person');
   card.after(person);
-  form.after(container.querySelector('#add-from-alert'));
+  // The paste-a-message banner stays where it was built: first on the page.
 }

@@ -12,6 +12,7 @@ import { displayName } from './transactions.js';
 import { isBusinessCategory, isBusinessAccount, moneyProfile } from '../business.js';
 import { categorySlices } from '../splits.js';
 import { isPutAway } from '../account-metrics.js';
+import { isCardBill } from '../transfers.js';
 import { escapeHtml, escapeAttr } from '../ui.js';
 
 // Your categories: rename them, pick their icon, and say which sits under
@@ -431,7 +432,7 @@ function wireReview(container) {
         // category since the list was made, and that one is left alone.
         if (!r.ticked.has(t.id) || t.categoryId || t.isTransfer) continue;
         await put('transactions', { ...t, categoryId: r.categoryId });
-        await learnFromAssignment(t.rawDescription, r.categoryId);
+        await learnFromAssignment(t.rawDescription, r.categoryId, t.direction);
         ids.push(t.id);
       }
       undo = { ids, categoryId: r.categoryId, name: r.name, rulesBefore };
@@ -478,11 +479,12 @@ function spendThisMonth(transactions, accounts, lane) {
   const business = new Set(accounts.filter(isBusinessAccount).map((a) => a.id));
   // Nothing leaving an account you do not spend from is spending (budgets.js).
   const putAway = new Set(accounts.filter(isPutAway).map((a) => a.id));
+  const byId = new Map(accounts.map((a) => [a.id, a]));
   const month = new Date();
   const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
   const totals = new Map();
   for (const t of transactions) {
-    if (t.direction !== 'debit' || t.isTransfer || t.date.slice(0, 7) !== key || putAway.has(t.accountId)) continue;
+    if (t.direction !== 'debit' || t.isTransfer || t.date.slice(0, 7) !== key || putAway.has(t.accountId) || isCardBill(t, byId.get(t.accountId))) continue;
     if (business.has(t.accountId) !== (lane === 'business')) continue;
     for (const slice of categorySlices(t)) {
       if (!slice.categoryId) continue;

@@ -5379,7 +5379,7 @@ label.look-style { position: relative; cursor: pointer; }
 :root[data-style] .k .add-row > .add-row-ic svg { width: 18px; height: 18px; }
 :root[data-style] .k .add-row.k-switch-row { display: flex; gap: 12px; }
 :root[data-style] .k .add-row.k-switch-row .k-switch-row__text { flex: 1; }
-:root[data-style] .k .add-form ~ .k-add-sms { margin-top: var(--k-3); }
+:root[data-style] .k .k-add-sms { margin: 0 0 var(--k-3); }
 :root[data-style] .k .accounts-actions .k-btn--ghost { font-size: 14px; }
 
 /* --- Plan in the styles (5.14, plan-looks.js): the shared bones ---------
@@ -5415,7 +5415,7 @@ label.look-style { position: relative; cursor: pointer; }
 :root[data-style] .k #hist-hero .hero-under { margin: var(--k-4) 0 0; }
 :root[data-style] .k .hist-days-card { padding: var(--k-4); margin: var(--k-3) 0; }
 :root[data-style] .k .hist-days-card:empty { display: none; }
-:root[data-style] .k .hist-days-card::before { content: "Day by day"; display: block; margin-bottom: var(--k-3); }
+:root[data-style] .k .hist-days-card::before { content: none; }
 
 /* --- Coach in the styles (5.16): shared bones ---------------------------- */
 .ct-top { margin-bottom: var(--k-4); }

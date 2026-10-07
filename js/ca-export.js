@@ -17,6 +17,7 @@ import { isoLocal } from './frequency.js';
 import { findDuplicates } from './duplicates.js';
 import { categorySlices } from './splits.js';
 import { isLoanAccount, loanPayments, assignLoanPayments } from './loans.js';
+import { isCardBill } from './transfers.js';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -65,7 +66,10 @@ export function buildCaReport({ transactions, accounts, categories, people = [],
       const account = byAccount.get(t.accountId);
       const person = t.personId ? people.find((p) => p.id === t.personId) : null;
       const slices = categorySlices(t);
-      const note = t.isTransfer
+      const bill = isCardBill(t, account);
+      const note = bill
+        ? 'Card bill payment: the purchases it pays are counted on the card'
+        : t.isTransfer
         ? 'Moved between your own accounts'
         : person
           ? `${t.direction === 'debit' ? 'Given to' : 'Got from'} ${person.name}`
@@ -80,11 +84,12 @@ export function buildCaReport({ transactions, accounts, categories, people = [],
         account: account ? account.label : t.accountId === 'cash' ? 'Cash' : 'Unknown account',
         lane: laneOf(account),
         description: t.rawDescription || '',
-        category: t.isTransfer ? '' : emiOf.has(t.id) ? emiOf.get(t.id) : person ? 'Lent and borrowed' : slices.length > 1 ? slices.map((s) => `${catName(s.categoryId)} ${rupees(s.amount)}`).join('; ') : catName(t.categoryId),
+        category: t.isTransfer || bill ? '' : emiOf.has(t.id) ? emiOf.get(t.id) : person ? 'Lent and borrowed' : slices.length > 1 ? slices.map((s) => `${catName(s.categoryId)} ${rupees(s.amount)}`).join('; ') : catName(t.categoryId),
         moneyIn: t.direction === 'credit' ? t.amount : 0,
         moneyOut: t.direction === 'debit' ? t.amount : 0,
         note,
         slices,
+        bill,
       };
     });
 
@@ -92,7 +97,7 @@ export function buildCaReport({ transactions, accounts, categories, people = [],
   // left out. A person's money is a line of its own, never a category.
   const lanes = new Map();
   for (const r of rows) {
-    if (r.t.isTransfer) continue;
+    if (r.t.isTransfer || r.bill) continue;
     const lane = lanes.get(r.lane) || { name: r.lane, moneyIn: 0, moneyOut: 0, inBy: new Map(), outBy: new Map() };
     lane.moneyIn += r.moneyIn;
     lane.moneyOut += r.moneyOut;

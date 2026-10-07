@@ -121,6 +121,20 @@ Periods:
   a month" is an allowance, not a bill, so paying for a film with a different
   card still spends it (`isSetAside` decides). A **must be paid** item on a
   named card stays on that card, because that one really is one bill.
+- Categories follow the way the money went (`js/merchant-rules.js`): a payment
+  out is never matched to, offered or saved as Income (`isIncomeCategory`,
+  `fitsDirection`); a rule learned from money in is not applied to money out
+  (rules carry `direction`); a rule counts for how much of it a line fits. A
+  card bill (`isCardBill`, js/transfers.js) is never a category's spending, since
+  the purchases it pays are counted on the card.
+- Work costs: the switch is on Add itself, on a pasted bank message and in
+  History; "Owed back" on Summary opens the costs behind it (oldest first, with
+  what is still owed) and the refunds that came in; each card says how much of
+  it is work (`workCycle`, `workOwed` on `cards` in free-to-spend.js).
+- Every month chart says what it is, reads any day by dragging, and uses plain
+  names: "You've spent", "Budget so far", "Most in one day". The days are drawn
+  once: "When it goes" is gone. History's day chart draws what you spent apart
+  from bills and moves, and cuts a day far above a usual one short.
 - Lent and borrowed (`js/people.js`): a payment carries `personId`, and
   gave or got decides the rest. Money lent from a bank account you spend
   from or a card comes off Left to spend; money back goes on again in the

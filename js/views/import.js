@@ -4,7 +4,7 @@ import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
 import { extractPdfText, PdfPasswordError, PdfNoTextError } from '../pdf-text.js';
 import { detectParser, parsers } from '../parsers/registry.js';
-import { matchCategoryForDescription, learnFromAssignment } from '../merchant-rules.js';
+import { matchCategoryForDescription, learnFromAssignment, fitsDirection } from '../merchant-rules.js';
 import { detectTransfers } from '../transfers.js';
 import { matchAgainstManualEntries } from '../reconciliation.js';
 import { formatCurrency, formatDateNice, formatRupees, ordinal } from '../format.js';
@@ -324,7 +324,7 @@ async function startReview({ parser, text, last4 = null, queue }, status, result
     return;
   }
   for (const row of rows) {
-    row.categoryId = await matchCategoryForDescription(row.description);
+    row.categoryId = await matchCategoryForDescription(row.description, row.direction);
     // What the row's category is before matching borrows one from an entry
     // on some card - restored if a different card is picked.
     row._ownCategoryId = row.categoryId;
@@ -701,6 +701,8 @@ async function analyse() {
     if (!row) continue;
     if ('_ownCategoryId' in row) row.categoryId = row._ownCategoryId;
     if (row.categoryId && !fits.has(row.categoryId)) row.categoryId = null;
+    // A payment out is never filed under Income, whatever carried it in.
+    if (row.categoryId && !fitsDirection(categoriesCache.find((c) => c.id === row.categoryId), row.direction)) row.categoryId = null;
     delete row._matchedManualId;
     delete row._matchedSource;
     delete row._carry;
@@ -1139,7 +1141,7 @@ function rowTemplate(row, idx, categories) {
         <input type="number" step="0.01" class="ir-field ir-amount" data-field="amount" value="${(row.amount / 100).toFixed(2)}">
         <select class="ir-field ir-category" id="ir-cat-${idx}" data-field="categoryId">
           <option value="">Uncategorized</option>
-          ${categories.map((c) => `<option value="${c.id}" ${c.id === row.categoryId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+          ${categories.filter((c) => fitsDirection(c, row.direction)).map((c) => `<option value="${c.id}" ${c.id === row.categoryId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -1251,6 +1253,16 @@ function handleClick(e, resultsEl, container) {
     row.direction = dirBtn.dataset.dir;
     delete row._keepExisting;
     rowEl.querySelectorAll('.ir-dir').forEach((b) => b.classList.toggle('active', b === dirBtn));
+    // The category list follows the way the money went: no Income for a spend.
+    const cat = categoriesCache.find((c) => c.id === row.categoryId);
+    if (cat && !fitsDirection(cat, row.direction)) row.categoryId = null;
+    const pick = rowEl.querySelector('.ir-category');
+    if (pick) {
+      pick.innerHTML = `<option value="">Uncategorized</option>${categoriesFor(categoriesCache, state.account)
+        .filter((c) => fitsDirection(c, row.direction))
+        .map((c) => `<option value="${c.id}" ${c.id === row.categoryId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)
+        .join('')}`;
+    }
     updateTotals(resultsEl);
   }
 }
@@ -1473,7 +1485,7 @@ async function commitRows(resultsEl, rows, statusEl) {
     }
     await put('transactions', transaction);
     if (!row._matchedManualId) newIds.add(transaction.id);
-    if (row.categoryId) await learnFromAssignment(row.description, row.categoryId);
+    if (row.categoryId) await learnFromAssignment(row.description, row.categoryId, row.direction);
   }
 
   for (const t of superseded || []) {

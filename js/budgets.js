@@ -1,6 +1,7 @@
 import { getSetting, setSetting, getAll } from './db.js';
 import { categorySlices } from './splits.js';
 import { isPutAway } from './account-metrics.js';
+import { isCardBill } from './transfers.js';
 import { spendingMonthOf, accountMap, CYCLE_SETTING_KEY } from './spending-month.js';
 
 // Budgets are a plain map of categoryId -> monthly limit in paise, kept in the
@@ -38,7 +39,8 @@ export function spendByCategoryForMonth(transactions, accounts, monthKey, cycleA
 function tally(rows, byId) {
   const totals = new Map();
   for (const t of rows) {
-    if (t.isTransfer || t.direction !== 'debit' || isPutAway(byId.get(t.accountId) || {})) continue;
+    // A card bill is the card's purchases again (they are counted on the card).
+    if (t.isTransfer || t.direction !== 'debit' || isPutAway(byId.get(t.accountId) || {}) || isCardBill(t, byId.get(t.accountId))) continue;
     for (const slice of categorySlices(t)) {
       const key = slice.categoryId || 'uncategorized';
       totals.set(key, (totals.get(key) || 0) + slice.amount);

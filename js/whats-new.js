@@ -12,6 +12,41 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.23',
+    items: [
+      {
+        icon: 'tag',
+        title: "A spend is never filed as Income",
+        text: "A Swiggy spend pasted from a bank message was filed under Income. Money going out can no longer be Income: Kawach will not choose it, offer it or learn it. If any are already there, Summary shows Fix.",
+        guide: [{ view: 'add', target: '#add-from-alert', text: "Paste a bank message here. It is now the first thing on this page." }],
+      },
+      {
+        icon: 'bill',
+        title: "Work costs where you add them",
+        text: "Work cost is a switch on Add, on a pasted bank message and on each payment in History, and money coming in can be marked as paying one back. Owed back on Summary opens the costs behind it, and each card shows how much of it is work.",
+        guide: [{ view: 'summary', target: '#owed-back-stat', text: "Tap Owed back to see which costs are still waiting." }],
+      },
+      {
+        icon: 'clock',
+        title: "This month's steps can be tapped",
+        text: "On Plan, tap a step of this month to mark it paid, skip it, see its payments or edit it.",
+        guide: [{ view: 'plan', target: '.pl-step', text: "Tap a step to mark it paid or skip it." }],
+      },
+      {
+        icon: 'summary',
+        title: "Charts that say what they are",
+        text: "The month chart has a title, plain names (You've spent, Budget so far, Most in one day) and can be dragged to read any day. The week shows each day's amount. The repeated When it goes chart is gone.",
+        guide: [{ view: 'summary', target: '.waves-card', text: "Drag across the chart to read any day." }],
+      },
+      {
+        icon: 'history',
+        title: "What you spent each day",
+        text: "History's day chart now shows what you spent each day, with bills and moves drawn apart and a much bigger day cut short, so every other day can be read.",
+        guide: [{ view: 'transactions', target: '#hist-days', text: "Tap a day to see it and jump to its payments." }],
+      },
+    ],
+  },
+  {
     version: '5.22.2',
     items: [
       {

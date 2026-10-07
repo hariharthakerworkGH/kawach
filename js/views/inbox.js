@@ -1,6 +1,6 @@
 import { getAll } from '../db.js';
 import { formatCurrency, formatDateNice } from '../format.js';
-import { matchCategoryForDescription } from '../merchant-rules.js';
+import { matchCategoryForDescription, isIncomeCategory, fitsDirection } from '../merchant-rules.js';
 import { parseAlert, resolveAccount, findExisting, alertFingerprint } from '../alerts.js';
 import { pendingAlerts, addToInbox, dismissAlert, saveAlert } from '../alert-inbox.js';
 import { showToast } from '../toast.js';
@@ -59,7 +59,7 @@ export async function render(container) {
       parsed,
       account,
       existing,
-      categoryId: await matchCategoryForDescription(parsed.description),
+      categoryId: await matchCategoryForDescription(parsed.description, parsed.direction),
     });
   }
 
@@ -190,7 +190,9 @@ function draftTemplate(d) {
         <select class="al-category">
           <option value="">Needs a category</option>
           ${context.categories
-            .map((c) => `<option value="${c.id}" ${c.id === d.categoryId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)
+            // Income is not offered for money going out.
+            .filter((c) => fitsDirection(c, parsed.direction))
+            .map((c) => `<option value="${c.id}" ${isIncomeCategory(c) ? 'data-income="1"' : ''} ${c.id === d.categoryId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)
             .join('')}
         </select>
       </label>
@@ -202,6 +204,15 @@ function draftTemplate(d) {
             ? cardPaymentField(context.accounts.filter((a) => a.type === 'card'), null, `al-pays-${item.id}`, 'class="al-pays-card"')
             : commitmentField(context.commitments, null, `al-commitment-${item.id}`, 'class="al-commitment"')
       }
+
+      <label class="checkbox-row al-reimb-out" ${parsed.direction === 'credit' ? 'hidden' : ''}>
+        <input type="checkbox">
+        <span>Work cost: my employer pays this back</span>
+      </label>
+      <label class="checkbox-row al-reimb-in" ${parsed.direction === 'credit' ? '' : 'hidden'}>
+        <input type="checkbox">
+        <span>This pays back a work cost</span>
+      </label>
 
       <label class="checkbox-row">
         <input type="checkbox" class="al-transfer" ${parsed.suggestTransfer ? 'checked' : ''}>
@@ -262,6 +273,16 @@ function wire(root, container) {
     const dirBtn = e.target.closest('.al-direction .dir-btn');
     if (dirBtn && card) {
       card.querySelectorAll('.al-direction .dir-btn').forEach((b) => b.classList.toggle('active', b === dirBtn));
+      // Switched to Spent: Income is no longer a choice, and is cleared if it was picked.
+      const spent = dirBtn.dataset.dir === 'debit';
+      const pick = card.querySelector('.al-category');
+      pick.querySelectorAll('option[data-income]').forEach((o) => {
+        o.disabled = spent;
+        o.hidden = spent;
+      });
+      if (spent && pick.selectedOptions[0] && pick.selectedOptions[0].dataset.income) pick.value = '';
+      card.querySelectorAll('.al-reimb-out').forEach((el) => (el.hidden = !spent));
+      card.querySelectorAll('.al-reimb-in').forEach((el) => (el.hidden = spent));
       return;
     }
 
@@ -382,6 +403,7 @@ function readEdits(card, draft) {
   const date = card.querySelector('.al-date').value;
   if (!date) return { error: 'Pick a date' };
 
+  const category = context.categories.find((c) => c.id === card.querySelector('.al-category').value);
   const paysCardId = card.querySelector('.al-pays-card') ? card.querySelector('.al-pays-card').value || null : null;
   // A card bill payment is money moved, not spending.
   const isTransfer = card.querySelector('.al-transfer').checked || Boolean(paysCardId);
@@ -391,7 +413,11 @@ function readEdits(card, draft) {
     amount,
     date,
     description: card.querySelector('.al-desc').value.trim() || parsed.description,
-    categoryId: card.querySelector('.al-category').value || null,
+    // Never Income for money going out, whatever was picked or filled in.
+    categoryId: category && fitsDirection(category, direction) ? category.id : null,
+    // A work cost to be paid back, or a payment that is one being paid back.
+    isReimbursable: direction === 'debit' && Boolean(card.querySelector('.al-reimb-out input')?.checked),
+    isSettlement: direction === 'credit' && Boolean(card.querySelector('.al-reimb-in input')?.checked),
     isTransfer,
     paysCardId,
     commitmentId: card.querySelector('.al-commitment') ? card.querySelector('.al-commitment').value || null : null,

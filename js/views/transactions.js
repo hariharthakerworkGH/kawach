@@ -2,7 +2,7 @@ import { getAll, put, remove, getSetting, setSetting } from '../db.js';
 import { countsFor, nextMonthKey, salaryLike } from '../spending-month.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { personNamed } from '../people.js';
-import { learnFromAssignment } from '../merchant-rules.js';
+import { learnFromAssignment, fitsDirection, isIncomeCategory } from '../merchant-rules.js';
 import { formatCurrency, formatRupees, formatMonthYear, formatDateNice } from '../format.js';
 import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
@@ -214,15 +214,23 @@ export async function render(container, params = {}) {
   container.querySelector('#bulk-category').addEventListener('change', async (e) => {
     const categoryId = e.target.value;
     if (!categoryId) return;
+    const category = cache.categories.find((c) => c.id === categoryId);
+    let kept = 0;
     for (const id of selected) {
       const t = cache.transactions.find((x) => x.id === id);
       if (!t) continue;
       // A split was set up deliberately; a bulk assign shouldn't flatten it.
       if (isSplit(t)) continue;
+      // Income is for money in: a payment out ticked among the rest keeps what it had.
+      if (!fitsDirection(category, t.direction)) {
+        kept += 1;
+        continue;
+      }
       t.categoryId = categoryId;
       await save(t);
-      await learnFromAssignment(t.rawDescription, categoryId);
+      await learnFromAssignment(t.rawDescription, categoryId, t.direction);
     }
+    if (kept) showToast(`${kept} payment${kept === 1 ? '' : 's'} going out can't be Income, so ${kept === 1 ? 'it was' : 'they were'} left as ${kept === 1 ? 'it was' : 'they were'}`);
     selected.clear();
     e.target.value = '';
     renderList(container);
@@ -259,9 +267,28 @@ export async function render(container, params = {}) {
 
   // A day on the chart takes you to that day in the list.
   container.querySelector('#hist-days').addEventListener('click', (e) => {
-    const bar = e.target.closest('[data-day]');
+    // A day's column is about 10px wide, so a tap anywhere in the chart goes to the
+    // nearest day that has something (a thumb is not 10px).
+    let bar = e.target.closest('[data-day]');
+    const strip = e.target.closest('.hist-days__bars');
+    if (!bar && strip) {
+      const cols = [...strip.querySelectorAll('[data-day]')];
+      bar = cols.reduce((best, c) => {
+        const r = c.getBoundingClientRect();
+        const d = Math.abs(r.left + r.width / 2 - e.clientX);
+        return !best || d < best.d ? { c, d } : best;
+      }, null)?.c;
+    }
     const day = bar && container.querySelector(`.hist-day[data-day="${bar.dataset.day}"]`);
     if (!day) return;
+    // The line under the chart says what the day was; the list scrolls to it.
+    container.querySelectorAll('#hist-days .hist-days__col').forEach((c) => c.classList.toggle('is-picked', c === bar));
+    const read = container.querySelector('#hist-days [data-read]');
+    if (read) {
+      const e = Number(bar.dataset.e);
+      const f = Number(bar.dataset.f);
+      read.innerHTML = `${formatDateNice(bar.dataset.day)}: <strong>${formatRupees(e)}</strong> spent${f ? `, <strong>${formatRupees(f)}</strong> in bills and moves` : ''} · ${bar.dataset.n} payment${bar.dataset.n === '1' ? '' : 's'}`;
+    }
     const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     day.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
     day.classList.remove('is-picked');
@@ -544,28 +571,75 @@ function groupTemplate(rows, across) {
 // your own accounts left out, as in the totals), the biggest day named under
 // it. A bar is a button that takes you to that day in the list. Nothing went
 // out, no chart. Exported so it can be tested.
-export function dayChart(rows, month, side = sideOf) {
+/* What a payment is on the day chart: 'day' (spent that day: a purchase on a card
+ * or from the bank), 'fixed' (left in one go: a card bill, a fixed cost, money
+ * moved to savings), or null (money in, or moved between your own accounts). A
+ * card purchase counts on the day it was swiped, which is when you spent it. */
+function dayKind(t) {
+  if (t.direction !== 'debit') return null;
+  const account = cache.accounts.find((a) => a.id === t.accountId);
+  const bill = Boolean(t.paysCardId || looksLikeCardPayment(t, 'bank'));
+  if (account && account.type === 'card') return t.isTransfer ? null : 'day';
+  if (sideOf(t) !== 'out') return null;
+  return t.isTransfer || bill || t.commitmentId ? 'fixed' : 'day';
+}
+
+export function dayChart(rows, month, kind = dayKind) {
   const [y, m] = month.split('-').map(Number);
   const days = new Date(y, m, 0).getDate();
-  const out = new Array(days).fill(0);
+  // Two kinds of money out (5.23): what you spent through the day, and what
+  // left in one go - card bills, rent and other fixed costs, money moved to
+  // savings. On salary day the second is most of the month and flattened every
+  // other day to a stub, so the bar says each, and the tall one is cut short.
+  const every = new Array(days).fill(0);
+  const fixed = new Array(days).fill(0);
+  const count = new Array(days).fill(0);
   for (const t of rows) {
-    if (side(t) !== 'out' || t.date.slice(0, 7) !== month) continue;
-    out[Number(t.date.slice(8, 10)) - 1] += t.amount;
+    const k = kind(t);
+    if (!k || t.date.slice(0, 7) !== month) continue;
+    const d = Number(t.date.slice(8, 10)) - 1;
+    (k === 'fixed' ? fixed : every)[d] += t.amount;
+    count[d] += 1;
   }
-  const top = Math.max(...out);
-  if (top <= 0) return '';
-  const big = out.indexOf(top);
+  const top = Math.max(...every) || Math.max(...fixed);
+  if (!(top > 0)) return '';
+  const spent = every.filter((v) => v > 0).sort((a, b) => a - b);
+  const usual = spent.length ? spent[Math.floor((spent.length - 1) / 2)] : 0;
+  const big = every.indexOf(Math.max(...every));
+  const bills = fixed.reduce((a, b) => a + b, 0);
+  // A day far above a usual one (salary day, a big purchase) would flatten all the
+  // others to stubs, so the scale stops at four usual days and that bar is cut short.
+  const scaleTop = spent.length > 1 && usual > 0 ? Math.min(top, usual * 4) : top;
+  let cutBars = 0;
   const iso = (i) => `${month}-${String(i + 1).padStart(2, '0')}`;
-  const bars = out
-    .map((v, i) =>
-      v > 0
-        ? `<button type="button" class="hist-days__bar${i === big ? ' is-top' : ''}" data-day="${iso(i)}" style="--h:${Math.max(6, (v / top) * 100).toFixed(1)}%;--i:${i}" aria-label="${formatDateNice(iso(i))}: ${formatRupees(v)} out"></button>`
-        : '<i class="hist-days__none"></i>',
-    )
+  const bars = every
+    .map((v, i) => {
+      if (!v && !fixed[i]) return '<i class="hist-days__none"></i>';
+      const cutDay = v > scaleTop;
+      if (cutDay) cutBars += 1;
+      const e = Math.min(70, (v / scaleTop) * 70);
+      const fRaw = (fixed[i] / scaleTop) * 70;
+      const f = Math.min(30, fRaw);
+      const said = `${formatDateNice(iso(i))}: ${formatRupees(v)} spent${fixed[i] ? `, ${formatRupees(fixed[i])} in bills and moves` : ''}`;
+      return `<button type="button" class="hist-days__col" data-day="${iso(i)}" data-e="${v}" data-f="${fixed[i]}" data-n="${count[i]}" style="--i:${i}" aria-label="${said}">
+          ${fixed[i] ? `<i class="seg-fixed${fRaw > 30 ? ' is-cut' : ''}" style="height:${Math.max(3, f).toFixed(1)}%"></i>` : ''}
+          ${v ? `<i class="hist-days__bar${i === big ? ' is-top' : ''}${cutDay ? ' is-cut' : ''}" style="--h:${Math.max(4, e).toFixed(1)}%"></i>` : ''}
+        </button>`;
+    })
     .join('');
+  const ticks = [1, 8, 15, 22, days].map((d) => `<span>${d}</span>`).join('');
   return `<div class="hist-days">
+      <p class="hist-days__title">What you spent each day</p>
       <div class="hist-days__bars">${bars}</div>
-      <p class="hist-days__top">Biggest day <strong>${formatRupees(top)}</strong> on ${formatDateNice(iso(big))}</p>
+      <div class="hist-days__ticks" aria-hidden="true">${ticks}</div>
+      <p class="hist-days__read" data-read aria-live="polite">${
+        !every[big]
+          ? 'Only bills and moves went out.'
+          : spent.length === 1
+            ? `<strong>${formatRupees(every[big])}</strong> spent, all on ${formatDateNice(iso(big))}`
+            : `Usual day <strong>${formatRupees(usual)}</strong> · most <strong>${formatRupees(every[big])}</strong> on ${formatDateNice(iso(big))}`
+      }</p>
+      ${bills || cutBars ? `<p class="hist-days__fixed"><i></i>${[bills ? `Hatched: bills and moves, ${formatRupees(bills)} in all (card bills, rent, savings).` : '', cutBars ? 'A zigzag top: a much bigger day, cut short. Tap it for the amount.' : ''].filter(Boolean).join(' ')}</p>` : ''}
     </div>`;
 }
 
@@ -640,7 +714,9 @@ function subHtml(t) {
 
 // The categories that fit a payment's account: business or home.
 function fitting(t) {
-  return categoriesFor(cache.categories, cache.accounts.find((a) => a.id === t.accountId));
+  // Income is not a choice for a payment out - except where it already has one,
+  // so it can be seen and changed.
+  return categoriesFor(cache.categories, cache.accounts.find((a) => a.id === t.accountId)).filter((c) => c.id === t.categoryId || fitsDirection(c, t.direction));
 }
 
 function expandedTemplate(t) {
@@ -676,6 +752,7 @@ function expandedTemplate(t) {
           : ''
       }
       ${t.direction === 'debit' && !paysCardLike(t) && !t.personId ? commitmentField(cache.commitments, t.commitmentId, `commitment-${t.id}`, 'class="rv-field" data-field="commitmentId"') : ''}
+      ${workFlagField(t)}
       <details class="loan-detail hist-edit">
         <summary>Edit</summary>
         <div class="txn-edit-row">
@@ -691,11 +768,10 @@ function expandedTemplate(t) {
         </label>
         <input type="text" class="rv-field rv-desc" data-field="rawDescription" value="${escapeAttr(t.rawDescription)}" aria-label="Description">
         <input type="number" step="0.01" class="rv-field rv-amount-input" data-field="amount" value="${(t.amount / 100).toFixed(2)}" aria-label="Amount">
-        ${workFlagField(t)}
         ${nextMonthField(t)}
         ${salaryMonthField(t)}
+        ${personField(t)}
       </details>
-      ${personField(t)}
       <div class="hist-actions">
         <button type="button" class="link-btn txn-split-btn">${split ? 'Edit split' : 'Split'}</button>
         ${cardBill(t) ? '' : `<button type="button" class="link-btn review-transfer-toggle">${t.isTransfer ? 'Counts as spending' : 'Moved, not spent'}</button>`}
@@ -717,7 +793,7 @@ function workFlagField(t) {
   const field = debit ? 'isReimbursable' : 'isSettlement';
   return `<label class="hist-flag">
       <input type="checkbox" class="rv-field" data-field="${field}" ${t[field] ? 'checked' : ''}>
-      <span>${debit ? 'Reimbursable (Work)' : 'Settles a reimbursement'}</span>
+      <span>${debit ? 'Work cost: my employer pays this back' : 'This pays back a work cost'}</span>
     </label>`;
 }
 
@@ -921,7 +997,7 @@ function splitTemplate(t) {
 async function setCategory(t, categoryId, container, rowEl) {
   t.categoryId = categoryId;
   await save(t);
-  if (categoryId) await learnFromAssignment(t.rawDescription, categoryId);
+  if (categoryId) await learnFromAssignment(t.rawDescription, categoryId, t.direction);
   // Working through "need a category": the row goes once it has one.
   if (filters.categoryId === 'uncategorized' && categoryId) {
     expanded = null;
@@ -1183,7 +1259,7 @@ async function handleClick(e, container) {
     t.categoryId = null;
     await save(t);
     for (const r of rows) {
-      if (r.categoryId) await learnFromAssignment(t.rawDescription, r.categoryId);
+      if (r.categoryId) await learnFromAssignment(t.rawDescription, r.categoryId, t.direction);
     }
     splitDraft = null;
     renderList(container);
@@ -1217,6 +1293,8 @@ async function handleClick(e, container) {
     // NEW: Spent to Received (or back) drops the flag that no longer fits, so
     // a refund never stays marked "Reimbursable".
     tidyFlags(t);
+    // And a payment out is never Income.
+    if (t.direction === 'debit' && cache.categories.some((c) => c.id === t.categoryId && isIncomeCategory(c))) t.categoryId = null;
     await save(t);
     renderList(container);
   }

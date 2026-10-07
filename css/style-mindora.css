@@ -275,7 +275,7 @@
 .md-cols i.lit { width: 7px; background: #fff; box-shadow: 0 0 10px rgb(255 255 255 / 0.9); }
 :root[data-style="mindora"][data-theme="dark"] .md-cols i.lit { background: var(--k-text); box-shadow: 0 0 10px color-mix(in srgb, var(--k-text) 70%, transparent); }
 /* The header in the sky's own colour, fading out under the title. */
-:root[data-style="mindora"] body:has(#view-container) .app-header { background: linear-gradient(180deg, color-mix(in srgb, var(--k-bg) 82%, var(--k-violet)) 0%, color-mix(in srgb, var(--k-bg) 86%, var(--k-violet)) 70%, transparent 100%); }
+:root[data-style="mindora"] body:has(#view-container) .app-header { background: linear-gradient(180deg, color-mix(in srgb, var(--k-bg) 82%, var(--k-violet)) 0%, color-mix(in srgb, var(--k-bg) 86%, var(--k-violet)) 90%, transparent 100%); }
 /* The words over the lake keep a soft dark mist behind them, so they read
  * whatever colours the lake takes (on a dark colouring it turns pale). */
 .md-lake__text { width: 100%; background: linear-gradient(180deg, transparent, rgb(10 20 24 / 0.55)); border-radius: 0 0 20px 20px; padding-top: 28px; }
@@ -296,7 +296,7 @@
 :root[data-style="mindora"] .k .k-quick__chip { border: 1px solid var(--m-edge); background: var(--m-glass); color: var(--k-text-2); font-family: var(--m-figure); }
 :root[data-style="mindora"] .k .k-quick__chip.on { background: var(--k-accent); color: var(--k-accent-ink); border-color: transparent; }
 :root[data-style="mindora"] .k .add-row > .add-row-ic { border-radius: 50%; color: var(--k-accent); background: var(--m-glass-strong); border: 1px solid var(--m-edge); }
-:root[data-style="mindora"] .k .add-form ~ .k-add-sms { background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-style="mindora"] .k .k-add-sms { background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 
 /* --- Accounts, after the mockup (5.13) -----------------------------------
  * The total on glass with what sits beside it as soft badges (owed in
@@ -365,3 +365,9 @@
 :root[data-style="mindora"] .k-coach .coach-q { border-radius: 20px; margin-bottom: 10px; }
 :root[data-style="mindora"] .k-coach .coach-q .k-icon,
 :root[data-style="mindora"] .k-coach .coach-q [class*="k-brand"] { border-radius: 50%; color: var(--k-accent); background: var(--m-glass-strong); border: 1px solid var(--m-edge); }
+
+/* 5.23 in Mindora. */
+:root[data-style="mindora"] .k .owed-list { border-radius: 20px; background: var(--m-glass); border: 1px solid var(--m-edge); box-shadow: var(--m-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); }
+:root[data-style="mindora"] .k .chart-head b, :root[data-style="mindora"] .k .hist-days__title { font-family: var(--m-figure); }
+:root[data-style="mindora"] .k .chart-readout { border-radius: 14px; background: color-mix(in srgb, var(--k-text) 7%, transparent); }
+:root[data-style="mindora"] .k .hist-days__title { font-size: 11px; letter-spacing: .1em; }

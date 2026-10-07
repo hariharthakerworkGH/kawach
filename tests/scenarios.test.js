@@ -13,7 +13,7 @@ import { encryptPayload, decryptPayload, exportEncrypted, decryptBackup, restore
 import { takenHome, categoriesFor } from '../js/business.js';
 import { notesFor } from '../js/whats-new.js';
 import { isSetAside } from '../js/commitments.js';
-import { matchCategoryForDescription, learnFromAssignment, applyLearnedCategories } from '../js/merchant-rules.js';
+import { matchCategoryForDescription, learnFromAssignment, applyLearnedCategories, incomeSpendCount, fixIncomeSpends } from '../js/merchant-rules.js';
 import { APP_VERSION } from '../js/version.js';
 import { endOfMonthNoon } from '../js/views/summary.js';
 import { addToInbox, pendingAlerts, saveAlert } from '../js/alert-inbox.js';
@@ -1617,4 +1617,48 @@ test('lent and borrowed: money from a person is never taken for the salary', asy
   equal(f.salary.late, true, 'a ₹90,000 loan on payday is not the salary: it is still to come');
   await put('transactions', fromPerson('big', null, '2026-09-30', 90000));
   equal((await computeFreeToSpend(day('2026-09-30'))).salary.late, false, 'the same credit from nobody in particular is taken for it');
+});
+
+// --- Categories follow the way the money went (5.23) ---------------------------
+// The owner pasted a Swiggy spend and it was filed as Income. A rule taught from a
+// Swiggy cashback (money in, Income) matched the word "swiggy" as well as the
+// built-in Swiggy-is-food rule did, and being his own, it won the tie.
+async function seedCategories() {
+  await seedBasics({ keep: 0 });
+  await putAll('categories', [{ id: 'cat-income', name: 'Income' }, { id: 'cat-food', name: 'Food & Dining' }, { id: 'cat-shop', name: 'Shopping' }]);
+}
+
+test('a Swiggy spend is never filed as Income, whatever was learned from money in', async () => {
+  await seedCategories();
+  await put('merchantRules', { id: 'r1', matchPattern: 'swiggy hdfc bank credit', categoryId: 'cat-income', hitCount: 3 });
+  equal(await matchCategoryForDescription('RSP*SWIGGY PVT LTD FOO', 'debit'), 'cat-food', 'a long rule that fits by one word does not beat "swiggy"');
+  // Even a rule that is just "swiggy" -> Income, taught by mistake, is never applied to a spend.
+  await put('merchantRules', { id: 'r2', matchPattern: 'swiggy', categoryId: 'cat-income', hitCount: 9 });
+  equal(await matchCategoryForDescription('RSP*SWIGGY PVT LTD FOO', 'debit'), 'cat-food', 'a payment out is never matched to Income');
+  equal(await matchCategoryForDescription('SWIGGY HDFC BANK CREDIT CARD CASHBACK', 'credit'), 'cat-income', 'the same word in money coming in still is');
+});
+
+test('what is learned from money in is not applied to money out, and Income is never learned for a spend', async () => {
+  await seedCategories();
+  await put('merchantRules', { id: 'r1', matchPattern: 'zomato', categoryId: 'cat-shop', hitCount: 2, direction: 'credit' });
+  equal(await matchCategoryForDescription('ZOMATO ORDER', 'debit'), 'cat-food', 'a refund rule is not used on a spend');
+  equal(await matchCategoryForDescription('ZOMATO REFUND', 'credit'), 'cat-shop', 'but is on money in');
+  await learnFromAssignment('SWIGGY BANGALORE', 'cat-income', 'debit');
+  equal((await getAll('merchantRules')).some((r) => r.matchPattern.includes('swiggy')), false, 'Income for a spend teaches nothing');
+  await learnFromAssignment('SWIGGY BANGALORE', 'cat-food', 'debit');
+  equal((await getAll('merchantRules')).find((r) => r.matchPattern.includes('swiggy')).direction, 'debit', 'what is learned says which way it went');
+});
+
+test('spends already filed under Income are put right', async () => {
+  await seedCategories();
+  await putAll('transactions', [
+    txn({ id: 'wrong', accountId: 'bank', date: '2026-10-06', amount: 62000, rawDescription: 'RSP*SWIGGY PVT LTD FOO', categoryId: 'cat-income' }),
+    txn({ id: 'unknown', accountId: 'bank', date: '2026-10-06', amount: 1000, rawDescription: 'SOME LOCAL SHOP', categoryId: 'cat-income' }),
+    txn({ id: 'salary', accountId: 'bank', date: '2026-09-30', amount: 9000000, direction: 'credit', rawDescription: 'NEFT SALARY', categoryId: 'cat-income' }),
+  ]);
+  equal(await incomeSpendCount(), 2, 'two spends are filed as Income');
+  const result = await fixIncomeSpends();
+  equal([result.cleared, result.sorted], [2, 1], 'both cleared, the Swiggy one given Food again');
+  const after = Object.fromEntries((await getAll('transactions')).map((t) => [t.id, t.categoryId || null]));
+  equal([after.wrong, after.unknown, after.salary], ['cat-food', null, 'cat-income'], 'the salary is left as Income');
 });

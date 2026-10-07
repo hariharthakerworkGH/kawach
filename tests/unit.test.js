@@ -20,7 +20,7 @@ import { peopleStanding, personSpendEffects, lateBack, reminderText } from '../j
 import { nextRenewal, renewalAfter, renewalsAhead } from '../js/calendar.js';
 import { caPeriods, buildCaReport, toCsv } from '../js/ca-export.js';
 import { planParts } from '../js/views/plan-looks.js';
-import { looksLikeCardPayment, cashSide, spendMoves } from '../js/transfers.js';
+import { looksLikeCardPayment, cashSide, spendMoves, isCardBill } from '../js/transfers.js';
 import { spendingMonthOf, salaryLike, nextMonthKey, countsFor as countsForMonth } from '../js/spending-month.js';
 import { parseAlert, splitAlerts, resolveAccount, findDigits } from '../js/alerts.js';
 import * as hdfcList from '../js/parsers/hdfc-card-current-text.js';
@@ -1518,16 +1518,19 @@ test('Summary waves and week: from the 1st to today, the biggest day marked, owe
   delete document.documentElement.dataset.style;
   const waves = monthWaves(f);
   if (worn) document.documentElement.dataset.style = worn;
-  ok(waves.includes('₹5,000') && waves.includes('spent so far'), 'what has gone so far');
+  ok(waves.includes('₹5,000') && waves.includes("You've spent"), 'what has gone so far');
   ok(waves.includes('₹4,000 on 3 Oct'), 'the biggest day, said in words too');
-  ok(waves.includes('₹4,000 at an even pace'), 'an even pace through ₹31,000 over 31 days is ₹4,000 by the 4th');
+  ok(waves.includes('₹4,000</b><span class="waves__lab">Budget so far'), 'an even spread of ₹31,000 over 31 days is ₹4,000 by the 4th');
+  ok(waves.includes('How this month is going') && waves.includes('data-chart-days') && waves.includes('Most in one day'), 'the chart says what it is and can be read day by day');
+  ok(/data-readout[^>]*>Today|data-readout[^>]*>[A-Z][a-z]{2},? \d/.test(waves), 'under it, one line says what the day under your finger was');
+  ok(!waves.includes('waves__tip'), 'no tag stuck on one day, which made every month read as one number');
   equal(monthWaves({ ...f, spendDays: [rupees(500)] }), '', 'one day is not yet a picture');
   const week = weekPills(f);
   ok(week.includes('₹5,000') && (week.match(/pill-col--lit/g) || []).length === 2, 'the week so far, today lit, and the card with most on it lit');
   ok(week.includes('Owed on cards') && week.includes('₹11,500'), 'owed on cards: unpaid bills and new spending, as the row it replaces said');
   const peaks = monthMountains(f);
   ok(peaks.includes('mountains-card') && peaks.includes('₹5,000') && peaks.includes('₹4,000 on 3 Oct'), 'Peaks draws the same month as mountains, same figures');
-  ok(peaks.includes('₹4,000</b>at an even pace') && peaks.includes('₹1,000 a day'), 'the same key as the waves, and the dashed line says an even day, ₹1,000');
+  ok(peaks.includes('₹4,000</b><span class="waves__lab">Budget so far') && peaks.includes('₹1,000 a day') && peaks.includes('data-chart-days'), 'the same key as the waves, and the dashed line says an even day, ₹1,000');
   equal((peaks.match(/mountains__rim/g) || []).length, 0, 'four days are a slope, nothing lit yet');
   const week2 = ['2026-10-05', '2026-10-06'].map((date, i) => ({ date, amount: [rupees(900), rupees(100)][i] }));
   const longer = monthMountains({ ...f, spendDays: [...f.spendDays, rupees(5900), rupees(6000)], spendByDay: [...f.spendByDay, ...week2] });
@@ -1558,7 +1561,7 @@ test('The short Summary: for new people, and its answer never repeats the bank w
 });
 test('A name on screen has one plain sentence behind it', () => {
   ok(termFor('Kept back') && termFor('Kept back').line.includes('still yours'), 'kept back, as written on screen');
-  ok(termFor('  LEFT TO SPEND ') && termFor('at an even pace:'), 'any case, spaces or a trailing colon');
+  ok(termFor('  LEFT TO SPEND ') && termFor('Budget so far:'), 'any case, spaces or a trailing colon');
   equal(termFor('₹135'), null, 'a figure is not a name');
   equal(termFor('Groceries'), null, 'and nothing is explained that has no sentence');
 });
@@ -1614,7 +1617,7 @@ test("Plan's month: must-go-outs on their days by state, and what is left of eac
   ok(!flex.includes('Gifts'), 'an untracked set-aside is left out');
 });
 
-test("History's day chart: what went out each day, moves between your own accounts left out", () => {
+test("History's day chart: what you spent each day, bills and moves apart, money moved between your own accounts left out", () => {
   const rows = [
     { date: '2026-09-03', direction: 'debit', amount: rupees(400) },
     { date: '2026-09-03', direction: 'debit', amount: rupees(200) },
@@ -1622,12 +1625,17 @@ test("History's day chart: what went out each day, moves between your own accoun
     { date: '2026-09-10', direction: 'debit', amount: rupees(90000), isTransfer: true },
     { date: '2026-09-01', direction: 'credit', amount: rupees(50000) },
   ];
-  const fromBank = (t) => cashSide(t, { type: 'bank' });
+  // A payment is 'day' (spent that day), 'fixed' (a card bill, left in one go) or null.
+  const fromBank = (t) => (t.direction !== 'debit' || t.isTransfer ? null : t.paysCardId ? 'fixed' : 'day');
   const html = dayChart(rows, '2026-09', fromBank);
   equal((html.match(/class="hist-days__bar[ "]/g) || []).length, 2, 'a bar for each day something went out');
   equal((html.match(/hist-days__none/g) || []).length, 28, 'and a stub for each of the other 28 days of September');
-  ok(html.includes('data-day="2026-09-03"') && html.includes('₹600 out'), 'a day adds up all it paid out');
-  ok(html.includes('Biggest day <strong>₹4,200</strong> on 25 Sep'), 'the biggest day is named, not the money moved to savings');
+  ok(html.includes('data-day="2026-09-03"') && html.includes('₹600 spent'), 'a day adds up all it paid out');
+  ok(html.includes('most <strong>₹4,200</strong> on 25 Sep') && html.includes('Usual day <strong>₹600</strong>'), 'the biggest day is named, not the money moved to savings, and what a usual day is');
+  // A card bill paid in one go is drawn apart from the day's spending and cut short, so it does not flatten every other day.
+  const withBill = dayChart([...rows, { date: '2026-09-05', direction: 'debit', amount: rupees(90000), paysCardId: 'c1' }], '2026-09', fromBank);
+  ok(withBill.includes('seg-fixed is-cut') && withBill.includes('most <strong>₹4,200</strong>'), 'a card bill is a small cut-off piece, and the most is still the most you spent');
+  ok(withBill.includes('card bills, rent, savings'), 'and the chart says what the small piece is');
   equal(dayChart(rows.slice(3), '2026-09', fromBank), '', 'a month with nothing going out has no chart');
 });
 
@@ -1832,4 +1840,18 @@ test('money moved out of the main account is out, unless it lands in another acc
   const moves = spendMoves(tx, accounts);
   const side = (id) => cashSide(tx.find((t) => t.id === id), accounts.find((a) => a.id === tx.find((t) => t.id === id).accountId), moves);
   equal([side('to-sbi'), side('in-sbi'), side('to-kotak'), side('in-kotak')], ['out', null, null, null], 'to savings: out; between two spending accounts: neither');
+});
+
+test('a card bill is never counted as spending by category, since the card purchases it pays already are', () => {
+  const accounts = [{ id: 'b', type: 'bank' }, { id: 'c', type: 'card' }];
+  const tx = [
+    { id: 'swipe', accountId: 'c', date: '2026-10-02', amount: rupees(500), direction: 'debit', categoryId: 'food' },
+    { id: 'bill', accountId: 'b', date: '2026-10-03', amount: rupees(500), direction: 'debit', categoryId: 'bills', paysCardId: 'c' },
+    { id: 'cred', accountId: 'b', date: '2026-10-03', amount: rupees(300), direction: 'debit', categoryId: 'bills', rawDescription: 'UPI-CRED CLUB-CC PAYMENT' },
+    { id: 'power', accountId: 'b', date: '2026-10-04', amount: rupees(200), direction: 'debit', categoryId: 'bills', rawDescription: 'UPI-BESCOM' },
+  ];
+  const spent = spendByCategoryForMonth(tx, accounts, '2026-10');
+  equal([spent.get('food'), spent.get('bills')], [rupees(500), rupees(200)], 'food counted once; only the real electricity bill is "Bills"');
+  ok(isCardBill(tx[1], accounts[0]) && isCardBill(tx[2], accounts[0]), 'a card bill, said or worded like one');
+  ok(!isCardBill({ direction: 'debit', rawDescription: 'CRED CLUB RENT PAYMENT' }, accounts[1]), 'a purchase on a card is not a bill, whatever its words');
 });

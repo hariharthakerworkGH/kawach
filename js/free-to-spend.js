@@ -789,13 +789,40 @@ export async function computeFreeToSpend(now = new Date()) {
   // instead of sitting among the figures as a hopeful number. Oldest first
   // (see unsettledCosts). A cost paid from the bank has no statement, so is
   // never called late: nothing says when it should have arrived.
-  const late = unsettledCosts(transactions.filter(ownedByHouse))
+  const unsettled = unsettledCosts(transactions.filter(ownedByHouse));
+  const late = unsettled
     .map((u) => {
       const card = cards.find((c) => c.account.id === u.transaction.accountId);
       const day = card && statementDay(card.account, importBatches);
       return day ? { amount: u.amount, dueBy: nextOccurrence(day, dateOf(u.transaction.date)) } : null;
     })
     .filter((x) => x && x.dueBy < today);
+  // The costs behind "owed back" (5.23), oldest first, for the list on Summary:
+  // what each one was, what is still owed of it, and the refunds that came in.
+  const accountLabel = (id) => (id === 'cash' ? 'Cash' : (accounts.find((a) => a.id === id) || {}).label || '');
+  const owedItems = unsettled.map((u) => ({
+    id: u.transaction.id,
+    date: u.transaction.date,
+    description: u.transaction.rawDescription || '',
+    accountId: u.transaction.accountId,
+    account: accountLabel(u.transaction.accountId),
+    cost: u.transaction.amount,
+    amount: u.amount,
+  }));
+  const refundsIn = transactions
+    .filter((t) => isRefund(t) && ownedByHouse(t))
+    .sort((a, b) => (a.date < b.date ? 1 : -1))
+    .slice(0, 5)
+    .map((t) => ({ id: t.id, date: t.date, amount: t.amount, account: accountLabel(t.accountId) }));
+  // On each card: the work part of what it holds. workCycle is the work costs
+  // of this cycle (what is inside "owed"), workOwed all that is still to come
+  // back from the employer, whichever bill it is on.
+  for (const c of cards) {
+    c.workOwed = owedItems.filter((i) => i.accountId === c.account.id).reduce((t, i) => t + i.amount, 0);
+    c.workCycle = transactions
+      .filter((t) => isWorkCost(t) && t.accountId === c.account.id && t.date > (c.cycleStart || monthStart) && t.date <= today)
+      .reduce((t, x) => t + x.amount, 0);
+  }
   const refundOverdue = late.length ? { amount: late.reduce((s, x) => s + x.amount, 0), since: late.map((x) => x.dueBy).sort()[0] } : null;
   // The same spending, laid out by day, for the burn drawing on Summary
   // (js/charts.js). Every step is a real dated payment; whatever has no date
@@ -1063,7 +1090,7 @@ export async function computeFreeToSpend(now = new Date()) {
     // time (js/reimbursable.js); and how much of what the bank check takes off
     // for cards is such a cost.
     workCostsThisMonth,
-    reimbursable: owedBack,
+    reimbursable: { ...owedBack, items: owedItems, refunds: refundsIn },
     // Lent and borrowed: where you stand with each person (js/people.js).
     people: peopleStanding(transactions, await getSetting('people', [])),
     refundInBankCheck,
