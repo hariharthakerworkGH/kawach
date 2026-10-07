@@ -357,7 +357,7 @@ button.tl-item { cursor: pointer; }
 
 /* The bubble in Tactile: a raised card with a thin copper rim. */
 :root[data-style="tactile"] .explain-pop { border: 0; border-radius: 14px; background: var(--t-raise); box-shadow: 0 0 0 1px color-mix(in srgb, var(--k-accent) 55%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08), 0 14px 26px rgb(0 0 0 / 0.55); }
-:root[data-style="tactile"] .explain-pop b { color: var(--k-accent); }
+:root[data-style="tactile"] .explain-pop b { color: var(--k-text); }
 
 /* Lent and borrowed in Tactile: the totals as inset wells, the initials in
    small wells of their own. */

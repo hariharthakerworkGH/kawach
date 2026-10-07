@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.24',
+    items: [
+      {
+        icon: 'eye',
+        title: "Every look is up to date",
+        text: "Charts, Peaks and Mindora now show the short Summary, tap-to-explain, Lent and borrowed and the salary question in their own style, not Tactile's. Small text was also checked in all ten colourings and made easier to read on the light ones.",
+        guide: [{ view: 'appearance', target: '.look-card', text: "Pick a look to try it." }],
+      },
+    ],
+  },
+  {
     version: '5.23',
     items: [
       {

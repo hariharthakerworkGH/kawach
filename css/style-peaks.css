@@ -335,3 +335,20 @@ button.pk-card { cursor: pointer; }
 :root[data-style="peaks"] .k .owed-list { border: 0; border-radius: 14px; background: linear-gradient(180deg, color-mix(in srgb, var(--k-surface), white 3%), var(--k-surface)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 10px 22px -10px rgb(0 0 0 / 0.6); }
 :root[data-style="peaks"] .k .chart-readout { border-radius: 10px; }
 :root[data-style="peaks"] .k .hist-days__title { font-size: 10.5px; letter-spacing: .1em; }
+
+/* ---- 5.24: what was built in Tactile first, in Peaks' own card language ---- */
+:root[data-style="peaks"] .k .setup-card,
+:root[data-style="peaks"] .k .sum-needs,
+:root[data-style="peaks"] .k .sum-more,
+:root[data-style="peaks"] .k .setup-strip,
+:root[data-style="peaks"] .k .hist-salary,
+:root[data-style="peaks"] .k .people-sums > div { border: 0; border-radius: 14px; background: linear-gradient(180deg, color-mix(in srgb, var(--k-surface), white 3%), var(--k-surface)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 10px 22px -10px rgb(0 0 0 / 0.6); }
+:root[data-style="peaks"] .k .setup-progress { height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--k-text) 10%, transparent); }
+:root[data-style="peaks"] .k .setup-progress i { background: linear-gradient(90deg, var(--k-grad-1b), var(--k-grad-1a)); box-shadow: 0 0 8px color-mix(in srgb, var(--k-grad-1a) 45%, transparent); }
+:root[data-style="peaks"] .k .setup-step__n { border-width: 1px; }
+:root[data-style="peaks"] .k .setup-step.is-next .setup-step__n { background: linear-gradient(180deg, var(--k-grad-1b), var(--k-grad-1a)); box-shadow: 0 0 12px color-mix(in srgb, var(--k-grad-1a) 55%, transparent); }
+:root[data-style="peaks"] .k .sum-needs__head, :root[data-style="peaks"] .k .people-sums span { font-size: 10.5px; letter-spacing: .1em; }
+:root[data-style="peaks"] .k .need-row__go .btn-tiny { border: 1px solid color-mix(in srgb, var(--k-text) 20%, transparent); background: transparent; }
+:root[data-style="peaks"] .k .need-row__ic { border-radius: 9px; }
+:root[data-style="peaks"] .explain-pop { border-radius: 12px; border: 1px solid color-mix(in srgb, var(--k-grad-1a) 40%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--k-surface-elev), white 4%), var(--k-surface-elev)); box-shadow: 0 14px 28px -8px rgb(0 0 0 / 0.65), 0 0 18px color-mix(in srgb, var(--k-grad-1a) 18%, transparent); }
+:root[data-style="peaks"] .explain-pop b { color: var(--k-text); letter-spacing: .02em; }

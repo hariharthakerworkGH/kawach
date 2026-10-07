@@ -371,3 +371,20 @@
 :root[data-style="mindora"] .k .chart-head b, :root[data-style="mindora"] .k .hist-days__title { font-family: var(--m-figure); }
 :root[data-style="mindora"] .k .chart-readout { border-radius: 14px; background: color-mix(in srgb, var(--k-text) 7%, transparent); }
 :root[data-style="mindora"] .k .hist-days__title { font-size: 11px; letter-spacing: .1em; }
+
+/* ---- 5.24: what was built in Tactile first, as Mindora glass ---- */
+:root[data-style="mindora"] .k .setup-card,
+:root[data-style="mindora"] .k .sum-needs,
+:root[data-style="mindora"] .k .sum-more,
+:root[data-style="mindora"] .k .setup-strip,
+:root[data-style="mindora"] .k .hist-salary,
+:root[data-style="mindora"] .k .people-sums > div { border-radius: 20px; background: var(--m-glass); border: 1px solid var(--m-edge); box-shadow: var(--m-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); }
+:root[data-style="mindora"] .k .people-sums > div { border-radius: 16px; }
+:root[data-style="mindora"] .k .setup-progress { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--k-text) 10%, transparent); }
+:root[data-style="mindora"] .k .setup-progress i { background: var(--k-accent); box-shadow: none; }
+:root[data-style="mindora"] .k .setup-step.is-next .setup-step__n { background: var(--k-accent); color: var(--k-accent-ink); }
+:root[data-style="mindora"] .k .sum-needs__head, :root[data-style="mindora"] .k .setup-card h2 { font-family: var(--m-serif); font-style: italic; font-weight: 500; text-transform: none; letter-spacing: 0; }
+:root[data-style="mindora"] .k .sum-needs__head { font-size: 20px; color: var(--k-text); }
+:root[data-style="mindora"] .k .need-row__go .btn-tiny { border: 1px solid var(--m-edge); background: color-mix(in srgb, var(--k-text) 5%, transparent); }
+:root[data-style="mindora"] .explain-pop { border-radius: 16px; border: 1px solid var(--m-edge); background: var(--m-glass-strong); box-shadow: var(--m-shadow); -webkit-backdrop-filter: blur(18px) saturate(1.1); backdrop-filter: blur(18px) saturate(1.1); font-family: var(--m-figure); }
+:root[data-style="mindora"] .explain-pop b { font-family: var(--m-serif); font-style: italic; font-weight: 600; font-size: 17px; color: var(--k-text); }

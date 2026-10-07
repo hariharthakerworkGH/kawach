@@ -3732,3 +3732,17 @@ body:has(#view-container.k) .app-header {
 .k button.waves__k { min-height: 36px; }
 .k .waves__key { gap: 2px; }
 .k .hist-days__bar.is-cut { clip-path: polygon(0 4px, 25% 0, 50% 4px, 75% 0, 100% 4px, 100% 100%, 0 100%); }
+
+/* ---- 5.24: the tap-to-explain bubble in Charts, with the colouring's own rim ---- */
+:root:not([data-style]) .explain-pop { border: 1px solid color-mix(in srgb, var(--k-grad-1a) 45%, transparent); box-shadow: 0 14px 28px -8px rgb(0 0 0 / 0.6), 0 0 18px color-mix(in srgb, var(--k-grad-1a) 22%, transparent); }
+:root:not([data-style]) .explain-pop b { color: var(--k-text); }
+
+/* 5.24: found measuring the Tactile-first pieces in every colouring. The bubble's
+   title is the text colour with a small accent dot (the accent itself failed AA on
+   several colourings); a late reminder is warning-tinted but legible on light; and
+   the short Summary's small labels use the stronger grey. */
+.explain-pop b::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--k-accent); vertical-align: 1px; }
+.k .people-late { color: color-mix(in srgb, var(--k-warning) 55%, var(--k-text)); }
+.k .people-sums span { color: var(--k-text-2); }
+.k .people-sums b.pos { color: color-mix(in srgb, var(--k-positive) 70%, var(--k-text)); }
+.k .sum-needs__head, .k .need-row__t small, .k .sum-more__s, .k .setup-card__sub, .k .setup-step__body small { color: var(--k-text-2); }
