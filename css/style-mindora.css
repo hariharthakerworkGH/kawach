@@ -392,3 +392,9 @@
 /* Tab labels are the page's secondary ink, not the faintest, so they read on any colouring (5.26). */
 :root[data-style="mindora"] #tabs .nav-btn { color: var(--k-text-2); }
 :root[data-style="mindora"] #tabs .nav-btn.active { color: var(--k-text); }
+
+/* Yours and owed-by-company must not be two greens: sage for yours, sky for the company's (5.27.2). */
+:root[data-style="mindora"] .k .cb .work,
+:root[data-style="mindora"] .k .card-split__bar .work { background: var(--k-magenta); }
+:root[data-style="mindora"] .k .card-key .work::before,
+:root[data-style="mindora"] .k .card-split__key .work::before { background: var(--k-magenta); }

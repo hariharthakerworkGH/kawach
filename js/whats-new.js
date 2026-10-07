@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.27.2',
+    items: [
+      {
+        icon: 'card',
+        title: "Card rows say it plainly",
+        text: "On Summary, each card now shows what you spent, what the company owes back and what you have planned, in those words, with a bar of the three. Planned means the fixed costs you set that are still to be charged before the statement day.",
+        guide: [{ view: 'summary', target: '[data-owed-anchor]', text: "Yours, owed by company, planned." }],
+      },
+    ],
+  },
+  {
     version: '5.27',
     items: [
       {

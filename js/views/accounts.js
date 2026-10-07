@@ -712,9 +712,9 @@ export function cardWorkSplit(account, cycleSpend, w = workByCard.get(account.id
   const seg = (cls, v) => (v > 0 ? `<i class="${cls}" style="width:${((v / total) * 100).toFixed(1)}%"></i>` : '');
   const key = (cls, label, v) => (v > 0 ? `<span class="${cls}">${label} <b>${formatRupees(v)}</b></span>` : '');
   const names = (w.items || []).slice(0, 3).map((i) => `${escapeHtml(i.label)} ${formatRupees(i.amount)}`).join(' · ');
-  return `<div class="card-split" role="img" aria-label="${formatRupees(own)} yours${work ? `, ${formatRupees(work)} work, owed back by your employer` : ''}${coming ? `, ${formatRupees(coming)} of your fixed costs still to be charged` : ''}. The bill to expect is about ${formatRupees(own + work + coming)}.">
+  return `<div class="card-split" role="img" aria-label="${formatRupees(own)} yours${work ? `, ${formatRupees(work)} owed back by the company` : ''}${coming ? `, ${formatRupees(coming)} planned, your fixed costs still to be charged` : ''}. The bill to expect is about ${formatRupees(own + work + coming)}.">
       <div class="card-split__bar">${seg('own', own)}${seg('work', work)}${seg('coming', coming)}</div>
-      <div class="card-split__key">${key('own', 'Yours', own)}${key('work', 'Work, owed back', work)}${key('coming', 'Fixed, to come', coming)}</div>
+      <div class="card-split__key">${key('own', 'Yours', own)}${key('work', 'Owed by company', work)}${key('coming', 'Planned', coming)}</div>
       ${coming ? `<p class="card-split__coming">${names}${(w.items || []).length > 3 ? ` · +${w.items.length - 3} more` : ''}</p>` : ''}
       <p class="card-split__bill"><span>Bill about</span><b>${formatRupees(own + work + coming)}</b></p>
     </div>`;

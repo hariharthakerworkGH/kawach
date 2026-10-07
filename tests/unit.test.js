@@ -14,7 +14,7 @@ import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance, applyTheme } from '../js/appearance.js';
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
 import { cardWorkSplit } from '../js/views/accounts.js';
-import { mood, comingUp, keptBack, topFigures, instrumentDial, instrumentTop } from '../js/views/summary-looks.js';
+import { mood, comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, peaksTop, mindoraTop } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
 import { termFor } from '../js/explain.js';
 import { peopleStanding, personSpendEffects, lateBack, reminderText } from '../js/people.js';
@@ -1912,10 +1912,27 @@ test('a card bill is never counted as spending by category, since the card purch
 test('a card shows yours, work and the fixed costs still to come, and the bill to expect', () => {
   const w = { cycle: rupees(2000), owed: rupees(2000), coming: rupees(1999), items: [{ label: 'Claude', amount: rupees(1999) }] };
   const html = cardWorkSplit({ id: 'c1' }, rupees(5000), w);
-  ok(html.includes('class="coming"') && html.includes('Fixed, to come <b>₹1,999</b>') && html.includes('Yours <b>₹3,000</b>') && html.includes('Work, owed back <b>₹2,000</b>'), 'three parts');
+  ok(html.includes('class="coming"') && html.includes('Planned <b>₹1,999</b>') && html.includes('Yours <b>₹3,000</b>') && html.includes('Owed by company <b>₹2,000</b>'), 'three parts');
   ok(html.includes('Bill about</span><b>₹6,999</b>'), 'spent so far plus what is still to be charged');
   ok(html.includes('Claude ₹1,999'), 'the fixed costs are named');
   const onlyFixed = cardWorkSplit({ id: 'c1' }, rupees(3000), { cycle: 0, owed: 0, coming: rupees(649), items: [] });
-  ok(onlyFixed.includes('Bill about</span><b>₹3,649</b>') && !onlyFixed.includes('Work, owed back'), 'no work costs: yours and fixed only');
+  ok(onlyFixed.includes('Bill about</span><b>₹3,649</b>') && !onlyFixed.includes('Owed by company'), 'no work costs: yours and fixed only');
   equal(cardWorkSplit({ id: 'c1' }, rupees(3000), { cycle: 0, owed: 0, coming: 0, items: [] }), '', 'nothing to say, nothing drawn');
+});
+
+test('on Summary each card says yours, owed by the company and planned, in the same words in every look', () => {
+  const f = {
+    limit: rupees(50000), free: rupees(20000), spentThisCycle: rupees(30000), used: 0.6, level: 'ok', daysIntoCycle: 12, daysToClose: 18, perDay: rupees(1000),
+    spendByDay: [], tracker: [], cardBills: [], totals: { owedCards: rupees(10000), unpaidBills: rupees(44000) }, cycleStart: '2026-10-01', cycleKey: '2026-10-31',
+    cards: [
+      { account: { label: 'ICICI 5009' }, owed: rupees(10000), unpaid: rupees(44000), workCycle: rupees(44000), comingFixed: rupees(11000) },
+      { account: { label: 'Swiggy 6671' }, owed: 0, unpaid: 0, workCycle: 0, comingFixed: rupees(2000) },
+    ],
+  };
+  const x = topFigures(f);
+  equal(x.cards.map((c) => [c.amount, c.work, c.coming]), [[rupees(54000), rupees(44000), rupees(11000)], [0, 0, rupees(2000)]], 'a card with only planned costs still shows');
+  for (const top of [tactileTop(f, 's', ''), peaksTop(f, 's', ''), mindoraTop(f, 's', ''), instrumentTop(f, 's', '')]) {
+    ok(top.includes('Yours <b>') && top.includes('Owed by company <b>') && top.includes('Planned <b>'), 'the three words, in every look');
+    ok(top.includes('card-legend') && top.includes('class="cb"') && top.includes('class="plan"'), 'the bar has the planned part and the footnote says what planned is');
+  }
 });

@@ -3265,10 +3265,20 @@ body:has(#view-container.k) .app-header {
 .k .owed-list__tip, .k .owed-list__none { margin: var(--k-3) 0 0; font-size: var(--k-caption); line-height: 1.4; color: var(--k-text-2); }
 
 /* --- what is work on a card ------------------------------------------------- */
-.k .card-work { display: block; font-size: 10.5px; font-weight: 500; color: color-mix(in srgb, var(--k-positive) 62%, var(--k-text)); font-variant-numeric: tabular-nums; }
-.k .card-work.card-coming { color: var(--k-text-3); }
-.k .tl-thin i, .k .md-prog i { position: relative; }
-.k .card-work-bar { position: absolute; top: 0; right: 0; bottom: 0; border-radius: inherit; background: var(--k-positive); }
+.k .tl-thin, .k .md-prog, .k .pk-trk { position: relative; }
+/* A card's bar on Summary: yours, owed by the company, planned (hatched), as one run (5.27.2). */
+.k .cb { position: absolute; left: 0; top: 0; bottom: 0; display: flex; border-radius: inherit; overflow: hidden; }
+.k .cb u { display: block; height: 100%; text-decoration: none; }
+.k .cb .own { background: var(--k-accent); }
+.k .cb .work { background: var(--k-positive); }
+.k .cb .plan { background: repeating-linear-gradient(135deg, var(--k-text-2) 0 3px, transparent 3px 6px); }
+.k .card-key { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 2px 14px; margin: -2px 0 6px; font-size: 11px; color: var(--k-text-2); }
+.k .card-key > span { display: inline-flex; align-items: center; gap: 5px; }
+.k .card-key > span::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--k-accent); }
+.k .card-key .work::before { background: var(--k-positive); }
+.k .card-key .plan::before { background: repeating-linear-gradient(135deg, var(--k-text-2) 0 2px, transparent 2px 4px); border: 1px solid var(--k-text-3); }
+.k .card-key b { font-weight: 600; color: var(--k-text); font-variant-numeric: tabular-nums; }
+.k .card-legend { margin: 8px 0 0; font-size: 11px; color: var(--k-text-3); }
 .k .card-split { display: grid; gap: 6px; padding: 0 0 var(--k-3); }
 .k .card-split__bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--k-text) 8%, transparent); }
 .k .card-split__bar i { display: block; height: 100%; }
