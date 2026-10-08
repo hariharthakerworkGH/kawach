@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.29',
+    items: [
+      {
+        icon: 'eye',
+        title: "Easier with a keyboard, calmer movement",
+        text: "The month chart can be read from the keyboard with the arrow keys, fields show a clear ring when you are in them, and screens and sheets slide in without bouncing.",
+        guide: [{ view: 'summary', target: '[data-chart-days]', text: "Tab to the chart, then use the arrow keys to read each day." }],
+      },
+    ],
+  },
+  {
     version: '5.28',
     items: [
       {

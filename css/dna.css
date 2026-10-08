@@ -226,7 +226,7 @@
   --k-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --k-ease-io: cubic-bezier(0.65, 0, 0.35, 1);
   /* The one spring, for a sheet arriving. Overshoot is tiny on purpose. */
-  --k-spring: cubic-bezier(0.34, 1.26, 0.64, 1);
+  --k-spring: cubic-bezier(0.16, 1, 0.3, 1); /* no overshoot: a sheet is UI, not a thing thrown */
 
   /* ====================================================================
      10 · ATMOSPHERE
@@ -548,7 +548,8 @@
 .k-input::placeholder { color: var(--k-text-3); }
 .k-input:focus-visible,
 .k-select:focus-visible {
-  outline: none;
+  outline: 2px solid var(--k-accent);
+  outline-offset: 1px;
   border-color: color-mix(in srgb, var(--k-accent) 60%, transparent);
   box-shadow: var(--k-glow-cyan);
 }
@@ -1156,7 +1157,8 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 }
 .k .hist-search::placeholder { color: var(--k-text-3); }
 .k .hist-search:focus-visible {
-  outline: none;
+  outline: 2px solid var(--k-accent);
+  outline-offset: 1px;
   border-color: color-mix(in srgb, var(--k-accent) 60%, transparent);
   box-shadow: var(--k-glow-cyan);
 }
@@ -1192,7 +1194,8 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
   font-weight: var(--k-w-label);
 }
 .k select.hist-chip:focus-visible {
-  outline: none;
+  outline: 2px solid var(--k-accent);
+  outline-offset: 1px;
   border-color: color-mix(in srgb, var(--k-accent) 60%, transparent);
   box-shadow: var(--k-glow-cyan);
 }
@@ -3389,3 +3392,9 @@ body:has(#view-container.k) .app-header {
 .k .ch-cardrow { display: grid; grid-template-columns: 74px minmax(0, 1fr) 84px; gap: 6px 10px; align-items: center; font-size: 12.5px; color: var(--k-text-2); }
 .k .ch-cardrow > b { text-align: right; font-weight: 700; color: var(--k-text); font-variant-numeric: tabular-nums; }
 .k .ch-track { position: relative; display: block; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--k-text) 10%, transparent); overflow: hidden; }
+
+/* --- Keyboard and focus (5.29) --------------------------------------------
+ * The amount field is wrapped in a box that is lit all the time, so focusing it changed
+ * nothing; it now gets a ring. The month charts can be focused and read with the arrow keys. */
+.k .amount-input-wrap:focus-within { outline: 2px solid var(--k-accent); outline-offset: 2px; }
+.k .waves:focus-visible, .k .mountains:focus-visible { outline: 2px solid var(--k-accent); outline-offset: 2px; border-radius: 6px; }

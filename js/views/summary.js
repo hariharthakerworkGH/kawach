@@ -822,7 +822,9 @@ function wireCharts(root) {
     const dot = card.querySelector('[data-dot]');
     const [x0, x1, w] = [Number(card.dataset.x0), Number(card.dataset.x1), Number(card.dataset.w)];
     const finished = Boolean(card.dataset.finished);
+    let at = days.length - 1;
     const show = (i) => {
+      at = i;
       const d = days[i];
       guide.setAttribute('x1', d[4]);
       guide.setAttribute('x2', d[4]);
@@ -831,7 +833,7 @@ function wireCharts(root) {
       card.querySelectorAll('[data-bar]').forEach((b) => b.classList.toggle('is-picked', Number(b.dataset.bar) === i));
       readout.textContent = chartReadout(d, dayWord(d[0]), finished);
     };
-    const at = (clientX) => {
+    const dayAt = (clientX) => {
       const r = svg.getBoundingClientRect();
       const vx = ((clientX - r.left) / r.width) * w;
       return Math.max(0, Math.min(days.length - 1, Math.round(((vx - x0) / (x1 - x0)) * (days.length - 1))));
@@ -840,9 +842,17 @@ function wireCharts(root) {
     svg.addEventListener('pointerdown', (e) => {
       dragging = true;
       svg.setPointerCapture?.(e.pointerId);
-      show(at(e.clientX));
+      show(dayAt(e.clientX));
     });
-    svg.addEventListener('pointermove', (e) => dragging && show(at(e.clientX)));
+    svg.addEventListener('pointermove', (e) => dragging && show(dayAt(e.clientX)));
+    // The same reading from the keyboard: focus the chart, then the arrow keys step through the days.
+    svg.setAttribute('tabindex', '0');
+    svg.addEventListener('keydown', (e) => {
+      const to = { ArrowLeft: at - 1, ArrowRight: at + 1, Home: 0, End: days.length - 1 }[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      show(Math.max(0, Math.min(days.length - 1, to)));
+    });
     ['pointerup', 'pointercancel'].forEach((t) => svg.addEventListener(t, () => (dragging = false)));
     card.querySelector('[data-pick-day]')?.addEventListener('click', (e) => show(Number(e.currentTarget.dataset.pickDay)));
   });
