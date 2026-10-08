@@ -29,3 +29,16 @@ export function goalProgress(goal, saved, today) {
   const left = Math.max(0, goal.target - saved);
   return { saved, left, monthly: Math.ceil(left / monthsLeft(goal.by, today)), done: left === 0 };
 }
+
+/* The safety cushion (5.30): how many months of fixed costs the money you have put
+ * away would pay if nothing came in. Savings and fixed deposits only: the provident
+ * fund is not counted, as it cannot be drawn when needed. Costs are the fixed costs Plan
+ * adds up for a month (rent, EMIs, bills, set-asides); what you save is not a cost. Null when either is
+ * missing, so no empty meter is drawn. Months are cut down to a tenth, never rounded up. */
+export function cushion(savingsBalances, monthlyCosts, target = 6) {
+  const savings = (savingsBalances || []).reduce((t, v) => t + Math.max(0, v || 0), 0);
+  if (!(savings > 0) || !(monthlyCosts > 0)) return null;
+  const months = Math.floor((savings / monthlyCosts) * 10) / 10;
+  const word = months < 1 ? 'Thin' : months < 3 ? 'Building' : months < target ? 'Good' : 'Strong';
+  return { savings, costs: monthlyCosts, months, target, word };
+}

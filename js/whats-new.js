@@ -12,6 +12,23 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.30',
+    items: [
+      {
+        icon: 'wallet',
+        title: "Safety cushion",
+        text: "Accounts now says how many months of your fixed costs your savings would pay if no money came in, with a meter of six months. The provident fund is not counted.",
+        guide: [{ view: 'accounts', target: '.cushion', text: "Months your savings would cover." }],
+      },
+      {
+        icon: 'bill',
+        title: "Subscriptions",
+        text: "Plan lists the repeating payments on your cards with what each costs a year, when it last charged, and a flag if one has stopped billing. Tap one to end it.",
+        guide: [{ view: 'plan', target: '.subscriptions', text: "Your card subscriptions, biggest year first." }],
+      },
+    ],
+  },
+  {
     version: '5.29',
     items: [
       {

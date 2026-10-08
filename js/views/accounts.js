@@ -17,6 +17,7 @@ import { reminderText, updatePerson, shareReminder } from '../people.js';
 import { allocationRing, tickGauge } from '../charts.js';
 import { appearance } from '../appearance.js';
 import { displayName } from './transactions.js';
+import { cushion } from '../goals.js';
 import { escapeHtml, escapeAttr, emptyState, hero, moneyTone, shapeLike } from '../ui.js';
 // NEW for the bill-payment panel: reading a pasted bank SMS or email, and
 // saying what happened.
@@ -113,6 +114,7 @@ export async function render(container) {
       ${accounts.length > 1 ? `<button type="button" id="accounts-reorder" class="k-btn k-btn--ghost">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
     </div>
     ${accountsTotal(groups, transactions, homeFigures)}
+    ${cushionCard(homeFigures)}
     ${editing === 'new' ? accountForm(null, transactions, accounts) : ''}
     ${
       showEmpty
@@ -1466,6 +1468,22 @@ function readLoanFields(form) {
 // balances a statement has proved are counted - Kawach never asks for one to
 // be typed in - and money put away (savings, FDs) is named beside the total
 // rather than folded into it, because it is not money to spend.
+/* NEW (5.30): the safety cushion, a card under the total: months of fixed costs the
+ * savings would cover, six cells for the six months many people aim for, and one line
+ * with the two figures it is made from. Home only, and only when both figures exist. */
+export function cushionCard(fts) {
+  if (!fts) return '';
+  const c = cushion((fts.savings || []).map((s) => s.balance), (fts.budgetItems || []).reduce((t, b) => t + b.amount, 0));
+  if (!c) return '';
+  const cells = Array.from({ length: c.target }, (_, i) => `<i><u style="width:${Math.round(Math.min(1, Math.max(0, c.months - i)) * 100)}%"></u></i>`).join('');
+  const said = `${c.months} month${c.months === 1 ? '' : 's'}`;
+  return `<div class="totals-card cushion">
+      <div class="cushion__top"><span class="cushion__k">Safety cushion</span><b>${said}</b><em>${c.word}</em></div>
+      <div class="cushion__bar" role="img" aria-label="${said} of fixed costs covered; many people aim for ${c.target}">${cells}</div>
+      <p class="cushion__line">Savings ${formatRupees(c.savings)} · costs ${formatRupees(c.costs)} a month · many aim for ${c.target}</p>
+    </div>`;
+}
+
 function accountsTotal(groups, transactions, fts = null) {
   // Label and figure together, so the drawing and the total are made of the
   // same rows and cannot drift apart.

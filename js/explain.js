@@ -37,6 +37,7 @@ export const TERMS = {
   'your pace': 'What you have spent a day so far this month.',
   'safe': 'What you can spend a day and still end the month within budget.',
   'days left': 'Days until this month ends.',
+  'safety cushion': 'How many months of your fixed costs your savings would pay if no money came in. Savings and fixed deposits only, not the provident fund.',
   'put away': 'Fixed deposits, savings and provident fund: yours, but not for spending.',
   'in your accounts': 'Money in your bank and cash accounts whose balance Kawach knows.',
   'loans': 'What you still owe on your loans.',
@@ -53,7 +54,7 @@ export const TERMS = {
 // like "Out" elsewhere on a screen never turns into a link.
 const LABELS = [
   '.hero-label', '.tl-k', '.md-kick', '.pk-lab', '.pk-tiny', '.stat-k', '.tracking-stats small',
-  '.waves__lab', '.summary-row__k', '.tl-t', '.tl-label > span', '.hero-figures .muted', '.pl-legend > span',
+  '.waves__lab', '.cushion__k', '.summary-row__k', '.tl-t', '.tl-label > span', '.hero-figures .muted', '.pl-legend > span',
   '.sum-needs__head', '.people-sums span', '.people-sec .account-group-label', '.ch-coming__k', '.ch-coming__still', '.pk-coming .pk-tiny', '.plan-sums .totals-row > span:first-child',
 ].join(', ');
 

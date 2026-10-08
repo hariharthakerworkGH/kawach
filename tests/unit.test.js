@@ -13,7 +13,8 @@ import { cardPosition, bankBalance, statementDayFixes, balanceAt } from '../js/a
 import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance, applyTheme } from '../js/appearance.js';
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
-import { cardWorkSplit } from '../js/views/accounts.js';
+import { cardWorkSplit, cushionCard } from '../js/views/accounts.js';
+import { subscriptionsOf, isSubscription } from '../js/subscriptions.js';
 import { mood, comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, peaksTop, mindoraTop, chartsCards } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
 import { termFor } from '../js/explain.js';
@@ -469,7 +470,7 @@ test('spent and budget never read as "of" once the spending is past the budget',
   const within = spentLine(rupees(5889), rupees(9000));
   ok(within.includes('of'), 'inside the budget the two figures read as a part of a whole');
   const past = spentLine(rupees(44234), rupees(9000));
-  ok(!past.includes('>of<') && !/of/.test(past.replace(/<[^>]*>/g, '')), 'past it, nothing claims to be part of anything');
+  ok(!past.includes('>of<') && !/\bof\b/.test(past.replace(/<[^>]*>/g, '')), 'past it, nothing claims to be part of anything');
   ok(past.includes('against'), 'it says what the spending is measured against instead');
   ok(past.includes('₹44,234') && past.includes('₹9,000'), 'both figures are still shown');
 });
@@ -1239,7 +1240,7 @@ test('general reader: text with no dated amounts is not taken for a statement', 
 });
 
 import { taxDates } from '../js/calendar.js';
-import { goalProgress, monthsLeft } from '../js/goals.js';
+import { goalProgress, monthsLeft, cushion } from '../js/goals.js';
 
 test('tax dates: advance tax and the return for business income, GST only when registered', () => {
   const plain = taxDates('2026-09-20', { business: false });
@@ -1936,4 +1937,37 @@ test('on Summary each card says yours, owed by the company and planned, in the s
     ok(top.includes('Yours <b>') && top.includes('Owed by company <b>') && top.includes('Planned <b>'), 'the three words, in every look');
     ok(top.includes('card-legend') && top.includes('class="cb"') && top.includes('class="plan"'), 'the bar has the planned part and the footnote says what planned is');
   }
+});
+
+test('safety cushion: months of fixed costs the savings cover, cut down not rounded, none when either is missing', () => {
+  const c = cushion([rupees(276605), 0, -5], rupees(239767));
+  equal([c.months, c.word, c.savings], [1.1, 'Building', rupees(276605)], '1.15 months is 1.1, never rounded up');
+  equal(cushion([rupees(100)], rupees(1000)).word, 'Thin', 'under a month is thin');
+  equal(cushion([rupees(1200000)], rupees(100000)).word, 'Strong', 'twelve months is strong');
+  equal(cushion([], rupees(1000)), null, 'no savings, no meter');
+  equal(cushion([rupees(1000)], 0), null, 'no costs, no meter');
+  const html = cushionCard({ savings: [{ balance: rupees(276605) }], budgetItems: [{ amount: rupees(200000) }, { amount: rupees(39767) }], keep: rupees(5000) });
+  ok(html.includes('1.1 months') && html.includes('Savings ₹2,76,605 · costs ₹2,39,767 a month') && (html.match(/<i><u/g) || []).length === 6, 'a card with six cells and the two figures; savings kept are not a cost');
+  equal(cushionCard(null), '', 'not in a business space');
+});
+
+test('subscriptions: card-paid fixed costs that are not EMIs or set-asides, biggest year first, flagged when they stop billing', () => {
+  const cards = new Set(['c1']);
+  const fixed = [
+    { id: 'a', source: 'fixed', label: 'Claude', amount: rupees(1999), frequency: 'monthly', accountId: 'c1', matchText: 'CLAUDE' },
+    { id: 'b', source: 'fixed', label: 'Gym', amount: rupees(12000), frequency: 'yearly', accountId: 'c1', matchText: 'GYM' },
+    { id: 'x1', source: 'fixed', label: 'Phone EMI Principal', amount: rupees(3000), frequency: 'monthly', accountId: 'c1' },
+    { id: 'd', source: 'fixed', label: 'Rent', amount: rupees(40000), frequency: 'monthly', accountId: null },
+    { id: 'e', source: 'fixed', label: 'Groceries', amount: rupees(8000), frequency: 'monthly', accountId: 'c1', spread: true },
+    { id: 'f', source: 'fixed', label: 'Netflix', amount: rupees(649), frequency: 'monthly', accountId: 'c1', matchText: 'NETFLIX' },
+  ];
+  const tx = [
+    { id: 't1', accountId: 'c1', direction: 'debit', date: '2026-10-05', amount: rupees(1999), rawDescription: 'CLAUDE.AI' },
+    { id: 't2', accountId: 'c1', direction: 'debit', date: '2026-07-20', amount: rupees(649), rawDescription: 'NETFLIX' },
+  ];
+  const out = subscriptionsOf(fixed, cards, tx, '2026-10-08');
+  equal(out.list.map((s) => s.item.label), ['Claude', 'Gym', 'Netflix'], 'rent, EMI and set-asides are not subscriptions; biggest year first');
+  equal(out.yearly, rupees(12000 + 1999 * 12 + 649 * 12), 'the year, from each own amount');
+  equal(out.list.map((s) => [s.last, s.stale]), [['2026-10-05', false], [null, false], ['2026-07-20', true]], 'last charged, and a monthly one silent for over 45 days is stale');
+  ok(isSubscription(fixed[0], cards) && !isSubscription(fixed[2], cards) && !isSubscription(fixed[3], cards), 'the rule on its own');
 });

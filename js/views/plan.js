@@ -17,6 +17,7 @@ import { getGoals, saveGoals, goalProgress, GOAL_IDEAS } from '../goals.js';
 import { committedBar, goalRing, radialMeter } from '../charts.js';
 import { bankBalance } from '../account-metrics.js';
 import { incomeType, incomeWords, businessPlan, isBusinessCategory, businesses, activeSpace, commitmentInSpace, accountInSpace } from '../business.js';
+import { subscriptionsOf } from '../subscriptions.js';
 import { escapeHtml, emptyState, sectionHead, hero } from '../ui.js';
 import { askConfirm } from '../dialog.js';
 import { showToast } from '../toast.js';
@@ -313,6 +314,7 @@ export async function render(container) {
              .join('')}</div></details>`
     }
     ${renewalsList(fixed.filter((f) => renews(f)), todayIso)}
+    ${inBusiness ? '' : subscriptionsList(subscriptionsOf(fixed, new Set(accounts.filter((a) => a.type === 'card').map((a) => a.id)), transactions, todayIso))}
     ${
       finished.length
         ? `<details class="fts-breakdown"><summary>Finished (${finished.length})</summary><div class="totals-card">${finished
@@ -951,6 +953,23 @@ function renewalsList(items, today) {
             <span class="k-row__value">${formatRupees(item.amount)}</span>
           </button>`
         )
+        .join('')}
+    </div>`;
+}
+
+/* NEW (5.30): the repeating payments you could cancel, biggest year first: what each
+ * costs a month, when it last billed, and the year's cost. A monthly one that has not
+ * billed for over 45 days says so. Each opens its form, where it can be ended. */
+function subscriptionsList({ list, yearly }) {
+  if (!list.length) return '';
+  return `${sectionHead('Subscriptions')}
+    <div class="totals-card subscriptions">
+      <div class="k-row subs-total"><span class="k-row__body"><span class="k-row__title">${list.length} on your cards</span></span><span class="k-row__value">${formatRupees(yearly)} a year</span></div>
+      ${list
+        .map(({ item, monthly, yearly: y, last, stale }) => `<button type="button" class="k-row subs-row fixed-edit${stale ? ' is-stale' : ''}" data-id="${item.id}">
+          <span class="k-row__body"><span class="k-row__title">${escapeHtml(item.label)}</span><span class="k-row__meta">${formatRupees(monthly)} a month · ${last ? `${stale ? 'not charged since' : 'last charged'} ${formatDateNice(last)}` : 'no charge seen yet'}</span></span>
+          <span class="k-row__value">${formatRupees(y)}</span>
+        </button>`)
         .join('')}
     </div>`;
 }
