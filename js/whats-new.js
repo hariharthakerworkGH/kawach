@@ -12,6 +12,29 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.32',
+    items: [
+      {
+        icon: 'clock',
+        title: "Next 3 months",
+        text: "Plan shows each coming month: what your fixed costs take, what is left to spend, and any yearly renewal that makes a month heavy. A month that comes up short says so.",
+        guide: [{ view: 'plan', target: '.forecast', text: "The three months after this one." }],
+      },
+      {
+        icon: 'card',
+        title: "Card limit and best day",
+        text: "Type a card's credit limit to see how much is free. Cards also say the best day to use them and, on an unpaid bill, to pay it all by the due date to avoid interest.",
+        guide: [{ view: 'accounts', target: '.card-facts', text: "Limit left and the best day to use the card." }],
+      },
+      {
+        icon: 'wallet',
+        title: "What you did not spend",
+        text: "Month in review has a new card: for each flexible cost like groceries or fuel, what you set aside, what went on it and what was left, with the month's total.",
+        guide: [{ view: 'recap', target: '.recap-card', text: "Step to the card after the first one." }],
+      },
+    ],
+  },
+  {
     version: '5.31',
     items: [
       {

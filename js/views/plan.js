@@ -18,6 +18,7 @@ import { committedBar, goalRing, radialMeter } from '../charts.js';
 import { bankBalance } from '../account-metrics.js';
 import { incomeType, incomeWords, businessPlan, isBusinessCategory, businesses, activeSpace, commitmentInSpace, accountInSpace } from '../business.js';
 import { subscriptionsOf } from '../subscriptions.js';
+import { forecast } from '../forecast.js';
 import { escapeHtml, emptyState, sectionHead, hero } from '../ui.js';
 import { askConfirm } from '../dialog.js';
 import { showToast } from '../toast.js';
@@ -130,9 +131,11 @@ export async function render(container) {
   // screen reads (its per-commitment tracker), never worked out again here.
   // If it cannot be had, Plan simply goes without the section.
   let tracker = [];
+  let figures = null;
   if (!inBusiness) {
     try {
-      tracker = (await computeFreeToSpend()).tracker || [];
+      figures = await computeFreeToSpend();
+      tracker = figures.tracker || [];
     } catch {
       tracker = [];
     }
@@ -238,6 +241,7 @@ export async function render(container) {
     }
 
     ${thisMonth ? `${sectionHead('This month')}<div class="totals-card plan-month">${thisMonth}</div>` : ''}
+    ${inBusiness ? '' : forecastList(figures, todayIso)}
     ${
       // How much of the month is spoken for, from the same figures the hero
       // above is made of. No second calculation.
@@ -952,6 +956,31 @@ function renewalsList(items, today) {
             <span class="k-row__body"><span class="k-row__title">${escapeHtml(item.label)}</span><span class="k-row__meta">Add the date it renews</span></span>
             <span class="k-row__value">${formatRupees(item.amount)}</span>
           </button>`
+        )
+        .join('')}
+    </div>`;
+}
+
+/* NEW (5.32): the three months after this one - what is left of the money coming in once the
+ * fixed costs and your saving are out - with the renewals that make a month heavy named.
+ * A month that comes up short says so in words and in red. Fixed costs only: everyday
+ * spending is what the figure is for (js/forecast.js). */
+export function forecastList(figures, today) {
+  if (!figures || figures.limit == null) return '';
+  const income = figures.limit + figures.budgetItems.reduce((t, b) => t + b.amount, 0) + (figures.keep || 0);
+  const months = forecast({ items: figures.budgetItems.map((b) => b.item), income, keep: figures.keep || 0, today, months: 3 });
+  if (!months.length) return '';
+  const name = (key) => new Date(`${key}-01T12:00`).toLocaleDateString('en-IN', { month: 'long' });
+  return `${sectionHead('Next 3 months')}
+    <div class="totals-card forecast">
+      ${months
+        .map(
+          (m) => `<div class="k-row forecast-row${m.short ? ' is-short' : ''}">
+          <span class="k-row__body"><span class="k-row__title">${name(m.key)}</span><span class="k-row__meta">${
+            m.renewals.length ? `${escapeHtml(m.renewals[0].label)} ${formatRupees(m.renewals[0].amount)}${m.renewals.length > 1 ? ` and ${m.renewals.length - 1} more` : ''} due` : 'a usual month'
+          } · fixed costs ${formatRupees(m.costs)}</span></span>
+          <span class="k-row__value">${m.short ? `${formatRupees(-m.free)} short` : `${formatRupees(m.free)} to spend`}</span>
+        </div>`
         )
         .join('')}
     </div>`;

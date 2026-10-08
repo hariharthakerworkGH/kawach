@@ -3443,3 +3443,20 @@ html.is-locked .app-header, html.is-locked #view-container, html.is-locked #tabs
 @media (prefers-reduced-motion: reduce) { .lock__dots.shake { animation: none; } }
 @media (max-height: 640px) { .lock__key { height: 54px; } .lock__mark { display: none; } }
 .k.settings-k .settings-lock-note { margin: 0; padding: var(--k-2) 0 var(--k-3); border-top: 1px solid var(--k-hairline); }
+
+/* --- Card smarts (5.32): quiet lines under a card's bar ---------------------- */
+.k .card-facts { display: grid; gap: 2px; padding: 0 0 var(--k-3); }
+.k .card-facts p, .k .bill-payby { margin: 0; font-size: 12px; color: var(--k-text-2); }
+.k .bill-payby { padding: 0 0 var(--k-2); }
+.k .bill-payby.is-overdue { color: var(--k-negative); }
+
+/* The next three months on Plan (5.32): a month that comes up short is red, in words as well. */
+.k .forecast-row.is-short .k-row__value { color: var(--k-negative); }
+
+/* What you did not spend, in the month in review (5.32): a name, its figures, what was left. */
+.recap-flex { list-style: none; margin: var(--k-3) 0 0; padding: 0; display: grid; }
+.recap-flex li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 var(--k-3); padding: var(--k-2) 0; border-top: 1px solid var(--k-hairline); }
+.recap-flex__name { font-weight: 600; color: var(--k-text); }
+.recap-flex small { grid-column: 1; font-size: 12px; color: var(--k-text-2); }
+.recap-flex b { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-variant-numeric: tabular-nums; color: var(--k-positive); }
+.recap-flex b.out { color: var(--k-negative); }

@@ -18,6 +18,7 @@ import { allocationRing, tickGauge } from '../charts.js';
 import { appearance } from '../appearance.js';
 import { displayName } from './transactions.js';
 import { cushion } from '../goals.js';
+import { limitUse, bestDay, payBy } from '../card-smarts.js';
 import { escapeHtml, escapeAttr, emptyState, hero, moneyTone, shapeLike } from '../ui.js';
 // NEW for the bill-payment panel: reading a pasted bank SMS or email, and
 // saying what happened.
@@ -472,6 +473,11 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
             </label>`
           : ''
       }
+      <label class="field af-limit-field" ${a.type === 'card' ? '' : 'hidden'}>
+        <span>Credit limit <span class="muted">(optional)</span></span>
+        <input type="number" class="af-limit" inputmode="numeric" min="0" step="1" value="${a.creditLimit ? Math.round(a.creditLimit / 100) : ''}" placeholder="150000">
+        <span class="muted-note">Shows how much of it is free.</span>
+      </label>
       <div class="field af-cycle-field" ${a.type === 'card' ? '' : 'hidden'}>
         <span>Billing cycle</span>
         <span class="muted-note">${cycleNote(account, importBatches)}</span>
@@ -559,6 +565,7 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
 
 function wireForm(form, container, accounts, transactions) {
   const cycleField = form.querySelector('.af-cycle-field');
+  const limitField = form.querySelector('.af-limit-field');
   const spendingField = form.querySelector('.af-spending-field');
   const businessField = form.querySelector('.af-business-field');
   const loanFields = form.querySelector('.af-loan-fields');
@@ -571,6 +578,7 @@ function wireForm(form, container, accounts, transactions) {
       type = btn.dataset.type;
       form.querySelectorAll('.af-type').forEach((b) => b.classList.toggle('active', b === btn));
       cycleField.hidden = type !== 'card';
+      limitField.hidden = type !== 'card';
       spendingField.hidden = type !== 'bank';
       if (businessField) businessField.hidden = !['bank', 'card', 'cash'].includes(type);
       loanFields.hidden = type !== 'loan';
@@ -607,6 +615,8 @@ function wireForm(form, container, accounts, transactions) {
       type,
       issuer: form.querySelector('.af-issuer').value.trim() || null,
       last4: last4 || null,
+      // The limit as the person typed it (paise); cleared when the box is emptied.
+      creditLimit: type === 'card' && Number(form.querySelector('.af-limit').value) > 0 ? Math.round(Number(form.querySelector('.af-limit').value) * 100) : null,
       // Kept as it was: the cycle comes from statements, not from this form.
       billingCycleDay: type === 'card' ? existing?.billingCycleDay ?? null : null,
       // Stored only when turned off, so every bank account from before this
@@ -720,6 +730,18 @@ export function cardWorkSplit(account, cycleSpend, w = workByCard.get(account.id
       ${coming ? `<p class="card-split__coming">${names}${(w.items || []).length > 3 ? ` · +${w.items.length - 3} more` : ''}</p>` : ''}
       <p class="card-split__bill"><span>Bill about</span><b>${formatRupees(own + work + coming)}</b></p>
     </div>`;
+}
+
+/* NEW (5.32): the limit left on a card and the best day to use it (js/card-smarts.js), two
+ * quiet lines under the bar. Each shows only when it can be worked out. */
+export function cardFacts(account, cycleSpend, bill, day) {
+  const use = limitUse(account.creditLimit, Math.max(cycleSpend, 0) + (bill && !bill.paid ? bill.amount : 0));
+  const best = bestDay(day, account.statementPeriodEnd, account.statementDueDate);
+  const lines = [
+    use ? (use.over ? `Over the ${formatRupees(use.limit)} limit by ${formatRupees(use.over)}` : `${formatRupees(use.free)} free of the ${formatRupees(use.limit)} limit`) : '',
+    best ? `Best day to use it: the ${ordinal(best.day)}, up to ${best.toPay} days to pay` : '',
+  ].filter(Boolean);
+  return lines.length ? `<div class="card-facts">${lines.map((l) => `<p>${l}</p>`).join('')}</div>` : '';
 }
 
 function peopleGroup(standing, accounts) {
@@ -1030,6 +1052,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
           { spendable: true }
         )}
         ${cardWorkSplit(account, cycleSpend)}
+        ${cardFacts(account, cycleSpend, bill, day)}
         ${renderBill(bill, account)}
       </div>
     `;
@@ -1352,6 +1375,7 @@ function renderBill(bill, account) {
       <span class="bill-when ${urgency ? 'bill-' + urgency : ''}"><i class="bill-dot" aria-hidden="true"></i>${when}</span>
       <span class="bill-amount out">${formatRupees(bill.amount)}</span>
     </div>
+    ${payBy(bill) ? `<p class="bill-payby${overdue ? ' is-overdue' : ''}">${payBy(bill)}</p>` : ''}
     <div class="bill-actions"><button type="button" class="link-btn bill-pay-open" data-id="${account.id}" aria-expanded="${open}">Mark bill paid</button></div>
     ${open ? billPanel(account) : ''}
   `;

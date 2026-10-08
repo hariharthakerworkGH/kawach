@@ -13,8 +13,12 @@ import { cardPosition, bankBalance, statementDayFixes, balanceAt } from '../js/a
 import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance, applyTheme } from '../js/appearance.js';
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
-import { cardWorkSplit, cushionCard } from '../js/views/accounts.js';
+import { cardWorkSplit, cushionCard, cardFacts } from '../js/views/accounts.js';
 import { subscriptionsOf, isSubscription } from '../js/subscriptions.js';
+import { limitUse, bestDay, payBy } from '../js/card-smarts.js';
+import { forecast, costInMonth } from '../js/forecast.js';
+import { flexReport } from '../js/flex-report.js';
+import { flexCard } from '../js/views/recap.js';
 import { makeRecord, checkPin, waitFor, mustLock } from '../js/lock.js';
 import { mood, comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, peaksTop, mindoraTop, chartsCards } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
@@ -1988,4 +1992,57 @@ test('app lock: the PIN is kept only as a salted hash, wrong tries wait longer a
   ok(mustLock({ away: 0 }, 1000000 - 1, 1000000), 'set to ask as soon as you leave: ask');
   ok(mustLock(away, 2000000, 1000000), 'the clock went backwards: ask');
   ok(!mustLock(null, null, 1000000), 'no lock set: never');
+});
+
+test('card smarts: limit left, pay-by words, and the best day to use a card', () => {
+  equal(limitUse(rupees(150000), rupees(54576)), { limit: rupees(150000), used: rupees(54576), free: rupees(95424), over: 0 }, 'free is the limit less what is owed');
+  equal(limitUse(rupees(10000), rupees(12000)).over, rupees(2000), 'over the limit says by how much');
+  equal(limitUse(null, rupees(5)), null, 'no limit typed, nothing said');
+  equal(bestDay(25, '2026-09-25', '2026-10-14'), { day: 26, toPay: 49 }, 'statement on the 25th, due 19 days later: use it on the 26th, about 49 days to pay');
+  equal(bestDay(31, '2026-08-31', '2026-09-18'), { day: 1, toPay: 48 }, 'a statement at the very end of a month: the 1st');
+  equal(bestDay(null, '2026-09-25', '2026-10-14'), null, 'no statement day: nothing');
+  equal(bestDay(25, '2026-09-25', '2027-02-14'), null, 'a due date that is not a card cycle is not trusted');
+  ok(payBy({ paid: false, dueDate: '2026-10-14', daysLeft: 6 }).includes('avoid interest') && payBy({ paid: false, dueDate: '2026-10-01', daysLeft: -7 }).startsWith('Overdue'), 'on time or overdue');
+  equal(payBy({ paid: true, dueDate: '2026-10-14' }), null, 'nothing to say once paid');
+  const html = cardFacts({ creditLimit: rupees(150000), statementPeriodEnd: '2026-09-25', statementDueDate: '2026-10-14' }, rupees(30134), { paid: false, amount: rupees(37262) }, 25);
+  ok(html.includes('₹82,604 free of the ₹1,50,000 limit') && html.includes('Best day to use it: the 26th, up to 49 days'), 'both lines; an unpaid bill counts as owed');
+  equal(cardFacts({}, 0, null, null), '', 'a card with neither shows nothing');
+});
+
+test('forecast: the next three months, a yearly renewal landing in full in its month, ended costs stopping', () => {
+  const rent = { id: 'r', label: 'Rent', amount: rupees(40000), frequency: 'monthly', source: 'fixed' };
+  const insurance = { id: 'i', label: 'Health insurance', amount: rupees(24000), frequency: 'yearly', renewsOn: '2025-12-20', source: 'fixed' };
+  const loan = { id: 'l', label: 'Car EMI', amount: rupees(12000), frequency: 'monthly', endDate: '2026-11-15', source: 'fixed' };
+  const undated = { id: 'u', label: 'Vehicle insurance', amount: rupees(12000), frequency: 'yearly', source: 'fixed' };
+  equal(costInMonth(insurance, '2026-12'), { amount: rupees(24000), dated: true }, 'its month');
+  equal(costInMonth(insurance, '2026-11').amount, 0, 'not another month');
+  equal(costInMonth(undated, '2026-11'), { amount: rupees(1000), dated: false }, 'no date known: a monthly slice');
+  equal(costInMonth(loan, '2026-12').amount, 0, 'an ended cost stops');
+  equal(costInMonth(loan, '2026-11').amount, rupees(12000), 'its last month still counts');
+  const out = forecast({ items: [rent, insurance, loan, undated], income: rupees(100000), keep: rupees(5000), today: '2026-10-08' });
+  equal(out.map((m) => m.key), ['2026-11', '2026-12', '2027-01'], 'from the month after this one');
+  equal(out.map((m) => m.costs), [rupees(40000 + 12000 + 1000), rupees(40000 + 24000 + 1000), rupees(40000 + 1000)], 'rent, the car till November, insurance in December');
+  equal(out.map((m) => m.free), [rupees(100000 - 53000 - 5000), rupees(100000 - 65000 - 5000), rupees(100000 - 41000 - 5000)], 'income less fixed costs and saving');
+  equal(out[1].renewals, [{ label: 'Health insurance', amount: rupees(24000) }], 'the heavy month names its renewal');
+  const tight = forecast({ items: [rent, insurance], income: rupees(60000), keep: rupees(5000), today: '2026-10-08' });
+  ok(tight[1].short && tight[1].free === rupees(60000 - 64000 - 5000) && !tight[0].short, 'December is short, November is not');
+  equal(forecast({ items: [], income: rupees(1000), today: '2026-10-08' }), [], 'nothing planned, nothing to forecast');
+});
+
+test('what you did not spend: each set-aside with what was left, the month total, and nothing for fixed bills', () => {
+  const tracker = [
+    { label: 'Groceries', setAside: true, amount: rupees(12000), used: rupees(8400), status: 'ok' },
+    { label: 'Fuel', setAside: true, amount: rupees(5000), used: rupees(5500), status: 'over' },
+    { label: 'Entertainment', setAside: true, amount: rupees(10000), used: rupees(700), status: 'ok' },
+    { label: 'Rent', setAside: false, amount: rupees(40000), used: rupees(40000), status: 'paid' },
+    { label: 'Skipped one', setAside: true, amount: rupees(3000), used: 0, status: 'ok', skipped: true },
+    { label: 'Not followed', setAside: true, amount: rupees(2000), used: 0, status: 'untracked' },
+  ];
+  const r = flexReport(tracker);
+  equal(r.rows.map((x) => [x.label, x.left]), [['Entertainment', rupees(9300)], ['Groceries', rupees(3600)], ['Fuel', -rupees(500)]], 'only set-asides that are followed, most left first');
+  equal([r.aside, r.saved, r.over], [rupees(27000), rupees(12900), rupees(500)], 'the total left is only what was left, never netted against what went over');
+  equal(flexReport([{ label: 'Rent', setAside: false, amount: 1, used: 1, status: 'paid' }]), null, 'no set-asides, no card');
+  const html = flexCard(r, '2026-09', new Date('2026-10-08T12:00'));
+  ok(html.includes('What you did not spend') && html.includes('₹12,900') && html.includes('of ₹27,000 set aside') && html.includes('₹500 over') && html.includes('₹3,600 left') && !html.includes('so far'), 'a finished month');
+  ok(flexCard(r, '2026-10', new Date('2026-10-08T12:00')).includes(', so far.'), 'the month in progress says so far');
 });

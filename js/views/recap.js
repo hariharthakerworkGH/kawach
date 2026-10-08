@@ -9,6 +9,8 @@ import { cycleAwareEnabled } from '../budgets.js';
 import { isPutAway } from '../account-metrics.js';
 import { isCardBill } from '../transfers.js';
 import { redraw } from '../redraw.js';
+import { flexReport } from '../flex-report.js';
+import { computeFreeToSpend } from '../free-to-spend.js';
 import { escapeHtml, emptyState } from '../ui.js';
 
 // A month's spending told as a handful of single-idea cards you step through,
@@ -54,6 +56,8 @@ export async function render(container, params = {}) {
   const month = months[Math.min(monthOffset, months.length - 1)];
   const prevMonth = months[Math.min(monthOffset + 1, months.length - 1)];
   const cards = buildCards(spendable, categories, month, prevMonth === month ? null : prevMonth);
+  const flex = await flexFor(month);
+  if (flex) cards.splice(1, 0, flexCard(flex, month));
   cardIndex = Math.min(cardIndex, cards.length - 1);
 
   container.innerHTML = `
@@ -251,6 +255,41 @@ function coveredDays(rows) {
   const first = new Date(dates[0]);
   const last = new Date(dates[dates.length - 1]);
   return Math.round((last - first) / 86400000) + 1;
+}
+
+// A month's flexible costs, worked out once and kept while the review is open: stepping through
+// the cards redraws the screen, and the calculation is the heaviest thing here. A month that has
+// ended is worked out as of its last day, the way Summary shows a past month.
+const flexCache = new Map();
+async function flexFor(month) {
+  if (flexCache.has(month)) return flexCache.get(month);
+  const [y, m] = month.split('-').map(Number);
+  const end = new Date(y, m, 0, 12);
+  let report = null;
+  try {
+    report = flexReport((await computeFreeToSpend(end > new Date() ? new Date() : end)).tracker);
+  } catch {
+    report = null;
+  }
+  flexCache.set(month, report);
+  return report;
+}
+
+/* NEW (5.32): what was left of each flexible cost, and the month's total. */
+export function flexCard(report, month, now = new Date()) {
+  const current = month === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const list = report.rows
+    .map(
+      (r) => `<li><span class="recap-flex__name">${escapeHtml(r.label)}</span><small>${formatRupees(r.aside)} set aside · ${formatRupees(r.spent)} spent</small><b class="${r.left < 0 ? 'out' : ''}">${r.left < 0 ? `${formatRupees(-r.left)} over` : `${formatRupees(r.left)} left`}</b></li>`
+    )
+    .join('');
+  return card(
+    'What you did not spend',
+    formatRupees(report.saved),
+    `of ${formatRupees(report.aside)} set aside for flexible costs${current ? ', so far' : ''}.${report.over ? ` ${formatRupees(report.over)} went over on some.` : ''}`,
+    false,
+    `<ul class="recap-flex">${list}</ul>`
+  );
 }
 
 function card(kicker, value, line, small = false, extra = '') {
