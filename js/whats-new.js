@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.31',
+    items: [
+      {
+        icon: 'lock',
+        title: "App lock",
+        text: "Settings can now ask for a PIN when Kawach opens, and again when you come back after a while. A fingerprint can open it too, if your phone has one. The PIN stays on this phone, and a lost one cannot be recovered, so keep your backup passphrase safe.",
+        guide: [{ view: 'settings', target: '#lock-toggle', text: "Turn on the app lock and choose a PIN." }],
+      },
+    ],
+  },
+  {
     version: '5.30',
     items: [
       {

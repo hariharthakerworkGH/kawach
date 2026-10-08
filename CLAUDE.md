@@ -266,6 +266,20 @@ the master plan, the design notes (`docs/`), the component lab (`lab/`) and the
 old `versions/` stubs. The release tool publishes everything under `_work`, so
 anything not meant for the public goes in `_private`, never in `_work`.
 
+**App lock (5.31).** `js/lock.js`: a PIN (4 to 6 digits, stored only as a salted
+PBKDF2 hash) and optionally the phone's fingerprint (WebAuthn, platform
+authenticator, checked on the phone only). Asked in `app.js` before any data is
+read; `index.html` puts `is-locked` on the page from the first paint so nothing
+flashes. Device-only: in localStorage (`kawach-lock`), never synced, never in a
+backup or diagnostic report. Asks again after the chosen time away (1 minute
+default; `sessionStorage` keeps "last seen" fresh so an update reload does not
+ask again). Five wrong PINs wait 30 s, doubling to 15 min. A forgotten PIN cannot
+be recovered: "Forgot PIN?" offers to erase Kawach on the phone, to be restored
+from the encrypted backup. A fault inside the lock lets the person in rather
+than locking them out of the app. It stops casual access, not someone with
+technical tools; Settings says so. The fingerprint path is untested off a real
+phone.
+
 ## Design
 
 **Styles and colourings (5.0).** Kawach comes in five styles (Charts,

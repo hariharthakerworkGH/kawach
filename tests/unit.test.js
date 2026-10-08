@@ -15,6 +15,7 @@ import { CHOICES, appearance, setAppearance, applyTheme } from '../js/appearance
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
 import { cardWorkSplit, cushionCard } from '../js/views/accounts.js';
 import { subscriptionsOf, isSubscription } from '../js/subscriptions.js';
+import { makeRecord, checkPin, waitFor, mustLock } from '../js/lock.js';
 import { mood, comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, peaksTop, mindoraTop, chartsCards } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
 import { termFor } from '../js/explain.js';
@@ -1970,4 +1971,21 @@ test('subscriptions: card-paid fixed costs that are not EMIs or set-asides, bigg
   equal(out.yearly, rupees(12000 + 1999 * 12 + 649 * 12), 'the year, from each own amount');
   equal(out.list.map((s) => [s.last, s.stale]), [['2026-10-05', false], [null, false], ['2026-07-20', true]], 'last charged, and a monthly one silent for over 45 days is stale');
   ok(isSubscription(fixed[0], cards) && !isSubscription(fixed[2], cards) && !isSubscription(fixed[3], cards), 'the rule on its own');
+});
+
+test('app lock: the PIN is kept only as a salted hash, wrong tries wait longer and longer, and it asks again only after being away', async () => {
+  const rec = await makeRecord('4821');
+  ok(!JSON.stringify(rec).includes('4821') && rec.hash.length === 64 && rec.salt.length === 32 && rec.len === 4, 'no PIN in what is stored; a 256-bit hash and a 128-bit salt');
+  ok(await checkPin('4821', rec), 'the right PIN opens it');
+  ok(!(await checkPin('4822', rec)) && !(await checkPin('482', rec)) && !(await checkPin('', rec)), 'a wrong, short or empty PIN does not');
+  const again = await makeRecord('4821');
+  ok(again.hash !== rec.hash && again.salt !== rec.salt, 'the same PIN stores differently each time');
+  equal([0, 1, 4, 5, 6, 7, 20].map(waitFor), [0, 0, 0, 30, 60, 120, 900], 'four free tries, then 30 seconds doubling up to 15 minutes');
+  const away = { away: 60 };
+  ok(mustLock(away, null, 1000000), 'never unlocked in this session: ask');
+  ok(!mustLock(away, 1000000 - 30000, 1000000), 'back after 30 seconds: no need');
+  ok(mustLock(away, 1000000 - 60000, 1000000), 'back after a minute: ask');
+  ok(mustLock({ away: 0 }, 1000000 - 1, 1000000), 'set to ask as soon as you leave: ask');
+  ok(mustLock(away, 2000000, 1000000), 'the clock went backwards: ask');
+  ok(!mustLock(null, null, 1000000), 'no lock set: never');
 });

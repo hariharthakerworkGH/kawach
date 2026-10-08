@@ -67,6 +67,8 @@
     r.setAttribute('data-theme', LIGHT[c] ? 'light' : 'dark');
     if (a.text === 'large' || a.text === 'largest') r.setAttribute('data-text', a.text);
     if (a.density === 'compact') r.setAttribute('data-density', 'compact');
+    // The app lock (js/lock.js): hide the screens from the first paint, so nothing flashes before the PIN is asked.
+    if (localStorage.getItem('kawach-lock')) r.classList.add('is-locked');
   } catch (e) {}
 
   // The opening, carried on rather than started again. When a new version

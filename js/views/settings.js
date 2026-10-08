@@ -20,6 +20,7 @@ import { moneyProfile, addBusiness, renameBusiness, removeBusiness, setBusinessG
 import { notesFor, openNotes } from '../whats-new.js';
 import { backupStatus, backupPassphrase, setBackupPassphrase, markFileBackup, signIn, hasGooglePass, backUpToDrive, listBackups, openDriveBackup } from '../drive.js';
 import { escapeHtml } from '../ui.js';
+import { getRecord, bioAvailable, enableLock, disableLock, setFingerprint, setAway, AWAY } from '../lock.js';
 
 // Kept while this screen is open, so a redraw doesn't lose them: the Drive
 // backups found for a restore, whether Restore is open, and whether the
@@ -31,6 +32,8 @@ let changingPass = false;
 export async function render(container, params = {}) {
   const sync = await getSyncConfig();
   const syncPass = await getSyncPassphrase();
+  const lockRecord = getRecord();
+  const canBio = lockRecord ? await bioAvailable() : false;
   const cycleAware = await cycleAwareEnabled();
   const enabled = await remindersEnabled();
   const permission = permissionState();
@@ -81,6 +84,30 @@ export async function render(container, params = {}) {
             permission === 'unsupported' || permission === 'denied' ? 'disabled' : ''
           }></button>
         </div>
+        <div class="k-switch-row settings-switch">
+          <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('lock')}</span>
+          <span class="k-switch-row__text" id="lock-label">App lock
+            <span class="k-switch-row__sub">${lockRecord ? 'Asks for your PIN when Kawach opens' : 'Ask for a PIN when Kawach opens'}</span></span>
+          <button type="button" class="k-toggle" id="lock-toggle" role="switch" aria-checked="${Boolean(lockRecord)}" aria-labelledby="lock-label"></button>
+        </div>
+        ${
+          lockRecord
+            ? `<div class="k-switch-row settings-switch">
+          <span class="k-switch-row__text" id="lock-away-label">Ask again
+            <span class="k-switch-row__sub">when you come back</span></span>
+          <select id="lock-away" class="settings-days" aria-labelledby="lock-away-label">${Object.entries(AWAY).map(([s, w]) => `<option value="${s}" ${Number(s) === lockRecord.away ? 'selected' : ''}>${w}</option>`).join('')}</select>
+        </div>${
+          canBio
+            ? `<div class="k-switch-row settings-switch">
+          <span class="k-switch-row__text" id="lock-bio-label">Fingerprint
+            <span class="k-switch-row__sub">Opens Kawach without typing the PIN</span></span>
+          <button type="button" class="k-toggle" id="lock-bio" role="switch" aria-checked="${Boolean(lockRecord.bio)}" aria-labelledby="lock-bio-label"></button>
+        </div>`
+            : ''
+        }
+        <p class="muted-note settings-lock-note">Keeps out anyone who picks up your phone. It stays on this phone: it is not in backups or sync, and a PIN lost cannot be recovered.</p>`
+            : ''
+        }
         <button type="button" class="k-row settings-row" id="go-appearance">
           <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('eye')}</span>
           <span class="k-row__body"><span class="k-row__title">How it looks</span></span>
@@ -170,6 +197,22 @@ export async function render(container, params = {}) {
   container.querySelector('#cycle-toggle').addEventListener('click', async () => {
     await setSetting(CYCLE_SETTING_KEY, !cycleAware);
     showToast(cycleAware ? 'Counting by calendar date' : 'Counting by billing cycle');
+    redraw(container, () => render(container));
+  });
+
+  container.querySelector('#lock-toggle').addEventListener('click', async () => {
+    const done = getRecord() ? await disableLock() : await enableLock();
+    if (done) showToast(getRecord() ? 'App lock on' : 'App lock off');
+    redraw(container, () => render(container));
+  });
+  container.querySelector('#lock-away')?.addEventListener('change', (e) => {
+    setAway(e.target.value);
+    showToast('Saved');
+  });
+  container.querySelector('#lock-bio')?.addEventListener('click', async () => {
+    const turningOn = !getRecord().bio;
+    if (await setFingerprint(turningOn)) showToast(turningOn ? 'Fingerprint on' : 'Fingerprint off');
+    else showToast("Couldn't use the fingerprint");
     redraw(container, () => render(container));
   });
 

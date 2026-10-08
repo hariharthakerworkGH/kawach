@@ -3414,3 +3414,32 @@ body:has(#view-container.k) .app-header {
 .k .subs-total .k-row__title { font-weight: 600; }
 .k .subs-total .k-row__value { font-weight: 600; }
 .k .subs-row.is-stale .k-row__meta { color: var(--k-warning); }
+
+/* --- The app lock (5.31, js/lock.js) --------------------------------------
+ * A full screen over everything, opaque, with a keypad of 64px keys. Until the PIN is
+ * right the screens underneath are hidden from the very first paint (index.html puts
+ * is-locked on the page when a lock is set), then taken out of reach (inert). */
+html.is-locked .app-header, html.is-locked #view-container, html.is-locked #tabs { visibility: hidden; }
+.lock { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; padding: var(--k-4); overflow-y: auto; background: var(--k-bg); color: var(--k-text); }
+.lock__box { position: relative; width: min(100%, 320px); display: grid; justify-items: center; gap: var(--k-3); text-align: center; }
+.lock__cancel { position: absolute; top: -8px; right: -8px; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--k-text-2); }
+.lock__mark { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; color: var(--k-accent-text); background: color-mix(in srgb, var(--k-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--k-accent) 30%, transparent); }
+.lock__mark svg { width: 26px; height: 26px; }
+.lock__title { margin: 4px 0 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.lock__sub { margin: 0; min-height: 1.4em; font-size: var(--k-label); color: var(--k-text-2); }
+.lock__sub.is-error { color: var(--k-negative); }
+.lock__dots { display: flex; gap: 14px; margin: 8px 0 6px; }
+.lock__dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--k-text-3); transition: background-color var(--k-t-fast) var(--k-ease), border-color var(--k-t-fast) var(--k-ease); }
+.lock__dots i.on { background: var(--k-accent); border-color: var(--k-accent); }
+@keyframes lock-shake { 20% { transform: translateX(-8px); } 60% { transform: translateX(8px); } 100% { transform: none; } }
+.lock__dots.shake { animation: lock-shake 360ms var(--k-ease); }
+.lock__pad { display: grid; grid-template-columns: repeat(3, 72px); gap: 12px; justify-content: center; }
+.lock__key { width: 72px; height: 64px; display: grid; place-items: center; border: 1px solid var(--k-border); border-radius: 18px; background: var(--k-surface); color: var(--k-text); font: inherit; font-size: 24px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.lock__key:active { background: var(--k-surface-press); }
+.lock__key svg { width: 22px; height: 22px; }
+.lock__next { width: 100%; min-height: 48px; }
+.lock__link { min-height: 44px; padding: 0 var(--k-3); border: 0; background: none; color: var(--k-accent-text); font: inherit; font-size: var(--k-label); font-weight: 600; }
+.lock :is(button):focus-visible { outline: 2px solid var(--k-accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .lock__dots.shake { animation: none; } }
+@media (max-height: 640px) { .lock__key { height: 54px; } .lock__mark { display: none; } }
+.k.settings-k .settings-lock-note { margin: 0; padding: var(--k-2) 0 var(--k-3); border-top: 1px solid var(--k-hairline); }

@@ -1,6 +1,7 @@
 import { openDB, getAll, put, onLocalChange, forgetCachedReads } from './db.js';
 import { wireExplain } from './explain.js';
 import { wireSwipe } from './swipe.js';
+import { guardApp } from './lock.js';
 import { getSyncConfig, getSyncPassphrase, syncNow } from './sync.js';
 import { CASH_ACCOUNT_ID } from './config.js';
 import { detectTransfers } from './transfers.js';
@@ -490,6 +491,9 @@ async function init() {
   document.addEventListener('db-superseded', () => {
     showNotice('Kawach was updated in another window.', 'Reload');
   });
+
+  // The app lock, before any of the person's data is read (js/lock.js).
+  await guardApp();
 
   await openDB();
   // Ask the phone not to clear Kawach's data when it runs low on space.
