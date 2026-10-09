@@ -717,7 +717,7 @@ export function monthWaves(f) {
   const ticks = [...new Set([0, Math.round((n - 1) / 3), Math.round((2 * (n - 1)) / 3), n - 1])]
     .map((k) => `<text class="waves__tick" x="${x(k).toFixed(1)}" y="${H - 3}" text-anchor="middle">${Number(f.spendByDay[k].date.slice(8))}</text>`)
     .join('');
-  const days = daily.map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(pace[i]), +x(i).toFixed(1), +y(totals[i]).toFixed(1)]);
+  const days = daily.map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(pace[i]), +x(i).toFixed(1), +y(totals[i]).toFixed(1), f.spendByDay[i].other || 0]);
   const last = n - 1;
   return `<div class="totals-card waves-card" ${chartData(days, 10, W - 10, W, f)}>
       ${chartHead(f)}
@@ -774,14 +774,34 @@ export function monthScale(f) {
   const ticks = Array.from({ length: monthDays }, (_, i) => `<line class="scale__tick${i < n ? ' is-gone' : ''}" x1="${x(i).toFixed(1)}" x2="${x(i).toFixed(1)}" y1="${B}" y2="${B + (marked.has(i) ? 8 : 4)}"/>${marked.has(i) ? `<text class="waves__tick${i < n ? '' : ' is-ahead'}" x="${x(i).toFixed(1)}" y="${B + 21}" text-anchor="middle">${dayAt(i)}</text>` : ''}`).join('');
   const bigDay = daily.indexOf(Math.max(...daily));
   const bw = Math.max(2, Math.min(7, ((W - L - R) / (monthDays - 1)) * 0.5));
-  // A bar is drawn on the same rupee scale as the line and the marks down the side, so it reads true against them.
-  const bars = daily.map((v, i) => (v > 0 ? `<rect class="waves__bar${i === bigDay ? ' is-top' : ''}" data-bar="${i}" x="${(x(i) - bw / 2).toFixed(1)}" y="${y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(B - y(v)).toFixed(1)}"/>` : '')).join('');
+  // A bar is drawn on the same rupee scale as the line and the marks down the side, so it reads
+  // true against them. What the day cost outside the budget (set-aside costs, work costs owed
+  // back) stands on it, hatched as on History; one that would leave the chart is cut with a
+  // zigzag top instead of flattening the other days.
+  const hatchId = `hatch${(hatches += 1)}`;
+  let cut = 0;
+  const other = (f.spendByDay || []).map((d) => d.other || 0);
+  const bars = daily
+    .map((v, i) => {
+      const at = `x="${(x(i) - bw / 2).toFixed(1)}" width="${bw.toFixed(1)}" data-bar="${i}"`;
+      const solid = v > 0 ? `<rect class="waves__bar${i === bigDay ? ' is-top' : ''}" ${at} y="${y(v).toFixed(1)}" height="${(B - y(v)).toFixed(1)}"/>` : '';
+      if (!(other[i] > 0)) return solid;
+      const from = y(v), to = Math.max(T, y(v + other[i])), isCut = y(v + other[i]) < T;
+      if (isCut) cut += 1;
+      if (from - to < 1.5) return solid;
+      const l = x(i) - bw / 2, r = x(i) + bw / 2, m = (l + r) / 2, z = 2.5;
+      const top = isCut ? `M${l.toFixed(1)} ${(to + z).toFixed(1)} L${((l + m) / 2).toFixed(1)} ${to.toFixed(1)} L${m.toFixed(1)} ${(to + z).toFixed(1)} L${((m + r) / 2).toFixed(1)} ${to.toFixed(1)} L${r.toFixed(1)} ${(to + z).toFixed(1)}` : `M${l.toFixed(1)} ${to.toFixed(1)} L${r.toFixed(1)} ${to.toFixed(1)}`;
+      return `${solid}<path class="waves__other" data-bar="${i}" fill="url(#${hatchId})" d="${top} L${r.toFixed(1)} ${from.toFixed(1)} L${l.toFixed(1)} ${from.toFixed(1)} Z"/>`;
+    })
+    .join('');
+  const anyOther = other.some((v) => v > 0);
   const poly = (vals) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
-  const days = daily.map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(pace[i]), +x(i).toFixed(1), +y(totals[i]).toFixed(1)]);
+  const days = daily.map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(pace[i]), +x(i).toFixed(1), +y(totals[i]).toFixed(1), f.spendByDay[i].other || 0]);
   const last = n - 1;
   return `<div class="totals-card waves-card scale-card" ${chartData(days, +x(0).toFixed(1), +x(last).toFixed(1), W, f)}>
       ${chartHead(f)}
       <svg class="waves scale no-swipe" viewBox="0 0 ${W} ${H}" role="img" aria-label="${f.finished ? 'The month' : 'This month so far'}: ${formatRupees(totals[last])} spent against ${formatRupees(Math.round(pace[last]))} of budget so far, out of ${formatRupees(f.limit)}. Most in one day: ${formatRupees(daily[bigDay])} on ${formatDateNice(f.spendByDay[bigDay].date)}.">
+        <defs><pattern id="${hatchId}" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line class="scale__hatch" x1="0" y1="0" x2="0" y2="4"/></pattern></defs>
         ${rule}
         <line class="scale__budget" x1="${L}" x2="${W - R}" y1="${y(f.limit).toFixed(1)}" y2="${y(f.limit).toFixed(1)}"/>
         <text class="scale__budget-lab" x="${W - R}" y="${(y(f.limit) - 6).toFixed(1)}" text-anchor="end">BUDGET ${formatRupees(f.limit)}</text>
@@ -797,6 +817,7 @@ export function monthScale(f) {
         <span class="waves__k waves--pace"><b>${formatRupees(Math.round(pace[last]))}</b><span class="waves__lab">Budget so far</span></span>
         <button type="button" class="waves__k waves--day" data-pick-day="${bigDay}"><b>${formatRupees(daily[bigDay])} · ${formatDateNice(f.spendByDay[bigDay].date)}</b><span class="waves__lab">Most in one day</span></button>
       </div>
+      ${anyOther ? `<p class="waves__note"><i></i>Hatched: spent, but not from your budget (set-aside costs, work costs owed back).${cut ? ' A zigzag top: a bigger day, cut short.' : ''}</p>` : ''}
     </div>`;
 }
 
@@ -807,7 +828,7 @@ const chartHead = (f) =>
 const chartData = (days, x0, x1, w, f) => `data-chart-days='${JSON.stringify(days)}' data-x0="${x0}" data-x1="${x1}" data-w="${w}" ${f.finished ? 'data-finished="1"' : ''}`;
 const dayWord = (iso) => (iso === isoLocal(new Date()) ? 'Today' : new Date(`${iso}T12:00`).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }));
 export const chartReadout = (d, label, finished = false) =>
-  `${label}: spent ${formatRupees(d[1])} that day · ${formatRupees(d[2])} ${finished ? 'by then' : 'so far'} · budget so far ${formatRupees(d[3])}`;
+  `${label}: spent ${formatRupees(d[1])} that day${d[6] ? ` and ${formatRupees(d[6])} more that is not from your budget` : ''} · ${formatRupees(d[2])} ${finished ? 'by then' : 'so far'} · budget so far ${formatRupees(d[3])}`;
 
 /* Drag across a month chart to read any day: a guide line and a dot follow the
  * finger, and the line under the chart says what that day was. */
@@ -867,6 +888,7 @@ function wireCharts(root) {
 // Each drawing gets its own gradient ids, so two drawings on one page never
 // share one.
 let mountainsDrawn = 0;
+let hatches = 0;
 export function monthMountains(f) {
   const totals = f.spendDays || [];
   const daily = (f.spendByDay || []).map((d) => d.amount || 0);

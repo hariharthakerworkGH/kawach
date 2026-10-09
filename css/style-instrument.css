@@ -294,6 +294,11 @@
 .k .scale .waves__bar { fill: var(--k-accent); opacity: .55; rx: 0; }
 .k .scale .waves__bar.is-top { fill: var(--k-negative); opacity: 1; }
 .k .scale .waves__bar.is-picked { fill: var(--k-text); opacity: 1; }
+.k .scale .scale__hatch { stroke: var(--k-text-2); stroke-width: 1.4; }
+.k .scale .waves__other { stroke: none; opacity: .85; }
+.k .scale .waves__other.is-picked { opacity: 1; }
+.k .waves__note { display: flex; align-items: flex-start; gap: 8px; margin: 8px var(--k-4) 0; font-size: var(--k-caption); line-height: 1.4; color: var(--k-text-2); }
+.k .waves__note i { flex: none; width: 12px; height: 8px; margin-top: 4px; border-radius: 2px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--k-text) 34%, transparent) 0 2px, transparent 2px 4px); }
 .scale .waves__dot { fill: var(--k-bg); stroke: var(--k-accent); stroke-width: 2; }
 .k .scale .waves__guide { stroke: var(--k-text); opacity: .5; stroke-dasharray: none; }
 .scale-card .waves__k::before { border-radius: 1px; width: 9px; height: 9px; background: currentColor; border: 0; }

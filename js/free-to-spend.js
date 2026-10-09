@@ -1,7 +1,7 @@
 import { getAll, getSetting } from './db.js';
 import { bankBalance, cardBillDue, cardOwedThisCycle, cardPosition, statementDay, afterKnownBalance, isEverydayBank, isPutAway } from './account-metrics.js';
 import { nextOccurrence, isoLocal, frequencyOf, monthlyAmountOf } from './frequency.js';
-import { isLiveCommitment, commitmentDueInWindow, paidAround, commitmentMatcher, matchWords, isSetAside } from './commitments.js';
+import { isLiveCommitment, commitmentDueInWindow, paidAround, commitmentMatcher, matchWords, isSetAside, CASH_ENTRY_RE } from './commitments.js';
 import { looksLikeCardPayment } from './transfers.js';
 import { findDuplicates } from './duplicates.js';
 import { isLoanAccount, loanCommitment, loanPosition, assignLoanPayments } from './loans.js';
@@ -847,6 +847,17 @@ export async function computeFreeToSpend(now = new Date()) {
   ].filter((e) => e.date >= windowStart && e.date <= today);
   const perDay = new Map();
   for (const e of datedSpends) perDay.set(e.date, (perDay.get(e.date) || 0) + e.amount);
+  // Spending you logged that the budget does not count (the chart hatches it): what was
+  // paid from a set-aside cost and work costs owed back. Cash taken out of an ATM is money
+  // moved, not spent, and fixed bills are on Plan, so neither is here. Each payment once.
+  const outside = new Map();
+  for (const b of budgetItems) {
+    if (!isSetAside(b.item)) continue;
+    for (const m of b.matches || []) if (!CASH_ENTRY_RE.test(m.description || '')) outside.set(m.id, { date: m.date, amount: m.amount });
+  }
+  for (const t of transactions) if (isWorkCost(t) && ownedByHouse(t)) outside.set(t.id, { date: t.date, amount: t.amount });
+  const otherDay = new Map();
+  for (const o of outside.values()) if (o.date >= windowStart && o.date <= today) otherDay.set(o.date, (otherDay.get(o.date) || 0) + o.amount);
   const undated = spentThisCycle - datedSpends.reduce((s, e) => s + e.amount, 0);
   const spendDays = [];
   const spendByDay = [];
@@ -855,7 +866,7 @@ export async function computeFreeToSpend(now = new Date()) {
     const on = addDays(windowStart, i);
     running += perDay.get(on) || 0;
     spendDays.push(running);
-    spendByDay.push({ date: on, amount: Math.max(0, perDay.get(on) || 0) });
+    spendByDay.push({ date: on, amount: Math.max(0, perDay.get(on) || 0), other: otherDay.get(on) || 0 });
   }
   const free = limit == null || noCommitments ? null : limit - spentThisCycle;
   if (monthlyIncome && noCommitments) notes.push('Add your fixed commitments on Plan - without them your whole income looks free.');

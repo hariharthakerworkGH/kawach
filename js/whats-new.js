@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.33',
+    items: [
+      {
+        icon: 'chart',
+        title: "Hatched spending on the month chart",
+        text: "Spending that is not from your budget now shows on the month chart, hatched like History: payments from your set-aside costs and work costs owed back. The solid bars and the line are still your spending budget. A much bigger day is cut with a zigzag top, and dragging to a day says how much of it was not from your budget.",
+        guide: [{ view: 'summary', target: '.scale-card', text: "Solid counts against your budget. Hatched was spent, but not from it." }],
+      },
+    ],
+  },
+  {
     version: '5.32.4',
     items: [
       {

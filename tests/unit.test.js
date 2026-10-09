@@ -48,7 +48,7 @@ import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, cashRiver, tickGauge } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
-import { shortStatus, spentLine, spendingHero, monthWaves, monthMountains, monthScale, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
+import { shortStatus, spentLine, spendingHero, monthWaves, monthMountains, monthScale, chartReadout, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -1509,11 +1509,30 @@ test('Month scale: a day bar is as tall as its rupees read against the marks dow
   const daily = [rupees(2000), rupees(1000), 0];
   let run = 0;
   const f = { limit: rupees(9000), spentThisCycle: rupees(3000), daysIntoCycle: 3, daysToClose: 28, spendDays: daily.map((d) => (run += d)), spendByDay: days.map((date, i) => ({ date, amount: daily[i] })) };
-  const bars = [...monthScale(f).matchAll(/<rect class="waves__bar[^"]*" data-bar="\d" [^>]*height="([\d.]+)"/g)].map((m) => Number(m[1]));
+  const bars = [...monthScale(f).matchAll(/<rect class="waves__bar[^"]*"[^>]*height="([\d.]+)"/g)].map((m) => Number(m[1]));
   equal(bars.length, 2, 'a bar for each day with spending');
   ok(Math.abs(bars[0] / bars[1] - 2) < 0.02, 'twice the rupees, twice the height');
   const two = monthScale(f).match(/y1="([\d.]+)" y2="[\d.]+"\/><text class="scale__lab"[^>]*>₹2K/);
   ok(two, 'the ₹2K mark is there to read the bar against');
+});
+
+test('Month scale: spending outside the budget is hatched on its day, a huge day cut with a zigzag, and said when read', () => {
+  const days = ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04'];
+  const daily = [rupees(500), 0, rupees(300), 0];
+  const other = [0, rupees(1200), rupees(400), rupees(40000)];
+  let run = 0;
+  const f = {
+    limit: rupees(9000), spentThisCycle: rupees(800), daysIntoCycle: 4, daysToClose: 27,
+    spendDays: daily.map((d) => (run += d)), spendByDay: days.map((date, i) => ({ date, amount: daily[i], other: other[i] })),
+  };
+  const scale = monthScale(f);
+  equal((scale.match(/class="waves__other"/g) || []).length, 3, 'a hatched block on each day with outside spending, a day with no budget spending included');
+  equal((scale.match(/class="waves__bar/g) || []).length, 2, 'the solid bars are still only what the budget counts');
+  equal((scale.match(/ L[\d.]+ [\d.]+ L[\d.]+ [\d.]+ L[\d.]+ [\d.]+ L[\d.]+ [\d.]+ L/g) || []).length >= 1, true, 'the ₹40,000 day has a zigzag top');
+  ok(scale.includes('Hatched: spent, but not from your budget') && scale.includes('A zigzag top'), 'the key says both');
+  ok(!monthScale({ ...f, spendByDay: f.spendByDay.map((d) => ({ ...d, other: 0 })) }).includes('Hatched'), 'nothing hatched, nothing said');
+  ok(chartReadout(['2026-10-02', 0, rupees(500), rupees(1000), 0, 0, rupees(1200)], 'Fri 2 Oct').includes('and ₹1,200 more that is not from your budget'), 'the readout names it');
+  ok(!chartReadout(['2026-10-01', rupees(500), rupees(500), rupees(1000), 0, 0, 0], 'x').includes('not from your budget'), 'and says nothing on a day without it');
 });
 
 test('Instrument: the dial lights up to what is spent, red past an even pace; the chart is a ruled scale of the whole month', () => {
