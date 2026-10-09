@@ -773,9 +773,9 @@ export function monthScale(f) {
   const marked = new Set([0, monthDays - 1, ...Array.from({ length: Math.floor((monthDays - 1) / 5) }, (_, k) => (k + 1) * 5)]);
   const ticks = Array.from({ length: monthDays }, (_, i) => `<line class="scale__tick${i < n ? ' is-gone' : ''}" x1="${x(i).toFixed(1)}" x2="${x(i).toFixed(1)}" y1="${B}" y2="${B + (marked.has(i) ? 8 : 4)}"/>${marked.has(i) ? `<text class="waves__tick${i < n ? '' : ' is-ahead'}" x="${x(i).toFixed(1)}" y="${B + 21}" text-anchor="middle">${dayAt(i)}</text>` : ''}`).join('');
   const bigDay = daily.indexOf(Math.max(...daily));
-  const dmax = Math.max(...daily) || 1;
   const bw = Math.max(2, Math.min(7, ((W - L - R) / (monthDays - 1)) * 0.5));
-  const bars = daily.map((v, i) => (v > 0 ? `<rect class="waves__bar${i === bigDay ? ' is-top' : ''}" data-bar="${i}" x="${(x(i) - bw / 2).toFixed(1)}" y="${(B - (v / dmax) * 46).toFixed(1)}" width="${bw.toFixed(1)}" height="${((v / dmax) * 46).toFixed(1)}"/>` : '')).join('');
+  // A bar is drawn on the same rupee scale as the line and the marks down the side, so it reads true against them.
+  const bars = daily.map((v, i) => (v > 0 ? `<rect class="waves__bar${i === bigDay ? ' is-top' : ''}" data-bar="${i}" x="${(x(i) - bw / 2).toFixed(1)}" y="${y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(B - y(v)).toFixed(1)}"/>` : '')).join('');
   const poly = (vals) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
   const days = daily.map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(pace[i]), +x(i).toFixed(1), +y(totals[i]).toFixed(1)]);
   const last = n - 1;

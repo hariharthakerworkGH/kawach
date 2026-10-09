@@ -1504,6 +1504,18 @@ test('the Summary tracking card: rings for budget spent, month gone and set-asid
   ok(!spendingHero({ ...base, tracker: [] }, 'full').includes('set aside used'), 'no set-asides followed, no third ring');
 });
 
+test('Month scale: a day bar is as tall as its rupees read against the marks down the side', () => {
+  const days = ['2026-10-01', '2026-10-02', '2026-10-03'];
+  const daily = [rupees(2000), rupees(1000), 0];
+  let run = 0;
+  const f = { limit: rupees(9000), spentThisCycle: rupees(3000), daysIntoCycle: 3, daysToClose: 28, spendDays: daily.map((d) => (run += d)), spendByDay: days.map((date, i) => ({ date, amount: daily[i] })) };
+  const bars = [...monthScale(f).matchAll(/<rect class="waves__bar[^"]*" data-bar="\d" [^>]*height="([\d.]+)"/g)].map((m) => Number(m[1]));
+  equal(bars.length, 2, 'a bar for each day with spending');
+  ok(Math.abs(bars[0] / bars[1] - 2) < 0.02, 'twice the rupees, twice the height');
+  const two = monthScale(f).match(/y1="([\d.]+)" y2="[\d.]+"\/><text class="scale__lab"[^>]*>₹2K/);
+  ok(two, 'the ₹2K mark is there to read the bar against');
+});
+
 test('Instrument: the dial lights up to what is spent, red past an even pace; the chart is a ruled scale of the whole month', () => {
   const days = Array.from({ length: 12 }, (_, i) => `2026-10-${String(i + 1).padStart(2, '0')}`);
   const daily = [800, 2400, 600, 1900, 5200, 900, 1500, 700, 3100, 1200, 2600, 840].map(rupees);
