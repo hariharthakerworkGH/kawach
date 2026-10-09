@@ -1535,6 +1535,21 @@ test('Month scale: spending outside the budget is hatched on its day, a huge day
   ok(!chartReadout(['2026-10-01', rupees(500), rupees(500), rupees(1000), 0, 0, 0], 'x').includes('not from your budget'), 'and says nothing on a day without it');
 });
 
+test('This week: a day with spending outside the budget gets a hatched part above its bar, a huge one cut', () => {
+  const days = Array.from({ length: 7 }, (_, i) => `2026-10-0${i + 1}`);
+  const f = {
+    limit: rupees(9000), free: rupees(7000), spentThisCycle: rupees(2000), level: 'ok', daysIntoCycle: 7, daysToClose: 24,
+    spendDays: [500, 500, 1000, 1000, 1500, 1500, 2000].map(rupees), cycleStart: '2026-10-01', cycleKey: '2026-10-31', perDay: rupees(300),
+    spendByDay: days.map((date, i) => ({ date, amount: [500, 0, 500, 0, 500, 0, 500][i] * 100, other: [0, 20000, 0, 40000, 0, 0, 0][i] * 100 })),
+    cardBills: [], cards: [], tracker: [], totals: {},
+  };
+  const top = tactileTop(f, 'x', '');
+  equal((top.match(/class="tl-other/g) || []).length, 2, 'a hatched part on each day with outside spending');
+  ok(top.includes('tl-other is-cut') && top.includes('Hatched: spent, but not from your budget'), 'a big day is cut, and the key says what hatched is');
+  const none = tactileTop({ ...f, spendByDay: f.spendByDay.map((d) => ({ ...d, other: 0 })) }, 'x', '');
+  ok(!none.includes('tl-other') && !none.includes('Hatched'), 'nothing hatched, nothing said');
+});
+
 test('Instrument: the dial lights up to what is spent, red past an even pace; the chart is a ruled scale of the whole month', () => {
   const days = Array.from({ length: 12 }, (_, i) => `2026-10-${String(i + 1).padStart(2, '0')}`);
   const daily = [800, 2400, 600, 1900, 5200, 900, 1500, 700, 3100, 1200, 2600, 840].map(rupees);

@@ -235,6 +235,10 @@
 :root[data-style="instrument"] .k .plan-flex__row.is-over .plan-flex__track i { background: var(--k-negative); }
 :root[data-style="instrument"] .tl-cols i { border-radius: 1px; background: var(--in-track); box-shadow: none; }
 :root[data-style="instrument"] .tl-cols i.lit { background: var(--k-accent); box-shadow: 0 0 12px -2px var(--k-accent); }
+:root[data-style="instrument"] .tl-cols i.tl-other { display: block; border-radius: 1px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--k-text) 34%, transparent) 0 2px, transparent 2px 4px); box-shadow: none; min-height: 3px; }
+:root[data-style="instrument"] .tl-cols i.tl-other.is-cut { clip-path: polygon(0 4px, 25% 0, 50% 4px, 75% 0, 100% 4px, 100% 100%, 0 100%); }
+:root[data-style="instrument"] .k .tl-hatch-note { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0 0; font-size: var(--k-caption); line-height: 1.4; color: var(--k-text-2); }
+:root[data-style="instrument"] .k .tl-hatch-note i { flex: none; width: 12px; height: 8px; margin-top: 4px; border-radius: 2px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--k-text) 34%, transparent) 0 2px, transparent 2px 4px); }
 :root[data-style="instrument"] .k .hist-days__bar { border-radius: 1px; background: var(--k-accent); opacity: .5; }
 :root[data-style="instrument"] .k .hist-days__bar.is-top { background: var(--k-negative); opacity: 1; box-shadow: none; }
 :root[data-style="instrument"] .pl-seg { padding: 3px; gap: 2px; }

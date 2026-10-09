@@ -3313,6 +3313,7 @@ body:has(#view-container.k) .app-header {
 
 /* --- the week's columns say what each day was -------------------------------- */
 .k .tl-cols, .k .md-cols, .k .pk-cols { height: 98px; }
+.k .tl-cols i.tl-other, .k .tl-hatch-note { display: none; }
 .k .tl-cols em, .k .md-cols em, .k .pk-cols em { font-style: normal; font-size: 10.5px; line-height: 1; color: var(--k-text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* --- History: what went out each day ------------------------------------------ */

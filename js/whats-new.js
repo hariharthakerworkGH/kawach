@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.34',
+    items: [
+      {
+        icon: 'summary',
+        title: "This week shows hatched spending too",
+        text: "On Summary, each day of This week now carries a hatched part for what was spent outside your budget (set-aside costs, work costs owed back), the same as the month chart. The figure at the top is still your budget spending.",
+        guide: [{ view: 'summary', target: '.tl-cols', text: "Solid counts against your budget. Hatched was spent, but not from it." }],
+      },
+    ],
+  },
+  {
     version: '5.33',
     items: [
       {

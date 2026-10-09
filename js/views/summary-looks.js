@@ -128,9 +128,17 @@ const weekCols = (x, cls) => {
   // Each day says what it was (5.23): a bar with no figure told you the shape
   // of a week and nothing else.
   return `<div class="${cls}" role="img" aria-label="Spent each day of this week, ${formatRupees(x.weekTotal)} in all: ${x.week.map((d) => `${dow(d.date)} ${formatRupees(d.amount || 0)}`).join(', ')}">${x.week
-    .map((d, i) => `<span><i class="${i === x.week.length - 1 ? 'lit' : ''}" style="height:${Math.max(6, ((d.amount || 0) / top) * 100).toFixed(0)}%"></i><small>${dow(d.date)}</small><em>${d.amount ? formatRupees(d.amount) : '-'}</em></span>`)
+    .map((d, i) => `<span>${cls === 'tl-cols' ? outsideBar(d, top) : ''}<i class="${i === x.week.length - 1 ? 'lit' : ''}" style="height:${Math.max(6, ((d.amount || 0) / top) * 100).toFixed(0)}%"></i><small>${dow(d.date)}</small><em>${d.amount ? formatRupees(d.amount) : '-'}</em></span>`)
     .join('')}</div>`;
 };
+// Above a day's bar, hatched: what was spent that day outside the budget (5.33), as on the
+// month chart. Tall ones are cut with a zigzag. Instrument draws it; Tactile hides it for now.
+const outsideBar = (d, top) => {
+  if (!(d.other > 0)) return '';
+  const h = (d.other / top) * 100;
+  return `<i class="tl-other${h > 35 ? ' is-cut' : ''}" style="height:${Math.max(4, Math.min(35, h)).toFixed(0)}%" title="${formatRupees(d.other)} not from your budget"></i>`;
+};
+const weekNote = (x) => (x.week.some((d) => d.other > 0) ? '<p class="tl-hatch-note"><i></i>Hatched: spent, but not from your budget.</p>' : '');
 
 /* --- Tactile: a raised instrument, then plain rows ----------------------- */
 export function tactileTop(f, status, month, heroHtml = '') {
@@ -156,7 +164,7 @@ export function tactileTop(f, status, month, heroHtml = '') {
     </div>`;
   return `${heroHtml || hero}<!--k:answer-->
     ${month || ''}<!--k:month-->
-    ${x.week.length && !x.finished ? `<div class="tl-card"><div class="tl-top"><span class="tl-k">This week</span><b class="tl-mid">${formatRupees(x.weekTotal)}</b></div>${weekCols(x, 'tl-cols')}</div>` : ''}
+    ${x.week.length && !x.finished ? `<div class="tl-card"><div class="tl-top"><span class="tl-k">This week</span><b class="tl-mid">${formatRupees(x.weekTotal)}</b></div>${weekCols(x, 'tl-cols')}${weekNote(x)}</div>` : ''}
     ${x.finished ? '' : `<div class="tl-list" data-owed-anchor>
       ${x.cards.length ? `<div class="tl-item tl-item--cards"><span class="tl-ibox">${icon('card')}</span><span class="tl-grow"><span class="tl-t">Owed on cards</span>${x.bills ? `<span class="tl-badge">${bills(x.bills)}</span>` : ''}</span><span class="tl-v">${formatRupees(x.owedCards)}</span>
         <div class="tl-cards">${x.cards.map((c) => `<div class="tl-cardrow">${tagHtml(c)}<span class="tl-thin">${cardBar(c)}</span><span class="tl-cardamt">${formatRupees(c.amount)}</span>${cardKey(c)}</div>`).join('')}</div>${cardLegend(x.cards)}</div>` : ''}
