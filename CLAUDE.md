@@ -287,6 +287,16 @@ says so). `js/card-smarts.js`: credit limit free (limit typed on the card, paise
 each set-aside cost has left, shown in Month in review as "What you did not spend"
 (nothing rolls over). All three read `computeFreeToSpend`; none invent their own sums.
 
+**Alerts learn (5.35).** `js/alerts.js` reads a bank or card message with a built-in
+format when it knows the wording, and otherwise with the general reader (direction from the
+word nearest the amount, who it was from the label words, never the user's own account).
+`js/alert-learning.js` turns one checked and saved message into a pattern with holes for the
+amount, date, shop and card digits, kept in the `learnedAlertFormats` setting (so it syncs,
+encrypted) and shown under "Wordings I have learned" on the alert screen, where each can be
+forgotten. Only a partly read message teaches; the pattern must re-read its own message to the
+same figures. `js/card-refunds.js` pairs a card refund with the purchase it undoes (same card,
+same amount, a shop word in common) so a refund never adds room to spend.
+
 ## Design
 
 **Styles and colourings (5.0).** Kawach comes in five styles (Charts,

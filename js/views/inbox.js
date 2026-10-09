@@ -3,6 +3,7 @@ import { formatCurrency, formatDateNice } from '../format.js';
 import { matchCategoryForDescription, isIncomeCategory, fitsDirection } from '../merchant-rules.js';
 import { parseAlert, resolveAccount, findExisting, alertFingerprint } from '../alerts.js';
 import { pendingAlerts, addToInbox, dismissAlert, saveAlert } from '../alert-inbox.js';
+import { loadLearned, forgetLearned } from '../alert-learning.js';
 import { showToast } from '../toast.js';
 import { commitmentField, cardPaymentField } from './add.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
@@ -31,6 +32,7 @@ let generation = 0;
 
 export async function render(container) {
   const mine = ++generation;
+  const learnedList = await loadLearned();
   const [items, accounts, transactions, categories, recurring] = await Promise.all([
     pendingAlerts(),
     getAll('accounts'),
@@ -96,6 +98,21 @@ export async function render(container) {
       <button type="button" class="btn-tiny" id="inbox-read">Read it</button>
     </div>
 
+    ${
+      learnedList.length
+        ? `<details class="section-fold learned-list">
+    <summary>Wordings I have learned (${learnedList.length})</summary>
+    <div class="totals-card">
+      ${learnedList
+        .map(
+          (f) => `<div class="learned-row"><span class="learned-shape">${escapeHtml(f.shape)}</span><button type="button" class="btn-tiny learned-forget" data-id="${escapeAttr(f.id)}">Forget</button></div>`
+        )
+        .join('')}
+    </div>
+    </details>`
+        : ''
+    }
+
     <details class="section-fold">
     <summary>Share straight from Messages</summary>
     <div class="totals-card">
@@ -114,7 +131,7 @@ export async function render(container) {
 
 // Safe to save in one tap: fully read, account known, not already in the app.
 function isReady(d) {
-  return d.parsed.ok && d.parsed.confidence === 'exact' && d.account && !d.existing && d.parsed.direction;
+  return d.parsed.ok && (d.parsed.confidence === 'exact' || d.parsed.confidence === 'learned') && d.account && !d.existing && d.parsed.direction;
 }
 
 function draftTemplate(d) {
@@ -134,7 +151,7 @@ function draftTemplate(d) {
 
   const sign = parsed.direction === 'credit' ? '+' : parsed.direction === 'debit' ? '-' : '';
   const tone = parsed.direction === 'credit' ? 'in' : 'out';
-  const partial = parsed.confidence !== 'exact';
+  const partial = parsed.confidence === 'partial';
   const recommendSkip = Boolean(d.existing);
 
   return `
@@ -144,7 +161,8 @@ function draftTemplate(d) {
         <span class="alert-amount ${tone}">${sign}${formatCurrency(parsed.amount)}</span>
       </div>
       ${existingNote(d.existing)}
-      ${partial ? `<p class="alert-note">New wording - check amount, account and direction.</p>` : ''}
+      ${partial ? partialNote(parsed) : ''}
+      ${parsed.confidence === 'learned' ? `<p class="alert-note">Read the way you taught me.</p>` : ''}
       ${!d.account ? `<p class="alert-note">${parsed.last4 ? `Which account is ••${parsed.last4}? It'll be remembered.` : 'Pick the account.'}</p>` : ''}
 
       <label class="field">
@@ -230,6 +248,18 @@ function draftTemplate(d) {
         <button type="button" class="btn-tiny ${recommendSkip ? '' : 'primary'} alert-save">${saveLabel(d.existing)}</button>
       </div>
     </div>`;
+}
+
+// A wording nothing here knew: say what could not be read, so the fields to fix are plain, and
+// that fixing them once is all it takes (js/alert-learning.js).
+function partialNote(parsed) {
+  const gaps = [
+    !parsed.direction ? 'whether it was spent or received' : '',
+    !parsed.party ? 'who it was' : '',
+    !parsed.date ? 'the date' : '',
+    !parsed.last4 ? 'the account' : '',
+  ].filter(Boolean);
+  return `<p class="alert-note">New wording. ${gaps.length ? `I could not read ${gaps.join(', ')}: fill ${gaps.length === 1 ? 'it' : 'them'} in. ` : 'Check what I read. '}Save it once and I will read messages worded like this by myself.</p>`;
 }
 
 function existingNote(existing) {
@@ -341,6 +371,14 @@ function wire(root, container) {
           }
         }
         showToast(`Saved ${saved} alert${saved === 1 ? '' : 's'}`);
+        await refresh();
+        return;
+      }
+
+      const forget = e.target.closest('.learned-forget');
+      if (forget) {
+        await forgetLearned(forget.dataset.id);
+        showToast('Forgotten');
         await refresh();
         return;
       }

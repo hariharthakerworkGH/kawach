@@ -1,6 +1,7 @@
 import { get, getAll, put, remove, newId } from './db.js';
 import { splitAlerts, parseAlert, alertFingerprint } from './alerts.js';
 import { learnFromAssignment } from './merchant-rules.js';
+import { loadLearned, learnFrom } from './alert-learning.js';
 
 // Alerts waiting for you to confirm them.
 //
@@ -30,6 +31,7 @@ export async function pendingCount() {
 // Adds whatever text was shared or pasted, one inbox item per alert in it.
 // Returns how many new alerts were added.
 export async function addToInbox(text, via = 'paste', receivedAt = Date.now()) {
+  await loadLearned();
   const pieces = splitAlerts(text);
   // Sharing the same SMS twice (the app was slow to open, so you shared again)
   // must not queue it twice. Identical text is safe to treat as the same
@@ -90,6 +92,7 @@ export async function saveAlert(item, edits) {
   const stillWaiting = await get(INBOX_STORE, item.id);
   if (!stillWaiting) return null;
 
+  await loadLearned();
   const parsed = parseAlert(item.rawText);
   const alertKey = parsed.ok ? alertFingerprint(parsed) : null;
   if (alertKey && !edits.allowDuplicate) {
@@ -157,6 +160,16 @@ export async function saveAlert(item, edits) {
         links.add(parsed.last4);
         await put('accounts', { ...account, linkedLast4s: [...links] });
       }
+    }
+  }
+
+  // A wording nothing here knew, now checked and saved: remember it, so the next message like it is
+  // read by itself (js/alert-learning.js). A fault in learning never stands in the way of saving.
+  if (parsed.ok && parsed.confidence === 'partial') {
+    try {
+      await learnFrom(item.rawText, parsed, { amount: edits.amount, date: edits.date, description: edits.description, direction: edits.direction });
+    } catch {
+      /* the alert is saved either way */
     }
   }
 

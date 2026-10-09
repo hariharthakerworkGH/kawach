@@ -114,6 +114,46 @@ const NOT_A_TRANSACTION = [
   { re: /\b(declined|was\s+not\s+successful|unsuccessful|failed)\b/i, reason: "That payment didn't go through, so there's nothing to log." },
 ];
 
+// --- Wordings the user has taught (js/alert-learning.js) -------------------
+// A message no built-in format reads is shown for checking; when it is saved, the wording is
+// remembered here as a pattern with holes for the amount, the date, the shop and the card digits,
+// so the next one like it is read exactly, for this user's bank, whatever bank it is.
+let learned = [];
+export function useLearned(list) {
+  learned = Array.isArray(list) ? list.filter((f) => f && typeof f.re === 'string') : [];
+}
+
+function readLearned(raw) {
+  for (const f of learned) {
+    let m;
+    try {
+      m = raw.match(new RegExp(f.re, 'i'));
+    } catch {
+      continue;
+    }
+    if (!m) continue;
+    const g = Object.fromEntries(f.groups.map((name, i) => [name, m[i + 1]]));
+    const amount = toPaise(g.amount);
+    const date = g.date ? findDate(g.date) : null;
+    if (!amount || (f.groups.includes('date') && !date)) continue;
+    return finish({
+      kind: f.kind || 'unknown',
+      bank: bankName(raw),
+      instrument: f.instrument,
+      direction: f.direction,
+      amount,
+      last4: g.last4 || null,
+      party: g.party || null,
+      date,
+      time: findTime(raw),
+      format: 'learned',
+      confidence: 'learned',
+      billPayment: Boolean(f.billPayment),
+    });
+  }
+  return null;
+}
+
 // --- Splitting -----------------------------------------------------------
 
 // Sharing several messages at once arrives as one block of text. Each known
@@ -137,8 +177,14 @@ function splitBlock(block) {
   if (!text) return [];
 
   const starts = [];
-  for (const f of FORMATS) {
-    const global = new RegExp(f.re.source, 'gi');
+  const sources = [...FORMATS.map((f) => f.re.source), ...learned.map((f) => f.re)];
+  for (const source of sources) {
+    let global;
+    try {
+      global = new RegExp(source, 'gi');
+    } catch {
+      continue;
+    }
     let m;
     while ((m = global.exec(text))) {
       starts.push(m.index);
@@ -170,6 +216,9 @@ export function parseAlert(text) {
     return finish({ ...built, amount, format: f.id, confidence: 'exact' });
   }
 
+  const taught = readLearned(raw);
+  if (taught) return taught;
+
   for (const n of NOT_A_TRANSACTION) {
     if (n.re.test(raw)) return { ok: false, reason: n.reason };
   }
@@ -181,7 +230,7 @@ export function parseAlert(text) {
 // the direction when the message is ambiguous; you pick it on the confirm card.
 function parseGeneric(raw) {
   const amountMatch =
-    raw.match(/(?:Rs\.?|INR|₹)\s*([\d,]+(?:\.\d{1,2})?)/i) ||
+    raw.match(/(?:Rs\.?|INR|₹|Rupees|Amt\.?:?|Amount:?)\s*([\d,]+(?:\.\d{1,2})?)/i) ||
     // SBI leaves the currency out: "A/C X1234 debited by 250.0".
     raw.match(/\b(?:debited|credited)\s+(?:by|with|for)\s+([\d,]+(?:\.\d{1,2})?)/i);
   const amount = amountMatch ? toPaise(amountMatch[1]) : null;
@@ -189,19 +238,13 @@ function parseGeneric(raw) {
     return { ok: false, reason: "Couldn't find an amount in that message." };
   }
 
-  const creditWords = /\b(credited|received|refund(?:ed)?|reversed|reversal|cashback|deposited)\b/i.test(raw);
-  const debitWords = /\b(debited|spent|sent|withdrawn|withdrawal|paid|purchase|used\s+for|trf\s+to)\b/i.test(raw);
-  const direction = creditWords && !debitWords ? 'credit' : debitWords && !creditWords ? 'debit' : null;
+  const direction = findDirection(raw, amountMatch.index);
 
   const digits = findDigits(raw);
   const isCard = /\bcard\b/i.test(raw);
   const isDebitCard = /\bdebit\s+card\b|\bDC\s+\d{4}\b/i.test(raw);
 
-  // Who the money went to or came from. Stops before a reference, a date or
-  // the "not you?" footer.
-  const party = (
-    raw.match(/\b(?:at|to|towards|trf\s+to|from|Info:)\s+([A-Za-z0-9&@.\-*' ]{2,60}?)(?=\s+on\b|\s+Avl\b|\s+Ref|\s+UPI\b|\.\s|\.$|,|\n|$)/i) || []
-  )[1];
+  const party = findParty(raw);
   const ref = (
     raw.match(/\b(?:Ref(?:erence)?(?:\s*No)?\.?|UPI(?:\s*Ref)?)\s*:?\s*(\d{9,})/i) ||
     // Axis: "UPI/P2M/425612345678/SWIGGY"
@@ -209,8 +252,10 @@ function parseGeneric(raw) {
     []
   )[1];
 
+  const instrumentKind = isDebitCard ? 'debit-card' : digits ? digits.instrument || (isCard ? 'card' : 'account') : isCard ? 'card' : null;
   return finish({
-    kind: 'unknown',
+    // Money back on a card is named so it can be matched to the purchase it undoes (js/card-refunds.js).
+    kind: direction === 'credit' && instrumentKind === 'card' && /\b(?:refund(?:ed)?|reversed|reversal)\b/i.test(raw) ? 'card-refund' : 'unknown',
     bank: bankName(raw),
     // What the digits belong to is read from the word they follow, not from
     // any "card" elsewhere in the message: "debited from A/c 1150 ... Card
@@ -222,13 +267,61 @@ function parseGeneric(raw) {
     last4: digits ? digits.last4 : null,
     party: party || null,
     date: findDate(raw),
-    time: null,
+    time: findTime(raw),
     ref: ref || null,
     format: 'generic',
     confidence: 'partial',
     // A payment arriving on a card is the bill being paid, not income.
     billPayment: /received\s+towards|payment\s+(?:of\s+)?(?:Rs\.?|INR)?.*received|thank\s+you\s+for\s+(?:your\s+)?payment/i.test(raw),
   });
+}
+
+// Which way the money went. Banks word it a dozen ways ("debited", "Debit INR", "Dr.", "has been
+// charged", "credited with", "refunded"), and "Credit Card" says nothing about direction. When a
+// message has words for both ("debited ... a/c MYNTRA credited"), the one next to the amount is
+// the user's own account; with none next to it, nothing is guessed and the card asks.
+const CREDIT_WORD = /\b(?:credited|credit(?!\s+(?:card|limit))|received|refund(?:ed)?|reversed|reversal|cashback|deposited|Cr)\b/gi;
+const DEBIT_WORD = /\b(?:debited|debit(?!\s+card)|spent|sent|withdrawn|withdrawal|paid|purchase|used\s+for|trf\s+to|charged|swiped|Dr)\b/gi;
+function findDirection(raw, amountAt) {
+  const near = (re) => {
+    let best = null;
+    for (const m of raw.matchAll(re)) {
+      const d = Math.min(Math.abs(m.index - amountAt), Math.abs(m.index + m[0].length - amountAt));
+      if (best == null || d < best) best = d;
+    }
+    return best;
+  };
+  const credit = near(CREDIT_WORD);
+  const debit = near(DEBIT_WORD);
+  if (credit == null && debit == null) return null;
+  if (debit == null) return 'credit';
+  if (credit == null) return 'debit';
+  // Both: only when one is clearly the amount's own word.
+  return Math.abs(credit - debit) >= 12 ? (credit < debit ? 'credit' : 'debit') : null;
+}
+
+// Who the money went to or came from. The label words banks use are tried in turn and a
+// candidate that is really the user's own account, a phone number or an amount is skipped
+// ("debited from your A/c XX1234 ... towards UPI/shop@ybl" is about the shop, not the account).
+const PARTY_STOP = String.raw`(?=\s+(?:on|to|from|towards|Avl|Avail|Ref|Refno|SMS|If|Not|Call|has|is|was|using|dated|date)\b|\s*[&,]|\.\s|\.$|\n|$)`;
+const PARTY_LABEL = new RegExp(String.raw`\b(?:refund(?:ed)?\s+by|reversed\s+by|credited\s+by|by|at|to|towards|trf\s+to|from|Info:)\s+([A-Za-z0-9&@.\-*'/ ]{2,60}?)` + PARTY_STOP, 'gi');
+const UPI_NAMED = /\bUPI\/[A-Za-z0-9]+\/\d{6,}\/([A-Za-z0-9&._@' -]{2,40}?)(?=\s+(?:SMS|Not|If|Call|Avl)\b|\s*[,;]|\.\s|\.$|\n|$)/i;
+const AFTER_CLOCK = /\b\d{2}:\d{2}(?::\d{2})?\s+([A-Za-z][A-Za-z0-9&.*' -]{2,40}?)\s+(?:Avl|Avail)\b/i;
+const NOT_A_PARTY = /^(?:your|my|the|a|an)\b|\b(?:a\/c|ac|acct?|account|card|cc|bank)\b|^(?:Rs\.?|INR|₹)|^[\d\s.,/-]{4,}$|\bX{2,}\d|^\d|\b(?:BLOCK|call)\b/i;
+function findParty(raw) {
+  const upi = raw.match(UPI_NAMED);
+  if (upi) return upi[1];
+  for (const m of raw.matchAll(PARTY_LABEL)) {
+    const who = m[1].trim();
+    if (who && !NOT_A_PARTY.test(who)) return who;
+  }
+  const clock = raw.match(AFTER_CLOCK);
+  return clock && !NOT_A_PARTY.test(clock[1]) ? clock[1] : null;
+}
+
+function findTime(raw) {
+  const m = raw.match(/\b(\d{2}:\d{2})(?::\d{2})?\b/);
+  return m ? m[1] : null;
 }
 
 // The four digits that name a card or account in an alert.
@@ -370,7 +463,7 @@ export function findExisting(p, accountId, transactions) {
 
 // --- Helpers -------------------------------------------------------------
 
-function toPaise(str) {
+export function toPaise(str) {
   if (!str) return null;
   const cleaned = String(str).replace(/,/g, '');
   if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) return null;
@@ -389,17 +482,26 @@ function isoDate(y, m, d) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-function findDate(raw) {
+// The date in a message, with the text it was written as and where it sat, so a wording the
+// user teaches can capture the same stretch next time.
+export function dateMatch(raw) {
+  const hit = (m, iso) => (iso ? { iso, text: m[0], index: m.index } : null);
+  const fix = (y) => (y.length === 2 ? `20${y}` : y);
   let m = raw.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
-  if (m) return isoDate(m[1], m[2], m[3]);
-  m = raw.match(/\b(\d{2})[/-](\d{2})[/-](\d{2}|\d{4})\b/);
-  if (m) return isoDate(m[3].length === 2 ? `20${m[3]}` : m[3], m[2], m[1]);
-  m = raw.match(/\b(\d{1,2})[\s-]([A-Za-z]{3})[a-z]*[,\s-]+(\d{2}|\d{4})\b/);
-  if (m && MONTHS[m[2].toLowerCase()]) return isoDate(m[3].length === 2 ? `20${m[3]}` : m[3], MONTHS[m[2].toLowerCase()], m[1]);
+  if (m) return hit(m, isoDate(m[1], m[2], m[3]));
+  m = raw.match(/\b(\d{2})[/.-](\d{2})[/.-](\d{2}|\d{4})\b/);
+  if (m) return hit(m, isoDate(fix(m[3]), m[2], m[1]));
+  m = raw.match(/\b(\d{1,2})[\s/.-]([A-Za-z]{3})[a-z]*[,\s/.-]+(\d{2}|\d{4})\b/);
+  if (m && MONTHS[m[2].toLowerCase()]) return hit(m, isoDate(fix(m[3]), MONTHS[m[2].toLowerCase()], m[1]));
   // SBI writes the date run together: "12Sep26".
   m = raw.match(/\b(\d{1,2})([A-Za-z]{3})(\d{2}|\d{4})\b/);
-  if (m && MONTHS[m[2].toLowerCase()]) return isoDate(m[3].length === 2 ? `20${m[3]}` : m[3], MONTHS[m[2].toLowerCase()], m[1]);
+  if (m && MONTHS[m[2].toLowerCase()]) return hit(m, isoDate(fix(m[3]), MONTHS[m[2].toLowerCase()], m[1]));
   return null;
+}
+
+function findDate(raw) {
+  const d = dateMatch(raw);
+  return d ? d.iso : null;
 }
 
 // Banks the general reader recognises by name. HDFC and ICICI also have

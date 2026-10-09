@@ -31,7 +31,8 @@ import { textWidth, wrap, pdfSafe } from '../js/pdf-write.js';
 import { planParts } from '../js/views/plan-looks.js';
 import { looksLikeCardPayment, cashSide, spendMoves, isCardBill } from '../js/transfers.js';
 import { spendingMonthOf, salaryLike, nextMonthKey, countsFor as countsForMonth } from '../js/spending-month.js';
-import { parseAlert, splitAlerts, resolveAccount, findDigits } from '../js/alerts.js';
+import { parseAlert, splitAlerts, resolveAccount, findDigits, useLearned } from '../js/alerts.js';
+import { teach } from '../js/alert-learning.js';
 import * as hdfcList from '../js/parsers/hdfc-card-current-text.js';
 import * as csvParser from '../js/parsers/csv.js';
 import { dataSafety } from '../js/views/settings.js';
@@ -589,6 +590,45 @@ test('bank alerts: an HDFC card refund is read with its merchant and its own dat
   ok(p.ok && p.confidence === 'exact', 'read exactly');
   equal([p.kind, p.direction, p.last4, p.date, p.amount], ['card-refund', 'credit', '6671', '2026-10-08', 62000]);
   ok(p.description.startsWith('RSP*SWIGGY PVT LTD FO BENGALURU KAR') && p.description.endsWith('(refund)'), 'named after the merchant, so it can be matched to the purchase');
+});
+
+// Banks the app was never shown: the reader works out who, which way and when from the wording.
+test('bank alerts: the general reader handles other banks\' wording', () => {
+  const read = (sms) => {
+    const p = parseAlert(sms);
+    return [p.direction, p.amount, p.last4, p.date, p.party];
+  };
+  equal(read('Dear UPI user A/C X1234 debited by 250.0 on date 12Sep26 trf to SWIGGY Refno 623456789012. If not u? call 1800111109. -SBI'), ['debit', 25000, '1234', '2026-09-12', 'SWIGGY'], 'SBI UPI');
+  equal(read('Debit INR 1234.00 A/c no. XX1234 12-09-26 14:22:10 UPI/P2M/425612345678/SWIGGY SMS BLOCKUPI Cust ID to 18001035577 -Axis Bank'), ['debit', 123400, '1234', '2026-09-12', 'SWIGGY'], 'Axis: "Debit" and the merchant inside the UPI line');
+  equal(read('Rs.1,250.00 spent on your Kotak Credit Card XX1234 at AMAZON on 12-Sep-2026. Avl limit Rs.80,000.'), ['debit', 125000, '1234', '2026-09-12', 'AMAZON'], 'Kotak card: "Credit Card" is not a direction');
+  equal(read('Your YES BANK Credit Card ending 1234 has been charged INR 750.00 at BIGBASKET on 12/09/2026.'), ['debit', 75000, '1234', '2026-09-12', 'BIGBASKET'], '"charged"');
+  equal(read('Dear Customer, INR 800.00 debited from your A/c XX1234 on 12-09-2026 towards UPI/xxxx@ybl. Avl bal INR 5,000.'), ['debit', 80000, '1234', '2026-09-12', 'UPI/xxxx@ybl'], 'your own account is not who it was');
+  equal(read('Rs.2,499/- paid via your PNB Credit Card 5678 to NETFLIX on 03.10.2026. Not you? Call 18001802222'), ['debit', 249900, '5678', '2026-10-03', 'NETFLIX'], 'a date written with dots');
+  const refund = parseAlert('INR 620.00 credited to your ICICI Bank Credit Card XX6671 on 08-Oct-26 for the refund from SWIGGY.');
+  equal([refund.kind, refund.direction, refund.description], ['card-refund', 'credit', 'SWIGGY (refund)'], 'a card refund is named so it can be matched to its purchase');
+  equal(parseAlert('Your a/c no. XXXXXXXX1234 is debited for Rs.499.00 on 06-10-2026 and a/c MYNTRA credited. UPI Ref No 600612345678').direction, 'debit', 'the word next to the amount is the user\'s own side');
+  equal(parseAlert('Rs 500 was handled on A/c XX1234 on 12-09-2026').direction, null, 'no direction word: nothing is guessed');
+});
+
+// A wording nobody wrote a format for: checked once, then read by itself.
+test('bank alerts: a checked message teaches its wording, and the next one like it reads exactly', () => {
+  const first = 'Hi! Your card 4455 was hit for Rs. 1,250.00 at BLUE TOKAI COFFEE on 3/Oct/2026 - Fauxbank. Ref 99887766';
+  useLearned([]);
+  const p = parseAlert(first);
+  equal(p.confidence, 'partial', 'a wording nobody has seen is only partly read');
+  const f = teach(first, p, { amount: 125000, date: '2026-10-03', description: 'BLUE TOKAI COFFEE', direction: 'debit' });
+  equal(f && f.groups, ['last4', 'amount', 'party', 'date'], 'it keeps what to look for, in the order the message gives it');
+  useLearned([f]);
+  const second = 'Hi! Your card 4455 was hit for Rs. 80.00 at CHAAYOS on 7/Oct/2026 - Fauxbank. Ref 11223344';
+  const r = parseAlert(second);
+  equal([r.confidence, r.direction, r.amount, r.last4, r.date, r.party], ['learned', 'debit', 8000, '4455', '2026-10-07', 'CHAAYOS'], 'the next message of that wording is read exactly');
+  equal(parseAlert('Hi! Your card 4455 was hit for Rs. 80.00 at CHAAYOS on 7/Oct/2026 - Fauxbank. Ref 1').confidence, 'learned', 'whatever the reference is');
+  equal(parseAlert('Spent Rs.80 On HDFC Bank Card 4321 At CHAAYOS On 2026-09-12:20:15:01. Not You? Call 18002586161').confidence, 'exact', 'a built-in format still wins');
+  ok(parseAlert('Your account was credited Rs. 80.00 at somewhere on 7/Oct/2026').confidence !== 'learned', 'other wording is not caught by it');
+  equal(teach(first, { ...p, confidence: 'exact' }, { amount: 125000, date: '2026-10-03', description: 'X', direction: 'debit' }), null, 'only a partly read message teaches');
+  equal(teach('Rs 5 paid', p, { amount: 500, date: '2026-10-03', description: '', direction: 'debit' }), null, 'a message with too few words to tell it apart teaches nothing');
+  equal(teach(first, p, { amount: 999, date: '2026-10-03', description: 'X', direction: 'debit' }), null, 'an amount not in the message teaches nothing');
+  useLearned([]);
 });
 
 // --- Which account an alert belongs to ----------------------------------------

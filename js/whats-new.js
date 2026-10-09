@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.35',
+    items: [
+      {
+        icon: 'inbox',
+        title: "Alerts learn new wordings",
+        text: "Kawach now reads bank and card messages from any bank far better: which way the money went, who it was, the card and the date. When a message is worded in a way it has never seen, check it and save it once: it remembers that wording and reads the next message like it by itself. What it has learned is listed on the alert screen, and each can be forgotten.",
+        guide: [{ view: 'inbox', target: '#inbox-text', text: "Paste any bank message here. Fix what it could not read and save: it learns the wording." }],
+      },
+    ],
+  },
+  {
     version: '5.34.1',
     items: [
       {

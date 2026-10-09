@@ -3461,3 +3461,8 @@ html.is-locked .app-header, html.is-locked #view-container, html.is-locked #tabs
 .recap-flex small { grid-column: 1; font-size: 12px; color: var(--k-text-2); }
 .recap-flex b { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-variant-numeric: tabular-nums; color: var(--k-positive); }
 .recap-flex b.out { color: var(--k-negative); }
+
+/* --- wordings the alert reader has learned (5.35) ----------------------- */
+.k .learned-row { display: flex; align-items: center; justify-content: space-between; gap: var(--k-3); padding: 10px 0; border-top: 1px solid var(--k-hairline); }
+.k .learned-row:first-child { border-top: 0; }
+.k .learned-shape { min-width: 0; font-size: var(--k-caption); line-height: 1.4; color: var(--k-text-2); overflow-wrap: anywhere; }
