@@ -268,11 +268,9 @@
 .in-dial__m--on { stroke: var(--k-accent); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--k-accent) 70%, transparent)); }
 .in-dial__m--ahead { stroke: var(--k-negative); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--k-negative) 70%, transparent)); }
 .in-dial__needle { stroke: var(--k-text); stroke-width: 3; }
-.in-dial__flag { fill: var(--k-text); }
-/* the flag on the dial and its words under it */
+/* what an even pace would be, in words under the dial */
 .in-legend { display: flex; align-items: center; justify-content: center; gap: 8px; margin: -4px 0 12px; font-size: 12.5px; color: var(--k-text-2); }
 .in-legend b { color: var(--k-text); font-weight: 600; font-variant-numeric: tabular-nums; }
-.in-legend__flag { width: 0; height: 0; border: 5px solid transparent; border-bottom: 8px solid var(--k-text); border-top: 0; }
 .in-dial__cap { fill: var(--k-text-3); font-size: 10px; font-weight: 600; letter-spacing: .22em; font-family: var(--k-font); }
 .in-dial__end { fill: var(--k-text-3); font-size: 10.5px; font-family: var(--k-font); }
 .in-dial__fig { fill: var(--k-text); font-size: 46px; font-weight: 300; letter-spacing: -1.2px; font-family: var(--k-font); font-variant-numeric: tabular-nums; }

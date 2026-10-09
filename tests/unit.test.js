@@ -1614,11 +1614,11 @@ test('Instrument: the dial lights up to what is spent, red past an even pace; th
   const off = (dial.match(/in-dial__m--off/g) || []).length;
   equal(on + ahead + off, 61, 'every mark is lit, ahead of pace or dark');
   ok(ahead > 0 && on > 0 && off > 0, 'spent ₹22,580 of ₹31,500 on day 12 is past an even pace: some red, some amber, some unlit');
-  ok(dial.includes('in-dial__flag') && !dial.includes('EVEN PACE') && dial.includes('₹8,920') && dial.includes('₹22,580 spent of ₹31,500'), 'the flag, the figure and the words under it');
+  ok(!dial.includes('in-dial__flag') && !dial.includes('EVEN PACE') && dial.includes('₹8,920') && dial.includes('₹22,580 spent of ₹31,500'), 'no triangle (the red marks already say ahead of pace), the figure and the words under it');
   const legend = instrumentTop(f, 'x', '').match(/<p class="in-legend">.*?<\/p>/);
-  ok(legend && legend[0].includes('Even pace by today') && legend[0].includes('₹12,194'), 'what the flag is, in words under the dial, never on it (the words ran into the marks near the start)');
+  ok(legend && legend[0].includes('Even pace by today') && legend[0].includes('₹12,194'), 'what an even pace is, in words under the dial, never on it (the words ran into the marks near the start)');
   const done = instrumentDial(topFigures({ ...f, finished: true }), false);
-  ok(!done.includes('in-dial__flag') && !done.includes('in-dial__m--ahead') && !instrumentTop({ ...f, finished: true }, 'x', '').includes('in-legend'), 'a finished month has no pace: no flag, no red, no legend');
+  ok(!done.includes('in-dial__flag') && !done.includes('in-dial__m--ahead') && !instrumentTop({ ...f, finished: true }, 'x', '').includes('in-legend'), 'a finished month has no pace: no red, no legend');
   ok(instrumentDial(x, true).includes('in-dial__fig is-negative'), 'a negative figure is red');
   const top = instrumentTop(f, 'Over pace.', '<!--m-->');
   ok(top.includes('<!--k:answer-->') && top.includes('<!--k:month-->') && top.includes('Over pace.') && top.includes('in-hero'), 'the same hooks every style leaves for the month and the answer');

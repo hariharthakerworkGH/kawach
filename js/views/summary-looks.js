@@ -178,7 +178,7 @@ export function tactileTop(f, status, month, heroHtml = '') {
 // The budget as 240 degrees of scale, sixty marks. Marks up to the even pace
 // are lit in the accent; the marks past it up to what is spent are lit red, so
 // "ahead of pace" is something you see, not something you work out. A white
-// mark is where you are, a small flag is where an even spread would be. A
+// mark is where you are; the red marks show how far past an even spread you are. A
 // finished month has no pace: its marks are all one colour. Exported for a test.
 export function instrumentDial(x, negative) {
   const cx = 163, cy = 148, R = 124, N = 60, sweep = 240;
@@ -200,17 +200,11 @@ export function instrumentDial(x, negative) {
   const [nx2, ny2] = pt(ang(fs), R - 26);
   const [z0x, z0y] = pt(ang(0), R - 36);
   const [z1x, z1y] = pt(ang(1), R - 36);
-  // The flag has no words on the dial (they ran into the marks when the pace was near
-  // the start); instrumentTop says what it is in one line under the dial.
-  const flag = x.finished || !(x.limit > 0) ? '' : (() => {
-    const [fx, fy] = pt(ang(fp), R + 9);
-    return `<path class="in-dial__flag" d="M${n1(fx)} ${n1(fy)} l-4 -6 l8 0z" transform="rotate(${n1(ang(fp))} ${n1(fx)} ${n1(fy)})"/>`;
-  })();
+  const paced = !(x.finished || !(x.limit > 0));
   const total = x.limit > 0 ? formatRupees(x.limit) : '';
-  return `<svg class="in-dial" viewBox="0 0 326 236" role="img" aria-label="${formatRupees(x.spent)} spent${x.limit > 0 ? ` of ${total}` : ''}${flag ? `, an even pace would be ${formatRupees(x.pace)} by now` : ''}">
+  return `<svg class="in-dial" viewBox="0 0 326 236" role="img" aria-label="${formatRupees(x.spent)} spent${x.limit > 0 ? ` of ${total}` : ''}${paced ? `, an even pace would be ${formatRupees(x.pace)} by now` : ''}">
       ${marks}
       <line class="in-dial__needle" x1="${n1(nx1)}" y1="${n1(ny1)}" x2="${n1(nx2)}" y2="${n1(ny2)}"/>
-      ${flag}
       <text class="in-dial__end" x="${n1(z0x)}" y="${n1(z0y + 22)}" text-anchor="middle">₹0</text>
       ${total ? `<text class="in-dial__end" x="${n1(z1x)}" y="${n1(z1y + 22)}" text-anchor="middle">${total}</text>` : ''}
       <text class="in-dial__cap" x="${cx}" y="${cy - 46}" text-anchor="middle">LEFT TO SPEND</text>
@@ -224,7 +218,7 @@ export function instrumentTop(f, status, month) {
   const hero = `<div class="tl-hero in-hero ${f.free < 0 ? 'is-negative' : ''}">
       <div class="tl-top"><span class="tl-k">Budget dial</span><span class="tl-period">${x.period}</span></div>
       ${instrumentDial(x, f.free < 0)}
-      ${x.finished || !(x.limit > 0) ? '' : `<p class="in-legend"><i class="in-legend__flag"></i>Even pace by today <b>${formatRupees(x.pace)}</b></p>`}
+      ${x.finished || !(x.limit > 0) ? '' : `<p class="in-legend">Even pace by today <b>${formatRupees(x.pace)}</b></p>`}
       <p class="in-status ${tone(f)}"><span class="in-led"></span><span>${escapeHtml(status)}</span></p>
       <div class="tl-stats">
         <div><span class="tl-k">Spent</span><b>${formatRupees(x.spent)}</b></div>

@@ -173,7 +173,7 @@ function draftTemplate(d) {
       <div class="alert-grid">
         <label class="field">
           <span>Date${parsed.time ? ` · ${parsed.time}` : ''}</span>
-          <input type="date" class="al-date" value="${parsed.date || localToday()}">
+          <input type="date" class="al-date" value="${parsed.date || localDay(item.receivedAt)}">
         </label>
         ${
           partial
@@ -287,9 +287,11 @@ function saveLabel(existing) {
 
 // The date on this phone, not in UTC. toISOString() would give yesterday for
 // anything shared between midnight and 5:30am in India, filing the spend in
-// the wrong day - and on the 1st, the wrong month.
-function localToday() {
-  const d = new Date();
+// the wrong day - and on the 1st, the wrong month. A message with no date in it is
+// filed on the day it reached the app, not the day it is checked: alerts shared
+// at night and checked next morning belong to the night before.
+function localDay(ms) {
+  const d = ms ? new Date(ms) : new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
