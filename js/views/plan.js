@@ -978,7 +978,7 @@ export function forecastList(figures, today) {
           (m) => `<div class="k-row forecast-row${m.short ? ' is-short' : ''}">
           <span class="k-row__body"><span class="k-row__title">${name(m.key)}</span><span class="k-row__meta">${
             m.renewals.length ? `${escapeHtml(m.renewals[0].label)} ${formatRupees(m.renewals[0].amount)}${m.renewals.length > 1 ? ` and ${m.renewals.length - 1} more` : ''} due` : 'a usual month'
-          } · fixed costs ${formatRupees(m.costs)}</span></span>
+          }</span></span>
           <span class="k-row__value">${m.short ? `${formatRupees(-m.free)} short` : `${formatRupees(m.free)} to spend`}</span>
         </div>`
         )

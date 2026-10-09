@@ -280,6 +280,13 @@ than locking them out of the app. It stops casual access, not someone with
 technical tools; Settings says so. The fingerprint path is untested off a real
 phone.
 
+**Looking ahead (5.32).** `js/forecast.js`: the three months after this one on Plan
+(income less fixed costs and saving; a yearly cost lands in its month; a short month
+says so). `js/card-smarts.js`: credit limit free (limit typed on the card, paise in
+`account.creditLimit`), best day to use a card, pay-by line. `js/flex-report.js`: what
+each set-aside cost has left, shown in Month in review as "What you did not spend"
+(nothing rolls over). All three read `computeFreeToSpend`; none invent their own sums.
+
 ## Design
 
 **Styles and colourings (5.0).** Kawach comes in five styles (Charts,
