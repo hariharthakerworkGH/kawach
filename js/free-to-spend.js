@@ -9,6 +9,7 @@ import { isPfAccount, pfPosition } from './pf.js';
 import { businessPlan, businessMonth } from './business.js';
 import { reimbursableTally, unsettledCosts } from './reimbursable.js';
 import { isPersonMoney, personSpendEffects, peopleStanding } from './people.js';
+import { refundPairs } from './card-refunds.js';
 
 // THE RULE - how much you can spend this month (the 1st to the last day).
 //
@@ -211,6 +212,10 @@ export async function computeFreeToSpend(now = new Date()) {
   const loanAccounts = accounts.filter(isLoanAccount);
   const cardAccounts = accounts.filter((a) => a.type === 'card');
   const cardIds = new Set(cardAccounts.map((a) => a.id));
+  // A card refund for exactly what was charged cancels that purchase (js/card-refunds.js): both
+  // are left out of spending, set-aside use and what is owed back, so the refund adds no room.
+  const cancelled = new Set(refundPairs(transactions, cardIds, today).flatMap((p) => [p.purchase.id, p.refund.id]));
+  const notCancelled = (t) => !cancelled.has(t.id);
   const notes = [];
 
   // --- The card cycle -------------------------------------------------------
@@ -604,7 +609,7 @@ export async function computeFreeToSpend(now = new Date()) {
     const item = b.item;
     const p = periodOf(item);
     const matcher = commitmentMatcher(item);
-    const tagged = transactions.filter((t) => t.commitmentId === item.id && t.direction === 'debit' && !isWorkCost(t));
+    const tagged = transactions.filter((t) => t.commitmentId === item.id && t.direction === 'debit' && !isWorkCost(t) && notCancelled(t));
     // A commitment paid from one named bank account only looks at that one.
     const onItsAccount = holdingIds.has(item.accountId) ? accountPool.filter((t) => t.accountId === item.accountId) : accountPool;
     const pool = [...onItsAccount.filter((t) => !t.commitmentId || t.commitmentId === item.id), ...tagged.filter((t) => !onItsAccount.includes(t))];
@@ -703,7 +708,7 @@ export async function computeFreeToSpend(now = new Date()) {
     // Same rule as above for what has already been paid: an allowance is
     // drawn down by any card, a named bill only by its own.
     const cardPool = transactions.filter(
-      (t) => !t.isTransfer && !isWorkCost(t) && !isPersonMoney(t) && (isSetAside(b.item) ? cardIds.has(t.accountId) : t.accountId === b.item.accountId)
+      (t) => !t.isTransfer && !isWorkCost(t) && !isPersonMoney(t) && notCancelled(t) && (isSetAside(b.item) ? cardIds.has(t.accountId) : t.accountId === b.item.accountId)
     );
     matchedTo(b, b.paidBy === 'card' ? cardPool : bankPool);
   }
@@ -746,7 +751,7 @@ export async function computeFreeToSpend(now = new Date()) {
   // spend, and the refund must not be credited back for a cost that never came
   // off (a refund landing on a card would otherwise net against card spending).
   const cardWindow = transactions.filter(
-    (t) => cardIds.has(t.accountId) && !t.isTransfer && !isWorkCost(t) && !isRefund(t) && !isPersonMoney(t) && !loanEmiIds.has(t.id) && inCardMonth(t)
+    (t) => cardIds.has(t.accountId) && !t.isTransfer && !isWorkCost(t) && !isRefund(t) && !isPersonMoney(t) && !loanEmiIds.has(t.id) && notCancelled(t) && inCardMonth(t)
   );
   const cardGross = cardWindow.reduce((s, t) => s + (t.direction === 'credit' ? -t.amount : t.amount), 0);
   const cardSpent = cardGross - sum(cardCommitmentCharges);
@@ -766,9 +771,9 @@ export async function computeFreeToSpend(now = new Date()) {
   const ownedByHouse = (t) => houseAccountIds.has(t.accountId) || t.accountId === 'cash';
   // This month's work costs, for the line on Summary that says they were not counted.
   const workCostsThisMonth = transactions
-    .filter((t) => isWorkCost(t) && ownedByHouse(t) && t.date >= windowStart && t.date <= spendEnd && t.date <= today)
+    .filter((t) => isWorkCost(t) && notCancelled(t) && ownedByHouse(t) && t.date >= windowStart && t.date <= spendEnd && t.date <= today)
     .reduce((s, t) => s + t.amount, 0);
-  const owedBack = reimbursableTally(transactions.filter(ownedByHouse));
+  const owedBack = reimbursableTally(transactions.filter((t) => ownedByHouse(t) && notCancelled(t)));
   // How much of what the bank check subtracts for cards is a cost you will be
   // refunded for: this cycle's work costs on a card, which are inside "owed on
   // cards" below, less what has already come back. Costs from an earlier cycle
@@ -778,7 +783,7 @@ export async function computeFreeToSpend(now = new Date()) {
     (sumSoFar, c) =>
       sumSoFar +
       transactions
-        .filter((t) => isWorkCost(t) && t.accountId === c.account.id && t.date > (c.cycleStart || monthStart) && t.date <= today)
+        .filter((t) => isWorkCost(t) && notCancelled(t) && t.accountId === c.account.id && t.date > (c.cycleStart || monthStart) && t.date <= today)
         .reduce((s, t) => s + t.amount, 0),
     0
   );
@@ -789,7 +794,7 @@ export async function computeFreeToSpend(now = new Date()) {
   // instead of sitting among the figures as a hopeful number. Oldest first
   // (see unsettledCosts). A cost paid from the bank has no statement, so is
   // never called late: nothing says when it should have arrived.
-  const unsettled = unsettledCosts(transactions.filter(ownedByHouse));
+  const unsettled = unsettledCosts(transactions.filter((t) => ownedByHouse(t) && notCancelled(t)));
   const late = unsettled
     .map((u) => {
       const card = cards.find((c) => c.account.id === u.transaction.accountId);
@@ -820,7 +825,7 @@ export async function computeFreeToSpend(now = new Date()) {
   for (const c of cards) {
     c.workOwed = owedItems.filter((i) => i.accountId === c.account.id).reduce((t, i) => t + i.amount, 0);
     c.workCycle = transactions
-      .filter((t) => isWorkCost(t) && t.accountId === c.account.id && t.date > (c.cycleStart || monthStart) && t.date <= today)
+      .filter((t) => isWorkCost(t) && notCancelled(t) && t.accountId === c.account.id && t.date > (c.cycleStart || monthStart) && t.date <= today)
       .reduce((t, x) => t + x.amount, 0);
     // The fixed costs set on Plan that this card has still to be charged before
     // its statement day. With what is on the card already, they are the bill to
@@ -840,7 +845,7 @@ export async function computeFreeToSpend(now = new Date()) {
     ...bankSpends.map((t) => ({ date: t.date, amount: t.direction === 'debit' ? t.amount : -t.amount })),
     ...cards.flatMap((c) =>
       transactions
-        .filter((t) => t.accountId === c.account.id && !t.isTransfer && !isWorkCost(t) && !isRefund(t) && !isPersonMoney(t) && !claimed.has(t.id) && (!c.cycleStart || t.date > c.cycleStart) && t.date <= today)
+        .filter((t) => t.accountId === c.account.id && !t.isTransfer && !isWorkCost(t) && !isRefund(t) && !isPersonMoney(t) && !claimed.has(t.id) && notCancelled(t) && (!c.cycleStart || t.date > c.cycleStart) && t.date <= today)
         .map((t) => ({ date: t.date, amount: t.direction === 'debit' ? t.amount : -t.amount }))
     ),
     ...personSpends,

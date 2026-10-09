@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.34.1',
+    items: [
+      {
+        icon: 'card',
+        title: "A card refund no longer adds room to spend",
+        text: "Money back on a card for exactly what you were charged now cancels that purchase, so Left to spend does not go up. A refunded work cost also comes off what is owed back. HDFC refund alerts are read with the shop's name and the day they say.",
+        guide: [{ view: 'add', target: '#view-container', text: "Paste an HDFC refund alert here: it is read as money back on that card." }],
+      },
+    ],
+  },
+  {
     version: '5.34',
     items: [
       {

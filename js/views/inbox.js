@@ -16,6 +16,7 @@ import { escapeHtml, escapeAttr, sectionHead } from '../ui.js';
 const KIND_LABEL = {
   'card-spend': 'Card spend',
   'atm-withdrawal': 'Cash withdrawal',
+  'card-refund': 'Card refund',
   'upi-sent': 'UPI payment',
   'upi-credit': 'Money received',
   unknown: 'Bank alert · partly read',

@@ -1315,6 +1315,40 @@ test('a part payment leaves the rest owed, and more than owed never goes negativ
   equal((await computeFreeToSpend(day('2026-10-16'))).reimbursable.owed, 0, 'over-paid is not a debt the other way');
 });
 
+// A card refund for exactly what was charged cancels that purchase, so it is never new room to spend
+// (5.35). Found when an HDFC refund alert for a work-cost Swiggy order raised Left to spend.
+test('card refunds: the refund of a work cost, of a set-aside purchase and of an ordinary one add no room', async () => {
+  await seedReimbursable();
+  await putAll('recurring', [commitment({ id: 'eat', label: 'Eating out', amount: 10000, spread: true, accountId: 'card', matchText: 'ZOMATO' })]);
+  const before = await computeFreeToSpend(day('2026-10-09'));
+  const refund = (id, amount, date, rawDescription) => txn({ id, accountId: 'card', date, amount, direction: 'credit', rawDescription });
+
+  // A work cost refunded by the merchant: owed back falls, spending does not move.
+  await putAll('transactions', [txn({ id: 'sw', accountId: 'card', date: '2026-10-06', amount: 620, rawDescription: 'Rsp Swiggy Foo', isReimbursable: true })]);
+  const owing = await computeFreeToSpend(day('2026-10-07'));
+  equal(owing.reimbursable.owed, rupees(620), 'owed back while the order stands');
+  await putAll('transactions', [refund('sw-back', 620, '2026-10-08', 'RSP*SWIGGY PVT LTD FO BENGALURU KAR (refund)')]);
+  const w = await computeFreeToSpend(day('2026-10-09'));
+  equal([w.free, w.spentThisCycle, w.reimbursable.owed], [before.free, before.spentThisCycle, 0], 'a refunded work cost: no new room, nothing owed');
+
+  // A purchase paid from a set-aside cost: refunded, the pot is as it was.
+  await putAll('transactions', [txn({ id: 'zm', accountId: 'card', date: '2026-10-05', amount: 329, rawDescription: 'ZOMATO ORDER' })]);
+  const ate = await computeFreeToSpend(day('2026-10-06'));
+  const pot = ate.tracker.find((t) => t.id === 'eat');
+  equal(pot.used, rupees(329), 'the order comes out of the set-aside cost');
+  await putAll('transactions', [refund('zm-back', 329, '2026-10-08', 'ZOMATO REFUND')]);
+  const z = await computeFreeToSpend(day('2026-10-09'));
+  equal([z.free, z.tracker.find((t) => t.id === 'eat').used], [before.free, 0], 'refunded: no new room, and the set-aside cost is whole again');
+
+  // An ordinary purchase refunded in the same month: spending nets to nothing, as before.
+  await putAll('transactions', [txn({ id: 'sh', accountId: 'card', date: '2026-10-03', amount: 800, rawDescription: 'MYNTRA JEANS' }), refund('sh-back', 800, '2026-10-08', 'MYNTRA JEANS RETURN')]);
+  equal((await computeFreeToSpend(day('2026-10-09'))).free, before.free, 'an ordinary refunded purchase leaves the budget where it was');
+
+  // A refund that matches nothing still comes off card spending, as it always did.
+  await putAll('transactions', [txn({ id: 'cb', accountId: 'card', date: '2026-10-04', amount: 1000, rawDescription: 'AJIO' }), refund('cb-back', 150, '2026-10-08', 'AJIO CASHBACK')]);
+  equal((await computeFreeToSpend(day('2026-10-09'))).free, before.free - rupees(850), 'a part refund is not paired and nets against spending');
+});
+
 test('a flagged cost is not spending, on a card or from the bank - and the same cost unflagged is', async () => {
   await seedReimbursable();
   const base = await computeFreeToSpend(day('2026-09-28'));

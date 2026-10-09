@@ -584,6 +584,13 @@ test('bank alerts: an SMS is read and two pasted together are split', () => {
   equal(splitAlerts(`${sms}\n\n${sms.replace('413.00', '99.00')}`).length, 2);
 });
 
+test('bank alerts: an HDFC card refund is read with its merchant and its own date', () => {
+  const p = parseAlert('Alert! Rs. 620 refunded by RSP*SWIGGY PVT LTD FO  BENGALURU     KAR on 08/OCT/2026 & adjusted against HDFC Bank Credit Card 6671 View updated balance here: https://1.hdfc.bank.in/HDFCBK/s/YlWoGyX8');
+  ok(p.ok && p.confidence === 'exact', 'read exactly');
+  equal([p.kind, p.direction, p.last4, p.date, p.amount], ['card-refund', 'credit', '6671', '2026-10-08', 62000]);
+  ok(p.description.startsWith('RSP*SWIGGY PVT LTD FO BENGALURU KAR') && p.description.endsWith('(refund)'), 'named after the merchant, so it can be matched to the purchase');
+});
+
 // --- Which account an alert belongs to ----------------------------------------
 // One person, one bank: an HDFC savings account, an HDFC card and an ICICI card
 // that happens to end in the same four digits.

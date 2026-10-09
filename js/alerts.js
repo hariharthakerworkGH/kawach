@@ -77,6 +77,22 @@ const FORMATS = [
     }),
   },
   {
+    // "Rs. 620 refunded by RSP*SWIGGY PVT LTD FO  BENGALURU     KAR on 08/OCT/2026 & adjusted against HDFC Bank
+    // Credit Card 6671": money back on a card. Named after the merchant so it can be matched to the purchase.
+    id: 'hdfc-card-refund',
+    re: new RegExp(String.raw`Rs\.?\s*${AMOUNT}\s+refunded\s+by\s+(.+?)\s+on\s+(\d{2})\/([A-Za-z]{3})\/(\d{4})\s+&(?:amp;)?\s+adjusted\s+against\s+HDFC\s+Bank\s+Credit\s+Card\s+${MASK}(\d{4})`, 'i'),
+    build: (m) => ({
+      kind: 'card-refund',
+      bank: 'HDFC',
+      instrument: 'card',
+      direction: 'credit',
+      amount: m[1],
+      last4: m[6],
+      party: m[2].replace(/\s+/g, ' ').trim(),
+      date: isoDate(m[5], MONTHS[m[4].toLowerCase()], m[3]),
+    }),
+  },
+  {
     id: 'icici-card-spend',
     re: new RegExp(String.raw`INR\s+${AMOUNT}\s+spent\s+using\s+ICICI\s+Bank\s+Card\s+${MASK}(\d{4})\s+on\s+(\d{2})-([A-Za-z]{3})-(\d{2})\s+on\s+(.+?)\.\s+Avl\s+Limit`, 'i'),
     build: (m) => ({
@@ -267,6 +283,7 @@ function describe(kind, party) {
   if (kind === 'atm-withdrawal') return `Cash withdrawal${party ? ` · ${party}` : ''}`;
   if (kind === 'upi-sent') return `${party || 'UPI payment'} (UPI)`;
   if (kind === 'upi-credit') return `UPI from ${party || 'unknown'}`;
+  if (kind === 'card-refund') return `${party || 'Card'} (refund)`;
   return party || 'Bank alert';
 }
 
