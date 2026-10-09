@@ -294,8 +294,6 @@
 .k .scale .waves__bar { fill: var(--k-accent); opacity: .55; rx: 0; }
 .k .scale .waves__bar.is-top { fill: var(--k-negative); opacity: 1; }
 .k .scale .waves__bar.is-picked { fill: var(--k-text); opacity: 1; }
-.k .scale .waves__bar--aside { fill: var(--k-accent); opacity: .28; }
-.k .scale .waves__bar--aside.is-picked { fill: var(--k-text); opacity: .5; }
 .scale .waves__dot { fill: var(--k-bg); stroke: var(--k-accent); stroke-width: 2; }
 .k .scale .waves__guide { stroke: var(--k-text); opacity: .5; stroke-dasharray: none; }
 .scale-card .waves__k::before { border-radius: 1px; width: 9px; height: 9px; background: currentColor; border: 0; }

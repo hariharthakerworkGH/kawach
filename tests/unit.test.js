@@ -48,7 +48,7 @@ import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, cashRiver, tickGauge } from '../js/charts.js';
 import { shapeLike, moneyTone } from '../js/ui.js';
-import { shortStatus, spentLine, spendingHero, monthWaves, monthMountains, monthScale, chartReadout, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
+import { shortStatus, spentLine, spendingHero, monthWaves, monthMountains, monthScale, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -1502,23 +1502,6 @@ test('the Summary tracking card: rings for budget spent, month gone and set-asid
   ok(spendingHero(base, 'full', 'Final for September').includes('stroke-dasharray="100.0 100"'), 'a finished month has its month ring full');
   ok(!spendingHero(base, 'plain').includes('hero--tracking'), 'the plain look has no rings');
   ok(!spendingHero({ ...base, tracker: [] }, 'full').includes('set aside used'), 'no set-asides followed, no third ring');
-});
-
-test('Month chart: every logged spend is in its day, set-aside spending stacked above what the budget counts', () => {
-  const days = ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04'];
-  const counted = [rupees(500), 0, rupees(300), 0];
-  const aside = [0, rupees(1200), rupees(400), 0];
-  let run = 0;
-  const f = {
-    limit: rupees(9000), spentThisCycle: rupees(800), daysIntoCycle: 4, daysToClose: 27,
-    spendDays: counted.map((d) => (run += d)), spendByDay: days.map((date, i) => ({ date, amount: counted[i] + aside[i], counted: counted[i], aside: aside[i] })),
-  };
-  const scale = monthScale(f);
-  equal((scale.match(/class="waves__bar waves__bar--aside"/g) || []).length, 2, 'a light block on each day with set-aside spending, the one with only that included');
-  equal((scale.match(/class="waves__bar( is-top)?"/g) || []).length, 2, 'a solid block on the days the budget counted');
-  ok(scale.includes('Dark counts against your budget'), 'the chart says what dark and light are');
-  ok(chartReadout(['2026-10-02', rupees(1200), rupees(500), rupees(1000), 0, 0, rupees(1200)], 'Fri 2 Oct').includes('spent ₹1,200 that day (₹1,200 from what you set aside)'), 'the readout names the part');
-  ok(!chartReadout(['2026-10-01', rupees(500), rupees(500), rupees(1000), 0, 0, 0], 'x').includes('set aside'), 'and says nothing on a day without it');
 });
 
 test('Instrument: the dial lights up to what is spent, red past an even pace; the chart is a ruled scale of the whole month', () => {

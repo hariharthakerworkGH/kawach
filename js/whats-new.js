@@ -12,24 +12,13 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
-    version: '5.32.3',
+    version: '5.32.4',
     items: [
       {
         icon: 'chart',
-        title: "Every spend is on the month chart",
-        text: "The month chart and This week now show everything you spent each day, not only what counts against your budget. The darker part of a bar counts against your budget; the lighter part came from what you set aside. Cash taken out of an ATM is money moved, so it is not in a bar.",
-        guide: [{ view: 'summary', target: '.scale-card', text: "Dark counts against your budget, light came from what you set aside. Drag across to read a day." }],
-      },
-    ],
-  },
-  {
-    version: '5.32.2',
-    items: [
-      {
-        icon: 'chart',
-        title: "The month chart shows set-aside days",
-        text: "A day you only spent on things you set aside for (groceries, eating out) looked empty on the month chart. It now has a small mark under that day, and dragging to it says how much came from what you set aside.",
-        guide: [{ view: 'summary', target: '.scale-card', text: "A small mark under a day is set-aside spending. Drag across to read it." }],
+        title: "The month chart is your spending budget again",
+        text: "The month chart and This week show only what counts against your spending budget, the same figure as Left to spend. Money you set aside on Plan, and work costs owed back, are not on them.",
+        guide: [{ view: 'summary', target: '.scale-card', text: "Each bar is a day of spending from your budget." }],
       },
     ],
   },
