@@ -717,7 +717,7 @@ export function monthWaves(f) {
   const ticks = [...new Set([0, Math.round((n - 1) / 3), Math.round((2 * (n - 1)) / 3), n - 1])]
     .map((k) => `<text class="waves__tick" x="${x(k).toFixed(1)}" y="${H - 3}" text-anchor="middle">${Number(f.spendByDay[k].date.slice(8))}</text>`)
     .join('');
-  const days = daily.map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(pace[i]), +x(i).toFixed(1), +y(totals[i]).toFixed(1)]);
+  const days = daily.map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(pace[i]), +x(i).toFixed(1), +y(totals[i]).toFixed(1), f.spendByDay[i].aside || 0]);
   const last = n - 1;
   return `<div class="totals-card waves-card" ${chartData(days, 10, W - 10, W, f)}>
       ${chartHead(f)}
@@ -776,8 +776,9 @@ export function monthScale(f) {
   const dmax = Math.max(...daily) || 1;
   const bw = Math.max(2, Math.min(7, ((W - L - R) / (monthDays - 1)) * 0.5));
   const bars = daily.map((v, i) => (v > 0 ? `<rect class="waves__bar${i === bigDay ? ' is-top' : ''}" data-bar="${i}" x="${(x(i) - bw / 2).toFixed(1)}" y="${(B - (v / dmax) * 46).toFixed(1)}" width="${bw.toFixed(1)}" height="${((v / dmax) * 46).toFixed(1)}"/>` : '')).join('');
+  const asideMarks = (f.spendByDay || []).map((d, i) => (d.aside > 0 ? `<rect class="waves__aside" x="${(x(i) - bw / 2).toFixed(1)}" y="${B + 1}" width="${bw.toFixed(1)}" height="3"/>` : '')).join('');
   const poly = (vals) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
-  const days = daily.map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(pace[i]), +x(i).toFixed(1), +y(totals[i]).toFixed(1)]);
+  const days = daily.map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(pace[i]), +x(i).toFixed(1), +y(totals[i]).toFixed(1), f.spendByDay[i].aside || 0]);
   const last = n - 1;
   return `<div class="totals-card waves-card scale-card" ${chartData(days, +x(0).toFixed(1), +x(last).toFixed(1), W, f)}>
       ${chartHead(f)}
@@ -785,7 +786,7 @@ export function monthScale(f) {
         ${rule}
         <line class="scale__budget" x1="${L}" x2="${W - R}" y1="${y(f.limit).toFixed(1)}" y2="${y(f.limit).toFixed(1)}"/>
         <text class="scale__budget-lab" x="${W - R}" y="${(y(f.limit) - 6).toFixed(1)}" text-anchor="end">BUDGET ${formatRupees(f.limit)}</text>
-        ${ticks}${bars}
+        ${ticks}${bars}${asideMarks}
         <path class="waves__line waves--pace" d="${poly(pace)}"/>
         <path class="waves__line waves--spent" d="${poly(totals)}"/>
         <line class="waves__guide" data-guide x1="${x(last).toFixed(1)}" x2="${x(last).toFixed(1)}" y1="${T - 4}" y2="${B}"/>
@@ -803,11 +804,11 @@ export function monthScale(f) {
 /* The words every month chart shares (5.23): what it is, what to tap, and the
  * line that says what the day under your finger was. */
 const chartHead = (f) =>
-  `<div class="chart-head"><b>${f.finished ? 'How the month went' : 'How this month is going'}</b><small>Each bar is a day. The line adds them up, against your budget. Drag across to read a day.</small></div>`;
+  `<div class="chart-head"><b>${f.finished ? 'How the month went' : 'How this month is going'}</b><small>Each bar is a day of budget spending. A small mark under a day is set-aside spending. Drag across to read a day.</small></div>`;
 const chartData = (days, x0, x1, w, f) => `data-chart-days='${JSON.stringify(days)}' data-x0="${x0}" data-x1="${x1}" data-w="${w}" ${f.finished ? 'data-finished="1"' : ''}`;
 const dayWord = (iso) => (iso === isoLocal(new Date()) ? 'Today' : new Date(`${iso}T12:00`).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }));
 export const chartReadout = (d, label, finished = false) =>
-  `${label}: spent ${formatRupees(d[1])} that day · ${formatRupees(d[2])} ${finished ? 'by then' : 'so far'} · budget so far ${formatRupees(d[3])}`;
+  `${label}: spent ${formatRupees(d[1])} that day${d[6] ? ` and ${formatRupees(d[6])} from what you set aside` : ''} · ${formatRupees(d[2])} ${finished ? 'by then' : 'so far'} · budget so far ${formatRupees(d[3])}`;
 
 /* Drag across a month chart to read any day: a guide line and a dot follow the
  * finger, and the line under the chart says what that day was. */

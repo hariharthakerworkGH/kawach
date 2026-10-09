@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.32.2',
+    items: [
+      {
+        icon: 'chart',
+        title: "The month chart shows set-aside days",
+        text: "A day you only spent on things you set aside for (groceries, eating out) looked empty on the month chart. It now has a small mark under that day, and dragging to it says how much came from what you set aside.",
+        guide: [{ view: 'summary', target: '.scale-card', text: "A small mark under a day is set-aside spending. Drag across to read it." }],
+      },
+    ],
+  },
+  {
     version: '5.32',
     items: [
       {

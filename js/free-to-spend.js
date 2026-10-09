@@ -847,6 +847,13 @@ export async function computeFreeToSpend(now = new Date()) {
   ].filter((e) => e.date >= windowStart && e.date <= today);
   const perDay = new Map();
   for (const e of datedSpends) perDay.set(e.date, (perDay.get(e.date) || 0) + e.amount);
+  // What went on each day against the things you set aside (groceries, eating out):
+  // it is not in the budget's spending, so the chart would show nothing for that day.
+  const asideDay = new Map();
+  for (const b of budgetItems) {
+    if (!isSetAside(b.item)) continue;
+    for (const m of b.matches || []) if (m.date >= windowStart && m.date <= today) asideDay.set(m.date, (asideDay.get(m.date) || 0) + m.amount);
+  }
   const undated = spentThisCycle - datedSpends.reduce((s, e) => s + e.amount, 0);
   const spendDays = [];
   const spendByDay = [];
@@ -855,7 +862,7 @@ export async function computeFreeToSpend(now = new Date()) {
     const on = addDays(windowStart, i);
     running += perDay.get(on) || 0;
     spendDays.push(running);
-    spendByDay.push({ date: on, amount: Math.max(0, perDay.get(on) || 0) });
+    spendByDay.push({ date: on, amount: Math.max(0, perDay.get(on) || 0), aside: asideDay.get(on) || 0 });
   }
   const free = limit == null || noCommitments ? null : limit - spentThisCycle;
   if (monthlyIncome && noCommitments) notes.push('Add your fixed commitments on Plan - without them your whole income looks free.');
