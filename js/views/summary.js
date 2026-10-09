@@ -775,18 +775,30 @@ export function monthScale(f) {
   const bigDay = daily.indexOf(Math.max(...daily));
   const dmax = Math.max(...daily) || 1;
   const bw = Math.max(2, Math.min(7, ((W - L - R) / (monthDays - 1)) * 0.5));
-  const bars = daily.map((v, i) => (v > 0 ? `<rect class="waves__bar${i === bigDay ? ' is-top' : ''}" data-bar="${i}" x="${(x(i) - bw / 2).toFixed(1)}" y="${(B - (v / dmax) * 46).toFixed(1)}" width="${bw.toFixed(1)}" height="${((v / dmax) * 46).toFixed(1)}"/>` : '')).join('');
-  const asideMarks = (f.spendByDay || []).map((d, i) => (d.aside > 0 ? `<rect class="waves__aside" x="${(x(i) - bw / 2).toFixed(1)}" y="${B + 1}" width="${bw.toFixed(1)}" height="3"/>` : '')).join('');
+  // A day's bar stands on what counted against the budget, with what came from
+  // set-aside costs stacked above it, lighter.
+  const bars = daily
+    .map((v, i) => {
+      if (!(v > 0)) return '';
+      const d = f.spendByDay[i];
+      const aside = Math.min(v, d.aside || 0);
+      // Square-rooted, so a day with a big payment in it does not flatten every other day.
+      const whole = Math.sqrt(v / dmax) * 46;
+      const h1 = ((v - aside) / v) * whole, h2 = (aside / v) * whole;
+      const at = `x="${(x(i) - bw / 2).toFixed(1)}" width="${bw.toFixed(1)}" data-bar="${i}"`;
+      return `${h1 > 0 ? `<rect class="waves__bar${i === bigDay ? ' is-top' : ''}" ${at} y="${(B - h1).toFixed(1)}" height="${h1.toFixed(1)}"/>` : ''}${h2 > 0 ? `<rect class="waves__bar waves__bar--aside" ${at} y="${(B - h1 - h2).toFixed(1)}" height="${h2.toFixed(1)}"/>` : ''}`;
+    })
+    .join('');
   const poly = (vals) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
   const days = daily.map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(pace[i]), +x(i).toFixed(1), +y(totals[i]).toFixed(1), f.spendByDay[i].aside || 0]);
   const last = n - 1;
   return `<div class="totals-card waves-card scale-card" ${chartData(days, +x(0).toFixed(1), +x(last).toFixed(1), W, f)}>
-      ${chartHead(f)}
+      ${chartHead(f, true)}
       <svg class="waves scale no-swipe" viewBox="0 0 ${W} ${H}" role="img" aria-label="${f.finished ? 'The month' : 'This month so far'}: ${formatRupees(totals[last])} spent against ${formatRupees(Math.round(pace[last]))} of budget so far, out of ${formatRupees(f.limit)}. Most in one day: ${formatRupees(daily[bigDay])} on ${formatDateNice(f.spendByDay[bigDay].date)}.">
         ${rule}
         <line class="scale__budget" x1="${L}" x2="${W - R}" y1="${y(f.limit).toFixed(1)}" y2="${y(f.limit).toFixed(1)}"/>
         <text class="scale__budget-lab" x="${W - R}" y="${(y(f.limit) - 6).toFixed(1)}" text-anchor="end">BUDGET ${formatRupees(f.limit)}</text>
-        ${ticks}${bars}${asideMarks}
+        ${ticks}${bars}
         <path class="waves__line waves--pace" d="${poly(pace)}"/>
         <path class="waves__line waves--spent" d="${poly(totals)}"/>
         <line class="waves__guide" data-guide x1="${x(last).toFixed(1)}" x2="${x(last).toFixed(1)}" y1="${T - 4}" y2="${B}"/>
@@ -803,12 +815,16 @@ export function monthScale(f) {
 
 /* The words every month chart shares (5.23): what it is, what to tap, and the
  * line that says what the day under your finger was. */
-const chartHead = (f) =>
-  `<div class="chart-head"><b>${f.finished ? 'How the month went' : 'How this month is going'}</b><small>Each bar is a day of budget spending. A small mark under a day is set-aside spending. Drag across to read a day.</small></div>`;
+const chartHead = (f, stacked = false) =>
+  `<div class="chart-head"><b>${f.finished ? 'How the month went' : 'How this month is going'}</b><small>${
+    stacked
+      ? 'Each bar is a day. Dark counts against your budget, light came from what you set aside. The line adds up the dark. Drag across to read a day.'
+      : 'Each bar is a day of everything you spent. The line adds up what counts against your budget. Drag across to read a day.'
+  }</small></div>`;
 const chartData = (days, x0, x1, w, f) => `data-chart-days='${JSON.stringify(days)}' data-x0="${x0}" data-x1="${x1}" data-w="${w}" ${f.finished ? 'data-finished="1"' : ''}`;
 const dayWord = (iso) => (iso === isoLocal(new Date()) ? 'Today' : new Date(`${iso}T12:00`).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }));
 export const chartReadout = (d, label, finished = false) =>
-  `${label}: spent ${formatRupees(d[1])} that day${d[6] ? ` and ${formatRupees(d[6])} from what you set aside` : ''} · ${formatRupees(d[2])} ${finished ? 'by then' : 'so far'} · budget so far ${formatRupees(d[3])}`;
+  `${label}: spent ${formatRupees(d[1])} that day${d[6] ? ` (${formatRupees(d[6])} from what you set aside)` : ''} · ${formatRupees(d[2])} counted ${finished ? 'by then' : 'so far'} · budget so far ${formatRupees(d[3])}`;
 
 /* Drag across a month chart to read any day: a guide line and a dot follow the
  * finger, and the line under the chart says what that day was. */

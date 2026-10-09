@@ -1504,18 +1504,20 @@ test('the Summary tracking card: rings for budget spent, month gone and set-asid
   ok(!spendingHero({ ...base, tracker: [] }, 'full').includes('set aside used'), 'no set-asides followed, no third ring');
 });
 
-test('Month chart: a day spent only on set-aside costs is marked and said, not left looking empty', () => {
+test('Month chart: every logged spend is in its day, set-aside spending stacked above what the budget counts', () => {
   const days = ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04'];
-  const daily = [rupees(500), 0, rupees(300), 0];
+  const counted = [rupees(500), 0, rupees(300), 0];
+  const aside = [0, rupees(1200), rupees(400), 0];
   let run = 0;
   const f = {
     limit: rupees(9000), spentThisCycle: rupees(800), daysIntoCycle: 4, daysToClose: 27,
-    spendDays: daily.map((d) => (run += d)), spendByDay: days.map((date, i) => ({ date, amount: daily[i], aside: i === 1 ? rupees(1200) : 0 })),
+    spendDays: counted.map((d) => (run += d)), spendByDay: days.map((date, i) => ({ date, amount: counted[i] + aside[i], counted: counted[i], aside: aside[i] })),
   };
   const scale = monthScale(f);
-  equal((scale.match(/class="waves__aside"/g) || []).length, 1, 'one mark, on the day with set-aside spending only');
-  ok(scale.includes('A small mark under a day'), 'the chart says what the mark is');
-  ok(chartReadout(['2026-10-02', 0, rupees(500), rupees(1000), 0, 0, rupees(1200)], 'Fri 2 Oct').includes('₹1,200 from what you set aside'), 'the readout names it');
+  equal((scale.match(/class="waves__bar waves__bar--aside"/g) || []).length, 2, 'a light block on each day with set-aside spending, the one with only that included');
+  equal((scale.match(/class="waves__bar( is-top)?"/g) || []).length, 2, 'a solid block on the days the budget counted');
+  ok(scale.includes('Dark counts against your budget'), 'the chart says what dark and light are');
+  ok(chartReadout(['2026-10-02', rupees(1200), rupees(500), rupees(1000), 0, 0, rupees(1200)], 'Fri 2 Oct').includes('spent ₹1,200 that day (₹1,200 from what you set aside)'), 'the readout names the part');
   ok(!chartReadout(['2026-10-01', rupees(500), rupees(500), rupees(1000), 0, 0, 0], 'x').includes('set aside'), 'and says nothing on a day without it');
 });
 
