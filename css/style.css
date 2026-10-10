@@ -2853,7 +2853,7 @@ details:has(> .muted-note:last-child) + .bank-card,
 
   /* The pace line draws itself in over the same beat. */
   .view-enter .chart path[stroke],
-  .view-enter .goal-ring circle:last-of-type {
+  .view-enter .goal-ring .chart-ring-fill {
     animation: draw-in var(--dur-slow) var(--ease-out) 600ms backwards;
   }
 

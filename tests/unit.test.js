@@ -1822,6 +1822,18 @@ test('a month that closed under budget says so on every look, and an over one sa
   }
 });
 
+test('the Charts hero carries what rolls, what its ring follows and what pulses, and a closed month says so', () => {
+  const f = {
+    limit: rupees(31500), free: rupees(8920), spentThisCycle: rupees(22580), used: 22580 / 31500, level: 'ok', daysIntoCycle: 31, daysToClose: 1, finished: true,
+    spendDays: [rupees(22580)], spendByDay: [], cycleStart: '2026-09-01', cycleKey: '2026-09-30', perDay: 0, cardBills: [], cards: [], tracker: [], totals: {},
+  };
+  const html = spendingHero(f, 'full', 'Final for September');
+  ok(html.includes('data-roll-scope') && html.includes('data-roll-kind="left"') && html.includes('data-follow="dash"') && html.includes('data-level='), 'the figure rolls, the first ring follows, the level is watched');
+  ok(html.includes('closed-note') && html.includes('is-closed-under'), 'a month that closed within budget says so');
+  const over = spendingHero({ ...f, spentThisCycle: rupees(40000), free: -rupees(8500) }, 'full', 'Final for September');
+  ok(!over.includes('closed-note'), 'a month that went over says nothing of the kind');
+});
+
 test('a goal that is reached draws its badge; one still short does not', () => {
   ok(goalRing({ saved: 100000, target: 100000 }).includes('goal-ring__done'), 'reached: the badge and the ripple');
   ok(!goalRing({ saved: 50000, target: 100000 }).includes('goal-ring__done'), 'short: neither');

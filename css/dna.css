@@ -3614,10 +3614,10 @@ html.is-locked .app-header, html.is-locked #view-container, html.is-locked #tabs
 /* Coach: the questions arrive one after another, 50 ms apart, top first. */
 @keyframes coach-in { from { opacity: 0; transform: translateY(12px); } }
 @media (prefers-reduced-motion: no-preference) {
-  .is-arriving .k-coach .coach-q, .is-arriving .k-coach #coach-panel { animation: coach-in 240ms var(--k-ease) both; animation-delay: calc(var(--c, 0) * 50ms); }
-  .is-arriving .k-coach .coach-q:nth-child(2) { --c: 1; } .is-arriving .k-coach .coach-q:nth-child(3) { --c: 2; }
-  .is-arriving .k-coach .coach-q:nth-child(4) { --c: 3; } .is-arriving .k-coach .coach-q:nth-child(n+5) { --c: 4; }
-  .is-arriving .k-coach #coach-panel { --c: 5; }
+  .k-coach.is-arriving .coach-q, .k-coach.is-arriving #coach-panel { animation: coach-in 240ms var(--k-ease) both; animation-delay: calc(var(--c, 0) * 50ms); }
+  .k-coach.is-arriving .coach-q:nth-child(2) { --c: 1; } .k-coach.is-arriving .coach-q:nth-child(3) { --c: 2; }
+  .k-coach.is-arriving .coach-q:nth-child(4) { --c: 3; } .k-coach.is-arriving .coach-q:nth-child(n+5) { --c: 4; }
+  .k-coach.is-arriving #coach-panel { --c: 5; }
 }
 
 /* A chosen quick chip gives one small pop as it lights. */
@@ -3712,3 +3712,9 @@ html { overscroll-behavior-y: contain; }
 .k .has-pill .dir-btn, .k .has-pill .k-seg__btn { position: relative; z-index: 1; }
 .k .has-pill .dir-btn.active, .k .has-pill .k-seg__btn[aria-selected="true"] { background: transparent !important; box-shadow: none !important; }
 @media (prefers-reduced-motion: reduce) { .k .has-pill .seg-pill.is-ready { transition: none; } }
+
+/* Charts (5.38.1): the lit tab's mark is a short bar that glides, in the style's accent. */
+:root:not([data-style]) #tabs .nav-ind { display: block; position: absolute; bottom: 2px; left: 0; width: 16px; height: 2px; border-radius: 1px; background: var(--k-accent); box-shadow: 0 0 6px var(--k-accent); transform: translateX(calc(var(--x, 0px) + var(--w, 0px) / 2 - 8px)); pointer-events: none; }
+:root:not([data-style]) #tabs .nav-ind.is-ready { transition: transform 280ms var(--k-ease); }
+:root:not([data-style]) #tabs .nav-btn { transition: color 280ms var(--k-ease); }
+@media (prefers-reduced-motion: reduce) { :root:not([data-style]) #tabs .nav-ind.is-ready, :root:not([data-style]) #tabs .nav-btn { transition: none; } }

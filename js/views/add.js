@@ -221,6 +221,8 @@ export async function render(container, params = {}) {
   `;
 
   arrangeAdd(container);
+  // Charts keeps its own order of the form, but its Spent / Received toggle glides like the others.
+  slidingPill(container.querySelector('.direction-toggle'));
 
   container.querySelector('#add-from-alert').addEventListener('click', () => {
     container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'inbox' } }));

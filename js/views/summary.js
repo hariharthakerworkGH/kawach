@@ -628,6 +628,7 @@ export function spendingHero(f, look = 'full', statusText = null, said = null) {
   // used. Each ring is one share, said in its middle.
   const tracking = look === 'full' && f.limit > 0
     ? {
+        roll: { left: f.free, key: `${f.cycleKey || ''}|${f.limit}`, limit: f.limit },
         stats: [
           { k: 'Spent', v: formatRupees(f.spentThisCycle || 0) },
           { k: 'Budget', v: formatRupees(f.limit) },
@@ -649,6 +650,7 @@ export function spendingHero(f, look = 'full', statusText = null, said = null) {
         ],
       }
     : null;
+  const closedUnder = Boolean(tracking && (f.finished || statusText != null) && f.limit > 0 && (f.spentThisCycle || 0) <= f.limit);
   const burn = tracking || statusText != null ? null : burnLine({ totals: f.spendDays, budget: f.limit, days: f.daysIntoCycle + f.daysToClose - 1, shortfall: f.bankShortfall });
   const meter = tracking || burn || !(f.spentThisCycle > 0) ? null : { pct, tone: f.level === 'ok' ? '' : f.level === 'warning' ? 'warn' : 'over' };
   return hero({
@@ -662,6 +664,9 @@ export function spendingHero(f, look = 'full', statusText = null, said = null) {
     chart: look === 'full' ? burn || '' : '',
     status: look === 'plain' ? '' : escapeHtml(statusText != null ? statusText : said || spendingStatus(f)),
     tracking,
+    // A month that closed within budget says so and takes one soft glow (the other looks do the same).
+    cls: closedUnder ? ' is-closed-under' : '',
+    extra: closedUnder ? `<p class="closed-note">Closed <b>${formatRupees(f.limit - (f.spentThisCycle || 0))}</b> under budget</p>` : '',
   });
 }
 

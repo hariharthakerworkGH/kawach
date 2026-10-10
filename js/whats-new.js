@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.38.1',
+    items: [
+      {
+        icon: 'check',
+        title: "History opens smoothly, Charts moves too",
+        text: "Opening a payment in History now redraws only that payment, so a long month no longer freezes for a moment and the row grows open in step with your finger. A category you pick gives its small pop there too, Coach cards arrive one after another again, a reached goal ripples, and Charts now rolls its figure and ring, pulses when the month turns worse, glides its tab mark and Spent/Received toggle, and says so when a month closed under budget.",
+        guide: [{ view: 'transactions', target: '#txn-list', text: "Tap a payment to see it open." }],
+      },
+    ],
+  },
+  {
     version: '5.38',
     items: [
       {

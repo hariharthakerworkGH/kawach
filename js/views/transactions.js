@@ -20,7 +20,7 @@ import { categoriesFor, activeSpace, accountInSpace, isBusinessAccount } from '.
 import { tidyFlags } from '../reimbursable.js';
 import { inOutBars, cashRiver } from '../charts.js';
 import { appearance } from '../appearance.js';
-import { escapeHtml, escapeAttr, emptyState, slideIn, unfold, foldAway, takeFresh, washRow, slidingPill } from '../ui.js';
+import { escapeHtml, escapeAttr, emptyState, slideIn, unfold, foldAway, pop, takeFresh, washRow, slidingPill } from '../ui.js';
 import { refundPairs } from '../card-refunds.js';
 
 // History: one month at a time, newest first, grouped by day, one line per
@@ -657,6 +657,21 @@ export function dayChart(rows, month, kind = dayKind) {
       }</p>
       ${bills || cutBars ? `<p class="hist-days__fixed"><i></i>${[bills ? `Hatched: bills and moves, ${formatRupees(bills)} in all (card bills, rent, savings).` : '', cutBars ? 'A zigzag top: a much bigger day, cut short. Tap it for the amount.' : ''].filter(Boolean).join(' ')}</p>` : ''}
     </div>`;
+}
+
+// Opening or closing a payment redraws that payment alone (and the one it replaces). Redrawing the whole
+// month for it froze a long month for a third of a second and starved the opening animation of frames.
+function swapRows(container, ...ids) {
+  for (const id of new Set(ids.filter(Boolean))) {
+    const t = cache.transactions.find((x) => x.id === id);
+    const el = container.querySelector(`.hist-row[data-id="${id}"]`);
+    if (!t || !el) continue;
+    const tpl = document.createElement('template');
+    tpl.innerHTML = rowTemplate(t).trim();
+    const next = tpl.content.firstElementChild;
+    el.replaceWith(next);
+    next.querySelectorAll('.direction-toggle').forEach(slidingPill);
+  }
 }
 
 function groupBy(rows, keyOf) {
@@ -1349,11 +1364,13 @@ function openQuick(id, container) {
   });
   on('.q-edit', () => {
     close();
+    const was = expanded;
     expanded = t.id;
     splitDraft = null;
-    renderList(container);
+    swapRows(container, was, t.id);
     const open = container.querySelector(`.hist-row[data-id="${t.id}"]`);
     open?.scrollIntoView({ block: 'center' });
+    unfold(open?.querySelector('.txn-expanded'));
   });
   on('.q-delete', async () => {
     if (await deletePayment(t, container)) close();
@@ -1374,9 +1391,10 @@ async function handleClick(e, container) {
       renderList(container);
       return;
     }
+    const was = expanded;
     expanded = expanded === t.id ? null : t.id;
     splitDraft = null;
-    renderList(container);
+    swapRows(container, was, expanded);
     if (expanded) unfold(container.querySelector(`.hist-row[data-id="${t.id}"] .txn-expanded`));
     return;
   }
@@ -1385,6 +1403,7 @@ async function handleClick(e, container) {
   if (pick) {
     // Tapping the category it already has takes it off again.
     await setCategory(t, t.categoryId === pick.dataset.cat ? null : pick.dataset.cat, container, rowEl);
+    pop(container.querySelector(`.hist-row[data-id="${t.id}"] .hist-cat-pick.on`));
     return;
   }
 

@@ -36,7 +36,7 @@ export function escapeAttr(str) {
  *           month. Both are fractions; spent may pass 1.
  */
 let ringsDrawn = 0;
-export function hero({ label, period = '', amount, negative = false, level = 'ok', meter = null, figures = [], status = '', chart = '', extra = '', ring = null, tracking = null }) {
+export function hero({ label, period = '', amount, negative = false, level = 'ok', meter = null, figures = [], status = '', chart = '', extra = '', ring = null, tracking = null, cls = '' }) {
   const top = period
     ? `<div class="hero-top"><span class="hero-label">${label}</span><span class="hero-label">${period}</span></div>`
     : `<p class="hero-label">${label}</p>`;
@@ -44,7 +44,11 @@ export function hero({ label, period = '', amount, negative = false, level = 'ok
   // count-up is only what the eye sees (role="img" with the label means a
   // screen reader reads the label and skips the digits underneath). If the
   // animation never runs, the same digits are already there to read.
-  const figure = `<p class="hero-amount ${negative ? 'negative' : ''}${ring && amount.length > 8 ? ' hero-amount--long' : ''}" role="img" aria-label="${escapeAttr(`${label}: ${amount}`)}"><span aria-hidden="true" data-count="${escapeAttr(amount)}">${amount}</span></p>`;
+  // The figure rolls when it changes and its first ring follows it (rollFigures, levelWatch): the same
+  // markup the other looks carry, so Charts moves the way they do. A figure first seen still counts up.
+  const roll = tracking && tracking.roll;
+  const rollAttrs = roll ? ` data-roll-kind="left" data-roll="${roll.left}" data-roll-key="${escapeAttr(roll.key)}:left"` : '';
+  const figure = `<p class="hero-amount ${negative ? 'negative' : ''}${ring && amount.length > 8 ? ' hero-amount--long' : ''}" role="img" aria-label="${escapeAttr(`${label}: ${amount}`)}"><span aria-hidden="true" data-count="${escapeAttr(amount)}"${rollAttrs}>${amount}</span></p>`;
   // NEW (5.0, the Charts style): the tracking card. The figure, three figures
   // in a row under it, and up to three gradient rings - each a share of
   // something, said in its middle. The first ring's colour is about the
@@ -63,18 +67,18 @@ export function hero({ label, period = '', amount, negative = false, level = 'ok
           <svg viewBox="0 0 110 110" aria-hidden="true" focusable="false">
             <defs><linearGradient id="tg-${r.grad}-${drawn}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--tg-a)"/><stop offset="1" style="stop-color:var(--tg-b)"/></linearGradient></defs>
             <circle class="tracking-ring__track" cx="55" cy="55" r="42"/>
-            ${v > 0.004 ? `<circle class="tracking-ring__arc" style="stroke:url(#tg-${r.grad}-${drawn})" cx="55" cy="55" r="42" pathLength="100" stroke-dasharray="${(v * 100).toFixed(1)} 100" transform="rotate(-90 55 55)"/>` : ''}
+            ${v > 0.004 ? `<circle class="tracking-ring__arc"${roll && i === 0 ? ' data-follow="dash"' : ''} style="stroke:url(#tg-${r.grad}-${drawn})" cx="55" cy="55" r="42" pathLength="100" stroke-dasharray="${(v * 100).toFixed(1)} 100" transform="rotate(-90 55 55)"/>` : ''}
           </svg>
           <figcaption><b${r.big != null ? ' class="is-amount"' : ''}>${r.big != null ? r.big : `${Math.round(Math.max(0, r.value || 0) * 100)}%`}</b><small>${r.label}</small></figcaption>
         </figure>`;
       })
       .join('');
-    return `<div class="hero hero--tracking level-${level}">
+    return `<div class="hero hero--tracking level-${level}${cls}"${roll ? ` data-roll-scope data-limit="${roll.limit}" data-level="${level}" data-level-key="${escapeAttr(roll.key)}"` : ''}>
       ${top}
       <div class="tracking-fig">${figure}${tracking.under ? `<span class="tracking-under">${tracking.under}</span>` : ''}</div>
       <div class="tracking-stats">${tracking.stats.map((st) => `<div><small>${st.k}</small><b>${st.v}</b></div>`).join('')}</div>
       <div class="tracking-rings">${rings}</div>
-      ${status ? `<p class="hero-status level-${level}">${status}</p>` : ''}
+      ${status ? `<p class="hero-status level-${level}"${roll ? ' data-status' : ''}>${status}</p>` : ''}
       ${extra}
     </div>`;
   }
@@ -206,6 +210,12 @@ export function countUpHeroes(root = document) {
     setTimeout(() => root.classList.remove('is-arriving'), 1600);
   }
   for (const el of root.querySelectorAll('.hero-amount [data-count]')) {
+    // A figure that has changed since it was last shown rolls from the old value (rollFigures) instead of counting up from nothing.
+    if (el.dataset.roll != null) {
+      const was = lastFigure.get(el.dataset.rollKey || 'figure');
+      const to = Number(el.dataset.roll);
+      if (was != null && was !== to && (was < 0) === (to < 0)) continue;
+    }
     const final = el.dataset.count;
     const digits = final.replace(/[^\d]/g, '');
     // Nothing to count: a dash, or a figure too long to be read as it moves.
@@ -307,6 +317,12 @@ export function slideIn(els, dir) {
   for (const el of els) {
     if (el && el.animate) el.animate([{ opacity: 0, transform: `translateX(${dir * 18}px)` }, { opacity: 1, transform: 'none' }], { duration: 280, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
   }
+}
+
+/* A chosen chip gives one small pop (5.37). Used where the list redraws itself on a choice, so the lit chip is new and CSS cannot tell it was just chosen. */
+export function pop(el) {
+  if (calm() || !el || !el.animate) return;
+  el.animate([{ transform: 'scale(0.94)' }, { transform: 'scale(1.05)', offset: 0.6 }, { transform: 'scale(1)' }], { duration: 160, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
 }
 
 /* A row opening (5.37): it grows to its height and its parts arrive one after another, 30 ms apart. */
@@ -446,6 +462,8 @@ export function rollFigures(root = document) {
     };
     dial?.classList.add('is-rolling');
     scope?.classList.add('is-rolling');
+    // The ring's own drawing-in would fight the roll for the same stroke: while rolling it follows the figure only.
+    followers.forEach((f) => f.dataset.follow === 'dash' && (f.style.animation = 'none'));
     write(shapeLike(final, Math.round(a)));
     place(from);
     const finish = () => {
@@ -485,6 +503,7 @@ function followAt(scope, followers, left) {
   const share = Math.min(1, Math.max(0, (limit - left) / limit));
   for (const f of followers) {
     if (f.dataset.follow === 'bar') f.style.width = `${(share * 100).toFixed(1)}%`;
+    else if (f.dataset.follow === 'dash') f.setAttribute('stroke-dasharray', `${(share * 100).toFixed(1)} 100`);
     else if (f.dataset.follow === 'arc') {
       const from = Number(f.dataset.from || 0);
       f.setAttribute('d', arcPath(Number(f.dataset.r), from, Math.min(0.999, Math.max(from, share))));
