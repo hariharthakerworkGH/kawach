@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.43',
+    items: [
+      {
+        icon: 'flag',
+        title: "The demo now guides you",
+        text: "When you start Show Kawach to someone, a strip at the bottom walks through eight steps in plain words: what Left to spend means, putting in a coffee and watching it count, opening a payment, Plan, Accounts, reading an example bank message, asking Coach, and why your money stays on the phone. A ring shows what to touch. It waits when it asks you to do something, and can be skipped or shown again from the demo's Settings.",
+        guide: [{ view: 'settings', target: '#start-demo', text: "Start the demo here, and the guide begins by itself." }],
+      },
+    ],
+  },
+  {
     version: '5.42',
     items: [
       {

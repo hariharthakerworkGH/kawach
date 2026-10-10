@@ -8,6 +8,7 @@ import { sameTransaction, findDuplicates } from '../js/duplicates.js';
 import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments, salaryDayPayments } from '../js/commitments.js';
 import { searchHit, newestFirst, dayChart } from '../js/views/transactions.js';
 import { reimbursableTally, tidyFlags } from '../js/reimbursable.js';
+import { STEPS } from '../js/demo-script.js';
 import { versionStatus } from '../js/version.js';
 import { cardPosition, bankBalance, statementDayFixes, balanceAt } from '../js/account-metrics.js';
 import { currentCycleStart } from '../js/billing-cycle.js';
@@ -2449,4 +2450,19 @@ test('a payment out cannot carry the paid-back flag, and money in cannot be both
   equal(out.isShareBack, undefined, 'out: gone');
   const inn = tidyFlags({ direction: 'credit', isReimbursable: true, isShareBack: true, amount: 1 });
   equal([inn.isReimbursable, inn.isShareBack], [undefined, true], 'in: the work-cost flag goes, this one stays');
+});
+
+test('the demo guide speaks plainly: short sentences, no jargon, every step on a real screen', () => {
+  const screens = ['summary', 'add', 'transactions', 'plan', 'accounts', 'inbox', 'coach', 'settings'];
+  const words = (t) => String(t).trim().split(/\s+/).length;
+  equal(STEPS.length, 8, 'eight steps');
+  for (const [n, st] of STEPS.entries()) {
+    ok(screens.includes(st.view), `step ${n + 1}: a screen the app has`);
+    ok(words(st.say) <= 14, `step ${n + 1}: at most fourteen words (${words(st.say)})`);
+    ok(!st.ask || typeof st.done === 'function', `step ${n + 1}: a step that asks for something says when it is done`);
+    for (const text of [st.say, st.sub, st.doneSay, st.doneSub].filter(Boolean)) {
+      ok(!/\b(sync|database|commitment|passphrase|cache|token|algorithm|encrypt|IndexedDB|PIN)\b/i.test(text), `step ${n + 1}: no jargon: ${text}`);
+      ok(!/[\u2013\u2014]/.test(text), `step ${n + 1}: no dashes in what is said`);
+    }
+  }
 });

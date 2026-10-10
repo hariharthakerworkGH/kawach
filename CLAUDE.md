@@ -324,7 +324,12 @@ builds an invented household from today's date (same day, same household; tests 
 notifications), leaves it (PIN when the lock is on) and wipes it. Off inside: sync, backups,
 reminders, shared messages, the lock screen. Anything new that reads the phone or reaches out
 must check `isDemo()`; any new device-level localStorage key must be copied or separated for the
-demo in `demo.js`. Guided tour and a second household come next.
+demo in `demo.js`. The guide (5.43, `js/demo-guide.js`, words in `js/demo-script.js`, which are the
+owner's to change): eight steps, a strip above the tab bar saying one thing at a time and a ring on
+what to touch; it opens each screen, waits where it asks for something (a payment saved, a row
+opened, an example message read, a question asked), and can be skipped or brought back from the
+demo's Settings. Its place is kept in sessionStorage. Next: a shop-owner household and a Try it
+link on `welcome.html`, then Hindi.
 
 ## Design
 

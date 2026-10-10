@@ -18,6 +18,7 @@ import { choose } from './secret-sheet.js';
 import { askConfirm } from './dialog.js';
 import { showToast } from './toast.js';
 import { icon } from './icons.js';
+import { resumeGuide, restartGuide, resetGuide } from './demo-guide.js';
 
 const DEMO_KEYS = ['kawach-demo-appearance', 'kawach-demo-space'];
 
@@ -111,6 +112,8 @@ export function mountDemo() {
     document.body.prepend(ribbon);
   }
   closeDoors();
+  // The guide opens once the first screen is up.
+  setTimeout(() => resumeGuide({ leave: leaveDemoFlow }), 900);
 }
 
 // Whatever a screen asks the browser for that would reach the phone itself is refused, whatever the screen does.
@@ -134,6 +137,7 @@ function closeDoors() {
 }
 
 export async function startOver() {
+  resetGuide();
   await closeDB();
   await deleteDb(DEMO_DB);
   location.reload();
@@ -179,6 +183,11 @@ export async function renderDemoSettings(container) {
           <span class="k-row__body"><span class="k-row__title">Categories</span></span>
           <span class="settings-chev">${icon('forward')}</span>
         </button>
+        <button type="button" class="k-row settings-row" id="demo-guide">
+          <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('flag')}</span>
+          <span class="k-row__body"><span class="k-row__title">Show the guide again</span></span>
+          <span class="settings-chev">${icon('forward')}</span>
+        </button>
         <button type="button" class="k-row settings-row" id="watch-tour">
           <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('play')}</span>
           <span class="k-row__body"><span class="k-row__title">Watch the one-minute tour</span></span>
@@ -193,5 +202,6 @@ export async function renderDemoSettings(container) {
   container.querySelector('#demo-leave').addEventListener('click', leaveDemoFlow);
   container.querySelector('#go-appearance').addEventListener('click', () => go('appearance'));
   container.querySelector('#go-categories').addEventListener('click', () => go('categories'));
+  container.querySelector('#demo-guide').addEventListener('click', () => restartGuide({ leave: leaveDemoFlow }));
   container.querySelector('#watch-tour').addEventListener('click', async () => (await import('./tour.js')).playTour());
 }
