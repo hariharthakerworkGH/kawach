@@ -2,6 +2,7 @@ import { openDB, getAll, put, onLocalChange, forgetCachedReads } from './db.js';
 import { wireExplain } from './explain.js';
 import { wireSwipe } from './swipe.js';
 import { guardApp } from './lock.js';
+import { isDemo } from './demo-flag.js';
 import { getSyncConfig, getSyncPassphrase, syncNow } from './sync.js';
 import { CASH_ACCOUNT_ID } from './config.js';
 import { detectTransfers } from './transfers.js';
@@ -331,7 +332,7 @@ function renewGooglePassOnce() {
 }
 
 async function runSync({ silent = true, opening = false } = {}) {
-  if (syncing) return;
+  if (syncing || isDemo()) return;
   const [{ configured }, passphrase] = await Promise.all([getSyncConfig(), getSyncPassphrase()]);
   if (!configured || !passphrase) return;
   syncing = true;
@@ -424,6 +425,8 @@ function wireHeaderShrink() {
 }
 
 function wireSync() {
+  // Nothing leaves the phone in the demo.
+  if (isDemo()) return;
   // The warning beside the title is where sync says it needs you: tapping it
   // opens Settings, where Sync now signs in again.
   const indicator = document.getElementById('sync-indicator');
@@ -613,8 +616,17 @@ async function init() {
 
   await openDB();
   // Ask the phone not to clear Kawach's data when it runs low on space.
-  keepDataSafe();
+  if (!isDemo()) keepDataSafe();
   await seedIfNeeded();
+  // The demo: a made-up household in its own database, and its ribbon (js/demo.js). Your own Kawach
+  // opening normally clears out any demo left behind by an app that was closed in the middle of one.
+  if (isDemo()) {
+    const demo = await import('./demo.js');
+    await demo.ensureDemoData();
+    demo.mountDemo();
+  } else {
+    import('./demo.js').then((d) => d.sweepDemo()).catch(() => {});
+  }
   // Business accounts from before there were spaces get a business to live in.
   await settleSpaces();
   // Icons you picked for your own categories, so every list shows them.
@@ -655,7 +667,8 @@ async function init() {
   // ?shared=1 with the text parked by the service worker. Pick it up before
   // anything renders and go straight to it.
   const openedFromShare = new URLSearchParams(location.search).has('shared');
-  const sharedCount = await collectSharedAlerts();
+  // (A bank alert shared to the phone belongs to the person, never to the demo.)
+  const sharedCount = isDemo() ? 0 : await collectSharedAlerts();
 
   wireBackButton();
   // Back from Google's sign-in page for a Drive backup or restore
@@ -684,7 +697,7 @@ async function init() {
     // land on, the rest are somewhere you go from here.
     await showView(appearance('opening'), {}, true);
     // After an update, once: what changed, for this person.
-    setTimeout(async () => showIfUpdated(APP_VERSION, await moneyProfile(), { isNew: false }), 600);
+    if (!isDemo()) setTimeout(async () => showIfUpdated(APP_VERSION, await moneyProfile(), { isNew: false }), 600);
   }
 
   if ('serviceWorker' in navigator) {
@@ -696,9 +709,11 @@ async function init() {
 
   // Reminders are recomputed on open (bills change when statements land) and
   // anything that came due while the app was closed is shown now.
-  refreshSchedule()
-    .then(() => runDueReminders())
-    .catch(() => {});
+  if (!isDemo()) {
+    refreshSchedule()
+      .then(() => runDueReminders())
+      .catch(() => {});
+  }
 
   wireSync();
   wirePull();

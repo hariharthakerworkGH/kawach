@@ -1,5 +1,6 @@
 import { getAll, remove, setSetting, getSetting } from '../db.js';
 import { icon } from '../icons.js';
+import { isDemo } from '../demo-flag.js';
 import { exportEncrypted, decryptBackup, restoreBackup } from '../backup.js';
 import { formatDateNice } from '../format.js';
 import { remindersEnabled, reminderDaysBefore, permissionState, enableReminders, disableReminders, refreshSchedule } from '../reminders.js';
@@ -31,6 +32,7 @@ let restoreOpen = false;
 let changingPass = false;
 
 export async function render(container, params = {}) {
+  if (isDemo()) return (await import('../demo.js')).renderDemoSettings(container);
   const sync = await getSyncConfig();
   const syncPass = await getSyncPassphrase();
   const lockRecord = getRecord();
@@ -114,6 +116,11 @@ export async function render(container, params = {}) {
         <p class="muted-note settings-lock-note">Keeps out anyone who picks up your phone. It stays on this phone: it is not in backups or sync. Keep the recovery key away from the phone: it is the only way back in.</p>`
             : ''
         }
+        <button type="button" class="k-row settings-row" id="start-demo">
+          <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('play')}</span>
+          <span class="k-row__body"><span class="k-row__title">Show Kawach to someone</span><span class="k-row__sub">Made-up data. Nothing of yours.</span></span>
+          <span class="settings-chev">${icon('forward')}</span>
+        </button>
         <button type="button" class="k-row settings-row" id="go-appearance">
           <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('eye')}</span>
           <span class="k-row__body"><span class="k-row__title">How it looks</span></span>
@@ -295,6 +302,7 @@ export async function render(container, params = {}) {
   });
   wireMoneyCard(container, profile);
   container.querySelector('#watch-tour').addEventListener('click', playTour);
+  container.querySelector('#start-demo').addEventListener('click', async () => (await import('../demo.js')).startDemoFlow());
   renderVersionLine(container);
 
   container.querySelector('#run-setup').addEventListener('click', () => {

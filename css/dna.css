@@ -3718,3 +3718,24 @@ html { overscroll-behavior-y: contain; }
 :root:not([data-style]) #tabs .nav-ind.is-ready { transition: transform 280ms var(--k-ease); }
 :root:not([data-style]) #tabs .nav-btn { transition: color 280ms var(--k-ease); }
 @media (prefers-reduced-motion: reduce) { :root:not([data-style]) #tabs .nav-ind.is-ready, :root:not([data-style]) #tabs .nav-btn { transition: none; } }
+
+/* ======================================================================
+   Demo mode (5.40): the ribbon that is always there. One fixed colour in every look, so it can
+   never be mistaken for the look's own accent: this is not your money.
+   ====================================================================== */
+:root { --demo-h: 0px; }
+body.has-demo { --demo-h: calc(30px + env(safe-area-inset-top, 0px)); padding-top: var(--demo-h); }
+.has-demo .app-header { top: var(--demo-h); padding-top: var(--space-md); }
+.is-demo #update-banner { display: none !important; }
+.demo-ribbon {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9000;
+  height: var(--demo-h); box-sizing: border-box; padding: env(safe-area-inset-top, 0px) 14px 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: #ffcf4a; color: #1a1400; border-bottom: 1px solid rgb(0 0 0 / 0.25);
+  font: 600 11.5px/1 var(--font-body, system-ui); letter-spacing: 0.04em;
+}
+.demo-ribbon b { letter-spacing: 0.12em; }
+.demo-ribbon__leave { min-height: 44px; margin: -8px 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 3px; padding: 0 0 0 12px; }
+.demo-ribbon__leave:focus-visible { outline: 2px solid #1a1400; outline-offset: -4px; }
+.demo-card .btn-block { margin-top: 10px; }
+

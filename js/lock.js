@@ -20,6 +20,7 @@ import { icon } from './icons.js';
 import { askConfirm } from './dialog.js';
 import { buzz } from './ui.js';
 import { showSecret, choose, askText } from './secret-sheet.js';
+import { isDemo } from './demo-flag.js';
 
 const KEY = 'kawach-lock';
 const FAILS = 'kawach-lock-fails';
@@ -410,6 +411,11 @@ function gate() {
  * fault here must never leave the person locked out of the whole app, so it lets them in. */
 export async function guardApp() {
   try {
+    // The demo is entered from inside an unlocked Kawach, and left through the PIN (js/demo.js).
+    if (isDemo()) {
+      document.documentElement.classList.remove('is-locked');
+      return;
+    }
     const record = getRecord();
     if (!record) {
       document.documentElement.classList.remove('is-locked');
@@ -435,6 +441,9 @@ export async function guardApp() {
     document.documentElement.classList.remove('is-locked');
   }
 }
+
+/* The PIN was just entered somewhere else (leaving the demo): do not ask again at once. */
+export const markUnlocked = mark;
 
 /* --- for Settings ---------------------------------------------------------- */
 /* Turns the lock on: a new PIN, typed twice, then a recovery key shown once. Nothing is saved until the

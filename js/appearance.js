@@ -12,8 +12,10 @@
  */
 
 import { COLOURINGS, STYLES, applyColouring } from './looks.js';
+import { isDemo } from './demo-flag.js';
 
-const KEY = 'kawach-appearance';
+// The demo copies your look when it starts and keeps its own from then on (js/demo.js).
+const KEY = isDemo() ? 'kawach-demo-appearance' : 'kawach-appearance';
 
 export const CHOICES = {
   // The style screens are built in (js/looks.js): only those that are ready.

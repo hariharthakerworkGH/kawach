@@ -1,5 +1,6 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
 import { tactileTop, peaksTop, mindoraTop, instrumentTop, keptBack, chartsComing, chartsCards } from './summary-looks.js';
+import { isDemo } from '../demo-flag.js';
 import { icon } from '../icons.js';
 import { isFixed, isLiveCommitment, coveredByFixed, commitmentFromSuggestion } from '../commitments.js';
 import { isoLocal, hasDueDate, frequencyOf } from '../frequency.js';
@@ -1856,7 +1857,7 @@ async function renderAttention(container, transactions, fts = null) {
       ? driveDays >= 7
         ? todo(icon('backup'), 'Back up to Google Drive', `Last one ${driveDays} days ago`, '<button type="button" class="btn-tiny primary" id="go-drive-btn">Back up</button>')
         : ''
-      : safety.ok
+      : safety.ok || isDemo()
         ? ''
         : todo(icon('backup'), safety.daysUnprotected == null ? 'No backup yet' : `No backup for ${safety.daysUnprotected} days`, '', '<button type="button" class="btn-tiny primary" id="go-backup-btn">Back up</button>'),
     ...cardPayments.map((p) =>

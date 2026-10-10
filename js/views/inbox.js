@@ -1,5 +1,6 @@
 import { getAll } from '../db.js';
 import { formatCurrency, formatDateNice } from '../format.js';
+import { isDemo } from '../demo-flag.js';
 import { matchCategoryForDescription, isIncomeCategory, fitsDirection } from '../merchant-rules.js';
 import { parseAlert, resolveAccount, findExisting, alertFingerprint, dateMatch } from '../alerts.js';
 import { pendingAlerts, addToInbox, dismissAlert, saveAlert } from '../alert-inbox.js';
@@ -90,7 +91,7 @@ export async function render(container) {
 
     ${sectionHead('Paste an alert')}
     <div class="totals-card">
-      <button type="button" class="btn-secondary btn-block" id="inbox-paste">Paste from clipboard</button>
+      <button type="button" class="btn-secondary btn-block" id="inbox-paste">${isDemo() ? 'Try an example message' : 'Paste from clipboard'}</button>
       <label class="field" style="margin-top:var(--space-sm)">
         <span>Or paste it here</span>
         <textarea id="inbox-text" rows="4" spellcheck="false" autocomplete="off" placeholder="Spent Rs.329 On HDFC Bank Card 4321 At SWIGGY…"></textarea>
@@ -388,6 +389,11 @@ function wire(root, container) {
 
       if (e.target.closest('#inbox-paste')) {
         let text = null;
+        // The demo never reads the clipboard: it offers a made-up bank message.
+        if (isDemo()) {
+          await ingest((await import('../demo-data.js')).nextExampleMessage(), refresh);
+          return;
+        }
         try {
           text = await navigator.clipboard.readText();
         } catch {

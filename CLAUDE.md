@@ -306,6 +306,18 @@ same amount, a shop word in common) so a refund never adds room to spend.
 
 **Motion (5.37, 5.38).** Every look moves the same way; each look only dresses it. A figure that changes rolls to its new value and the bar or ring that draws it follows frame by frame (`data-roll-scope`, `data-roll-kind`, `data-follow` on the figure's card, `rollFigures` in `js/ui.js`); charts draw once per arrival (`is-armed`, `is-drawing`); the lit tab (`.nav-ind`) and a toggle's lit choice (`.seg-pill`) glide. Times are 120/240/420 ms with the tokens' ease, only transform and opacity move, and reduced motion shows the end state. A new animation is added on every look or it is not added.
 
+**Demo mode (5.40).** Settings, "Show Kawach to someone": a separate session of the same app for
+showing it to others on the owner's phone. `js/demo-flag.js` (`isDemo()`, a flag in sessionStorage,
+so closing the app ends it) is read by `index.html` before any module loads, which points the
+database at `kawach-demo` (db.js already takes its name from `EXPENSE_TRACKER_DB_NAME`) and picks
+the demo's own appearance and space keys. The owner's database is never opened. `js/demo-data.js`
+builds an invented household from today's date (same day, same household; tests hold it to that).
+`js/demo.js` starts it, mounts the yellow DEMO ribbon, closes the doors (files, clipboard,
+notifications), leaves it (PIN when the lock is on) and wipes it. Off inside: sync, backups,
+reminders, shared messages, the lock screen. Anything new that reads the phone or reaches out
+must check `isDemo()`; any new device-level localStorage key must be copied or separated for the
+demo in `demo.js`. Guided tour and a second household come next.
+
 ## Design
 
 **Styles and colourings (5.0).** Kawach comes in five styles (Charts,

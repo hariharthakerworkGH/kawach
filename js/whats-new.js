@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.40',
+    items: [
+      {
+        icon: 'play',
+        title: "Show Kawach to someone",
+        text: "Settings has a new row, Show Kawach to someone. It opens Kawach with a made-up household in its own space: your money is never opened or shown, and nothing done there is kept. A yellow bar at the top says DEMO the whole time. Leaving asks your PIN if the lock is on, so the person holding the phone cannot step into your own Kawach.",
+        guide: [{ view: 'settings', target: '#start-demo', text: "Tap here to start the demo." }],
+      },
+    ],
+  },
+  {
     version: '5.39',
     items: [
       {

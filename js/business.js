@@ -1,5 +1,6 @@
 import { getAll, getSetting, setSetting, put } from './db.js';
 import { isoLocal, monthlyAmountOf } from './frequency.js';
+import { isDemo } from './demo-flag.js';
 import { isLiveCommitment, commitmentMatcher } from './commitments.js';
 import { bankBalance } from './account-metrics.js';
 
@@ -87,7 +88,7 @@ export async function removeBusiness(id) {
   if (currentSpace() === id) setCurrentSpace('home');
 }
 
-const SPACE_KEY = 'kawach-space';
+const SPACE_KEY = isDemo() ? 'kawach-demo-space' : 'kawach-space';
 function currentSpace() {
   try {
     return localStorage.getItem(SPACE_KEY) || 'home';

@@ -1,5 +1,6 @@
 import { getAll, put, remove, newId, setSetting } from '../db.js';
 import { icon } from '../icons.js';
+import { isDemo } from '../demo-flag.js';
 import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
 import { extractPdfText, PdfPasswordError, PdfNoTextError } from '../pdf-text.js';
@@ -45,6 +46,10 @@ let before = null;
 let savedRows = [];
 
 export async function render(container) {
+  if (isDemo()) {
+    container.innerHTML = `<div class="totals-card"><p><strong>Statements are not in the demo.</strong></p><p class="muted-note">Choosing a file is switched off here, so nothing from this phone is touched. With your own Kawach, you pick a bank or card statement and check what it found before anything is saved.</p></div>`;
+    return;
+  }
   state = null;
   stage = 'choose';
   screen = container;

@@ -4,7 +4,9 @@ import { test, equal, ok, paise } from './harness.js';
 import { seedBasics, putAll, txn, commitment, rupees, day, resetDB } from './fixtures.js';
 import { computeFreeToSpend } from '../js/free-to-spend.js';
 import { buildDiagnosticReport } from '../js/diagnostics.js';
-import { getAll, put } from '../js/db.js';
+import { getAll, put, setSetting } from '../js/db.js';
+import { buildDemo, writeDemo, exampleMessages } from '../js/demo-data.js';
+import { parseAlert, resolveAccount } from '../js/alerts.js';
 import { detectRecurring } from '../js/recurring.js';
 import { detectTransfers } from '../js/transfers.js';
 import { syncNow, getSyncConfig, getSyncPassphrase, turnOnGoogleSync } from '../js/sync.js';
@@ -1731,4 +1733,56 @@ test('a card knows which of your fixed costs it has still to be charged before i
   const card = f.cards.find((c) => c.account.id === 'card');
   paise(card.comingFixed, rupees(649));
   equal(card.comingItems.map((i) => i.label).join(), 'Netflix', 'the gym was already charged on the 3rd; the rent is paid from the bank, so neither is "to come" on the card');
+});
+
+// --- Demo mode (5.40): the made-up household -------------------------------------
+test('the demo household is the same on the same day, never dated ahead, and every record points at something that exists', () => {
+  for (const iso of ['2026-10-03', '2026-10-15', '2026-10-28', '2026-11-01', '2027-03-31']) {
+    const today = day(iso);
+    const a = buildDemo(today);
+    const b = buildDemo(today);
+    equal(JSON.stringify(a), JSON.stringify(b), `${iso}: the same day draws the same household`);
+    ok(a.transactions.every((t) => t.date <= iso), `${iso}: nothing dated after today`);
+    const ids = new Set(a.accounts.map((x) => x.id));
+    ok(a.transactions.every((t) => ids.has(t.accountId)), `${iso}: every payment is on an account that exists`);
+    ok(new Set(a.transactions.map((t) => t.id)).size === a.transactions.length, `${iso}: no payment id twice`);
+    ok(a.transactions.every((t) => Number.isInteger(t.amount) && t.amount > 0), `${iso}: whole paise, never zero`);
+    ok(a.transactions.some((t) => t.date.slice(0, 7) === iso.slice(0, 7)) || iso.endsWith('-01'), `${iso}: the month in progress has something in it`);
+  }
+});
+
+test('the demo household is invented all through: no real-looking number, address, name or account ending', () => {
+  const data = buildDemo(day('2026-10-15'));
+  const text = JSON.stringify(data) + exampleMessages(day('2026-10-15')).join(' ');
+  ok(!/@/.test(text.replace(/swiggy@icici/g, '')), 'no e-mail or UPI address');
+  ok(!/\b\d{10}\b/.test(JSON.stringify(data)), 'no ten-digit number that could be a phone');
+  ok(data.accounts.every((a) => !a.last4 || /^(1234|5678|9012|3456|7890)$/.test(a.last4)), 'only the demo account endings');
+  ok(data.transactions.every((t) => !/\d{6,}/.test(t.rawDescription)), 'no long reference numbers in what payments say');
+});
+
+test('the demo household works out to a month that makes sense, on any day of it', async () => {
+  for (const iso of ['2026-10-03', '2026-10-15', '2026-10-28', '2026-11-01']) {
+    await resetDB();
+    await put('categories', { id: 'cat-food', name: 'Food & Dining' });
+    const today = day(iso);
+    await writeDemo({ put, setSetting }, today);
+    const f = await computeFreeToSpend(today);
+    ok(f.limit > rupees(20000) && f.limit < rupees(40000), `${iso}: a budget of a few tens of thousands (${Math.round(f.limit / 100)})`);
+    ok(f.free > 0 && f.free <= f.limit, `${iso}: some of it left, never more than the budget (${Math.round(f.free / 100)})`);
+    ok(f.level === 'ok' || f.level === 'warning', `${iso}: a month running, not one already over (${f.level})`);
+    paise(f.reimbursable.owed, rupees(6400));
+  }
+});
+
+test('the demo\'s bank messages are read in full, to the demo\'s own accounts', async () => {
+  await resetDB();
+  const data = await writeDemo({ put, setSetting }, day('2026-10-15'));
+  const accounts = await getAll('accounts');
+  const transactions = await getAll('transactions');
+  for (const text of exampleMessages(day('2026-10-15'))) {
+    const p = parseAlert(text);
+    ok(p && p.amount > 0 && p.direction === 'debit' && p.date, `reads an amount, a direction and a date: ${text.slice(0, 36)}`);
+    const owner = resolveAccount(p, accounts, transactions);
+    ok(owner && data.accounts.some((a) => a.id === (owner.id || owner)), 'and finds the account it belongs to');
+  }
 });

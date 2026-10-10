@@ -11,6 +11,18 @@ let dbPromise = null;
 // statements that is tens of thousands of records per tap.
 const readCache = new Map();
 
+// Lets go of the connection, so a database can be deleted (the demo's, when it ends or starts over).
+export async function closeDB() {
+  if (!dbPromise) return;
+  try {
+    (await dbPromise).close();
+  } catch {
+    // it never opened: nothing to close
+  }
+  dbPromise = null;
+  readCache.clear();
+}
+
 // Called after any write, so sync knows there is something to push.
 let changeListener = null;
 export function onLocalChange(fn) {
