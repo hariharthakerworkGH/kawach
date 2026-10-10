@@ -1,3 +1,5 @@
+import { rollFigures } from './ui.js';
+
 // Redrawing a screen in place: after a tap on "This month", "Mark paid",
 // "Edit" and the like, or when a sync brings in the other device's changes.
 //
@@ -30,6 +32,7 @@ export async function redraw(container, draw) {
     container.hidden = false;
     still.remove();
     window.scrollTo(0, y);
+    rollFigures(container);
   }
 }
 

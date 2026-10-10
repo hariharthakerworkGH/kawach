@@ -9,6 +9,7 @@ import { formatCurrency } from '../format.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
 import { isBusinessCategory, isBusinessAccount, activeSpace, accountInSpace } from '../business.js';
 import { escapeHtml } from '../ui.js';
+import { dragToClose } from '../sheet-drag.js';
 import { brandMark } from '../brand.js';
 import { peopleStanding, personNamed, updatePerson } from '../people.js';
 import { isIncomeCategory } from '../merchant-rules.js';
@@ -390,6 +391,7 @@ export async function render(container, params = {}) {
   openBtn.addEventListener('click', openSheet);
   container.querySelector('#add-cat-close').addEventListener('click', closeSheet);
   container.querySelector('#add-cat-scrim').addEventListener('click', closeSheet);
+  dragToClose(sheet.querySelector('.k-sheet'), closeSheet, container.querySelector('#add-cat-scrim'));
   // Escape closes it, the way every other sheet on a phone does.
   sheet.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { e.stopPropagation(); closeSheet(); }

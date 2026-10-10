@@ -8,9 +8,12 @@
 //
 // Returns a promise: true for the confirming button, false for cancel. Escape
 // and a tap outside both count as cancel, so nothing destructive happens by
-// accident.
+// accident. A dangerous question (delete, erase) asks for more than a tap: the
+// confirming button is held down for under a second while it fills, and letting
+// go early cancels. A keyboard or a screen reader presses it as a button, once.
 
 let open = null;
+const HOLD_MS = 800;
 
 export function askConfirm({ title, message = '', confirmLabel = 'OK', cancelLabel = 'Cancel', danger = false } = {}) {
   return show({ title, message, confirmLabel, cancelLabel, danger, ask: true });
@@ -43,8 +46,10 @@ function show({ title, message, confirmLabel, cancelLabel, danger, ask }) {
   messageEl.textContent = message || '';
   messageEl.hidden = !message;
   const okBtn = backdrop.querySelector('.dialog-ok');
-  okBtn.textContent = confirmLabel;
+  const hold = Boolean(danger && ask);
+  okBtn.textContent = hold ? `Hold to ${String(confirmLabel).toLowerCase()}` : confirmLabel;
   okBtn.classList.toggle('danger', Boolean(danger));
+  okBtn.classList.toggle('is-hold', hold);
   const cancelBtn = backdrop.querySelector('.dialog-cancel');
   if (cancelBtn) cancelBtn.textContent = cancelLabel;
 
@@ -64,7 +69,33 @@ function show({ title, message, confirmLabel, cancelLabel, danger, ask }) {
     };
     open = { cancel: () => close(false) };
     document.addEventListener('keydown', onKey);
-    okBtn.addEventListener('click', () => close(true));
+    if (hold) {
+      let from = 0;
+      let frame = 0;
+      const stop = () => {
+        cancelAnimationFrame(frame);
+        frame = 0;
+        okBtn.style.setProperty('--hold', '0');
+      };
+      const tick = () => {
+        const done = Math.min(1, (performance.now() - from) / HOLD_MS);
+        okBtn.style.setProperty('--hold', String(done));
+        if (done >= 1) {
+          frame = 0;
+          navigator.vibrate?.(18);
+          close(true);
+        } else frame = requestAnimationFrame(tick);
+      };
+      okBtn.addEventListener('pointerdown', (e) => {
+        if (e.button > 0 || frame) return;
+        from = performance.now();
+        frame = requestAnimationFrame(tick);
+      });
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach((t) => okBtn.addEventListener(t, stop));
+      okBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+      // A press from a keyboard or a screen reader has no hold in it (detail 0): that is a choice made on purpose.
+      okBtn.addEventListener('click', (e) => e.detail === 0 && close(true));
+    } else okBtn.addEventListener('click', () => close(true));
     if (cancelBtn) cancelBtn.addEventListener('click', () => close(false));
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) close(false);

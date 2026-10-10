@@ -268,6 +268,14 @@
 .in-dial__m--on { stroke: var(--k-accent); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--k-accent) 70%, transparent)); }
 .in-dial__m--ahead { stroke: var(--k-negative); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--k-negative) 70%, transparent)); }
 .in-dial__needle { stroke: var(--k-text); stroke-width: 3; }
+/* The marks light one after another as the screen arrives (5.36), the way an instrument powers up.
+   The class is on only while a screen arrives, so a redraw never replays it. */
+@keyframes in-dial-on { from { stroke: var(--in-track); filter: none; } }
+@media (prefers-reduced-motion: no-preference) {
+  .is-arriving .in-dial__m--on, .is-arriving .in-dial__m--ahead { animation: in-dial-on 360ms var(--k-ease) both; animation-delay: calc(var(--i, 0) * 9ms + 120ms); }
+  .is-arriving .in-dial__needle { animation: in-dial-needle 420ms var(--k-ease) 520ms both; }
+}
+@keyframes in-dial-needle { from { opacity: 0; } }
 /* what an even pace would be, in words under the dial */
 .in-legend { display: flex; align-items: center; justify-content: center; gap: 8px; margin: -4px 0 12px; font-size: 12.5px; color: var(--k-text-2); }
 .in-legend b { color: var(--k-text); font-weight: 600; font-variant-numeric: tabular-nums; }

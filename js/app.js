@@ -31,7 +31,7 @@ import * as inboxView from './views/inbox.js';
 import * as setupView from './views/setup.js';
 import { collectSharedAlerts } from './alert-inbox.js';
 import { refreshSchedule, runDueReminders } from './reminders.js';
-import { countUpHeroes } from './ui.js';
+import { countUpHeroes, rollFigures } from './ui.js';
 
 const SEED_CATEGORIES = [
   { id: 'cat-food', name: 'Food & Dining', parentId: null },
@@ -122,13 +122,26 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0, sli
     next.remove();
     return;
   }
-  old.remove();
-  next.id = 'view-container';
-  next.hidden = false;
-  document.querySelectorAll('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
-  document.getElementById('view-title').textContent = view.title;
-  showSpaceChip();
-  window.scrollTo(0, scrollY);
+  const swap = () => {
+    old.remove();
+    next.id = 'view-container';
+    next.hidden = false;
+    document.querySelectorAll('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
+    document.getElementById('view-title').textContent = view.title;
+    showSpaceChip();
+    window.scrollTo(0, scrollY);
+  };
+  // The browser's own cross-fade between the two screens (5.36): the header and the tab bar stay
+  // put (css "view transitions"), only the screen fades. Not for a swipe, which slides, nor when
+  // the phone asks for less motion, nor in a browser without it: those swap at once, as before.
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (typeof document.startViewTransition === 'function' && !slide && !reduced && !document.hidden) {
+    try {
+      await document.startViewTransition(swap).updateCallbackDone;
+    } catch {
+      if (document.getElementById('view-container') === old) swap();
+    }
+  } else swap();
 
   // Bars fill to their value as a screen arrives (css "Motion"); the class
   // comes off again so a screen redrawing itself doesn't replay them. The
@@ -140,6 +153,7 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0, sli
     setTimeout(() => next.classList.remove(cls), 420);
   }
   countUpHeroes(next);
+  rollFigures(next);
   clearTimeout(enterTimer);
   enterTimer = setTimeout(() => next.classList.remove('view-enter'), 1400);
 }

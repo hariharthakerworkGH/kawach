@@ -86,6 +86,8 @@ export function topFigures(f) {
     bigDay: big >= 0 && daily[big] > 0 ? f.spendByDay[big].date : null,
     week,
     weekTotal: week.reduce((s, d) => s + (d.amount || 0), 0),
+    // What the figure is a figure of, so it rolls from its last value in this month and no other.
+    rollKey: `${f.cycleKey || ''}|${f.limit}`,
     owedCards: Math.max(0, ((f.totals && f.totals.owedCards) || 0) + ((f.totals && f.totals.unpaidBills) || 0)),
     cards: cards.map((c) => ({ ...c, share: (c.amount + c.coming) / cardTop })),
     bills: (f.cardBills || []).length,
@@ -194,7 +196,7 @@ export function instrumentDial(x, negative) {
     const [x1, y1] = pt(ang(f), R);
     const [x2, y2] = pt(ang(f), R - (major ? 18 : 11));
     const lit = f <= fs + 1e-9 ? (f <= fp + 1e-9 ? 'on' : 'ahead') : 'off';
-    marks += `<line class="in-dial__m in-dial__m--${lit}${major ? ' is-major' : ''}" x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}"/>`;
+    marks += `<line class="in-dial__m in-dial__m--${lit}${major ? ' is-major' : ''}" style="--i:${i}" x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}"/>`;
   }
   const [nx1, ny1] = pt(ang(fs), R + 5);
   const [nx2, ny2] = pt(ang(fs), R - 26);
@@ -208,7 +210,7 @@ export function instrumentDial(x, negative) {
       <text class="in-dial__end" x="${n1(z0x)}" y="${n1(z0y + 22)}" text-anchor="middle">₹0</text>
       ${total ? `<text class="in-dial__end" x="${n1(z1x)}" y="${n1(z1y + 22)}" text-anchor="middle">${total}</text>` : ''}
       <text class="in-dial__cap" x="${cx}" y="${cy - 46}" text-anchor="middle">LEFT TO SPEND</text>
-      <text class="in-dial__fig${negative ? ' is-negative' : ''}" x="${cx}" y="${cy + 8}" text-anchor="middle">${formatRupees(x.left)}</text>
+      <text class="in-dial__fig${negative ? ' is-negative' : ''}" data-roll="${x.left}" data-roll-key="${x.rollKey}" x="${cx}" y="${cy + 8}" text-anchor="middle">${formatRupees(x.left)}</text>
       <text class="in-dial__sub" x="${cx}" y="${cy + 32}" text-anchor="middle">${x.limit > 0 ? `${formatRupees(x.spent)} spent of ${total}` : `${formatRupees(x.spent)} spent`}</text>
     </svg>`;
 }

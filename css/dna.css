@@ -3305,8 +3305,8 @@ body:has(#view-container.k) .app-header {
 .k .plan-strip__bar.is-skipped rect { fill: color-mix(in srgb, var(--k-text) 14%, transparent); }
 .k .plan-strip__bar.is-skipped text { fill: var(--k-text-2); }
 .k .plan-strip__key .is-skipped { color: var(--k-text-2); }
-#month-sheet .k-scrim { z-index: 40; }
-#month-sheet .k-sheet { z-index: 41; max-height: 78vh; display: flex; flex-direction: column; }
+#month-sheet .k-scrim, #quick-sheet .k-scrim { z-index: 40; }
+#month-sheet .k-sheet, #quick-sheet .k-sheet { z-index: 41; max-height: 78vh; display: flex; flex-direction: column; }
 .month-sheet__line { margin: var(--k-3) 0 var(--k-2); font-size: var(--k-label); color: var(--k-text-2); }
 .month-sheet__line b { color: var(--k-text); font-variant-numeric: tabular-nums; }
 .month-act { width: 100%; text-align: left; }
@@ -3466,3 +3466,8 @@ html.is-locked .app-header, html.is-locked #view-container, html.is-locked #tabs
 .k .learned-row { display: flex; align-items: center; justify-content: space-between; gap: var(--k-3); padding: 10px 0; border-top: 1px solid var(--k-hairline); }
 .k .learned-row:first-child { border-top: 0; }
 .k .learned-shape { min-width: 0; font-size: var(--k-caption); line-height: 1.4; color: var(--k-text-2); overflow-wrap: anywhere; }
+
+/* --- a sheet is pulled down to close (5.36): the grip and the title row are the handle ----- */
+.k-sheet__grip.is-handle, .k-sheet__head.is-handle { touch-action: none; cursor: grab; }
+.k-sheet__grip.is-handle { position: relative; }
+.k-sheet__grip.is-handle::after { content: ''; position: absolute; inset: -14px -48px; }

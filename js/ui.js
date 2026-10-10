@@ -231,6 +231,40 @@ export function countUpHeroes(root = document) {
   }
 }
 
+/* A figure that changes while you are away rolls from what it was to what it is (5.36): save a
+ * payment, come back to Summary, and Left to spend runs down by what it cost. Only a figure that
+ * was shown before in this session and has moved; the first sight of it stands still. A rolling
+ * figure carries data-roll (the value in paise) and data-roll-key (what it is a figure of, so one
+ * month never rolls into another). The real figure is always on screen a moment later. */
+const ROLL_MS = 700;
+const lastFigure = new Map();
+
+export function rollFigures(root = document) {
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  for (const el of root.querySelectorAll('[data-roll]')) {
+    const key = el.dataset.rollKey || 'figure';
+    const to = Number(el.dataset.roll);
+    const from = lastFigure.get(key);
+    lastFigure.set(key, to);
+    if (reduced || document.hidden || from == null || from === to || (from < 0) !== (to < 0)) continue;
+    const final = el.textContent;
+    const a = Math.abs(from) / 100;
+    const b = Math.abs(to) / 100;
+    const start = performance.now();
+    el.textContent = shapeLike(final, Math.round(a));
+    const paint = (now) => {
+      const t = Math.min(1, (now - start) / ROLL_MS);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = t >= 1 ? final : shapeLike(final, Math.round(a + (b - a) * eased));
+      if (t < 1) requestAnimationFrame(paint);
+    };
+    requestAnimationFrame(paint);
+    setTimeout(() => {
+      if (el.textContent !== final) el.textContent = final;
+    }, ROLL_MS + 400);
+  }
+}
+
 // Keeps the final figure's shape - "₹16,600", "−₹2,15,000" - and puts the
 // value of the moment inside it, grouped the Indian way. Exported so a test
 // can hold it to that: a figure that loses its minus or its ₹ while it counts

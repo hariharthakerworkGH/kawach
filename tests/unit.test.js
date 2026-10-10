@@ -48,7 +48,9 @@ import { searchWords, findCandidates } from '../js/category-match.js';
 import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, cashRiver, tickGauge } from '../js/charts.js';
-import { shapeLike, moneyTone } from '../js/ui.js';
+import { shapeLike, moneyTone, rollFigures } from '../js/ui.js';
+import { askConfirm } from '../js/dialog.js';
+import { dragToClose } from '../js/sheet-drag.js';
 import { shortStatus, spentLine, spendingHero, monthWaves, monthMountains, monthScale, chartReadout, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
@@ -1595,6 +1597,89 @@ test('This week: a day with spending outside the budget gets a hatched part abov
   ok(top.includes('tl-other is-cut') && top.includes('Hatched: spent, but not from your budget'), 'a big day is cut, and the key says what hatched is');
   const none = tactileTop({ ...f, spendByDay: f.spendByDay.map((d) => ({ ...d, other: 0 })) }, 'x', '');
   ok(!none.includes('tl-other') && !none.includes('Hatched'), 'nothing hatched, nothing said');
+});
+
+// Motion that carries meaning (5.36): holding to confirm, a figure rolling to its new value, a sheet
+// pulled down to close. These are real pointer events on real elements.
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const press = (el, type, extra = {}) => el.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, button: 0, pointerId: 1, ...extra }));
+
+test('a dangerous question is confirmed by holding the button, not by a tap', async () => {
+  let answer = 'pending';
+  askConfirm({ title: 'Delete this?', confirmLabel: 'Delete', danger: true }).then((a) => (answer = a));
+  const ok = document.querySelector('.dialog-ok');
+  equal([ok.classList.contains('is-hold'), ok.textContent], [true, 'Hold to delete'], 'it says to hold');
+  press(ok, 'pointerdown');
+  await wait(250);
+  press(ok, 'pointerup');
+  await wait(900);
+  equal(answer, 'pending', 'letting go early confirms nothing');
+  equal(ok.style.getPropertyValue('--hold'), '0', 'and the fill drains');
+  press(ok, 'pointerdown');
+  await wait(1100);
+  equal(answer, true, 'held long enough, it confirms');
+
+  let cancelled = 'pending';
+  askConfirm({ title: 'Delete this?', confirmLabel: 'Delete', danger: true }).then((a) => (cancelled = a));
+  const again = document.querySelector('.dialog-ok');
+  again.click();
+  await wait(20);
+  equal(cancelled, true, 'a keyboard or screen reader press (no pointer) is a choice made on purpose');
+
+  let plain = 'pending';
+  askConfirm({ title: 'Sure?', confirmLabel: 'Yes' }).then((a) => (plain = a));
+  const tap = document.querySelector('.dialog-ok');
+  equal(tap.classList.contains('is-hold'), false, 'an ordinary question is not held');
+  tap.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+  await wait(20);
+  equal(plain, true, 'and a tap answers it');
+});
+
+test('a figure that changed since it was last shown rolls to its new value; the first sight stands still', async () => {
+  const mount = (value) => {
+    const el = document.createElement('div');
+    el.innerHTML = `<b data-roll="${value}" data-roll-key="test-roll">${shapeLike('₹1', Math.round(value / 100))}</b>`;
+    document.body.append(el);
+    return el;
+  };
+  const first = mount(800000);
+  rollFigures(first);
+  equal(first.querySelector('b').textContent, '₹8,000', 'first sight: no roll');
+  const second = mount(500000);
+  rollFigures(second);
+  const at = second.querySelector('b').textContent;
+  equal(at, '₹8,000', 'it starts from what it was');
+  await wait(1200);
+  equal(second.querySelector('b').textContent, '₹5,000', 'and lands on what it is');
+  const third = mount(500000);
+  rollFigures(third);
+  equal(third.querySelector('b').textContent, '₹5,000', 'unchanged: no roll');
+  first.remove();
+  second.remove();
+  third.remove();
+});
+
+test('a sheet is pulled down to close, and settles back when let go early', async () => {
+  const host = document.createElement('div');
+  host.innerHTML = '<div class="k-scrim"></div><div class="k-sheet" style="height:300px"><div class="k-sheet__grip"></div><div class="k-sheet__head"><span>Title</span></div></div>';
+  document.body.append(host);
+  const sheet = host.querySelector('.k-sheet');
+  const grip = host.querySelector('.k-sheet__grip');
+  let closed = 0;
+  dragToClose(sheet, () => closed++, host.querySelector('.k-scrim'));
+  press(grip, 'pointerdown', { clientY: 100 });
+  press(grip, 'pointermove', { clientY: 130 });
+  ok(sheet.style.transform.includes('30px'), 'it follows the finger');
+  await wait(400);
+  press(grip, 'pointerup');
+  await wait(500);
+  equal([closed, sheet.style.transform], [0, ''], 'a short pull settles back and closes nothing');
+  press(grip, 'pointerdown', { clientY: 100 });
+  press(grip, 'pointermove', { clientY: 330 });
+  press(grip, 'pointerup');
+  await wait(400);
+  equal(closed, 1, 'a long pull closes it');
+  host.remove();
 });
 
 test('Instrument: the dial lights up to what is spent, red past an even pace; the chart is a ruled scale of the whole month', () => {

@@ -9,6 +9,7 @@ import { categoryIcon } from '../category-icons.js';
 import { isSplit, categorySlices, needsCategory, splitTotal } from '../splits.js';
 import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
+import { dragToClose } from '../sheet-drag.js';
 import { isLiveCommitment, byYourOrder, salaryDayPayments } from '../commitments.js';
 import { commitmentField, cardPaymentField, isMonthEnd } from './add.js';
 import { looksLikeCardPayment, cashSide, spendMoves } from '../transfers.js';
@@ -305,6 +306,7 @@ export async function render(container, params = {}) {
   listEl.addEventListener('click', (e) => handleClick(e, container));
   listEl.addEventListener('change', (e) => handleChange(e, container));
   listEl.addEventListener('input', (e) => handleChange(e, container));
+  wireQuick(listEl, container);
 
   renderList(container);
 }
@@ -1180,6 +1182,135 @@ function updateRemainder(container, t) {
   if (saveBtn) saveBtn.disabled = remainder !== 0;
 }
 
+async function deletePayment(t, container) {
+  const sure = await askConfirm({ title: 'Delete this payment?', message: `${t.rawDescription.slice(0, 80)}. This can't be undone.`, confirmLabel: 'Delete', danger: true });
+  if (!sure) return false;
+  await remove('transactions', t.id);
+  cache.transactions = cache.transactions.filter((x) => x.id !== t.id);
+  selected.delete(t.id);
+  expanded = null;
+  renderList(container);
+  return true;
+}
+
+async function toggleMoved(t, container) {
+  t.isTransfer = !t.isTransfer;
+  // Remember that this was a human decision so auto-detection never
+  // overrules it on a later import or app start.
+  t.transferManual = true;
+  await save(t);
+  renderList(container);
+}
+
+// Press and hold a payment (5.36) for what is most often wanted of it, without opening it: a work
+// cost or not, moved or spent, open it to edit, delete. A press that moves is a scroll and does
+// nothing; the tap that ends a long press does not also open the row.
+const HOLD_OPEN_MS = 480;
+function wireQuick(listEl, container) {
+  let timer = 0;
+  let fired = false;
+  let x0 = 0;
+  let y0 = 0;
+  const cancel = () => {
+    clearTimeout(timer);
+    timer = 0;
+  };
+  listEl.addEventListener('pointerdown', (e) => {
+    const main = e.target.closest('.hist-main');
+    fired = false;
+    if (!main || selecting || (e.button != null && e.button > 0)) return;
+    const id = main.closest('.hist-row').dataset.id;
+    x0 = e.clientX;
+    y0 = e.clientY;
+    timer = setTimeout(() => {
+      timer = 0;
+      fired = true;
+      // If the finger lifts over the sheet, no click ever reaches the row: do not keep waiting for one.
+      setTimeout(() => (fired = false), 1500);
+      navigator.vibrate?.(12);
+      openQuick(id, container);
+    }, HOLD_OPEN_MS);
+  });
+  listEl.addEventListener('pointermove', (e) => {
+    if (timer && Math.hypot(e.clientX - x0, e.clientY - y0) > 8) cancel();
+  });
+  ['pointerup', 'pointercancel'].forEach((type) => listEl.addEventListener(type, cancel));
+  window.addEventListener('scroll', cancel, { passive: true });
+  listEl.addEventListener('contextmenu', (e) => e.target.closest('.hist-main') && e.preventDefault());
+  // Captured, so the row's own click handler never sees the tap that ended a long press.
+  listEl.addEventListener(
+    'click',
+    (e) => {
+      if (!fired) return;
+      fired = false;
+      e.stopPropagation();
+      e.preventDefault();
+    },
+    true
+  );
+}
+
+function openQuick(id, container) {
+  const t = cache.transactions.find((x) => x.id === id);
+  if (!t) return;
+  document.querySelector('#quick-sheet')?.remove();
+  const account = cache.accounts.find((a) => a.id === t.accountId);
+  const debit = t.direction === 'debit';
+  const flag = debit ? 'isReimbursable' : 'isSettlement';
+  const canFlag = !t.isTransfer && !t.personId && !(account && isBusinessAccount(account));
+  const row = (cls, text, hint) => `<button type="button" class="k-row month-act ${cls}"><span class="k-row__body"><span class="k-row__title">${text}</span><span class="k-row__meta">${hint}</span></span></button>`;
+  const sheet = document.createElement('div');
+  sheet.id = 'quick-sheet';
+  sheet.className = 'k';
+  sheet.innerHTML = `<div class="k-scrim" data-close></div>
+    <div class="k-sheet" role="dialog" aria-modal="true" aria-label="Actions for ${escapeAttr(displayName(t.rawDescription))}">
+      <div class="k-sheet__grip"></div>
+      <div class="k-sheet__head"><span class="k-sheet__title">${escapeHtml(displayName(t.rawDescription))}</span><button type="button" class="k-btn k-btn--ghost k-sheet__close" data-close>Done</button></div>
+      <p class="month-sheet__line"><b>${formatCurrency(t.amount)}</b> · ${formatDateNice(t.date)}</p>
+      <div class="k-rows">
+        ${canFlag ? row('q-flag', t[flag] ? (debit ? 'Not a work cost' : 'Not a payback') : debit ? 'Work cost' : 'Pays back a work cost', debit ? 'Your employer pays this back' : 'Counts as that money coming back') : ''}
+        ${cardBill(t) ? '' : row('q-moved', t.isTransfer ? 'Counts as spending' : 'Moved, not spent', t.isTransfer ? 'Put it back in your spending' : 'Cash taken out, or money between your own accounts')}
+        ${row('q-edit', 'Open and edit', 'Category, date, time, amount, split')}
+        ${row('q-delete', 'Delete', 'Hold the button to confirm')}
+      </div>
+    </div>`;
+  document.body.append(sheet);
+  const close = () => {
+    sheet.remove();
+    window.removeEventListener('hashchange', close);
+  };
+  window.addEventListener('hashchange', close);
+  sheet.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
+  sheet.addEventListener('keydown', (e) => e.key === 'Escape' && close());
+  dragToClose(sheet.querySelector('.k-sheet'), close, sheet.querySelector('.k-scrim'));
+  sheet.querySelector('.month-act').focus();
+  const on = (cls, fn) => sheet.querySelector(cls)?.addEventListener('click', fn);
+  on('.q-flag', async () => {
+    if (t[flag]) delete t[flag];
+    else t[flag] = true;
+    await save(t);
+    close();
+    renderList(container);
+    showToast(t[flag] ? (debit ? 'Marked as a work cost' : 'Marked as paying one back') : 'Marked as ordinary');
+  });
+  on('.q-moved', async () => {
+    close();
+    await toggleMoved(t, container);
+    showToast(t.isTransfer ? 'Moved, not counted as spending' : 'Counts as spending');
+  });
+  on('.q-edit', () => {
+    close();
+    expanded = t.id;
+    splitDraft = null;
+    renderList(container);
+    const open = container.querySelector(`.hist-row[data-id="${t.id}"]`);
+    open?.scrollIntoView({ block: 'center' });
+  });
+  on('.q-delete', async () => {
+    if (await deletePayment(t, container)) close();
+  });
+}
+
 async function handleClick(e, container) {
   const rowEl = e.target.closest('.hist-row');
   if (!rowEl) return;
@@ -1267,23 +1398,12 @@ async function handleClick(e, container) {
   }
 
   if (e.target.closest('.txn-delete')) {
-    const sure = await askConfirm({ title: 'Delete this payment?', message: `${t.rawDescription.slice(0, 80)}. This can't be undone.`, confirmLabel: 'Delete', danger: true });
-    if (!sure) return;
-    await remove('transactions', t.id);
-    cache.transactions = cache.transactions.filter((x) => x.id !== t.id);
-    selected.delete(t.id);
-    expanded = null;
-    renderList(container);
+    await deletePayment(t, container);
     return;
   }
 
   if (e.target.closest('.review-transfer-toggle')) {
-    t.isTransfer = !t.isTransfer;
-    // Remember that this was a human decision so auto-detection never
-    // overrules it on a later import or app start.
-    t.transferManual = true;
-    await save(t);
-    renderList(container);
+    await toggleMoved(t, container);
     return;
   }
 

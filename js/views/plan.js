@@ -21,6 +21,7 @@ import { subscriptionsOf } from '../subscriptions.js';
 import { forecast } from '../forecast.js';
 import { escapeHtml, emptyState, sectionHead, hero } from '../ui.js';
 import { askConfirm } from '../dialog.js';
+import { dragToClose } from '../sheet-drag.js';
 import { showToast } from '../toast.js';
 
 let adding = false;
@@ -527,6 +528,7 @@ export async function render(container) {
     window.addEventListener('hashchange', close);
     sheet.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
     sheet.addEventListener('keydown', (e) => e.key === 'Escape' && close());
+    dragToClose(sheet.querySelector('.k-sheet'), close, sheet.querySelector('.k-scrim'));
     sheet.querySelector('.k-sheet').querySelector('.month-act, .k-sheet__close').focus();
     const cycle = (field, on, message) => async () => {
       const item = (await getAll('recurring')).find((r) => r.id === t.id);

@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.36',
+    items: [
+      {
+        icon: 'history',
+        title: "Motion that does something",
+        text: "Press and hold a payment in History for quick actions. Delete now asks you to hold the button, not tap it. Pull a sheet down to close it. Screens fade into each other, the dial lights up mark by mark when Summary opens, and Left to spend rolls down to its new figure after you save a payment. All of it stops if your phone asks for less motion.",
+        guide: [{ view: 'history', target: '.hist-main', text: "Press and hold a payment for its quick actions." }],
+      },
+    ],
+  },
+  {
     version: '5.35.2',
     items: [
       {
