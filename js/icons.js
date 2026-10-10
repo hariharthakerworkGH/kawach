@@ -39,6 +39,7 @@ const PATHS = {
   sync: '<path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 20v-4h-4"/>',
   close: '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+  grip: '<path d="M5 8h14M5 12h14M5 16h14"/>',
   up: '<path d="M12 19V5"/><path d="M6 11l6-6 6 6"/>',
   'arrow-down': '<path d="M12 5v14"/><path d="M6 13l6 6 6-6"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',

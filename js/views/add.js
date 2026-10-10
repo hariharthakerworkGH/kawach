@@ -8,7 +8,7 @@ import { FREQUENCIES, DEFAULT_FREQUENCY, toMonthly, toYearly, isoLocal, clockOf 
 import { formatCurrency } from '../format.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
 import { isBusinessCategory, isBusinessAccount, activeSpace, accountInSpace } from '../business.js';
-import { escapeHtml } from '../ui.js';
+import { escapeHtml, invalidField, markFresh, slidingPill } from '../ui.js';
 import { dragToClose } from '../sheet-drag.js';
 import { brandMark } from '../brand.js';
 import { peopleStanding, personNamed, updatePerson } from '../people.js';
@@ -495,10 +495,19 @@ export async function render(container, params = {}) {
   frequencyEl.addEventListener('change', updateRepeatPreview);
   amountInput.addEventListener('input', updateRepeatPreview);
 
+  // The browser's own "please fill out this field" bubble is replaced by the app's: the field shakes and says why.
+  form.noValidate = true;
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const amount = Math.round(parseFloat(amountInput.value) * 100);
-    if (!Number.isFinite(amount) || amount <= 0) return;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      invalidField(amountInput, 'Enter an amount');
+      return;
+    }
+    if (descInput.required && !descInput.value.trim()) {
+      invalidField(descInput, 'Say what it was');
+      return;
+    }
     if (direction === 'person') {
       await savePersonMoney(amount);
       return;
@@ -533,6 +542,7 @@ export async function render(container, params = {}) {
     // without one, and this is the second lock).
     if (direction === 'debit' && nextEl.checked && transaction.commitmentId) transaction.forNextMonth = true;
     await put('transactions', transaction);
+    markFresh(transaction.id);
 
     if (repeatsEl.checked) {
       const frequency = frequencyEl.value;
@@ -729,6 +739,7 @@ function arrangeAdd(container) {
   const form = container.querySelector('#add-form');
   const hero = form.querySelector('.amount-hero');
   const toggle = hero.querySelector('.direction-toggle');
+  slidingPill(toggle);
   const field = (id) => container.querySelector(`#${id}`).closest('.k-field, .field, .k-switch-row');
   const card = document.createElement('div');
   card.className = 'add-card add-card--amount';

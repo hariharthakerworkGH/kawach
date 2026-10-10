@@ -15,6 +15,7 @@
  */
 import { icon } from './icons.js';
 import { askConfirm } from './dialog.js';
+import { buzz } from './ui.js';
 
 const KEY = 'kawach-lock';
 const FAILS = 'kawach-lock-fails';
@@ -144,7 +145,7 @@ const shell = (on) => SHELL.forEach((q) => document.querySelector(q)?.toggleAttr
  *   check     null when the PIN is accepted, else the words to show
  *   bio       called when the fingerprint button is tapped; resolves true when it passed
  *   forgot    show "Forgot PIN?" */
-function ask({ title, sub = '', exact = 0, check = async () => null, cancelable = false, bio = null, forgot = false, autoBio = false }) {
+function ask({ title, sub = '', exact = 0, check = async () => null, cancelable = false, bio = null, forgot = false, autoBio = false, unveil = false }) {
   return new Promise((resolve) => {
     document.getElementById('lock')?.remove();
     const size = exact || MAX;
@@ -181,17 +182,27 @@ function ask({ title, sub = '', exact = 0, check = async () => null, cancelable 
     };
     const finish = (value) => {
       document.removeEventListener('keydown', onKey, true);
-      el.remove();
       shell(false);
       resolve(value);
+      // Unlocking fades the lock out over the app as it clears (css "app-unveil"); every other way out is at once.
+      if (unveil && value !== null) {
+        el.classList.add('is-leaving');
+        setTimeout(() => el.remove(), 440);
+      } else el.remove();
     };
     const submit = async () => {
       if (busy) return;
       busy = true;
       const said = await check(pin);
-      if (said === null) return finish(pin);
+      if (said === null) {
+        // The dots turn green for a beat before the lock lets go.
+        el.classList.add('is-ok');
+        await new Promise((r) => setTimeout(r, 140));
+        return finish(pin);
+      }
       subEl.textContent = said;
       subEl.classList.add('is-error');
+      buzz(30);
       el.querySelector('.lock__dots').classList.add('shake');
       setTimeout(() => el.querySelector('.lock__dots')?.classList.remove('shake'), 400);
       pin = '';
@@ -201,6 +212,7 @@ function ask({ title, sub = '', exact = 0, check = async () => null, cancelable 
     const press = (d) => {
       if (busy || pin.length >= size) return;
       pin += d;
+      buzz(8);
       subEl.classList.remove('is-error');
       draw();
       if (exact ? pin.length === exact : pin.length === MAX) submit();
@@ -275,10 +287,15 @@ function gate() {
     bio: useBio,
     forgot: true,
     autoBio: true,
+    unveil: true,
   }).then(() => {
     gating = null;
     mark();
-    document.documentElement.classList.remove('is-locked');
+    // The app clears from behind the fading lock (css "app-unveil"), then the class goes again.
+    const root = document.documentElement;
+    root.classList.add('is-unveiling');
+    root.classList.remove('is-locked');
+    setTimeout(() => root.classList.remove('is-unveiling'), 800);
   });
   return gating;
 }

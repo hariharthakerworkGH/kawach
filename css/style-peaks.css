@@ -373,3 +373,6 @@ button.pk-card { cursor: pointer; }
 :root[data-style="peaks"][data-theme="light"] .k .hero .hero-amount.negative { color: var(--k-negative); }
 :root[data-style="peaks"][data-theme="light"] .pk-panel .pk-hot { color: color-mix(in srgb, var(--k-grad-1a) 30%, white); }
 :root[data-style="peaks"][data-theme="light"] #tabs.bottom-nav { background: color-mix(in srgb, var(--k-bg), black 8%); }
+
+/* Peaks has a softened red on a pale panel: the reason under a field is darkened to stay readable (5.37). */
+:root[data-style="peaks"] .field-error { color: color-mix(in srgb, var(--k-negative), black 40%); }

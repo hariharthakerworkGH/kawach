@@ -20,7 +20,8 @@ import { categoriesFor, activeSpace, accountInSpace, isBusinessAccount } from '.
 import { tidyFlags } from '../reimbursable.js';
 import { inOutBars, cashRiver } from '../charts.js';
 import { appearance } from '../appearance.js';
-import { escapeHtml, escapeAttr, emptyState } from '../ui.js';
+import { escapeHtml, escapeAttr, emptyState, slideIn, unfold, foldAway, takeFresh, washRow, slidingPill } from '../ui.js';
+import { refundPairs } from '../card-refunds.js';
 
 // History: one month at a time, newest first, grouped by day, one line per
 // payment. It used to be every transaction ever in one list, with a category
@@ -188,6 +189,7 @@ export async function render(container, params = {}) {
     // A new month is a new page: start at its top.
     const top = container.querySelector('#hist-month').getBoundingClientRect().top + window.scrollY - 80;
     if (window.scrollY > top) window.scrollTo(0, Math.max(0, top));
+    slideIn(['#hist-month', '#hist-net', '#hist-stats', '#hist-days', '#txn-list'].map((q) => container.querySelector(q)), delta);
   };
   container.querySelector('#month-prev').addEventListener('click', () => step(-1));
   container.querySelector('#month-next').addEventListener('click', () => step(1));
@@ -451,6 +453,10 @@ function totals(rows) {
 }
 
 function renderList(container) {
+  // A card refund for exactly what was charged cancels that purchase (js/card-refunds.js): both rows
+  // are dimmed and struck through, the line drawing itself the first time it is seen.
+  const cardIds = new Set(cache.accounts.filter((a) => a.type === 'card').map((a) => a.id));
+  cache.cancelled = new Set(refundPairs(cache.transactions, cardIds, isoLocal(new Date())).flatMap((p) => [p.purchase.id, p.refund.id]));
   const rows = matching();
   const across = acrossMonths();
   // A month is always shown whole; only a search across years is shown in
@@ -534,6 +540,14 @@ function renderList(container) {
         why: 'Kawach is empty until it sees your spending. Import a statement and the budget, the categories and the months all fill in.',
         action: { label: 'Import a statement', go: 'import' },
       });
+
+  container.querySelectorAll('.hist-row.open .direction-toggle').forEach(slidingPill);
+  // A payment just saved: shown in place with a soft wash, once.
+  const fresh = takeFresh();
+  if (fresh) {
+    const el = container.querySelector(`.hist-row[data-id="${fresh}"]`);
+    if (el) washRow(el);
+  }
 
   const moreBtn = container.querySelector('#txn-more');
   moreBtn.hidden = rows.length <= visible.length;
@@ -659,6 +673,15 @@ function catName(id) {
   return cache.categories.find((c) => c.id === id)?.name || null;
 }
 
+// A purchase and the refund that undid it. The strike draws itself the first time a row is shown.
+const struck = new Set();
+function cancelledClass(t) {
+  if (!cache.cancelled || !cache.cancelled.has(t.id)) return '';
+  const first = !struck.has(t.id);
+  struck.add(t.id);
+  return ` is-cancelled${first ? ' is-struck-new' : ''}`;
+}
+
 function rowTemplate(t) {
   const isOpen = expanded === t.id;
   const split = isSplit(t);
@@ -669,7 +692,7 @@ function rowTemplate(t) {
   const tone = t.isTransfer ? 'muted' : t.direction === 'credit' ? 'in' : 'out';
   const sub = subHtml(t);
   return `
-    <div class="hist-row ${isOpen ? 'open' : ''} ${selected.has(t.id) ? 'selected' : ''}" data-id="${t.id}">
+    <div class="hist-row ${isOpen ? 'open' : ''} ${selected.has(t.id) ? 'selected' : ''}${cancelledClass(t)}" data-id="${t.id}">
       <div class="hist-line">
         ${selecting ? `<input type="checkbox" class="txn-check" ${selected.has(t.id) ? 'checked' : ''} aria-label="Select">` : ''}
         <button type="button" class="txn-main hist-main" aria-expanded="${isOpen}">
@@ -708,7 +731,7 @@ function subHtml(t) {
         ? '<span class="hist-tag hist-tag--in">Paid back</span>'
         : '';
   const bill = cardBill(t);
-  const text = [account ? escapeHtml(account.label) : '', bill ? 'card bill' : t.isTransfer ? 'moved' : '', isSplit(t) ? 'split' : ''].filter(Boolean).join(' · ');
+  const text = [account ? escapeHtml(account.label) : '', bill ? 'card bill' : t.isTransfer ? 'moved' : '', isSplit(t) ? 'split' : '', cache.cancelled && cache.cancelled.has(t.id) ? (t.direction === 'credit' ? 'cancels a purchase' : 'refunded') : ''].filter(Boolean).join(' · ');
   // With a tag, the words go in their own box so that on a narrow screen it is
   // the account name that is cut short, never the tag.
   return workTag ? `<span class="hist-sub-text">${text}</span>${workTag}` : text;
@@ -1185,11 +1208,28 @@ function updateRemainder(container, t) {
 async function deletePayment(t, container) {
   const sure = await askConfirm({ title: 'Delete this payment?', message: `${t.rawDescription.slice(0, 80)}. This can't be undone.`, confirmLabel: 'Delete', danger: true });
   if (!sure) return false;
+  const copy = { ...t };
+  await foldAway(container.querySelector(`.hist-row[data-id="${t.id}"]`));
   await remove('transactions', t.id);
   cache.transactions = cache.transactions.filter((x) => x.id !== t.id);
   selected.delete(t.id);
   expanded = null;
   renderList(container);
+  // Held for five seconds, so a slip can be taken back: the payment returns whole and the deletion
+  // note it left for the other device goes with it.
+  showToast('Payment deleted', {
+    ms: 5000,
+    action: {
+      label: 'Undo',
+      run: async () => {
+        await put('transactions', copy);
+        await remove('deletions', `transactions:${copy.id}`, { tombstone: false });
+        cache.transactions = [...cache.transactions, copy];
+        renderList(container);
+        showToast('Payment back');
+      },
+    },
+  });
   return true;
 }
 
@@ -1211,20 +1251,29 @@ function wireQuick(listEl, container) {
   let fired = false;
   let x0 = 0;
   let y0 = 0;
+  let pressed = null;
+  // The row sinks and a hairline fills along its edge while the press is held: the menu is on its way.
   const cancel = () => {
     clearTimeout(timer);
     timer = 0;
+    if (pressed) pressed.classList.remove('is-pressing');
+    pressed = null;
   };
   listEl.addEventListener('pointerdown', (e) => {
     const main = e.target.closest('.hist-main');
     fired = false;
     if (!main || selecting || (e.button != null && e.button > 0)) return;
-    const id = main.closest('.hist-row').dataset.id;
+    const rowEl = main.closest('.hist-row');
+    const id = rowEl.dataset.id;
     x0 = e.clientX;
     y0 = e.clientY;
+    pressed = rowEl;
+    rowEl.classList.add('is-pressing');
     timer = setTimeout(() => {
       timer = 0;
       fired = true;
+      if (pressed) pressed.classList.remove('is-pressing');
+      pressed = null;
       // If the finger lifts over the sheet, no click ever reaches the row: do not keep waiting for one.
       setTimeout(() => (fired = false), 1500);
       navigator.vibrate?.(12);
@@ -1328,6 +1377,7 @@ async function handleClick(e, container) {
     expanded = expanded === t.id ? null : t.id;
     splitDraft = null;
     renderList(container);
+    if (expanded) unfold(container.querySelector(`.hist-row[data-id="${t.id}"] .txn-expanded`));
     return;
   }
 

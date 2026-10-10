@@ -48,7 +48,10 @@ import { searchWords, findCandidates } from '../js/category-match.js';
 import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, cashRiver, tickGauge } from '../js/charts.js';
-import { shapeLike, moneyTone, rollFigures, dialAt } from '../js/ui.js';
+import { shapeLike, moneyTone, rollFigures, dialAt, fillBars, levelWatch, slidingPill, invalidField, slideIn } from '../js/ui.js';
+import { showToast } from '../js/toast.js';
+import { dragRows } from '../js/reorder-drag.js';
+import { goalRing } from '../js/charts.js';
 import { askConfirm } from '../js/dialog.js';
 import { dragToClose } from '../js/sheet-drag.js';
 import { shortStatus, spentLine, spendingHero, monthWaves, monthMountains, monthScale, chartReadout, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
@@ -1696,6 +1699,130 @@ test('the dial rolls with its figure: marks and needle follow the money frame by
   equal(lit(after), 1, 'a dial with all of the budget left has only its zero mark lit, as drawn fresh');
 });
 
+test('a bar and the figure beside it fill together, and end on the real figure', async () => {
+  const host = document.createElement('div');
+  host.innerHTML = '<div class="tl-prog"><i style="width:60%"></i><span><span>Set aside used</span><span data-fillcount>₹74,979 of ₹1,03,600</span></span></div>';
+  document.body.append(host);
+  const label = host.querySelector('[data-fillcount]');
+  fillBars(host);
+  equal(label.textContent, '₹0 of ₹1,03,600', 'it starts from nothing');
+  await wait(300);
+  const mid = Number(label.textContent.match(/[\d,]+/)[0].replace(/,/g, ''));
+  ok(mid > 0 && mid < 74979, 'part way, the figure is part way');
+  await wait(900);
+  equal(label.textContent, '₹74,979 of ₹1,03,600', 'and ends on the real figure');
+  host.remove();
+});
+
+test('a month turning worse breathes one ring out; the same level again does nothing', () => {
+  const hero = (level) => {
+    const el = document.createElement('div');
+    el.innerHTML = `<div class="in-hero" data-level="${level}" data-level-key="pulse-test"><svg><text class="in-dial__fig" x="0" y="10">₹1</text></svg><p class="in-status"><span class="in-led"></span><span>words</span></p></div>`;
+    document.body.append(el);
+    return el;
+  };
+  const a = hero('ok');
+  levelWatch(a);
+  const b = hero('warning');
+  levelWatch(b);
+  equal(b.querySelectorAll('.pace-pulse').length, 1, 'ok to warning: one ring');
+  const c = hero('warning');
+  levelWatch(c);
+  equal(c.querySelectorAll('.pace-pulse').length, 0, 'the same level: nothing');
+  const d = hero('ok');
+  levelWatch(d);
+  equal(d.querySelectorAll('.pace-pulse').length, 0, 'getting better: nothing');
+  [a, b, c, d].forEach((n) => n.remove());
+});
+
+test('a toast with an action gives it a button, and the button does it', async () => {
+  let ran = 0;
+  showToast('Payment deleted', { ms: 5000, action: { label: 'Undo', run: () => ran++ } });
+  const t = document.getElementById('toast');
+  const b = t.querySelector('.toast__action');
+  ok(b && b.textContent === 'Undo' && t.classList.contains('toast--action'), 'the toast has an Undo');
+  equal(t.querySelector('.toast__bar').style.animationDuration, '5000ms', 'its hairline runs as long as it stays');
+  b.click();
+  equal(ran, 1, 'and it does what it says');
+  showToast('plain');
+  ok(!t.querySelector('.toast__action') && !t.classList.contains('toast--action'), 'a plain toast has none');
+});
+
+test('a value that will not do shakes, says why in words, and clears when typed in', () => {
+  const host = document.createElement('div');
+  host.innerHTML = '<label class="field"><input id="shake-me"></label>';
+  document.body.append(host);
+  const input = host.querySelector('input');
+  invalidField(input, 'Enter an amount');
+  ok(input.classList.contains('is-invalid') && input.getAttribute('aria-invalid') === 'true', 'marked invalid');
+  equal(host.querySelector('.field-error').textContent, 'Enter an amount', 'the reason is in words');
+  input.dispatchEvent(new Event('input'));
+  ok(!input.classList.contains('is-invalid') && !host.querySelector('.field-error'), 'typing clears both');
+  host.remove();
+});
+
+test('a toggle gets one pill that follows whichever button is lit', async () => {
+  const host = document.createElement('div');
+  host.innerHTML = '<div class="k-seg direction-toggle" style="display:flex;width:240px"><button class="k-seg__btn dir-btn active" aria-selected="true" style="flex:1;width:100px">Spent</button><button class="k-seg__btn dir-btn" aria-selected="false" style="flex:1;width:100px">Received</button></div>';
+  document.body.append(host);
+  const t = host.firstChild;
+  slidingPill(t);
+  slidingPill(t);
+  equal(t.querySelectorAll('.seg-pill').length, 1, 'one pill, even if asked twice');
+  const first = t.querySelector('.seg-pill').style.getPropertyValue('--x');
+  const [a, b] = t.querySelectorAll('.dir-btn');
+  a.classList.remove('active');
+  a.setAttribute('aria-selected', 'false');
+  b.classList.add('active');
+  b.setAttribute('aria-selected', 'true');
+  await wait(60);
+  ok(t.querySelector('.seg-pill').style.getPropertyValue('--x') !== first, 'it moved to the new choice');
+  host.remove();
+});
+
+test('dragging a row by its grip hands back the new order of the ids', async () => {
+  const host = document.createElement('div');
+  host.style.cssText = 'position:fixed;left:0;top:0;width:200px;opacity:0;pointer-events:none';
+  host.innerHTML = ['a', 'b', 'c'].map((id) => `<div data-id="${id}" style="height:40px"><button class="grip" style="width:20px;height:20px">=</button></div>`).join('');
+  document.body.append(host);
+  const rows = [...host.children];
+  let got = null;
+  dragRows(rows, [...host.querySelectorAll('.grip')], (ids, changed) => (got = { ids, changed }));
+  const grip = rows[0].querySelector('.grip');
+  press(grip, 'pointerdown', { clientY: 10 });
+  press(grip, 'pointermove', { clientY: 10 + 45 });
+  press(grip, 'pointerup', { clientY: 55 });
+  await wait(400);
+  equal(got, { ids: ['b', 'a', 'c'], changed: true }, 'the first row dragged past the second is now second');
+  got = null;
+  press(rows[2].querySelector('.grip'), 'pointerdown', { clientY: 100 });
+  press(rows[2].querySelector('.grip'), 'pointermove', { clientY: 104 });
+  press(rows[2].querySelector('.grip'), 'pointerup', { clientY: 104 });
+  await wait(400);
+  equal(got && got.changed, false, 'a nudge that passes nothing changes nothing');
+  host.remove();
+});
+
+test('a goal that is reached draws its badge; one still short does not', () => {
+  ok(goalRing({ saved: 100000, target: 100000 }).includes('goal-ring__done'), 'reached: the badge and the ripple');
+  ok(!goalRing({ saved: 50000, target: 100000 }).includes('goal-ring__done'), 'short: neither');
+});
+
+test('a month stepped to slides in from the side it came from', () => {
+  const el = document.createElement('div');
+  document.body.append(el);
+  let from = null;
+  el.animate = (kf) => {
+    from = kf[0].transform;
+    return { finished: Promise.resolve() };
+  };
+  slideIn([el], -1);
+  equal(from, 'translateX(-18px)', 'an earlier month arrives from the left');
+  slideIn([el], 1);
+  equal(from, 'translateX(18px)', 'a later one from the right');
+  el.remove();
+});
+
 test('a sheet is pulled down to close, and settles back when let go early', async () => {
   const host = document.createElement('div');
   host.innerHTML = '<div class="k-scrim"></div><div class="k-sheet" style="height:300px"><div class="k-sheet__grip"></div><div class="k-sheet__head"><span>Title</span></div></div>';
@@ -1740,7 +1867,10 @@ test('Instrument: the dial lights up to what is spent, red past an even pace; th
   const legend = instrumentTop(f, 'x', '').match(/<p class="in-legend">.*?<\/p>/);
   ok(legend && legend[0].includes('Even pace by today') && legend[0].includes('₹12,194'), 'what an even pace is, in words under the dial, never on it (the words ran into the marks near the start)');
   const done = instrumentDial(topFigures({ ...f, finished: true }), false);
-  ok(!done.includes('in-dial__flag') && !done.includes('in-dial__m--ahead') && !instrumentTop({ ...f, finished: true }, 'x', '').includes('in-legend'), 'a finished month has no pace: no red, no legend');
+  const closed = instrumentTop({ ...f, finished: true }, 'x', '');
+  ok(!done.includes('in-dial__flag') && !done.includes('in-dial__m--ahead') && !closed.includes('Even pace'), 'a finished month has no pace: no red, no even-pace line');
+  ok(closed.includes('in-legend--closed') && closed.includes('under budget') && closed.includes('in-dial--closed'), 'one that closed with money to spare says so, and its dial glows once');
+  ok(!instrumentTop({ ...f, finished: true, spentThisCycle: rupees(40000), free: -rupees(8500) }, 'x', '').includes('in-legend--closed'), 'and one that went over says nothing of the kind');
   ok(instrumentDial(x, true).includes('in-dial__fig is-negative'), 'a negative figure is red');
   const top = instrumentTop(f, 'Over pace.', '<!--m-->');
   ok(top.includes('<!--k:answer-->') && top.includes('<!--k:month-->') && top.includes('Over pace.') && top.includes('in-hero'), 'the same hooks every style leaves for the month and the answer');

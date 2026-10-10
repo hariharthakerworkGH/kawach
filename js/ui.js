@@ -231,6 +231,184 @@ export function countUpHeroes(root = document) {
   }
 }
 
+/* Which time a screen has arrived (5.37). A screen arriving plays its entrance once; a redraw of the
+ * same screen (a sync, a tap on "This month") must not replay it. showView counts the arrival before
+ * it draws; anything that draws in, and has played already, asks whether it is the same arrival. */
+let arrivals = 0;
+export const beginArrival = () => {
+  arrivals += 1;
+};
+export const arrivalNow = () => arrivals;
+
+const calm = () => Boolean((window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || document.hidden);
+const SOFT = 'cubic-bezier(0.65, 0, 0.35, 1)';
+
+/* The bars that show a share (Spent, Set aside used) fill from the left as a screen arrives, and the
+ * figure beside the bar counts on the bar's own eased progress, so the two can never disagree. */
+export function fillBars(root = document) {
+  if (calm()) return;
+  for (const prog of root.querySelectorAll('.tl-prog')) {
+    const bar = prog.querySelector(':scope > i');
+    if (!bar || !bar.animate) continue;
+    bar.style.transformOrigin = 'left center';
+    const run = bar.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 600, easing: SOFT, fill: 'backwards' });
+    const label = prog.querySelector('[data-fillcount]');
+    if (!label) continue;
+    const final = label.textContent;
+    const target = Number(((final.match(/[\d,]+/) || ['0'])[0]).replace(/,/g, ''));
+    const tick = () => {
+      const done = run.playState === 'finished';
+      const p = run.effect.getComputedTiming().progress;
+      label.textContent = done ? final : shapeLike(final, Math.round(target * (p == null ? 0 : p)));
+      if (!done) requestAnimationFrame(tick);
+    };
+    label.textContent = shapeLike(final, 0);
+    requestAnimationFrame(tick);
+    setTimeout(() => {
+      if (label.textContent !== final) label.textContent = final;
+    }, 1200);
+  }
+}
+
+/* One soft warning when the month turns worse (5.37): the figure takes its warning colour, the status
+ * words change with it, and a ring breathes out once. It plays when the level goes up, never on a
+ * level that was already there, never on a loop. */
+const lastLevel = new Map();
+const SEVERITY = { warning: 1, critical: 2, over: 2 };
+export function levelWatch(root = document) {
+  const hero = root.querySelector('.in-hero[data-level]');
+  if (!hero) return;
+  const key = hero.dataset.levelKey || 'level';
+  const now = SEVERITY[hero.dataset.level] || 0;
+  const was = lastLevel.get(key);
+  lastLevel.set(key, now);
+  if (was == null || now <= was || calm()) return;
+  const fig = hero.querySelector('.in-dial__fig');
+  if (!fig || !fig.animate) return;
+  fig.animate([{ fill: 'var(--k-text)' }, { fill: getComputedStyle(fig).fill }], { duration: 240, easing: SOFT });
+  const words = hero.querySelector('.in-status span:last-child');
+  if (words) words.animate([{ opacity: 1 }, { opacity: 0, offset: 0.45 }, { opacity: 0, offset: 0.5 }, { opacity: 1 }], { duration: 240, easing: 'linear' });
+  const h = hero.getBoundingClientRect();
+  const r = fig.getBoundingClientRect();
+  const ring = document.createElement('span');
+  ring.className = 'pace-pulse';
+  Object.assign(ring.style, { left: `${r.left - h.left - 14}px`, top: `${r.top - h.top - 6}px`, width: `${r.width + 28}px`, height: `${r.height + 12}px` });
+  if (getComputedStyle(hero).position === 'static') hero.style.position = 'relative';
+  hero.append(ring);
+  ring.animate([{ opacity: 0.8, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.16)' }], { duration: 700, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }).onfinish = () => ring.remove();
+}
+
+/* Content arriving from the side the month was stepped towards (5.37): 18 px, well under a third of the
+ * screen, 280 ms. Everything handed in moves together, so the name and the figures never part. dir is
+ * +1 for a later month (arrives from the right), -1 for an earlier one (from the left). */
+export function slideIn(els, dir) {
+  if (calm()) return;
+  for (const el of els) {
+    if (el && el.animate) el.animate([{ opacity: 0, transform: `translateX(${dir * 18}px)` }, { opacity: 1, transform: 'none' }], { duration: 280, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
+  }
+}
+
+/* A row opening (5.37): it grows to its height and its parts arrive one after another, 30 ms apart. */
+export function unfold(el) {
+  if (calm() || !el || !el.animate) return;
+  const h = el.offsetHeight;
+  el.style.overflow = 'hidden';
+  const run = el.animate([{ height: '0px', opacity: 0 }, { height: `${h}px`, opacity: 1 }], { duration: 280, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
+  run.onfinish = run.oncancel = () => {
+    el.style.overflow = '';
+  };
+  [...el.children].slice(0, 8).forEach((c, i) => c.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 220, delay: 60 + i * 30, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
+}
+
+/* A row going away (5.37): it folds to nothing in 200 ms, quicker than it arrived. Resolves when gone. */
+export async function foldAway(el) {
+  if (calm() || !el || !el.animate) return;
+  const h = el.offsetHeight;
+  el.style.overflow = 'hidden';
+  await el.animate([{ height: `${h}px`, opacity: 1 }, { height: '0px', opacity: 0, paddingTop: '0px', paddingBottom: '0px' }], { duration: 200, easing: 'cubic-bezier(0.7, 0, 0.84, 0)', fill: 'forwards' }).finished.catch(() => {});
+}
+
+/* A payment just saved is shown to you when History next opens: it opens in place and takes a soft wash
+ * of the accent colour that fades over 900 ms. Remembered here, used once. */
+let freshId = null;
+export const markFresh = (id) => {
+  freshId = id;
+};
+export const takeFresh = () => {
+  const id = freshId;
+  freshId = null;
+  return id;
+};
+export function washRow(el) {
+  if (calm() || !el || !el.animate) return;
+  el.animate([{ backgroundColor: 'color-mix(in srgb, var(--k-accent, #ffb020) 28%, transparent)' }, { backgroundColor: 'transparent' }], { duration: 900, easing: 'linear' });
+  unfold(el.querySelector('.hist-line') || el);
+}
+
+/* A two- or three-way toggle (Spent / Received) with one lit pill that glides to the choice in 200 ms,
+ * instead of one button going dark and the next lighting. The pill is placed under whichever button is
+ * lit and follows it whenever that changes (the app already toggles the lit class itself). css keeps
+ * it to the Instrument look; elsewhere it is not drawn and the buttons light as they always did. */
+export function slidingPill(toggle) {
+  if (!toggle || toggle.querySelector(':scope > .seg-pill')) return;
+  const pill = document.createElement('i');
+  pill.className = 'seg-pill';
+  pill.setAttribute('aria-hidden', 'true');
+  toggle.prepend(pill);
+  toggle.classList.add('has-pill');
+  const lit = () => toggle.querySelector('.dir-btn.active, .k-seg__btn[aria-selected="true"], .seg-btn.active');
+  const place = (glide) => {
+    const btn = lit();
+    if (!btn || !toggle.offsetWidth) return;
+    pill.classList.toggle('is-ready', glide);
+    pill.style.setProperty('--x', `${btn.offsetLeft}px`);
+    pill.style.setProperty('--y', `${btn.offsetTop}px`);
+    pill.style.setProperty('--w', `${btn.offsetWidth}px`);
+    pill.style.setProperty('--h', `${btn.offsetHeight}px`);
+    if (!glide) requestAnimationFrame(() => pill.classList.add('is-ready'));
+  };
+  place(false);
+  new MutationObserver(() => place(true)).observe(toggle, { attributes: true, subtree: true, attributeFilter: ['class', 'aria-selected'] });
+  if (window.ResizeObserver) new ResizeObserver(() => place(false)).observe(toggle);
+}
+
+/* A short buzz where the phone can (Android; an iPhone does not allow it from a web app). */
+export const buzz = (ms = 12) => {
+  try {
+    navigator.vibrate?.(ms);
+  } catch {
+    /* nothing to do */
+  }
+};
+
+/* A value that will not do (5.37): the field shakes once and the reason shows in words under it, so
+ * nothing is told by motion alone. The message goes when the field is next typed in. Returns the field. */
+export function invalidField(input, message) {
+  if (!input) return input;
+  input.classList.add('is-invalid');
+  input.setAttribute('aria-invalid', 'true');
+  let msg = input.parentElement && input.parentElement.querySelector(':scope > .field-error');
+  if (!msg) {
+    msg = document.createElement('p');
+    msg.className = 'field-error';
+    msg.setAttribute('role', 'alert');
+    input.after(msg);
+  }
+  msg.textContent = message;
+  input.classList.remove('is-shaking');
+  void input.offsetWidth;
+  input.classList.add('is-shaking');
+  setTimeout(() => input.classList.remove('is-shaking'), 360);
+  input.focus();
+  const clear = () => {
+    input.classList.remove('is-invalid');
+    input.removeAttribute('aria-invalid');
+    msg.remove();
+  };
+  input.addEventListener('input', clear, { once: true });
+  return input;
+}
+
 /* A figure that changes while you are away rolls from what it was to what it is (5.36): save a
  * payment, come back to Summary, and Left to spend runs down by what it cost. Only a figure that
  * was shown before in this session and has moved; the first sight of it stands still. A rolling

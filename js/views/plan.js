@@ -22,6 +22,7 @@ import { forecast } from '../forecast.js';
 import { escapeHtml, emptyState, sectionHead, hero } from '../ui.js';
 import { askConfirm } from '../dialog.js';
 import { dragToClose } from '../sheet-drag.js';
+import { dragRows } from '../reorder-drag.js';
 import { showToast } from '../toast.js';
 
 let adding = false;
@@ -706,6 +707,20 @@ export async function render(container) {
     });
   }
 
+  // Or drag a row by its grip: it lifts, the rows it passes slide aside, it settles in the gap.
+  const gripped = [...container.querySelectorAll('.plan-row[data-id]')];
+  if (gripped.length) {
+    dragRows(gripped, [...container.querySelectorAll('.fixed-grip')], async (ids, changed) => {
+      if (changed) {
+        for (const [index, id] of ids.entries()) {
+          const item = fixed.find((f) => f.id === id);
+          if (item && item.sortOrder !== index) await put('recurring', { ...item, sortOrder: index });
+        }
+      }
+      redraw(container, () => render(container));
+    });
+  }
+
   container.querySelectorAll('.fixed-move').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const order = fixed.map((f) => f.id);
@@ -1036,9 +1051,10 @@ function fixedRow(f, categories, paidFrom, index, count) {
 
   if (reordering) {
     return `
-      <div class="k-row plan-row">
+      <div class="k-row plan-row" data-id="${f.id}">
         ${inner}
         <span class="plan-row__actions">
+          <button type="button" class="icon-btn fixed-grip" aria-label="Drag ${escapeHtml(f.label)} to move it" title="Drag to move">${icon('grip')}</button>
           <button type="button" class="icon-btn fixed-move" data-id="${f.id}" data-step="-1" aria-label="Move ${escapeHtml(f.label)} up" ${index === 0 ? 'disabled' : ''}>${icon('up')}</button>
           <button type="button" class="icon-btn fixed-move" data-id="${f.id}" data-step="1" aria-label="Move ${escapeHtml(f.label)} down" ${index === count - 1 ? 'disabled' : ''}>${icon('arrow-down')}</button>
         </span>

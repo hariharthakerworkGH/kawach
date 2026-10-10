@@ -88,6 +88,10 @@ export function topFigures(f) {
     weekTotal: week.reduce((s, d) => s + (d.amount || 0), 0),
     // What the figure is a figure of, so it rolls from its last value in this month and no other.
     rollKey: `${f.cycleKey || ''}|${f.limit}`,
+    level: f.level,
+    // A month that has closed with money to spare: its dial takes one slow glow (css) and says so.
+    closedUnder: Boolean(f.finished && f.limit > 0 && (f.spentThisCycle || 0) <= f.limit),
+    leftOver: Math.max(0, (f.limit || 0) - (f.spentThisCycle || 0)),
     owedCards: Math.max(0, ((f.totals && f.totals.owedCards) || 0) + ((f.totals && f.totals.unpaidBills) || 0)),
     cards: cards.map((c) => ({ ...c, share: (c.amount + c.coming) / cardTop })),
     bills: (f.cardBills || []).length,
@@ -156,7 +160,7 @@ export function tactileTop(f, status, month, heroHtml = '') {
         <div><span class="tl-k">${x.finished ? 'Days' : 'A day'}</span><b>${x.finished ? x.monthDays : x.perDay > 0 ? formatRupees(x.perDay) : '-'}</b></div>
       </div>
       <div class="tl-prog"><i class="${tone(f)}" style="width:${pct(x.used)}"></i><span><span>Spent</span><span>${ofLimit(x)}</span></span></div>
-      ${x.asideUsed != null ? `<div class="tl-prog tl-prog--aside"><i style="width:${pct(x.asideUsed)}"></i><span><span>Set aside used</span><span>${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}</span></span></div>` : ''}
+      ${x.asideUsed != null ? `<div class="tl-prog tl-prog--aside"><i style="width:${pct(x.asideUsed)}"></i><span><span>Set aside used</span><span data-fillcount>${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}</span></span></div>` : ''}
       <div class="tl-slider" role="img" aria-label="Day ${x.day} of ${x.monthDays}">
         <div class="tl-trk"></div><div class="tl-fill" style="width:${pct(x.gone)}"></div><div class="tl-thumb" style="left:${pct(x.gone)}"></div>
         <div class="tl-tip" style="left:${pct(Math.min(0.84, Math.max(0.16, x.gone)))}">Day ${x.day} of ${x.monthDays}</div>
@@ -204,7 +208,7 @@ export function instrumentDial(x, negative) {
   const [z1x, z1y] = pt(ang(1), R - 36);
   const paced = !(x.finished || !(x.limit > 0));
   const total = x.limit > 0 ? formatRupees(x.limit) : '';
-  return `<svg class="in-dial" data-limit="${x.limit > 0 ? x.limit : ''}" data-pace="${paced ? x.pace : ''}" data-spent="${x.spent}" style="--lit:${Math.round(fs * N)}" viewBox="0 0 326 236" role="img" aria-label="${formatRupees(x.spent)} spent${x.limit > 0 ? ` of ${total}` : ''}${paced ? `, an even pace would be ${formatRupees(x.pace)} by now` : ''}">
+  return `<svg class="in-dial${x.closedUnder ? ' in-dial--closed' : ''}" data-limit="${x.limit > 0 ? x.limit : ''}" data-pace="${paced ? x.pace : ''}" data-spent="${x.spent}" style="--lit:${Math.round(fs * N)}" viewBox="0 0 326 236" role="img" aria-label="${formatRupees(x.spent)} spent${x.limit > 0 ? ` of ${total}` : ''}${paced ? `, an even pace would be ${formatRupees(x.pace)} by now` : ''}">
       ${marks}
       <line class="in-dial__needle" x1="${n1(nx1)}" y1="${n1(ny1)}" x2="${n1(nx2)}" y2="${n1(ny2)}"/>
       <text class="in-dial__end" x="${n1(z0x)}" y="${n1(z0y + 22)}" text-anchor="middle">₹0</text>
@@ -217,17 +221,17 @@ export function instrumentDial(x, negative) {
 
 export function instrumentTop(f, status, month) {
   const x = topFigures(f);
-  const hero = `<div class="tl-hero in-hero ${f.free < 0 ? 'is-negative' : ''}">
+  const hero = `<div class="tl-hero in-hero ${f.free < 0 ? 'is-negative' : ''}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
       <div class="tl-top"><span class="tl-k">Budget dial</span><span class="tl-period">${x.period}</span></div>
       ${instrumentDial(x, f.free < 0)}
-      ${x.finished || !(x.limit > 0) ? '' : `<p class="in-legend">Even pace by today <b>${formatRupees(x.pace)}</b></p>`}
+      ${x.finished || !(x.limit > 0) ? (x.closedUnder ? `<p class="in-legend in-legend--closed">Closed <b>${formatRupees(x.leftOver)}</b> under budget</p>` : '') : `<p class="in-legend">Even pace by today <b>${formatRupees(x.pace)}</b></p>`}
       <p class="in-status ${tone(f)}"><span class="in-led"></span><span>${escapeHtml(status)}</span></p>
       <div class="tl-stats">
         <div><span class="tl-k">Spent</span><b>${formatRupees(x.spent)}</b></div>
         <div><span class="tl-k">Budget</span><b>${formatRupees(x.limit)}</b></div>
         <div><span class="tl-k">${x.finished ? 'Days' : 'A day'}</span><b>${x.finished ? x.monthDays : x.perDay > 0 ? formatRupees(x.perDay) : '-'}</b></div>
       </div>
-      ${x.asideUsed != null ? `<div class="tl-prog tl-prog--aside"><i style="width:${pct(x.asideUsed)}"></i><span><span>Set aside used</span><span>${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}</span></span></div>` : ''}
+      ${x.asideUsed != null ? `<div class="tl-prog tl-prog--aside"><i style="width:${pct(x.asideUsed)}"></i><span><span>Set aside used</span><span data-fillcount>${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}</span></span></div>` : ''}
     </div>`;
   return tactileTop(f, status, month, hero);
 }

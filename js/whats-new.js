@@ -12,6 +12,29 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.37',
+    items: [
+      {
+        icon: 'summary',
+        title: "Figures that move with your money",
+        text: "On Summary the dial's needle sweeps up with its marks, the bars fill and count with them, and the month chart draws itself as you scroll to it. If the month turns worse, the figure turns once and a ring breathes out. A month that closed under budget glows once and says so. Stepping between months slides the new figures in from the side you stepped.",
+        guide: [{ view: 'summary', target: '#view-container', text: "Open Summary again after saving a payment to see the figure roll." }],
+      },
+      {
+        icon: 'plan',
+        title: "Pull to refresh, drag to reorder",
+        text: "Pull a screen down from the top to sync and redraw it; the sync icon turns as far as you pull. On Plan, Reorder now has a grip on each cost: drag it and the others move aside. Press and hold a payment in History for quick actions, and a deleted payment can be taken back from the Undo that follows.",
+        guide: [{ view: 'plan', target: '#plan-reorder', text: "Tap Reorder, then drag a cost by its grip." }],
+      },
+      {
+        icon: 'check',
+        title: "Quieter, clearer feedback",
+        text: "Buttons sink when pressed. Saving draws its tick. A missing amount shakes once and says why, in words. Sheets open in stages, the toast counts down with a hairline, Spent and Received glide, the PIN dots pop, a right PIN clears the lock into the app, and a refunded purchase and its refund are struck through together.",
+        guide: [{ view: 'add', target: '#add-amount', text: "Try Save with no amount to see it." }],
+      },
+    ],
+  },
+  {
     version: '5.36',
     items: [
       {

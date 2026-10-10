@@ -3471,3 +3471,171 @@ html.is-locked .app-header, html.is-locked #view-container, html.is-locked #tabs
 .k-sheet__grip.is-handle, .k-sheet__head.is-handle { touch-action: none; cursor: grab; }
 .k-sheet__grip.is-handle { position: relative; }
 .k-sheet__grip.is-handle::after { content: ''; position: absolute; inset: -14px -48px; }
+
+
+/* ======================================================================
+   Motion (5.37). Corporate-premium: short, decelerating in, accelerating out, only transform
+   and opacity moving. Every rule that moves has a reduced-motion answer at the end.
+   ====================================================================== */
+
+/* 1. A button answers a press: it sinks a little and darkens, then comes back. */
+.btn-primary, .btn-secondary, .btn-tiny, .k-btn, .dir-btn, .plan-chip, .lock__key {
+  transition-property: transform, filter, background-color, border-color, box-shadow, color;
+  transition-duration: 120ms;
+  transition-timing-function: var(--k-ease, cubic-bezier(0.16, 1, 0.3, 1));
+}
+.btn-primary:active:not(:disabled), .btn-secondary:active:not(:disabled), .btn-tiny:active:not(:disabled),
+.k-btn:active:not(:disabled), .dir-btn:active, .plan-chip:active, .lock__key:active {
+  transform: scale(0.97);
+  filter: brightness(0.9);
+  transition-duration: 60ms;
+}
+/* 4. The switch's thumb squashes a touch under the finger; thumb and track share one time and curve. */
+.k-toggle::after { transition-property: transform, background, scale; }
+.k-toggle:active::after { scale: 1.1 1; }
+
+/* 5. A PIN dot pops as it fills; a right PIN turns the dots green before the lock lets go. */
+@keyframes dot-pop { 0% { transform: scale(0.7); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.lock__dots i.on { animation: dot-pop 140ms var(--k-ease) both; }
+.lock.is-ok .lock__dots i.on { background: var(--k-positive); border-color: var(--k-positive); }
+@keyframes lock-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-9px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(2px); }
+}
+.lock__dots.shake { animation: lock-shake 320ms cubic-bezier(0.65, 0, 0.35, 1); }
+
+/* 23. After the right PIN the lock fades and the app clears from a soft blur instead of cutting. */
+.lock.is-leaving { pointer-events: none; animation: lock-leave 300ms cubic-bezier(0.7, 0, 0.84, 0) 120ms both; }
+@keyframes lock-leave { to { opacity: 0; } }
+@keyframes app-unveil { from { opacity: 0; transform: scale(1.02); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@media (prefers-reduced-motion: no-preference) {
+  html.is-unveiling .app-header, html.is-unveiling #view-container, html.is-unveiling #tabs { animation: app-unveil 380ms var(--k-ease) 160ms both; }
+}
+
+/* 6. The toast rises in (220 ms) and drops out (160 ms); a hairline counts down the two seconds it stays. */
+.toast { overflow: hidden; transition: opacity 160ms cubic-bezier(0.7, 0, 0.84, 0), transform 160ms cubic-bezier(0.7, 0, 0.84, 0); transform: translateX(-50%) translateY(12px); }
+.toast.visible { transition: opacity 220ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)), transform 220ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)); }
+.toast__bar { position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: color-mix(in srgb, var(--accent-ink, #000) 35%, transparent); transform-origin: left; animation: toast-run 2000ms linear 220ms both; }
+@keyframes toast-run { to { transform: scaleX(0); } }
+
+/* 17. A sheet opens in stages: the dim, the sheet rising, then its rows one after another. */
+@keyframes sheet-dim { from { opacity: 0; } }
+@keyframes sheet-row { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: no-preference) {
+  #month-sheet .k-scrim, #quick-sheet .k-scrim, #add-cat-sheet .k-scrim { animation: sheet-dim 200ms var(--k-ease) both; }
+  #month-sheet .k-rows > *, #quick-sheet .k-rows > *, #add-cat-sheet .k-cat-row { animation: sheet-row 220ms var(--k-ease) both; animation-delay: calc(180ms + var(--r, 0) * 40ms); }
+  #month-sheet .k-rows > :nth-child(2), #quick-sheet .k-rows > :nth-child(2), #add-cat-sheet .k-cat-row:nth-child(2) { --r: 1; }
+  #month-sheet .k-rows > :nth-child(3), #quick-sheet .k-rows > :nth-child(3), #add-cat-sheet .k-cat-row:nth-child(3) { --r: 2; }
+  #month-sheet .k-rows > :nth-child(4), #quick-sheet .k-rows > :nth-child(4), #add-cat-sheet .k-cat-row:nth-child(4) { --r: 3; }
+  #month-sheet .k-rows > :nth-child(n+5), #quick-sheet .k-rows > :nth-child(n+5), #add-cat-sheet .k-cat-row:nth-child(n+5) { --r: 4; }
+}
+
+/* 18. Press and hold a payment: it sinks and a hairline fills along its edge, so the menu is expected. */
+.k .hist-row { position: relative; }
+.k .hist-row.is-pressing { transform: scale(0.985); transition: transform 160ms var(--k-ease); }
+.k .hist-row.is-pressing::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--k-accent); transform-origin: left; animation: press-fill 480ms linear both; }
+@keyframes press-fill { from { transform: scaleX(0); } }
+
+/* 2. Saved: the ring and tick draw themselves, the word follows. */
+@keyframes tick-ring { from { stroke-dashoffset: 57; } }
+@keyframes tick-mark { from { stroke-dashoffset: 14; } }
+@keyframes saved-pop { from { transform: scale(0.92); } }
+@keyframes saved-word { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: no-preference) {
+  .k .add-form .btn-primary.is-saved { animation: saved-pop 300ms var(--k-ease) both; }
+  .k .add-form .btn-primary.is-saved .icon circle { stroke-dasharray: 57; animation: tick-ring 300ms var(--k-ease) both; }
+  .k .add-form .btn-primary.is-saved .icon path { stroke-dasharray: 14; animation: tick-mark 200ms var(--k-ease) 260ms both; }
+  .k .add-form .btn-primary.is-saved span { animation: saved-word 240ms var(--k-ease) 380ms both; }
+}
+
+/* 3. A value that will not do: the field shakes once and says why, in words under it. */
+@keyframes field-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(2px); }
+}
+@keyframes field-error-in { from { opacity: 0; transform: translateY(-4px); } }
+.is-invalid { border-color: var(--k-negative, #d44) !important; }
+.is-shaking { animation: field-shake 320ms cubic-bezier(0.65, 0, 0.35, 1); }
+.field-error { margin: 6px 0 0; font-size: var(--k-label, 13px); color: var(--k-negative, #d44); animation: field-error-in 200ms var(--k-ease, ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary:active:not(:disabled), .btn-secondary:active:not(:disabled), .btn-tiny:active:not(:disabled), .k-btn:active:not(:disabled), .dir-btn:active, .plan-chip:active, .lock__key:active { transform: none; }
+  .k-toggle:active::after { scale: none; }
+  .lock__dots i.on, .lock__dots.shake, .is-shaking, .toast__bar, .k .hist-row.is-pressing::after { animation: none; }
+  .lock.is-leaving { animation: lock-leave 160ms linear both; }
+  .k .hist-row.is-pressing { transform: none; }
+}
+
+
+/* 24. The message lights up as its fields land: each word glows as its field arrives, 80 ms apart. */
+.alert-sms { margin: 8px 0 4px; padding: 8px 10px; font-size: var(--k-label, 13px); line-height: 1.45; color: var(--k-text-2); background: color-mix(in srgb, var(--k-text) 5%, transparent); border-radius: 6px; overflow: hidden; overflow-wrap: anywhere; }
+.alert-sms mark { background: transparent; color: var(--k-text); border-radius: 3px; animation: sms-glow 700ms linear calc(var(--k, 0) * 80ms) both; }
+@keyframes sms-glow { 0%, 100% { background-color: transparent; } 50% { background-color: color-mix(in srgb, var(--k-accent) 35%, transparent); } }
+.alert-card.is-fresh .field::after, .alert-card.is-fresh .alert-amount::after { animation-delay: calc(var(--i, 0) * 80ms + 340ms); }
+@media (prefers-reduced-motion: reduce) { .alert-sms mark { animation: none; } }
+
+/* 25. A purchase and the refund that undid it: dimmed, one thin line across each. It draws itself the first time. */
+.k .hist-row.is-cancelled .hist-main { position: relative; opacity: 0.55; }
+.k .hist-row.is-cancelled .hist-main::after { content: ""; position: absolute; left: 12px; right: 12px; top: 50%; height: 1.5px; background: var(--k-text-2); transform-origin: left; }
+@media (prefers-reduced-motion: no-preference) {
+  .k .hist-row.is-struck-new .hist-main { animation: row-dim 300ms var(--k-ease-io) 120ms both; }
+  .k .hist-row.is-struck-new .hist-main::after { animation: strike-in 300ms var(--k-ease-io) both; }
+}
+@keyframes strike-in { from { transform: scaleX(0); } }
+@keyframes row-dim { from { opacity: 1; } }
+
+/* 26. A slow screen: grey shapes where the figures will be, one shimmer crossing them all together. */
+.view-skeleton { display: grid; gap: 14px; justify-items: center; align-content: start; padding: 28px 16px; }
+.view-skeleton { position: absolute; inset: 0; background: var(--k-bg, var(--bg)); z-index: 2; }
+.view-skeleton .sk { display: block; border-radius: 6px; background-color: var(--k-surface-elev, #2a2f38); background-image: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.1) 50%, transparent 70%); background-size: 60vw 100%; background-repeat: no-repeat; background-attachment: fixed; animation: sk-sweep 1600ms linear infinite; }
+.view-skeleton .sk--cap { width: 90px; height: 12px; }
+.view-skeleton .sk--fig { width: 170px; height: 40px; }
+.view-skeleton .sk--line { width: 220px; height: 12px; }
+.view-skeleton .sk--card { width: min(100%, 420px); height: 84px; border-radius: 12px; }
+@keyframes sk-sweep { from { background-position: -60vw 0; } to { background-position: 160vw 0; } }
+@media (prefers-reduced-motion: reduce) { .view-skeleton .sk { animation: none; background-image: none; } }
+
+
+/* 22. A goal that is reached: the ring draws to its end, a tick badge draws, one ripple leaves the ring. */
+@keyframes ring-draw { from { stroke-dasharray: 0 999; } }
+@keyframes badge-tick { from { stroke-dashoffset: 14; } }
+@keyframes ring-ripple { from { opacity: 0.7; transform: scale(1); } to { opacity: 0; transform: scale(1.35); } }
+.goal-ring__done circle { fill: var(--k-positive); }
+.goal-ring__done path { stroke: var(--k-bg, #000); stroke-width: 2.2; stroke-dasharray: 14; }
+.goal-ring__ripple { stroke: var(--k-positive); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.goal-ring.is-done .chart-ring-fill { stroke: var(--k-positive); }
+@media (prefers-reduced-motion: no-preference) {
+  .is-arriving .goal-ring .chart-ring-fill { animation: ring-draw 600ms var(--k-ease-io) both; }
+  .is-arriving .goal-ring__done { animation: saved-pop 300ms var(--k-ease) 560ms both; }
+  .is-arriving .goal-ring__done path { animation: badge-tick 260ms var(--k-ease) 600ms both; }
+  .is-arriving .goal-ring__ripple { animation: ring-ripple 600ms var(--k-ease) 560ms both; }
+}
+
+/* Coach: the questions arrive one after another, 50 ms apart, top first. */
+@keyframes coach-in { from { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: no-preference) {
+  .is-arriving .k-coach .coach-q, .is-arriving .k-coach #coach-panel { animation: coach-in 240ms var(--k-ease) both; animation-delay: calc(var(--c, 0) * 50ms); }
+  .is-arriving .k-coach .coach-q:nth-child(2) { --c: 1; } .is-arriving .k-coach .coach-q:nth-child(3) { --c: 2; }
+  .is-arriving .k-coach .coach-q:nth-child(4) { --c: 3; } .is-arriving .k-coach .coach-q:nth-child(n+5) { --c: 4; }
+  .is-arriving .k-coach #coach-panel { --c: 5; }
+}
+
+/* A chosen quick chip gives one small pop as it lights. */
+@keyframes chip-pop { 0% { transform: scale(0.94); } 60% { transform: scale(1.05); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: no-preference) { .k .k-quick__chip.on { animation: chip-pop 160ms var(--k-ease) both; } }
+
+/* Pull to refresh: the sync icon above the screen, turning anticlockwise as far as you pull. */
+.ptr { position: fixed; left: 50%; top: calc(var(--header-h, 64px) + 4px); z-index: 20; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--k-surface, var(--surface)); border: 1px solid var(--k-hairline, var(--border)); color: var(--k-text-2, var(--text-dim)); opacity: 0; pointer-events: none; transform: translate(-50%, 0); }
+.ptr .icon { width: 18px; height: 18px; }
+.ptr__arrows, .ptr__tick { position: absolute; inset: 0; display: grid; place-items: center; }
+.ptr__tick { opacity: 0; color: var(--k-positive, #3ddc97); }
+.ptr.is-busy .ptr__arrows { animation: sync-turn 1000ms linear infinite; }
+.ptr.is-done .ptr__arrows { opacity: 0; transition: opacity 160ms ease-in; }
+.ptr.is-done .ptr__tick { opacity: 1; animation: sync-ok 300ms var(--k-ease) both; }
+html { overscroll-behavior-y: contain; }
+
+/* The big title shrinks into the header as the screen scrolls (scroll-linked, so it is the finger's motion). */
+.app-header { --shrink: 0; }
+.app-header h1 { transform-origin: left center; transform: scale(calc(1 - var(--shrink) * 0.22)); }
+.app-header::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--k-hairline, var(--border)); opacity: var(--shrink); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .app-header h1 { transform: none; } .ptr__arrows { transition: none; } }

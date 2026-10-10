@@ -274,11 +274,11 @@
 @media (prefers-reduced-motion: no-preference) {
   .is-arriving .in-dial__m--on, .is-arriving .in-dial__m--ahead { animation: in-dial-on 360ms var(--k-ease) both; animation-delay: calc(var(--i, 0) * 9ms + 120ms); }
   /* the needle appears as the lit marks reach it: its delay is the marks' own stagger times how many are lit */
-  .is-arriving .in-dial__needle { animation: in-dial-needle 240ms var(--k-ease) calc(var(--lit, 0) * 9ms + 120ms) both; }
+  .is-arriving .in-dial__needle { transform-origin: 163px 148px; animation: in-dial-sweep calc(var(--lit, 0) * 9ms) linear 120ms backwards; }
   /* while the figure rolls, the marks and needle follow it frame by frame: no power-up on top */
   .in-dial.is-rolling .in-dial__m, .in-dial.is-rolling .in-dial__needle { animation: none; }
 }
-@keyframes in-dial-needle { from { opacity: 0; } }
+@keyframes in-dial-sweep { from { transform: rotate(calc(var(--lit, 0) * -4deg)); } }
 /* what an even pace would be, in words under the dial */
 .in-legend { display: flex; align-items: center; justify-content: center; gap: 8px; margin: -4px 0 12px; font-size: 12.5px; color: var(--k-text-2); }
 .in-legend b { color: var(--k-text); font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -342,3 +342,56 @@
 :root[data-style="instrument"] .lock__mark { border-radius: var(--in-r); }
 :root[data-style="instrument"] .lock__dots i { border-radius: 2px; }
 :root[data-style="instrument"] .lock__title { font-weight: 600; }
+
+/* The month chart draws itself (5.37): the bars rise as the line reaches them, the dot lands as it ends.
+   Armed (hidden) only by script, only until it scrolls into view, so without script it is just there. */
+.k .scale-card.is-armed .waves__bar, .k .scale-card.is-armed .waves__other { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); }
+.k .scale-card.is-armed .waves--spent.waves__line { stroke-dasharray: 100; stroke-dashoffset: 100; }
+.k .scale-card.is-armed .waves__dot { opacity: 0; }
+@keyframes bar-rise { from { transform: scaleY(0); } }
+@keyframes line-draw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes dot-land { from { opacity: 0; } }
+@keyframes dot-ring { from { opacity: 0.8; transform: scale(1); } to { opacity: 0; transform: scale(3); } }
+.k .scale-card .waves__ring { fill: none; stroke: var(--k-accent); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.k .scale-card.is-drawing .waves__bar, .k .scale-card.is-drawing .waves__other { transform-box: fill-box; transform-origin: 50% 100%; animation: bar-rise 300ms var(--k-ease) var(--d, 0ms) backwards; }
+.k .scale-card.is-drawing .waves--spent.waves__line { stroke-dasharray: 100; animation: line-draw 700ms linear 160ms backwards; stroke-dashoffset: 0; }
+.k .scale-card.is-drawing .waves__dot { animation: dot-land 120ms linear 860ms backwards; }
+.k .scale-card.is-drawing .waves__ring { animation: dot-ring 520ms var(--k-ease) 860ms both; }
+/* Scrubbing: the guide and the dot glide, the picked bar lifts. */
+.k .scale .waves__guide, .k .scale .waves__dot, .k .scale .waves__ring { transition: transform 120ms var(--k-ease); }
+.k .scale .waves__bar { transition: transform 120ms var(--k-ease), fill 120ms linear; }
+.k .scale .waves__bar.is-picked { transform: translateY(-3px); }
+
+/* One soft warning when the month turns worse: a ring breathes out around the figure, once. */
+.pace-pulse { position: absolute; border: 2px solid var(--k-negative); border-radius: 10px; pointer-events: none; }
+
+/* A month that closed under budget: the lit marks glow once, one after another, after the power-up. */
+@keyframes in-dial-glow { 0% { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--k-accent) 70%, transparent)); } 45% { filter: drop-shadow(0 0 10px var(--k-accent)) brightness(1.5); } 100% { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--k-accent) 70%, transparent)); } }
+@keyframes closed-word { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: no-preference) {
+  .is-arriving .in-dial--closed .in-dial__m--on { animation: in-dial-glow 420ms var(--k-ease) calc(var(--i, 0) * 9ms + 700ms) both; }
+  .is-arriving .in-legend--closed { animation: closed-word 280ms var(--k-ease) 1000ms backwards; }
+}
+.in-legend--closed b { color: var(--k-positive); }
+@media (prefers-reduced-motion: reduce) {
+  .k .scale-card.is-armed .waves__bar, .k .scale-card.is-armed .waves__other { transform: none; }
+  .k .scale-card.is-armed .waves--spent.waves__line { stroke-dasharray: none; }
+  .k .scale-card.is-armed .waves__dot { opacity: 1; }
+}
+
+/* The tab mark glides (5.37): one mark, placed by script, moving to the chosen tab in 280 ms. */
+#tabs .nav-ind { display: none; }
+:root[data-style="instrument"] #tabs .nav-ind { display: block; position: absolute; top: -1px; left: 0; width: var(--w, 0); height: 2px; background: var(--k-accent); box-shadow: 0 0 12px var(--k-accent); transform: translateX(var(--x, 0)); pointer-events: none; }
+:root[data-style="instrument"] #tabs .nav-ind.is-ready { transition: transform 280ms var(--k-ease), width 280ms var(--k-ease); }
+:root[data-style="instrument"] #tabs .nav-btn.active::before { display: none; }
+:root[data-style="instrument"] #tabs .nav-btn { transition: color 280ms var(--k-ease); }
+@media (prefers-reduced-motion: reduce) { :root[data-style="instrument"] #tabs .nav-ind.is-ready, :root[data-style="instrument"] #tabs .nav-btn { transition: none; } }
+
+/* A lit pill glides between the choices of a toggle (5.37), Instrument's flat fill of the lit colour. */
+.seg-pill { display: none; }
+:root[data-style="instrument"] .has-pill { position: relative; }
+:root[data-style="instrument"] .has-pill .seg-pill { display: block; position: absolute; top: 0; left: 0; width: var(--w, 0); height: var(--h, 0); transform: translate(var(--x, 0), var(--y, 0)); background: var(--k-accent); border-radius: var(--in-r-sm); pointer-events: none; }
+:root[data-style="instrument"] .has-pill .seg-pill.is-ready { transition: transform 200ms var(--k-ease), width 200ms var(--k-ease), height 200ms var(--k-ease); }
+:root[data-style="instrument"] .has-pill .dir-btn, :root[data-style="instrument"] .has-pill .k-seg__btn { position: relative; z-index: 1; transition: color 200ms var(--k-ease); }
+:root[data-style="instrument"] .has-pill .dir-btn.active, :root[data-style="instrument"] .has-pill .k-seg__btn[aria-selected="true"] { background: transparent; }
+@media (prefers-reduced-motion: reduce) { :root[data-style="instrument"] .has-pill .seg-pill.is-ready { transition: none; } }

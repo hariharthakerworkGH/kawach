@@ -168,11 +168,12 @@ export function goalRing({ saved = 0, target = 0, size = 76, monthly = null, by 
   const r = size / 2 - 6;
   const circumference = 2 * Math.PI * r;
   const label = `${Math.round(share * 100)} per cent saved: ${formatRupees(saved)} of ${formatRupees(target)}${by ? ` by ${by}` : ''}.`;
-  return `<svg class="goal-ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(label)}">
+  return `<svg class="goal-ring${share >= 1 ? ' is-done' : ''}" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(label)}">
       <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" class="chart-ring-track"/>
       <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" class="chart-ring-fill" stroke-linecap="round"
         stroke-dasharray="${(circumference * share).toFixed(1)} ${circumference.toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>
       <text x="${size / 2}" y="${size / 2 + 5}" text-anchor="middle" fill="var(--k-text)" font-size="${Math.round(size / 7)}" font-weight="700">${esc(formatRupees(saved))}</text>
+      ${share >= 1 ? `<circle class="goal-ring__ripple" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none"/><g class="goal-ring__done" transform="translate(${size - 22} 4)"><circle cx="9" cy="9" r="9"/><path d="M5 9.5l3 3 5-6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>` : ''}
       ${monthly ? `<title>${esc(`${formatRupees(monthly)} a month gets there`)}</title>` : ''}
     </svg>`;
 }

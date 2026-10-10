@@ -31,7 +31,8 @@ import * as inboxView from './views/inbox.js';
 import * as setupView from './views/setup.js';
 import { collectSharedAlerts } from './alert-inbox.js';
 import { refreshSchedule, runDueReminders } from './reminders.js';
-import { countUpHeroes, rollFigures } from './ui.js';
+import { countUpHeroes, rollFigures, fillBars, levelWatch, beginArrival } from './ui.js';
+import { wirePullRefresh } from './pull-refresh.js';
 
 const SEED_CATEGORIES = [
   { id: 'cat-food', name: 'Food & Dining', parentId: null },
@@ -89,6 +90,31 @@ let drawing = 0;
 const trail = [];
 const TRAIL_MAX = 30;
 
+// The lit mark above the active tab (Instrument): one shared mark that glides to the tab you chose in
+// 280 ms, instead of a mark that disappears from one tab and appears on the next (css "nav-ind").
+// Placed without gliding the first time and when the phone turns.
+function moveTabMark() {
+  const nav = document.getElementById('tabs');
+  const active = nav && nav.querySelector('.nav-btn.active');
+  if (!active) return;
+  let mark = nav.querySelector('.nav-ind');
+  if (!mark) {
+    mark = document.createElement('i');
+    mark.className = 'nav-ind';
+    mark.setAttribute('aria-hidden', 'true');
+    nav.append(mark);
+  }
+  mark.style.setProperty('--x', `${active.offsetLeft + active.offsetWidth * 0.22}px`);
+  mark.style.setProperty('--w', `${active.offsetWidth * 0.56}px`);
+  requestAnimationFrame(() => mark.classList.add('is-ready'));
+}
+window.addEventListener('resize', () => {
+  const mark = document.querySelector('#tabs .nav-ind');
+  if (!mark) return;
+  mark.classList.remove('is-ready');
+  moveTabMark();
+});
+
 // fromHistory: shown because of the back button (or on start-up), so it is
 // not added to the trail. scrollY: where to put you on it. slide: 1 or -1
 // when a swipe brought it (js/swipe.js), so it comes in from that side.
@@ -107,17 +133,31 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0, sli
   // pieces - Summary arrives in four - which is the flicker you saw on every
   // tab: blank, part, part, whole.
   const mine = ++drawing;
+  beginArrival();
   const old = document.getElementById('view-container');
   const next = document.createElement('main');
   next.className = 'view-container';
   next.hidden = true;
   old.after(next);
+  // A screen that is slow to work out shows grey shapes where its figures will be (css "skeleton"):
+  // at once when there is nothing on screen yet (the app opening), after 700 ms over a screen that is
+  // still there. A quick screen never shows them.
+  const slow = setTimeout(() => {
+    if (mine !== drawing || !old.isConnected) return;
+    const sk = document.createElement('div');
+    sk.className = 'view-skeleton';
+    sk.setAttribute('aria-hidden', 'true');
+    sk.innerHTML = '<i class="sk sk--cap"></i><i class="sk sk--fig"></i><i class="sk sk--line"></i><i class="sk sk--card"></i><i class="sk sk--card"></i>';
+    old.append(sk);
+  }, old.childElementCount ? 700 : 120);
   try {
     await view.module.render(next, params);
   } catch (err) {
+    clearTimeout(slow);
     next.remove();
     throw err;
   }
+  clearTimeout(slow);
   if (mine !== drawing) {
     next.remove();
     return;
@@ -127,6 +167,7 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0, sli
     next.id = 'view-container';
     next.hidden = false;
     document.querySelectorAll('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
+    moveTabMark();
     document.getElementById('view-title').textContent = view.title;
     showSpaceChip();
     window.scrollTo(0, scrollY);
@@ -154,6 +195,8 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0, sli
   }
   countUpHeroes(next);
   rollFigures(next);
+  fillBars(next);
+  levelWatch(next);
   clearTimeout(enterTimer);
   enterTimer = setTimeout(() => next.classList.remove('view-enter'), 1400);
 }
@@ -312,13 +355,63 @@ async function runSync({ silent = true, opening = false } = {}) {
   }
 }
 
+let syncTickTimer = 0;
 function setSyncIndicator(state, title = '') {
   const el = document.getElementById('sync-indicator');
   if (!el) return;
-  el.hidden = state === 'ok';
+  clearTimeout(syncTickTimer);
+  // A finished sync ticks for a second, then the icon goes (css "sync-ok"); it never stays.
+  if (state === 'ok') {
+    el.hidden = false;
+    el.innerHTML = icon('check');
+    el.className = 'sync-indicator ok';
+    el.title = 'Synced';
+    syncTickTimer = setTimeout(() => el.classList.contains('ok') && (el.hidden = true), 1100);
+    return;
+  }
+  el.hidden = false;
   el.innerHTML = state === 'syncing' ? icon('sync') : icon('alert');
   el.className = `sync-indicator ${state}`;
   el.title = state === 'error' ? title : 'Syncing…';
+}
+
+// Pull a screen down to refresh it (js/pull-refresh.js): syncs when sync is set up, then draws the screen
+// again. Only on a screen that can be drawn again safely, and never while something is open over it.
+function wirePull() {
+  wirePullRefresh({
+    canPull: () =>
+      SAFE_TO_REFRESH.has(currentView) &&
+      !typingInView() &&
+      !document.documentElement.classList.contains('is-locked') &&
+      !document.querySelector('.dialog-backdrop, .lock, #month-sheet, #quick-sheet, #add-cat-sheet:not([hidden])'),
+    refresh: async () => {
+      await runSync({ silent: true });
+      const container = document.getElementById('view-container');
+      const view = views[currentView];
+      if (container && view) await redraw(container, () => view.module.render(container, currentParams));
+    },
+  });
+}
+
+// The big title shrinks into the header as the screen scrolls, and the header gains a hairline.
+function wireHeaderShrink() {
+  const header = document.querySelector('.app-header');
+  if (!header) return;
+  // Where the pull-to-refresh icon sits: just under the header, whatever its height on this phone.
+  document.documentElement.style.setProperty('--header-h', `${header.offsetHeight}px`);
+  let queued = false;
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        header.style.setProperty('--shrink', String(Math.min(1, Math.max(0, window.scrollY / 60))));
+      });
+    },
+    { passive: true }
+  );
 }
 
 function wireSync() {
@@ -599,6 +692,8 @@ async function init() {
     .catch(() => {});
 
   wireSync();
+  wirePull();
+  wireHeaderShrink();
 
   // Chrome decides a little after start-up that the app can be installed;
   // Summary is redrawn then so its Install card has a working button, and

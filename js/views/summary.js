@@ -27,7 +27,7 @@ import { installCard, wireInstallCard } from '../install.js';
 import { backupStatus } from '../drive.js';
 import { incomeWords, businesses, activeSpace, setCurrentSpace, accountInSpace, businessSpace, businessRunway } from '../business.js';
 import { taxDates, renews, renewalsAhead, renewalAfter } from '../calendar.js';
-import { escapeHtml, escapeAttr, sectionHead, pill, hero, panel } from '../ui.js';
+import { escapeHtml, escapeAttr, sectionHead, pill, hero, panel, arrivalNow, slideIn } from '../ui.js';
 import { lateBack, reminderText, shareReminder } from '../people.js';
 import { cashSide, spendMoves, isCardBill } from '../transfers.js';
 
@@ -337,7 +337,7 @@ async function renderDashboard(container) {
       const next = months[months.indexOf(viewMonth || thisKey) + delta];
       if (!next) return;
       viewMonth = next === thisKey ? null : next;
-      redraw(container, () => render(container));
+      redraw(container, () => render(container)).then(() => slideIn([container.querySelector('#dashboard')], delta));
     };
     dashboardEl.querySelector('#sum-month-prev').addEventListener('click', () => step(-1));
     dashboardEl.querySelector('#sum-month-next').addEventListener('click', () => step(1));
@@ -783,7 +783,9 @@ export function monthScale(f) {
   const other = (f.spendByDay || []).map((d) => d.other || 0);
   const bars = daily
     .map((v, i) => {
-      const at = `x="${(x(i) - bw / 2).toFixed(1)}" width="${bw.toFixed(1)}" data-bar="${i}"`;
+      // Drawn in order: a bar rises about 60 ms before the line reaches it (css "chart draw").
+      const dly = Math.max(0, Math.round(160 + ((x(i) - x(0)) / Math.max(1, x(n - 1) - x(0))) * 700 - 60));
+      const at = `x="${(x(i) - bw / 2).toFixed(1)}" width="${bw.toFixed(1)}" data-bar="${i}" style="--d:${dly}ms"`;
       const solid = v > 0 ? `<rect class="waves__bar${i === bigDay ? ' is-top' : ''}" ${at} y="${y(v).toFixed(1)}" height="${(B - y(v)).toFixed(1)}"/>` : '';
       if (!(other[i] > 0)) return solid;
       const from = y(v), to = Math.max(T, y(v + other[i])), isCut = y(v + other[i]) < T;
@@ -798,7 +800,7 @@ export function monthScale(f) {
   const poly = (vals) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
   const days = daily.map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(pace[i]), +x(i).toFixed(1), +y(totals[i]).toFixed(1), f.spendByDay[i].other || 0]);
   const last = n - 1;
-  return `<div class="totals-card waves-card scale-card" ${chartData(days, +x(0).toFixed(1), +x(last).toFixed(1), W, f)}>
+  return `<div class="totals-card waves-card scale-card" data-draw-key="${f.cycleKey || ''}" ${chartData(days, +x(0).toFixed(1), +x(last).toFixed(1), W, f)}>
       ${chartHead(f)}
       <svg class="waves scale no-swipe" viewBox="0 0 ${W} ${H}" role="img" aria-label="${f.finished ? 'The month' : 'This month so far'}: ${formatRupees(totals[last])} spent against ${formatRupees(Math.round(pace[last]))} of budget so far, out of ${formatRupees(f.limit)}. Most in one day: ${formatRupees(daily[bigDay])} on ${formatDateNice(f.spendByDay[bigDay].date)}.">
         <defs><pattern id="${hatchId}" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line class="scale__hatch" x1="0" y1="0" x2="0" y2="4"/></pattern></defs>
@@ -807,8 +809,9 @@ export function monthScale(f) {
         <text class="scale__budget-lab" x="${W - R}" y="${(y(f.limit) - 6).toFixed(1)}" text-anchor="end">BUDGET ${formatRupees(f.limit)}</text>
         ${ticks}${bars}
         <path class="waves__line waves--pace" d="${poly(pace)}"/>
-        <path class="waves__line waves--spent" d="${poly(totals)}"/>
+        <path class="waves__line waves--spent" pathLength="100" d="${poly(totals)}"/>
         <line class="waves__guide" data-guide x1="${x(last).toFixed(1)}" x2="${x(last).toFixed(1)}" y1="${T - 4}" y2="${B}"/>
+        <circle class="waves__ring" cx="${x(last).toFixed(1)}" cy="${y(totals[last]).toFixed(1)}" r="4.5"/>
         <circle class="waves__dot" data-dot cx="${x(last).toFixed(1)}" cy="${y(totals[last]).toFixed(1)}" r="4.5"/>
       </svg>
       <p class="chart-readout" data-readout aria-live="polite">${chartReadout(days[last], dayWord(days[last][0]), f.finished)}</p>
@@ -832,6 +835,28 @@ export const chartReadout = (d, label, finished = false) =>
 
 /* Drag across a month chart to read any day: a guide line and a dot follow the
  * finger, and the line under the chart says what that day was. */
+// The month chart draws itself once per arrival on a screen, when it scrolls into view (css "chart
+// draw"): the bars rise as the line reaches them and the dot lands as the line ends. A redraw of the
+// same screen leaves it as drawn; with no motion wanted it is simply there.
+const drawn = new Map();
+function drawOnce(card) {
+  const key = card.dataset.drawKey;
+  if (key == null || !('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (drawn.get(key) === arrivalNow()) return;
+  card.classList.add('is-armed');
+  const watch = new IntersectionObserver(
+    (entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      watch.disconnect();
+      drawn.set(key, arrivalNow());
+      card.classList.remove('is-armed');
+      card.classList.add('is-drawing');
+    },
+    { threshold: 0.5 }
+  );
+  watch.observe(card);
+}
+
 function wireCharts(root) {
   root.querySelectorAll('[data-chart-days]').forEach((card) => {
     if (card.dataset.wired) return;
@@ -844,16 +869,23 @@ function wireCharts(root) {
     const [x0, x1, w] = [Number(card.dataset.x0), Number(card.dataset.x1), Number(card.dataset.w)];
     const finished = Boolean(card.dataset.finished);
     let at = days.length - 1;
-    const show = (i) => {
+    // The guide and the dot are moved by a transform, so they glide to the day under the finger in step
+    // with the bar that lifts and the reading that changes, all within 120 ms.
+    const gx = Number(guide.getAttribute('x1'));
+    const dx = Number(dot.getAttribute('cx'));
+    const dy = Number(dot.getAttribute('cy'));
+    const ring = card.querySelector('.waves__ring');
+    const show = (i, quiet = false) => {
       at = i;
       const d = days[i];
-      guide.setAttribute('x1', d[4]);
-      guide.setAttribute('x2', d[4]);
-      dot.setAttribute('cx', d[4]);
-      dot.setAttribute('cy', d[5]);
+      guide.style.transform = `translateX(${d[4] - gx}px)`;
+      dot.style.transform = `translate(${d[4] - dx}px, ${d[5] - dy}px)`;
+      if (ring) ring.style.transform = `translate(${d[4] - dx}px, ${d[5] - dy}px)`;
       card.querySelectorAll('[data-bar]').forEach((b) => b.classList.toggle('is-picked', Number(b.dataset.bar) === i));
       readout.textContent = chartReadout(d, dayWord(d[0]), finished);
+      if (!quiet && readout.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) readout.animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: 120 });
     };
+    drawOnce(card);
     const dayAt = (clientX) => {
       const r = svg.getBoundingClientRect();
       const vx = ((clientX - r.left) / r.width) * w;
@@ -862,7 +894,11 @@ function wireCharts(root) {
     let dragging = false;
     svg.addEventListener('pointerdown', (e) => {
       dragging = true;
-      svg.setPointerCapture?.(e.pointerId);
+      try {
+        svg.setPointerCapture?.(e.pointerId);
+      } catch {
+        /* a pointer that is already gone: the reading still follows the events it gets */
+      }
       show(dayAt(e.clientX));
     });
     svg.addEventListener('pointermove', (e) => dragging && show(dayAt(e.clientX)));

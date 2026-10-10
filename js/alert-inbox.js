@@ -3,6 +3,7 @@ import { splitAlerts, parseAlert, alertFingerprint } from './alerts.js';
 import { learnFromAssignment } from './merchant-rules.js';
 import { loadLearned, learnFrom } from './alert-learning.js';
 import { isoLocal, clockOf } from './frequency.js';
+import { markFresh } from './ui.js';
 
 // Alerts waiting for you to confirm them.
 //
@@ -150,6 +151,7 @@ export async function saveAlert(item, edits) {
   if (edits.transferDecided) transaction.transferManual = true;
 
   await put('transactions', transaction);
+  markFresh(transaction.id);
   if (transaction.categoryId) await learnFromAssignment(transaction.rawDescription, transaction.categoryId, transaction.direction);
 
   // Remember which account this card number belongs to, so the next alert

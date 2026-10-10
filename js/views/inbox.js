@@ -1,7 +1,7 @@
 import { getAll } from '../db.js';
 import { formatCurrency, formatDateNice } from '../format.js';
 import { matchCategoryForDescription, isIncomeCategory, fitsDirection } from '../merchant-rules.js';
-import { parseAlert, resolveAccount, findExisting, alertFingerprint } from '../alerts.js';
+import { parseAlert, resolveAccount, findExisting, alertFingerprint, dateMatch } from '../alerts.js';
 import { pendingAlerts, addToInbox, dismissAlert, saveAlert } from '../alert-inbox.js';
 import { loadLearned, forgetLearned } from '../alert-learning.js';
 import { showToast } from '../toast.js';
@@ -9,7 +9,7 @@ import { commitmentField, cardPaymentField } from './add.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
 import { looksLikeCardPayment } from '../transfers.js';
 import { redraw } from '../redraw.js';
-import { escapeHtml, escapeAttr, sectionHead } from '../ui.js';
+import { escapeHtml, escapeAttr, sectionHead, invalidField, slidingPill } from '../ui.js';
 
 // Bank alerts you've shared or pasted, each shown as a draft to check and
 // save. Nothing here counts towards any total until you tap Save.
@@ -126,6 +126,7 @@ export async function render(container) {
     </details>
   </div>`;
 
+  container.querySelectorAll('.al-direction').forEach(slidingPill);
   wire(container.querySelector('.inbox-root'), container);
 }
 
@@ -343,9 +344,9 @@ function wire(root, container) {
       if (e.target.closest('.alert-save') && card) {
         const draft = drafts.find((d) => d.item.id === card.dataset.id);
         if (!draft) return;
-        const edits = readEdits(card, draft);
+        const edits = readEdits(card, draft, true);
         if (edits.error) {
-          showToast(edits.error);
+          if (!edits.inline) showToast(edits.error);
           return;
         }
         // Tapping Save on a card that warned it's a duplicate is a deliberate
@@ -424,14 +425,58 @@ async function ingest(text, refresh) {
     card.querySelectorAll('.field, .alert-amount').forEach((f, i) => f.style.setProperty('--i', i));
     card.classList.add('is-fresh');
     setTimeout(() => card.classList.remove('is-fresh'), 2600);
+    showReading(card);
   }
 }
 
-function readEdits(card, draft) {
+// The message itself, for a second and a half, with the words it was read from lit in turn - the
+// amount, who it was, the date - while the fields below take their values in the same order and the
+// same beat (css "fresh-field"). Then it folds away. The words are found by what was read, so a
+// message read badly shows exactly what was misread.
+function showReading(card) {
+  const draft = drafts.find((d) => d.item.id === card.dataset.id);
+  if (!draft || !draft.parsed.ok) return;
+  const raw = draft.item.rawText;
+  const p = draft.parsed;
+  const marks = [];
+  const money = [...raw.matchAll(/(?:Rs\.?|INR|₹|Rupees|Amt\.?:?|Amount:?)\s*([\d,]+(?:\.\d{1,2})?)/gi)].find((m) => Math.round(parseFloat(m[1].replace(/,/g, '')) * 100) === p.amount);
+  if (money) marks.push({ at: money.index, len: money[0].length });
+  const who = p.party ? raw.toLowerCase().indexOf(p.party.toLowerCase()) : -1;
+  if (who >= 0) marks.push({ at: who, len: p.party.length });
+  const day = dateMatch(raw);
+  if (day) marks.push({ at: day.index, len: day.text.length });
+  marks.sort((a, b) => a.at - b.at);
+  let html = '';
+  let from = 0;
+  let k = 0;
+  for (const m of marks) {
+    if (m.at < from) continue;
+    html += `${escapeHtml(raw.slice(from, m.at))}<mark style="--k:${k}">${escapeHtml(raw.slice(m.at, m.at + m.len))}</mark>`;
+    from = m.at + m.len;
+    k += 1;
+  }
+  html += escapeHtml(raw.slice(from));
+  const box = document.createElement('p');
+  box.className = 'alert-sms';
+  box.innerHTML = html;
+  card.querySelector('.alert-top').after(box);
+  setTimeout(async () => {
+    if (box.animate) await box.animate([{ height: `${box.offsetHeight}px`, opacity: 1 }, { height: '0px', opacity: 0, marginTop: '0px', marginBottom: '0px' }], { duration: 200, easing: 'cubic-bezier(0.7, 0, 0.84, 0)' }).finished.catch(() => {});
+    box.remove();
+  }, 1800);
+}
+
+// `inline`: a field that will not do shakes and says why under itself (one card, one tap), rather
+// than a toast. Save-all passes nothing: it skips a card that cannot be saved and says nothing.
+function readEdits(card, draft, inline = false) {
   const { parsed } = draft;
+  const refuse = (selector, message) => {
+    if (inline) invalidField(card.querySelector(selector), message);
+    return { error: message, inline };
+  };
   const accountId = card.querySelector('.al-account').value;
   const account = context.accounts.find((a) => a.id === accountId);
-  if (!account) return { error: 'Pick the account first' };
+  if (!account) return refuse('.al-account', 'Pick the account first');
 
   const activeDir = card.querySelector('.al-direction .dir-btn.active');
   const direction = activeDir ? activeDir.dataset.dir : parsed.direction;
@@ -439,10 +484,10 @@ function readEdits(card, draft) {
 
   const amountInput = card.querySelector('.al-amount');
   const amount = amountInput ? Math.round(parseFloat(amountInput.value) * 100) : parsed.amount;
-  if (!Number.isFinite(amount) || amount <= 0) return { error: 'Check the amount' };
+  if (!Number.isFinite(amount) || amount <= 0) return refuse('.al-amount', 'Check the amount');
 
   const date = card.querySelector('.al-date').value;
-  if (!date) return { error: 'Pick a date' };
+  if (!date) return refuse('.al-date', 'Pick a date');
 
   const category = context.categories.find((c) => c.id === card.querySelector('.al-category').value);
   const paysCardId = card.querySelector('.al-pays-card') ? card.querySelector('.al-pays-card').value || null : null;
