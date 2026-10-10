@@ -171,6 +171,7 @@ export async function render(container, params = {}) {
            Spent/Received choice is shown. -->
       ${reimbursableSwitch('add-reimb', 'Work cost', 'Your employer will pay this back')}
       ${reimbursableSwitch('add-settle', 'Pays back a work cost', 'Money your employer paid back', true)}
+      ${reimbursableSwitch('add-shareback', 'Friends paying me back', 'For something I paid for. It counts against what I spent', true)}
 
       ${detailFields}
 
@@ -235,11 +236,18 @@ export async function render(container, params = {}) {
   // button is what you see (the same pattern as "Repeats every month").
   const reimbEl = container.querySelector('#add-reimb');
   const settleEl = container.querySelector('#add-settle');
-  [reimbEl, settleEl].forEach((box) => {
+  const shareEl = container.querySelector('#add-shareback');
+  [reimbEl, settleEl, shareEl].forEach((box) => {
     const toggle = container.querySelector(`#${box.id}-toggle`);
     toggle.addEventListener('click', () => {
       box.checked = !box.checked;
       toggle.setAttribute('aria-checked', String(box.checked));
+      // Money in is one thing or the other: an employer paying back, or friends.
+      const other = box === settleEl ? shareEl : box === shareEl ? settleEl : null;
+      if (box.checked && other) {
+        other.checked = false;
+        container.querySelector(`#${other.id}-toggle`).setAttribute('aria-checked', 'false');
+      }
     });
   });
   // Shows the row that fits the way the money went, and clears the other: a
@@ -248,7 +256,8 @@ export async function render(container, params = {}) {
     const business = isBusinessAccount(accounts.find((a) => a.id === container.querySelector('#add-account').value));
     reimbEl.closest('.k-switch-row').hidden = business || direction !== 'debit';
     settleEl.closest('.k-switch-row').hidden = business || direction !== 'credit';
-    for (const [box, show] of [[reimbEl, direction === 'debit'], [settleEl, direction === 'credit']]) {
+    shareEl.closest('.k-switch-row').hidden = business || direction !== 'credit';
+    for (const [box, show] of [[reimbEl, direction === 'debit'], [settleEl, direction === 'credit'], [shareEl, direction === 'credit']]) {
       if (!show || business) {
         box.checked = false;
         container.querySelector(`#${box.id}-toggle`).setAttribute('aria-checked', 'false');
@@ -540,6 +549,7 @@ export async function render(container, params = {}) {
     // Never Income for a spend, whatever slipped through.
     if (direction === 'debit' && categories.some((c) => c.id === transaction.categoryId && isIncomeCategory(c))) transaction.categoryId = null;
     if (direction === 'credit' && settleEl.checked) transaction.isSettlement = true;
+    else if (direction === 'credit' && shareEl.checked) transaction.isShareBack = true;
     // NEW: only with a commitment to apply it to (the switch is disabled
     // without one, and this is the second lock).
     if (direction === 'debit' && nextEl.checked && transaction.commitmentId) transaction.forNextMonth = true;
@@ -751,7 +761,7 @@ function arrangeAdd(container) {
   rows.className = 'add-card add-rows';
   form.prepend(toggle);
   card.append(hero.querySelector('.amount-field'), field('add-desc'));
-  head.append(container.querySelector('#add-cat-open').closest('.k-field'), field('add-reimb'), field('add-settle'));
+  head.append(container.querySelector('#add-cat-open').closest('.k-field'), field('add-reimb'), field('add-settle'), field('add-shareback'));
   const account = field('add-account');
   const quick = account.parentElement !== form ? account.closest('details') : null;
   const mark = (el, name) => {

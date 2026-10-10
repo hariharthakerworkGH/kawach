@@ -2443,3 +2443,10 @@ test('what you did not spend: each set-aside with what was left, the month total
   ok(html.includes('What you did not spend') && html.includes('₹12,900') && html.includes('of ₹27,000 set aside') && html.includes('₹500 over') && html.includes('₹3,600 left') && !html.includes('so far'), 'a finished month');
   ok(flexCard(r, '2026-10', new Date('2026-10-08T12:00')).includes(', so far.'), 'the month in progress says so far');
 });
+
+test('a payment out cannot carry the paid-back flag, and money in cannot be both an employer and friends', () => {
+  const out = tidyFlags({ direction: 'debit', isShareBack: true, amount: 1 });
+  equal(out.isShareBack, undefined, 'out: gone');
+  const inn = tidyFlags({ direction: 'credit', isReimbursable: true, isShareBack: true, amount: 1 });
+  equal([inn.isReimbursable, inn.isShareBack], [undefined, true], 'in: the work-cost flag goes, this one stays');
+});

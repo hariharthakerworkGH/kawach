@@ -751,7 +751,7 @@ export async function computeFreeToSpend(now = new Date()) {
   // spend, and the refund must not be credited back for a cost that never came
   // off (a refund landing on a card would otherwise net against card spending).
   const cardWindow = transactions.filter(
-    (t) => cardIds.has(t.accountId) && !t.isTransfer && !isWorkCost(t) && !isRefund(t) && !isPersonMoney(t) && !loanEmiIds.has(t.id) && notCancelled(t) && inCardMonth(t)
+    (t) => cardIds.has(t.accountId) && !t.isTransfer && !t.isShareBack && !isWorkCost(t) && !isRefund(t) && !isPersonMoney(t) && !loanEmiIds.has(t.id) && notCancelled(t) && inCardMonth(t)
   );
   const cardGross = cardWindow.reduce((s, t) => s + (t.direction === 'credit' ? -t.amount : t.amount), 0);
   const cardSpent = cardGross - sum(cardCommitmentCharges);
@@ -763,7 +763,14 @@ export async function computeFreeToSpend(now = new Date()) {
     .filter((t) => personEffects.has(t.id) && t.date >= windowStart && t.date <= spendEnd && t.date <= today)
     .map((t) => ({ date: t.date, amount: personEffects.get(t.id) }));
   const personSpent = personSpends.reduce((s, e) => s + e.amount, 0);
-  const spentThisCycle = cardSpent + bankSpent + personSpent;
+  // Money friends paid back for something paid up front (5.42): the whole bill was counted when it
+  // was paid, so what comes back is taken off in the month it arrives, whatever it landed in
+  // (cash too, which no other money in ever counts for). Only payments in marked "paid back by others".
+  const shareBackSpends = transactions
+    .filter((t) => t.isShareBack && t.direction === 'credit' && !t.isTransfer && !isPersonMoney(t) && t.date >= windowStart && t.date <= spendEnd && t.date <= today)
+    .map((t) => ({ date: t.date, amount: -t.amount }));
+  const shareBackTotal = -shareBackSpends.reduce((s, e) => s + e.amount, 0);
+  const spentThisCycle = cardSpent + bankSpent + personSpent - shareBackTotal;
 
   // Work costs: shown and followed, never spent. Every account of the house,
   // cards included, since the hotel was swiped on one.
@@ -845,10 +852,11 @@ export async function computeFreeToSpend(now = new Date()) {
     ...bankSpends.map((t) => ({ date: t.date, amount: t.direction === 'debit' ? t.amount : -t.amount })),
     ...cards.flatMap((c) =>
       transactions
-        .filter((t) => t.accountId === c.account.id && !t.isTransfer && !isWorkCost(t) && !isRefund(t) && !isPersonMoney(t) && !claimed.has(t.id) && notCancelled(t) && (!c.cycleStart || t.date > c.cycleStart) && t.date <= today)
+        .filter((t) => t.accountId === c.account.id && !t.isTransfer && !t.isShareBack && !isWorkCost(t) && !isRefund(t) && !isPersonMoney(t) && !claimed.has(t.id) && notCancelled(t) && (!c.cycleStart || t.date > c.cycleStart) && t.date <= today)
         .map((t) => ({ date: t.date, amount: t.direction === 'debit' ? t.amount : -t.amount }))
     ),
     ...personSpends,
+    ...shareBackSpends,
   ].filter((e) => e.date >= windowStart && e.date <= today);
   const perDay = new Map();
   for (const e of datedSpends) perDay.set(e.date, (perDay.get(e.date) || 0) + e.amount);
@@ -1120,6 +1128,7 @@ export async function computeFreeToSpend(now = new Date()) {
     // Cumulative spending, one figure per day gone by. See above.
     spendDays,
     spendByDay,
+    shareBackThisCycle: shareBackTotal,
     tracker,
     cutBack,
     flexible,

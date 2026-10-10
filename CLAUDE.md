@@ -184,6 +184,14 @@ Periods:
   also says whether the employer pays into the pension scheme at all, which the
   general rule gets wrong for members who joined after 2014 above the wage cap.
 
+Friends paying back what was paid up front (5.42): the whole bill counts when it is paid;
+a payment in marked `isShareBack` ("Friends paying me back", on Add under Received, or on the
+payment's edit panel in History) is taken off spending in the month it arrives, whatever account
+it landed in, cash included (`shareBackSpends` in `free-to-spend.js`, `shareBackThisCycle` on the
+result). It is not the lent-and-borrowed ledger: that needs the share logged as lent first, counts
+only bank and card money, and treats an unexpected payment in as borrowing. Money in is an
+employer paying back (`isSettlement`) or friends, never both.
+
 Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built with
 `isoLocal` - never `toISOString()`, which is a day behind in India.
 

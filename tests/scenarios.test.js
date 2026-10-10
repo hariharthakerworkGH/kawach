@@ -1786,3 +1786,36 @@ test('the demo\'s bank messages are read in full, to the demo\'s own accounts', 
     ok(owner && data.accounts.some((a) => a.id === (owner.id || owner)), 'and finds the account it belongs to');
   }
 });
+
+// --- Friends paid back (5.42) ---------------------------------------------------
+test('friends paying back what you paid up front counts against what you spent, in cash too', async () => {
+  await seedMonth();
+  await put('accounts', { id: 'cash', label: 'Cash', type: 'cash', issuer: null, last4: null });
+  const today = day('2026-09-16');
+  const left = async () => (await computeFreeToSpend(today)).free;
+  const none = await left();
+  await putAll('transactions', [txn({ id: 'dinner', accountId: 'card', date: '2026-09-15', amount: 4000, rawDescription: 'DINNER WITH FRIENDS' })]);
+  const afterDinner = await left();
+  paise(none - afterDinner, rupees(4000));
+  await putAll('transactions', [txn({ id: 'back1', accountId: 'cash', date: '2026-09-16', amount: 3000, direction: 'credit', rawDescription: 'CASH FROM FRIENDS' })]);
+  paise(await left(), afterDinner);
+  await put('transactions', { ...(await getAll('transactions')).find((t) => t.id === 'back1'), isShareBack: true });
+  paise((await left()) - afterDinner, rupees(3000));
+  const f = await computeFreeToSpend(today);
+  paise(f.shareBackThisCycle, rupees(3000));
+  paise(f.spendDays[f.spendDays.length - 1], f.spentThisCycle);
+  equal(f.spendByDay.every((d) => d.amount >= 0), true, 'a day never shows less than nothing spent');
+});
+
+test('money paid back by friends counts in the month it arrives, to any account, as money back does for a person', async () => {
+  await seedMonth();
+  await putAll('transactions', [
+    txn({ id: 'dinner', accountId: 'card', date: '2026-09-15', amount: 4000, rawDescription: 'DINNER WITH FRIENDS' }),
+    txn({ id: 'late', accountId: 'bank', date: '2026-10-02', amount: 3000, direction: 'credit', rawDescription: 'UPI FROM FRIENDS', isShareBack: true }),
+  ]);
+  const september = await computeFreeToSpend(day('2026-09-16'));
+  paise(september.shareBackThisCycle, 0);
+  const october = await computeFreeToSpend(day('2026-10-03'));
+  paise(october.shareBackThisCycle, rupees(3000));
+  paise(october.spentThisCycle, -rupees(3000));
+});

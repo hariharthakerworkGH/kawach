@@ -56,6 +56,7 @@ export function tidyFlags(t) {
     delete t.forNextMonth;
   } else {
     delete t.isSettlement;
+    delete t.isShareBack;
   }
   return t;
 }

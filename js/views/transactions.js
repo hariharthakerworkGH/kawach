@@ -744,7 +744,9 @@ function subHtml(t) {
       ? '<span class="hist-tag">Owed back</span>'
       : t.direction === 'credit' && t.isSettlement
         ? '<span class="hist-tag hist-tag--in">Paid back</span>'
-        : '';
+        : t.direction === 'credit' && t.isShareBack
+          ? '<span class="hist-tag hist-tag--in">Paid back by friends</span>'
+          : '';
   const bill = cardBill(t);
   const text = [account ? escapeHtml(account.label) : '', bill ? 'card bill' : t.isTransfer ? 'moved' : '', isSplit(t) ? 'split' : '', cache.cancelled && cache.cancelled.has(t.id) ? (t.direction === 'credit' ? 'cancels a purchase' : 'refunded') : ''].filter(Boolean).join(' · ');
   // With a tag, the words go in their own box so that on a narrow screen it is
@@ -831,9 +833,16 @@ function workFlagField(t) {
   if (t.isTransfer || (account && isBusinessAccount(account))) return '';
   const debit = t.direction === 'debit';
   const field = debit ? 'isReimbursable' : 'isSettlement';
-  return `<label class="hist-flag">
+  const work = `<label class="hist-flag">
       <input type="checkbox" class="rv-field" data-field="${field}" ${t[field] ? 'checked' : ''}>
       <span>${debit ? 'Work cost: my employer pays this back' : 'This pays back a work cost'}</span>
+    </label>`;
+  // Money in can also be friends paying back what you paid up front: it comes off what you spent.
+  return debit || t.personId
+    ? work
+    : `${work}<label class="hist-flag">
+      <input type="checkbox" class="rv-field" data-field="isShareBack" ${t.isShareBack ? 'checked' : ''}>
+      <span>Friends paying me back: counts against what I spent</span>
     </label>`;
 }
 
@@ -1100,10 +1109,13 @@ async function handleChange(e, container) {
     return;
   }
 
-  if (field === 'isReimbursable' || field === 'isSettlement' || field === 'forNextMonth') {
+  if (field === 'isReimbursable' || field === 'isSettlement' || field === 'isShareBack' || field === 'forNextMonth') {
     if (e.type !== 'change') return;
     if (e.target.checked) t[field] = true;
     else delete t[field];
+    // Money in is an employer paying back or friends, never both.
+    if (e.target.checked && field === 'isSettlement') delete t.isShareBack;
+    if (e.target.checked && field === 'isShareBack') delete t.isSettlement;
     await save(t);
     // Refreshed in place, so the Edit panel stays open under the finger.
     const subEl = rowEl.querySelector('.hist-sub');

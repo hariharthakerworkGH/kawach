@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.42',
+    items: [
+      {
+        icon: 'wallet',
+        title: "Friends paid you back? It counts now",
+        text: "If you paid a bill on your card and friends paid you back, add what they gave as Received and switch on Friends paying me back. It comes off what you spent, in the month it arrives, even if they paid in cash. You can also tick it on an old payment in History.",
+        guide: [{ view: 'add', target: '.direction-toggle', text: "Choose Received, then switch on Friends paying me back." }],
+      },
+    ],
+  },
+  {
     version: '5.41',
     items: [
       {
