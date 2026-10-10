@@ -20,7 +20,8 @@ import { moneyProfile, addBusiness, renameBusiness, removeBusiness, setBusinessG
 import { notesFor, openNotes } from '../whats-new.js';
 import { backupStatus, backupPassphrase, setBackupPassphrase, markFileBackup, signIn, hasGooglePass, backUpToDrive, listBackups, openDriveBackup } from '../drive.js';
 import { escapeHtml } from '../ui.js';
-import { getRecord, bioAvailable, enableLock, disableLock, setFingerprint, setAway, AWAY } from '../lock.js';
+import { getRecord, bioAvailable, enableLock, disableLock, setFingerprint, setAway, confirmPin, newRecoveryKey, AWAY } from '../lock.js';
+import { showSecret } from '../secret-sheet.js';
 
 // Kept while this screen is open, so a redraw doesn't lose them: the Drive
 // backups found for a restore, whether Restore is open, and whether the
@@ -105,7 +106,12 @@ export async function render(container, params = {}) {
         </div>`
             : ''
         }
-        <p class="muted-note settings-lock-note">Keeps out anyone who picks up your phone. It stays on this phone: it is not in backups or sync, and a PIN lost cannot be recovered.</p>`
+        <div class="k-switch-row settings-switch">
+          <span class="k-switch-row__text" id="lock-key-label">Recovery key
+            <span class="k-switch-row__sub">${lockRecord.rk ? `Made ${formatDateNice(isoLocal(new Date(lockRecord.rkAt || Date.now())))}. Opens Kawach if you forget the PIN` : 'None yet. Without one, a forgotten PIN means erasing this phone'}</span></span>
+          <button type="button" class="btn-tiny${lockRecord.rk ? '' : ' primary'}" id="lock-newkey" aria-labelledby="lock-key-label">${lockRecord.rk ? 'New key' : 'Make one'}</button>
+        </div>
+        <p class="muted-note settings-lock-note">Keeps out anyone who picks up your phone. It stays on this phone: it is not in backups or sync. Keep the recovery key away from the phone: it is the only way back in.</p>`
             : ''
         }
         <button type="button" class="k-row settings-row" id="go-appearance">
@@ -203,6 +209,11 @@ export async function render(container, params = {}) {
   container.querySelector('#lock-toggle').addEventListener('click', async () => {
     const done = getRecord() ? await disableLock() : await enableLock();
     if (done) showToast(getRecord() ? 'App lock on' : 'App lock off');
+    await redraw(container, () => render(container));
+    if (done && getRecord()) await nudgeBackup(container);
+  });
+  container.querySelector('#lock-newkey')?.addEventListener('click', async () => {
+    if (await newRecoveryKey()) showToast('New recovery key kept');
     redraw(container, () => render(container));
   });
   container.querySelector('#lock-away')?.addEventListener('change', (e) => {
@@ -403,6 +414,9 @@ function wireSync(container, params) {
     });
   }
 
+  container.querySelector('#sync-pass-show')?.addEventListener('click', async () =>
+    revealPassphrase('Your GitHub sync passphrase', 'Every device that syncs through GitHub needs this same passphrase.', await getSyncPassphrase(), 'kawach-sync-passphrase.txt')
+  );
   const disconnectBtn = container.querySelector('#sync-disconnect');
   if (disconnectBtn) {
     disconnectBtn.addEventListener('click', async () => {
@@ -535,6 +549,32 @@ function wireMoneyCard(container, profile) {
   });
 }
 
+// A lock with no backup behind it is a risk: forget both the PIN and the recovery key and everything is gone.
+async function nudgeBackup(container) {
+  const b = await backupStatus();
+  if (b.passphraseSet && (b.driveLastAt || b.fileLastAt)) return;
+  const yes = await askConfirm({
+    title: 'Back up before you rely on the lock',
+    message: 'If you ever lose both your PIN and your recovery key, an encrypted backup is the only way back. Make one now?',
+    confirmLabel: 'Back up now',
+    cancelLabel: 'Later',
+  });
+  if (yes) container.querySelector('#backup-card')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+// A passphrase shown again, behind the PIN when there is a lock, with ways to keep it.
+async function revealPassphrase(title, intro, value, fileName) {
+  if (!value) return showToast('No passphrase is saved on this phone');
+  if (!(await confirmPin('Show your passphrase'))) return;
+  await showSecret({
+    title,
+    intro,
+    secret: value,
+    fileName,
+    fileBody: `Kawach passphrase\n\n${value}\n\nWith this and your backup file, Kawach can be restored on any phone: install Kawach, open Settings, Backup, Restore.\nKeep this away from your phone. Anyone who has it and your backup can read your data.\n`,
+  });
+}
+
 // --- Backup -----------------------------------------------------------------
 // One passphrase, set once, locks every backup. Then two places to keep one -
 // Google Drive and this phone - side by side, and one way back from either.
@@ -578,7 +618,7 @@ function backupSection(backup) {
       ${restoreOpen ? restorePanel() : ''}
       <p id="backup-status" class="status" hidden></p>
     </div>
-    ${setUp ? '<p class="muted-note backup-foot">Passphrase set · <button type="button" class="link-btn" id="backup-pass-change">Change</button></p>' : ''}
+    ${setUp ? '<p class="muted-note backup-foot">Passphrase set · <button type="button" class="link-btn" id="backup-pass-show">Show</button> · <button type="button" class="link-btn" id="backup-pass-change">Change</button></p>' : ''}
   `;
 }
 
@@ -652,6 +692,14 @@ function wireBackup(container, params) {
         }
       }
       showToast('Passphrase saved');
+      await showSecret({
+        title: 'Keep this passphrase safe',
+        intro: 'It cannot be recovered by anyone else. Copy it or save it somewhere that is not this phone. You can also show it again later from Settings.',
+        secret: pass,
+        fileName: 'kawach-backup-passphrase.txt',
+        fileBody: `Kawach passphrase\n\n${pass}\n\nWith this and your backup file, Kawach can be restored on any phone: install Kawach, open Settings, Backup, Restore.\nKeep this away from your phone. Anyone who has it and your backup can read your data.\n`,
+        doneLabel: 'I have kept it safe',
+      });
       again();
     });
     const cancel = container.querySelector('#backup-pass-cancel');
@@ -662,6 +710,9 @@ function wireBackup(container, params) {
       });
     }
   }
+  container.querySelector('#backup-pass-show')?.addEventListener('click', async () =>
+    revealPassphrase('Your backup passphrase', 'It opens every backup and your Google sync. Without it they cannot be read.', await backupPassphrase(), 'kawach-backup-passphrase.txt')
+  );
   const change = container.querySelector('#backup-pass-change');
   if (change) {
     change.addEventListener('click', () => {
@@ -841,7 +892,7 @@ function syncSection(sync, syncPass, backup) {
               <button type="button" class="btn-secondary btn-block" id="sync-pass-save">Save and sync</button>`
         }
       </div>
-      <p class="muted-note backup-foot"><button type="button" class="link-btn" id="sync-disconnect">Disconnect GitHub sync</button></p>`;
+      <p class="muted-note backup-foot">${syncPass ? '<button type="button" class="link-btn" id="sync-pass-show">Show passphrase</button> · ' : ''}<button type="button" class="link-btn" id="sync-disconnect">Disconnect GitHub sync</button></p>`;
   }
   return `
     <h3>Sync</h3>

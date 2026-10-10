@@ -274,8 +274,15 @@ flashes. Device-only: in localStorage (`kawach-lock`), never synced, never in a
 backup or diagnostic report. Asks again after the chosen time away (1 minute
 default; `sessionStorage` keeps "last seen" fresh so an update reload does not
 ask again). Five wrong PINs wait 30 s, doubling to 15 min. A forgotten PIN cannot
-be recovered: "Forgot PIN?" offers to erase Kawach on the phone, to be restored
-from the encrypted backup. A fault inside the lock lets the person in rather
+be read back, so a lock never exists without a way back (5.39): turning it on shows a
+recovery key once (16 characters, `makeKeyText`, kept only as a salted hash in the lock
+record beside the PIN; nothing is saved if the person cancels at that sheet). "Forgot
+PIN?" offers the key (it opens Kawach and asks for a new PIN and a new key) and, last,
+erasing Kawach on the phone to be restored from the encrypted backup. Settings: "New
+key" (behind the PIN), "Show" beside the backup passphrase and the GitHub sync
+passphrase (behind the PIN), the passphrase shown to keep after it is set, and a nudge
+to back up when the lock is turned on with no backup. The three small boxes for this
+are in `js/secret-sheet.js`. A fault inside the lock lets the person in rather
 than locking them out of the app. It stops casual access, not someone with
 technical tools; Settings says so. The fingerprint path is untested off a real
 phone.

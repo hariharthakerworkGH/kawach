@@ -12,6 +12,23 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.39',
+    items: [
+      {
+        icon: 'lock',
+        title: "A lock with a key",
+        text: "Turning on the app lock now gives you a recovery key, shown once. If you forget the PIN, tap Forgot PIN on the lock screen, type the key, and choose a new PIN. Keep the key away from the phone: on paper or in a password manager. If you have no backup yet, Kawach offers to make one before you rely on the lock.",
+        guide: [{ view: 'settings', target: '#lock-toggle', text: "Turn on App lock to get your recovery key." }],
+      },
+      {
+        icon: 'key',
+        title: "See your passphrase again",
+        text: "Settings, Backup now has Show beside your backup passphrase (and your GitHub sync passphrase), after your PIN. A new passphrase is shown to keep as soon as you set it, with Copy, Share and Save as file. A lock made before this has no key yet: Settings, App lock, Make one.",
+        guide: [{ view: 'settings', target: '#backup-card', text: "Show sits under the Backup card, next to Change." }],
+      },
+    ],
+  },
+  {
     version: '5.38.1',
     items: [
       {

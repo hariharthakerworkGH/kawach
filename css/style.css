@@ -2546,7 +2546,8 @@ details:has(> .muted-note:last-child) + .bank-card,
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  /* Above the app lock (10000): "Forgot PIN?" asks its questions over the lock screen. */
+  z-index: 10001;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2618,6 +2619,43 @@ details:has(> .muted-note:last-child) + .bank-card,
 .dialog-actions .btn-primary.danger {
   background: var(--out);
   color: var(--bg);
+}
+
+/* A secret shown to be kept (5.39): a recovery key or a passphrase, large and easy to select, with ways to keep it. */
+.secret-dialog { max-width: 380px; }
+.secret-dialog .dialog-actions { flex-wrap: wrap; }
+.secret-text {
+  margin: var(--space-sm) 0 var(--space-xs);
+  padding: var(--space-sm);
+  border: 1px dashed var(--border-hi);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  color: var(--text);
+  font: 600 20px/1.35 ui-monospace, "Geist Mono", Consolas, monospace;
+  letter-spacing: 0.06em;
+  text-align: center;
+  overflow-wrap: anywhere;
+  user-select: all;
+  -webkit-user-select: all;
+}
+.secret-tools { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+.secret-said { margin: var(--space-2xs) 0 0; min-height: 1.4em; font-size: var(--text-label); color: var(--text-muted); }
+.secret-said.is-error { color: var(--out); }
+.secret-choices { display: grid; gap: var(--space-xs); margin-top: var(--space-sm); }
+.secret-choices .btn-primary, .secret-choices .btn-secondary { width: 100%; }
+.secret-choices .danger { color: var(--out); }
+.secret-input {
+  width: 100%;
+  margin-top: var(--space-sm);
+  padding: 12px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  color: var(--text);
+  font: 600 18px/1.2 ui-monospace, "Geist Mono", Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 /* A dangerous question is confirmed by holding the button: a darker fill sweeps across it, under

@@ -10,12 +10,16 @@
  * diagnostic report. The PIN is stored only as a salted PBKDF2 hash.
  *
  * Five wrong PINs in a row make it wait, longer each time. A forgotten PIN cannot
- * be recovered - nothing leaves the phone to recover it from - so the way out is to
- * erase Kawach on this phone and restore the encrypted backup.
+ * be read back - nothing leaves the phone to read it from - so there are two ways out (5.39):
+ * the recovery key, a code shown once when the lock is turned on (kept here only as a salted
+ * hash, like the PIN), which sets a new PIN; or, last, erasing Kawach on this phone and
+ * restoring the encrypted backup. The backup passphrase can be shown again from Settings,
+ * behind the PIN.
  */
 import { icon } from './icons.js';
 import { askConfirm } from './dialog.js';
 import { buzz } from './ui.js';
+import { showSecret, choose, askText } from './secret-sheet.js';
 
 const KEY = 'kawach-lock';
 const FAILS = 'kawach-lock-fails';
@@ -48,6 +52,29 @@ export async function checkPin(pin, record) {
   for (let i = 0; i < got.length; i += 1) diff |= got[i] ^ want[i];
   return diff === 0;
 }
+
+/* --- the recovery key (5.39) ------------------------------------------------
+ * 16 characters from 31 that cannot be mistaken for each other (no 0, O, 1, I, L), shown in
+ * four groups: about 79 bits, far more than a PIN. Drawn without bias. */
+const KEY_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+export function makeKeyText() {
+  const out = [];
+  const limit = 256 - (256 % KEY_ALPHABET.length);
+  while (out.length < 16) {
+    for (const b of crypto.getRandomValues(new Uint8Array(32))) {
+      if (b < limit && out.length < 16) out.push(KEY_ALPHABET[b % KEY_ALPHABET.length]);
+    }
+  }
+  return out.join('').replace(/(.{4})(?=.)/g, '$1-');
+}
+// What is typed, tidied: capitals, no spaces or dashes.
+export const normaliseKey = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+export const formatKey = (s) => (normaliseKey(s).slice(0, 16).match(/.{1,4}/g) || []).join('-');
+export async function makeKeyRecord(key) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return { salt: hex(salt), iters: ITERATIONS, hash: hex(await derive(normaliseKey(key), salt, ITERATIONS)) };
+}
+export const checkKey = (input, rk) => checkPin(normaliseKey(input), rk);
 
 /* Seconds to wait after this many wrong PINs in a row: none for four, then 30, 60, 120... up to 15 minutes. */
 export const waitFor = (fails) => (fails < 5 ? 0 : Math.min(900, 30 * 2 ** (fails - 5)));
@@ -144,7 +171,7 @@ const shell = (on) => SHELL.forEach((q) => document.querySelector(q)?.toggleAttr
  *   exact     the PIN's length when it is known (it is entered by tapping the last digit)
  *   check     null when the PIN is accepted, else the words to show
  *   bio       called when the fingerprint button is tapped; resolves true when it passed
- *   forgot    show "Forgot PIN?" */
+ *   forgot    show "Forgot PIN?"; called when tapped, and resolves 'recover' when the recovery key was right */
 function ask({ title, sub = '', exact = 0, check = async () => null, cancelable = false, bio = null, forgot = false, autoBio = false, unveil = false }) {
   return new Promise((resolve) => {
     document.getElementById('lock')?.remove();
@@ -185,7 +212,7 @@ function ask({ title, sub = '', exact = 0, check = async () => null, cancelable 
       shell(false);
       resolve(value);
       // Unlocking fades the lock out over the app as it clears (css "app-unveil"); every other way out is at once.
-      if (unveil && value !== null) {
+      if (unveil && value !== null && value !== 'recover') {
         el.classList.add('is-leaving');
         setTimeout(() => el.remove(), 440);
       } else el.remove();
@@ -222,6 +249,8 @@ function ask({ title, sub = '', exact = 0, check = async () => null, cancelable 
       draw();
     };
     function onKey(e) {
+      // A box asking for text sits over this screen (the recovery key): its keys are its own.
+      if (document.querySelector('.dialog-backdrop')) return;
       if (/^\d$/.test(e.key)) press(e.key);
       else if (e.key === 'Backspace') back();
       else if (e.key === 'Enter' && !exact && pin.length >= MIN) submit();
@@ -244,18 +273,93 @@ function ask({ title, sub = '', exact = 0, check = async () => null, cancelable 
     };
     el.querySelector('.lock__bio')?.addEventListener('click', tryBio);
     el.querySelector('.lock__forgot')?.addEventListener('click', async () => {
-      const yes = await askConfirm({
-        title: 'Erase Kawach on this phone?',
-        message: 'A lost PIN cannot be recovered, because nothing leaves your phone. You can erase everything here and restore your encrypted backup, which needs your backup passphrase. Without a backup, the data is gone.',
-        confirmLabel: 'Erase everything',
-        danger: true,
-      });
-      if (yes) await eraseThisPhone();
+      if ((await forgot()) === 'recover') finish('recover');
     });
     draw();
     if (autoBio && bio) tryBio();
   });
 }
+
+/* "Forgot PIN?": the recovery key when there is one, erasing this phone as the last way. Resolves
+ * 'recover' when the key was right, else null (nothing changed). */
+async function forgotFlow(record) {
+  const erase = async () => {
+    const yes = await askConfirm({
+      title: 'Erase Kawach on this phone?',
+      message: 'This removes everything here. Then you can restore your encrypted backup, which needs your backup passphrase. Without a backup, the data is gone.',
+      confirmLabel: 'Erase everything',
+      danger: true,
+    });
+    if (yes) await eraseThisPhone();
+    return null;
+  };
+  if (!record.rk) return erase();
+  const way = await choose({
+    title: 'Forgot your PIN?',
+    message: 'Your recovery key opens Kawach again and lets you choose a new PIN. You were shown it when you turned the lock on.',
+    options: [
+      { label: 'Use my recovery key', value: 'key', kind: 'primary' },
+      { label: 'I have no key: erase this phone', value: 'erase', kind: 'danger' },
+    ],
+  });
+  if (way === 'erase') return erase();
+  if (way !== 'key') return null;
+  const typed = await askText({
+    title: 'Your recovery key',
+    message: 'Sixteen letters and numbers, in four groups.',
+    placeholder: 'XXXX-XXXX-XXXX-XXXX',
+    submitLabel: 'Open Kawach',
+    format: formatKey,
+    check: async (text) => {
+      const f = keyFails();
+      const left = Math.ceil((f.until - Date.now()) / 1000);
+      if (left > 0) return `Too many tries. Wait ${left} second${left === 1 ? '' : 's'}.`;
+      if (normaliseKey(text).length < 16) return 'It has sixteen letters and numbers.';
+      if (await checkKey(text, record.rk)) {
+        localStorage.removeItem(KEY_FAILS);
+        return null;
+      }
+      const n = f.n + 1;
+      const wait = waitFor(n);
+      localStorage.setItem(KEY_FAILS, JSON.stringify({ n, until: wait ? Date.now() + wait * 1000 : 0 }));
+      return wait ? `That is not the key. Wait ${wait} seconds.` : 'That is not the key. Check it against what you saved.';
+    },
+  });
+  return typed === null ? null : 'recover';
+}
+const KEY_FAILS = 'kawach-lock-keyfails';
+const keyFails = () => {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_FAILS)) || { n: 0, until: 0 };
+  } catch {
+    return { n: 0, until: 0 };
+  }
+};
+
+/* After the recovery key opened it: a new PIN (typed twice), and a new recovery key, since that one is spent. */
+async function resetPinAfterRecovery(old) {
+  for (;;) {
+    const first = await ask({ title: 'Choose a new PIN', sub: `${MIN} to ${MAX} digits` });
+    const again = await ask({ title: 'Type it again', sub: 'The same PIN', exact: first.length, check: async (p) => (p === first ? null : 'Those do not match'), cancelable: true });
+    if (again === null) continue;
+    const key = makeKeyText();
+    await showSecret(keySheet(key, 'Your new recovery key', 'The old one is used up. Keep this one instead.'));
+    putRecord({ ...(await makeRecord(first, { bio: old.bio, away: old.away })), rk: await makeKeyRecord(key), rkAt: Date.now() });
+    localStorage.removeItem(FAILS);
+    localStorage.removeItem(KEY_FAILS);
+    return;
+  }
+}
+
+/* What the key sheet says and saves. */
+const keySheet = (key, title, intro) => ({
+  title,
+  intro: `${intro} If you forget your PIN, this opens Kawach and lets you choose a new one. It is shown only now. Keep it away from this phone: on paper, or in a password manager.`,
+  secret: key,
+  fileName: 'kawach-recovery-key.txt',
+  fileBody: `Kawach recovery key\n\n${key}\n\nIf you forget your PIN: on the lock screen tap "Forgot PIN?", then "Use my recovery key", and type this.\nKeep this away from the phone it unlocks.\n`,
+  doneLabel: 'I have kept it safe',
+});
 
 /* Everything Kawach keeps on this phone, then a fresh start. */
 async function eraseThisPhone() {
@@ -285,10 +389,11 @@ function gate() {
     exact: record.len,
     check: (pin) => tryPin(pin, record),
     bio: useBio,
-    forgot: true,
+    forgot: () => forgotFlow(record),
     autoBio: true,
     unveil: true,
-  }).then(() => {
+  }).then(async (value) => {
+    if (value === 'recover') await resetPinAfterRecovery(record);
     gating = null;
     mark();
     // The app clears from behind the fading lock (css "app-unveil"), then the class goes again.
@@ -332,15 +437,36 @@ export async function guardApp() {
 }
 
 /* --- for Settings ---------------------------------------------------------- */
-/* Turns the lock on: a new PIN, typed twice. Resolves true when it is set. */
+/* Turns the lock on: a new PIN, typed twice, then a recovery key shown once. Nothing is saved until the
+ * key has been seen and kept, so a lock is never on without its way back. Resolves true when it is set. */
 export async function enableLock() {
   const first = await ask({ title: 'Choose a PIN', sub: `${MIN} to ${MAX} digits`, cancelable: true });
   if (first === null) return false;
   const again = await ask({ title: 'Type it again', sub: 'The same PIN', exact: first.length, check: async (p) => (p === first ? null : 'Those do not match'), cancelable: true });
   if (again === null) return false;
-  putRecord(await makeRecord(first));
+  const key = makeKeyText();
+  if (!(await showSecret({ ...keySheet(key, 'Your recovery key', 'A lock needs a key.'), cancelLabel: 'Cancel' }))) return false;
+  putRecord({ ...(await makeRecord(first)), rk: await makeKeyRecord(key), rkAt: Date.now() });
   localStorage.removeItem(FAILS);
   mark();
+  return true;
+}
+
+/* Asks for the PIN before something private is shown or changed. True when there is no lock, or it was right. */
+export async function confirmPin(title = 'Enter your PIN') {
+  const record = getRecord();
+  if (!record) return true;
+  const useBio = record.bio ? async () => (await bioCheck(record), true) : null;
+  const ok = await ask({ title, sub: 'Enter your PIN', exact: record.len, check: (p) => tryPin(p, record), cancelable: true, bio: useBio });
+  return ok !== null;
+}
+
+/* A new recovery key, after the PIN. Resolves true when the old one has been replaced. */
+export async function newRecoveryKey() {
+  if (!getRecord() || !(await confirmPin('Make a new recovery key'))) return false;
+  const key = makeKeyText();
+  if (!(await showSecret({ ...keySheet(key, 'Your new recovery key', 'This replaces the old one.'), cancelLabel: 'Keep old' }))) return false;
+  putRecord({ ...getRecord(), rk: await makeKeyRecord(key), rkAt: Date.now() });
   return true;
 }
 

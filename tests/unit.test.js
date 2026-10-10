@@ -19,7 +19,7 @@ import { limitUse, bestDay, payBy } from '../js/card-smarts.js';
 import { forecast, costInMonth } from '../js/forecast.js';
 import { flexReport } from '../js/flex-report.js';
 import { flexCard } from '../js/views/recap.js';
-import { makeRecord, checkPin, waitFor, mustLock } from '../js/lock.js';
+import { makeRecord, checkPin, waitFor, mustLock, makeKeyText, normaliseKey, formatKey, makeKeyRecord, checkKey } from '../js/lock.js';
 import { mood, comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, peaksTop, mindoraTop, chartsCards } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
 import { termFor } from '../js/explain.js';
@@ -2351,6 +2351,22 @@ test('subscriptions: card-paid fixed costs that are not EMIs or set-asides, bigg
   equal(out.yearly, rupees(12000 + 1999 * 12 + 649 * 12), 'the year, from each own amount');
   equal(out.list.map((s) => [s.last, s.stale]), [['2026-10-05', false], [null, false], ['2026-07-20', true]], 'last charged, and a monthly one silent for over 45 days is stale');
   ok(isSubscription(fixed[0], cards) && !isSubscription(fixed[2], cards) && !isSubscription(fixed[3], cards), 'the rule on its own');
+});
+
+test('recovery key: sixteen unambiguous characters, kept only as a salted hash, typed any way you like', async () => {
+  const keys = new Set(Array.from({ length: 200 }, () => makeKeyText()));
+  ok(keys.size === 200, 'every key is different');
+  for (const k of keys) ok(/^[A-HJKMNP-Z2-9]{4}(-[A-HJKMNP-Z2-9]{4}){3}$/.test(k), `well formed, no 0 O 1 I L: ${k}`);
+  const key = [...keys][0];
+  const rk = await makeKeyRecord(key);
+  ok(!JSON.stringify(rk).includes(normaliseKey(key)) && rk.hash.length === 64 && rk.salt.length === 32, 'the key itself is not what is stored');
+  ok(await checkKey(key, rk), 'the right key opens it');
+  ok(await checkKey(key.toLowerCase().replace(/-/g, ' '), rk) && await checkKey(normaliseKey(key), rk), 'in lower case, with spaces or without dashes, it still does');
+  ok(!(await checkKey(key.slice(0, -1) + (key.endsWith('A') ? 'B' : 'A'), rk)) && !(await checkKey('', rk)) && !(await checkKey(makeKeyText(), rk)), 'one wrong character, nothing, or another key does not');
+  equal(formatKey('abcd efgh-jkmn pqrs tuvw'), 'ABCD-EFGH-JKMN-PQRS', 'typing is laid out in groups of four and stops at sixteen');
+  equal(formatKey('ab'), 'AB', 'a short start is left alone');
+  const lock = { ...(await makeRecord('4821')), rk, rkAt: 1 };
+  ok(await checkPin('4821', lock) && await checkKey(key, lock.rk), 'a lock carries the PIN and its recovery key side by side');
 });
 
 test('app lock: the PIN is kept only as a salted hash, wrong tries wait longer and longer, and it asks again only after being away', async () => {
