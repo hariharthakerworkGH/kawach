@@ -106,6 +106,11 @@ function moveTabMark() {
   }
   mark.style.setProperty('--x', `${active.offsetLeft + active.offsetWidth * 0.22}px`);
   mark.style.setProperty('--w', `${active.offsetWidth * 0.56}px`);
+  // The whole of the lit tab, for the looks whose mark is a pill behind it rather than a line above it.
+  mark.style.setProperty('--bx', `${active.offsetLeft}px`);
+  mark.style.setProperty('--by', `${active.offsetTop}px`);
+  mark.style.setProperty('--bw', `${active.offsetWidth}px`);
+  mark.style.setProperty('--bh', `${active.offsetHeight}px`);
   requestAnimationFrame(() => mark.classList.add('is-ready'));
 }
 window.addEventListener('resize', () => {
@@ -178,7 +183,11 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0, sli
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (typeof document.startViewTransition === 'function' && !slide && !reduced && !document.hidden) {
     try {
-      await document.startViewTransition(swap).updateCallbackDone;
+      const fade = document.startViewTransition(swap);
+      // A tap on another tab while one is fading skips the first fade: that is not an error to report.
+      fade.ready.catch(() => {});
+      fade.finished.catch(() => {});
+      await fade.updateCallbackDone;
     } catch {
       if (document.getElementById('view-container') === old) swap();
     }

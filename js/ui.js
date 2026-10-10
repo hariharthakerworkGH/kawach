@@ -247,7 +247,7 @@ const SOFT = 'cubic-bezier(0.65, 0, 0.35, 1)';
  * figure beside the bar counts on the bar's own eased progress, so the two can never disagree. */
 export function fillBars(root = document) {
   if (calm()) return;
-  for (const prog of root.querySelectorAll('.tl-prog')) {
+  for (const prog of root.querySelectorAll('.tl-prog, .md-hero .md-prog')) {
     const bar = prog.querySelector(':scope > i');
     if (!bar || !bar.animate) continue;
     bar.style.transformOrigin = 'left center';
@@ -276,17 +276,18 @@ export function fillBars(root = document) {
 const lastLevel = new Map();
 const SEVERITY = { warning: 1, critical: 2, over: 2 };
 export function levelWatch(root = document) {
-  const hero = root.querySelector('.in-hero[data-level]');
+  const hero = root.querySelector('[data-level]');
   if (!hero) return;
   const key = hero.dataset.levelKey || 'level';
   const now = SEVERITY[hero.dataset.level] || 0;
   const was = lastLevel.get(key);
   lastLevel.set(key, now);
   if (was == null || now <= was || calm()) return;
-  const fig = hero.querySelector('.in-dial__fig');
+  const fig = hero.querySelector('[data-roll-kind="left"]');
   if (!fig || !fig.animate) return;
-  fig.animate([{ fill: 'var(--k-text)' }, { fill: getComputedStyle(fig).fill }], { duration: 240, easing: SOFT });
-  const words = hero.querySelector('.in-status span:last-child');
+  const paint = fig instanceof SVGElement ? 'fill' : 'color';
+  fig.animate([{ [paint]: 'var(--k-text)' }, { [paint]: getComputedStyle(fig)[paint] }], { duration: 240, easing: SOFT });
+  const words = hero.querySelector('[data-status]');
   if (words) words.animate([{ opacity: 1 }, { opacity: 0, offset: 0.45 }, { opacity: 0, offset: 0.5 }, { opacity: 1 }], { duration: 240, easing: 'linear' });
   const h = hero.getBoundingClientRect();
   const r = fig.getBoundingClientRect();
@@ -365,6 +366,7 @@ export function slidingPill(toggle) {
     pill.style.setProperty('--y', `${btn.offsetTop}px`);
     pill.style.setProperty('--w', `${btn.offsetWidth}px`);
     pill.style.setProperty('--h', `${btn.offsetHeight}px`);
+    pill.style.setProperty('--r', getComputedStyle(btn).borderTopLeftRadius);
     if (!glide) requestAnimationFrame(() => pill.classList.add('is-ready'));
   };
   place(false);
@@ -425,31 +427,68 @@ export function rollFigures(root = document) {
     const from = lastFigure.get(key);
     lastFigure.set(key, to);
     if (reduced || document.hidden || from == null || from === to || (from < 0) !== (to < 0)) continue;
-    const final = el.textContent;
+    // A figure can sit beside a unit ("1,830" and a small rupee sign): only its own text is rewritten.
+    const node = [...el.childNodes].find((n) => n.nodeType === 3 && /\d/.test(n.nodeValue)) || el;
+    const write = (text) => (node === el ? (el.textContent = text) : (node.nodeValue = text));
+    const final = node === el ? el.textContent : node.nodeValue;
     const a = Math.abs(from) / 100;
     const b = Math.abs(to) / 100;
     const start = performance.now();
-    // A dial draws the same money: its marks and needle follow the figure frame by frame, on the
-    // same curve, so what is written and what is drawn never disagree while it moves.
+    // What draws the same money moves with the figure, frame by frame, on the same curve, so what is
+    // written and what is drawn never disagree while it moves: the Instrument dial's marks and needle,
+    // and on the other looks a bar's width or a ring's arc (data-follow) inside the same hero.
     const dial = el.closest('svg.in-dial');
-    const place = dial ? (left) => dialAt(dial, left) : () => {};
+    const scope = el.dataset.rollKind === 'left' ? el.closest('[data-roll-scope]') : null;
+    const followers = scope ? [...scope.querySelectorAll('[data-follow]')] : [];
+    const place = (left) => {
+      if (dial) dialAt(dial, left);
+      if (scope) followAt(scope, followers, left);
+    };
     dial?.classList.add('is-rolling');
-    el.textContent = shapeLike(final, Math.round(a));
+    scope?.classList.add('is-rolling');
+    write(shapeLike(final, Math.round(a)));
     place(from);
+    const finish = () => {
+      dial?.classList.remove('is-rolling');
+      scope?.classList.remove('is-rolling');
+    };
     const paint = (now) => {
       const t = Math.min(1, (now - start) / ROLL_MS);
       const eased = 1 - Math.pow(1 - t, 3);
-      el.textContent = t >= 1 ? final : shapeLike(final, Math.round(a + (b - a) * eased));
+      write(t >= 1 ? final : shapeLike(final, Math.round(a + (b - a) * eased)));
       place(from + (to - from) * eased);
       if (t < 1) requestAnimationFrame(paint);
-      else dial?.classList.remove('is-rolling');
+      else finish();
     };
     requestAnimationFrame(paint);
     setTimeout(() => {
-      if (el.textContent !== final) el.textContent = final;
+      if ((node === el ? el.textContent : node.nodeValue) !== final) write(final);
       place(to);
-      dial?.classList.remove('is-rolling');
+      finish();
     }, ROLL_MS + 400);
+  }
+}
+
+// A circle's arc as a path, from a fraction of the way round to another (the Peaks donut's pieces).
+export function arcPath(r, a0, a1) {
+  const T = (v) => -Math.PI / 2 + v * 2 * Math.PI;
+  const p = (a) => [75 + r * Math.cos(T(a)), 75 + r * Math.sin(T(a))];
+  const [x0, y0] = p(a0);
+  const [x1, y1] = p(a1);
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${a1 - a0 > 0.5 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+}
+
+// Bars and arcs inside a hero that show how much is spent, set to a given amount left.
+function followAt(scope, followers, left) {
+  const limit = Number(scope.dataset.limit);
+  if (!(limit > 0)) return;
+  const share = Math.min(1, Math.max(0, (limit - left) / limit));
+  for (const f of followers) {
+    if (f.dataset.follow === 'bar') f.style.width = `${(share * 100).toFixed(1)}%`;
+    else if (f.dataset.follow === 'arc') {
+      const from = Number(f.dataset.from || 0);
+      f.setAttribute('d', arcPath(Number(f.dataset.r), from, Math.min(0.999, Math.max(from, share))));
+    }
   }
 }
 

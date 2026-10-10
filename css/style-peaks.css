@@ -376,3 +376,11 @@ button.pk-card { cursor: pointer; }
 
 /* Peaks has a softened red on a pale panel: the reason under a field is darkened to stay readable (5.37). */
 :root[data-style="peaks"] .field-error { color: color-mix(in srgb, var(--k-negative), black 40%); }
+
+/* Peaks (5.38): the short bar under the lit tab and the lit choice of a toggle glide. */
+:root[data-style="peaks"] #tabs .nav-ind { display: block; position: absolute; bottom: 2px; left: 0; width: 16px; height: 2px; border-radius: 1px; background: var(--k-grad-2a); box-shadow: 0 0 6px var(--k-grad-2a); transform: translateX(calc(var(--x, 0px) + var(--w, 0px) / 2 - 8px)); pointer-events: none; }
+:root[data-style="peaks"] #tabs .nav-ind.is-ready { transition: transform 280ms var(--k-ease); }
+:root[data-style="peaks"] .nav-btn.active::after { display: none; }
+:root[data-style="peaks"] #tabs .nav-btn { transition: color 280ms var(--k-ease); }
+:root[data-style="peaks"] .k .has-pill .seg-pill { background: var(--k-grad-1a); box-shadow: 0 0 14px color-mix(in srgb, var(--k-grad-1a) 35%, transparent); }
+@media (prefers-reduced-motion: reduce) { :root[data-style="peaks"] #tabs .nav-ind.is-ready, :root[data-style="peaks"] #tabs .nav-btn { transition: none; } }

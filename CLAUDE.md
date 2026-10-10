@@ -297,6 +297,8 @@ forgotten. Only a partly read message teaches; the pattern must re-read its own 
 same figures. `js/card-refunds.js` pairs a card refund with the purchase it undoes (same card,
 same amount, a shop word in common) so a refund never adds room to spend.
 
+**Motion (5.37, 5.38).** Every look moves the same way; each look only dresses it. A figure that changes rolls to its new value and the bar or ring that draws it follows frame by frame (`data-roll-scope`, `data-roll-kind`, `data-follow` on the figure's card, `rollFigures` in `js/ui.js`); charts draw once per arrival (`is-armed`, `is-drawing`); the lit tab (`.nav-ind`) and a toggle's lit choice (`.seg-pill`) glide. Times are 120/240/420 ms with the tokens' ease, only transform and opacity move, and reduced motion shows the end state. A new animation is added on every look or it is not added.
+
 ## Design
 
 **Styles and colourings (5.0).** Kawach comes in five styles (Charts,

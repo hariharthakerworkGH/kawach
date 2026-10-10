@@ -12,6 +12,23 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.38',
+    items: [
+      {
+        icon: 'summary',
+        title: "Every style moves the same way",
+        text: "Everything that came in 5.36 and 5.37 now works in all five styles, not only Instrument. Figures count to the new number with their bar or ring, the month chart draws itself once as you arrive, a month that closed under budget says so, and a month that turns worse gets one soft pulse.",
+        guide: [{ view: 'summary', target: '#view-container', text: "Switch style in Settings, then open Summary to see the same motion." }],
+      },
+      {
+        icon: 'check',
+        title: "The lit tab and toggle glide",
+        text: "The mark under the lit tab and the lit choice on Spent and Received now glide to where you tap, dressed in each style's own look. Scrubbing the month chart glides too, and the picked bar lifts.",
+        guide: [{ view: 'add', target: '.direction-toggle', text: "Tap Spent, then Received." }],
+      },
+    ],
+  },
+  {
     version: '5.37',
     items: [
       {

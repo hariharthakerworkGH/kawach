@@ -1717,7 +1717,7 @@ test('a bar and the figure beside it fill together, and end on the real figure',
 test('a month turning worse breathes one ring out; the same level again does nothing', () => {
   const hero = (level) => {
     const el = document.createElement('div');
-    el.innerHTML = `<div class="in-hero" data-level="${level}" data-level-key="pulse-test"><svg><text class="in-dial__fig" x="0" y="10">₹1</text></svg><p class="in-status"><span class="in-led"></span><span>words</span></p></div>`;
+    el.innerHTML = `<div class="in-hero" data-level="${level}" data-level-key="pulse-test"><svg><text class="in-dial__fig" data-roll-kind="left" x="0" y="10">₹1</text></svg><p class="in-status"><span class="in-led"></span><span data-status>words</span></p></div>`;
     document.body.append(el);
     return el;
   };
@@ -1801,6 +1801,25 @@ test('dragging a row by its grip hands back the new order of the ids', async () 
   await wait(400);
   equal(got && got.changed, false, 'a nudge that passes nothing changes nothing');
   host.remove();
+});
+
+test('a month that closed under budget says so on every look, and an over one says nothing', () => {
+  const f = {
+    limit: rupees(31500), free: rupees(8920), spentThisCycle: rupees(22580), used: 22580 / 31500, level: 'ok', daysIntoCycle: 31, daysToClose: 1, finished: true,
+    spendDays: [rupees(22580)], spendByDay: [{ date: '2026-09-30', amount: rupees(22580) }], cycleStart: '2026-09-01', cycleKey: '2026-09-30', perDay: 0,
+    cardBills: [], cards: [], tracker: [], totals: {},
+  };
+  for (const [name, top] of [['tactile', tactileTop], ['peaks', peaksTop], ['mindora', mindoraTop], ['instrument', instrumentTop]]) {
+    const html = top(f, 'x', '');
+    ok(html.includes('under budget') && (html.includes('closed-note') || html.includes('in-legend--closed')), `${name}: Closed ₹8,920 under budget`);
+    ok(html.includes('is-closed-under') || html.includes('in-dial--closed'), `${name}: the card carries the glow`);
+    const over = top({ ...f, spentThisCycle: rupees(40000), free: -rupees(8500) }, 'x', '');
+    ok(!over.includes('under budget'), `${name}: a month that went over says nothing of the kind`);
+  }
+  for (const [name, top] of [['tactile', tactileTop], ['peaks', peaksTop], ['mindora', mindoraTop]]) {
+    const html = top({ ...f, finished: false, daysToClose: 20, daysIntoCycle: 11, spendByDay: [{ date: '2026-10-10', amount: rupees(5000) }] }, 'x', '');
+    ok(html.includes('data-roll-scope') && html.includes('data-roll-kind="left"') && html.includes('data-follow='), `${name}: the figure rolls with its bar or ring`);
+  }
 });
 
 test('a goal that is reached draws its badge; one still short does not', () => {

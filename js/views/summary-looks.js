@@ -20,7 +20,7 @@
  */
 
 import { formatRupees, formatDateNice } from '../format.js';
-import { escapeHtml } from '../ui.js';
+import { arcPath, escapeHtml } from '../ui.js';
 import { icon } from '../icons.js';
 import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
@@ -134,7 +134,7 @@ const weekCols = (x, cls) => {
   // Each day says what it was (5.23): a bar with no figure told you the shape
   // of a week and nothing else.
   return `<div class="${cls}" role="img" aria-label="Spent each day of this week, ${formatRupees(x.weekTotal)} in all: ${x.week.map((d) => `${dow(d.date)} ${formatRupees(d.amount || 0)}`).join(', ')}">${x.week
-    .map((d, i) => `<span>${cls === 'tl-cols' ? outsideBar(d, top) : ''}<i class="${i === x.week.length - 1 ? 'lit' : ''}" style="height:${Math.max(6, ((d.amount || 0) / top) * 100).toFixed(0)}%"></i><small>${dow(d.date)}</small><em>${d.amount ? formatRupees(d.amount) : '-'}</em></span>`)
+    .map((d, i) => `<span>${cls === 'tl-cols' || cls === 'md-cols' ? outsideBar(d, top) : ''}<i class="${i === x.week.length - 1 ? 'lit' : ''}" style="height:${Math.max(6, ((d.amount || 0) / top) * 100).toFixed(0)}%"></i><small>${dow(d.date)}</small><em>${d.amount ? formatRupees(d.amount) : '-'}</em></span>`)
     .join('')}</div>`;
 };
 // Above a day's bar, hatched: what was spent that day outside the budget (5.33), as on the
@@ -144,6 +144,7 @@ const outsideBar = (d, top) => {
   const h = (d.other / top) * 100;
   return `<i class="tl-other${h > 35 ? ' is-cut' : ''}" style="height:${Math.max(4, Math.min(35, h)).toFixed(0)}%" title="${formatRupees(d.other)} not from your budget"></i>`;
 };
+const closedNote = (x) => (x.closedUnder ? `<p class="closed-note">Closed <b>${formatRupees(x.leftOver)}</b> under budget</p>` : '');
 const weekNote = (x) => (x.week.some((d) => d.other > 0) ? '<p class="tl-hatch-note"><i></i>Hatched: spent, but not from your budget.</p>' : '');
 
 /* --- Tactile: a raised instrument, then plain rows ----------------------- */
@@ -151,22 +152,23 @@ export function tactileTop(f, status, month, heroHtml = '') {
   const x = topFigures(f);
   const row = (ic, t, s, v, cls = '', id = '') =>
     `<${id ? `button type="button" id="${id}"` : 'div'} class="tl-item"><span class="tl-ibox">${ic}</span><span class="tl-grow"><span class="tl-t">${t}</span>${s ? `<span class="tl-s">${s}</span>` : ''}</span><span class="tl-v ${cls}">${v}</span>${id ? `<span class="tl-chev">${icon('forward')}</span>` : ''}</${id ? 'button' : 'div'}>`;
-  const hero = `<div class="tl-hero ${f.free < 0 ? 'is-negative' : ''}">
+  const hero = `<div class="tl-hero ${f.free < 0 ? 'is-negative' : ''}${x.closedUnder ? ' is-closed-under' : ''}" data-roll-scope data-limit="${x.limit}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
       <div class="tl-top"><span class="tl-k">Left to spend</span><span class="tl-period">${x.period}</span></div>
-      <div class="tl-big">${formatRupees(x.left)}</div>
+      <div class="tl-big" data-roll-kind="left" data-roll="${x.left}" data-roll-key="${x.rollKey}:left">${formatRupees(x.left)}</div>
       <div class="tl-stats">
-        <div><span class="tl-k">Spent</span><b>${formatRupees(x.spent)}</b></div>
+        <div><span class="tl-k">Spent</span><b data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div>
         <div><span class="tl-k">Budget</span><b>${formatRupees(x.limit)}</b></div>
         <div><span class="tl-k">${x.finished ? 'Days' : 'A day'}</span><b>${x.finished ? x.monthDays : x.perDay > 0 ? formatRupees(x.perDay) : '-'}</b></div>
       </div>
-      <div class="tl-prog"><i class="${tone(f)}" style="width:${pct(x.used)}"></i><span><span>Spent</span><span>${ofLimit(x)}</span></span></div>
+      <div class="tl-prog"><i class="${tone(f)}" data-follow="bar" style="width:${pct(x.used)}"></i><span><span>Spent</span><span>${ofLimit(x)}</span></span></div>
       ${x.asideUsed != null ? `<div class="tl-prog tl-prog--aside"><i style="width:${pct(x.asideUsed)}"></i><span><span>Set aside used</span><span data-fillcount>${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}</span></span></div>` : ''}
       <div class="tl-slider" role="img" aria-label="Day ${x.day} of ${x.monthDays}">
         <div class="tl-trk"></div><div class="tl-fill" style="width:${pct(x.gone)}"></div><div class="tl-thumb" style="left:${pct(x.gone)}"></div>
         <div class="tl-tip" style="left:${pct(Math.min(0.84, Math.max(0.16, x.gone)))}">Day ${x.day} of ${x.monthDays}</div>
       </div>
       <div class="tl-ticks">${'<i></i>'.repeat(11)}</div>
-      <p class="tl-line ${tone(f)}">${escapeHtml(status)}</p>
+      <p class="tl-line ${tone(f)}" data-status>${escapeHtml(status)}</p>
+      ${closedNote(x)}
     </div>`;
   return `${heroHtml || hero}<!--k:answer-->
     ${month || ''}<!--k:month-->
@@ -214,7 +216,7 @@ export function instrumentDial(x, negative) {
       <text class="in-dial__end" x="${n1(z0x)}" y="${n1(z0y + 22)}" text-anchor="middle">₹0</text>
       ${total ? `<text class="in-dial__end" x="${n1(z1x)}" y="${n1(z1y + 22)}" text-anchor="middle">${total}</text>` : ''}
       <text class="in-dial__cap" x="${cx}" y="${cy - 46}" text-anchor="middle">LEFT TO SPEND</text>
-      <text class="in-dial__fig${negative ? ' is-negative' : ''}" data-roll="${x.left}" data-roll-key="${x.rollKey}" x="${cx}" y="${cy + 8}" text-anchor="middle">${formatRupees(x.left)}</text>
+      <text class="in-dial__fig${negative ? ' is-negative' : ''}" data-roll-kind="left" data-roll="${x.left}" data-roll-key="${x.rollKey}" x="${cx}" y="${cy + 8}" text-anchor="middle">${formatRupees(x.left)}</text>
       <text class="in-dial__sub" x="${cx}" y="${cy + 32}" text-anchor="middle">${x.limit > 0 ? `${formatRupees(x.spent)} spent of ${total}` : `${formatRupees(x.spent)} spent`}</text>
     </svg>`;
 }
@@ -225,7 +227,7 @@ export function instrumentTop(f, status, month) {
       <div class="tl-top"><span class="tl-k">Budget dial</span><span class="tl-period">${x.period}</span></div>
       ${instrumentDial(x, f.free < 0)}
       ${x.finished || !(x.limit > 0) ? (x.closedUnder ? `<p class="in-legend in-legend--closed">Closed <b>${formatRupees(x.leftOver)}</b> under budget</p>` : '') : `<p class="in-legend">Even pace by today <b>${formatRupees(x.pace)}</b></p>`}
-      <p class="in-status ${tone(f)}"><span class="in-led"></span><span>${escapeHtml(status)}</span></p>
+      <p class="in-status ${tone(f)}"><span class="in-led"></span><span data-status>${escapeHtml(status)}</span></p>
       <div class="tl-stats">
         <div><span class="tl-k">Spent</span><b>${formatRupees(x.spent)}</b></div>
         <div><span class="tl-k">Budget</span><b>${formatRupees(x.limit)}</b></div>
@@ -246,6 +248,9 @@ function weekLine(x) {
   const px = (i) => 10 + (i * (W - 20)) / (n - 1);
   const py = (v) => H - 10 - (v / top) * (H - 26);
   const pts = x.week.map((d, i) => [px(i), py(d.amount || 0)]);
+  // The whole day's spending, outside the budget as well, as a dashed line above it (5.38).
+  const whole = x.week.map((d, i) => [px(i), Math.max(4, py(Math.min((d.amount || 0) + (d.other || 0), top * 3)))]);
+  const anyOther = x.week.some((d) => d.other > 0);
   const line = pts.reduce((d, [a, b], i) => {
     if (!i) return `M${a.toFixed(1)} ${b.toFixed(1)}`;
     const [qa, qb] = pts[i - 1];
@@ -256,19 +261,15 @@ function weekLine(x) {
   return `<svg class="pk-wline" viewBox="0 0 ${W} ${H}" role="img" aria-label="This week ${formatRupees(x.weekTotal)}">
       <path class="pk-wline__area" d="${line} L${lx.toFixed(1)} ${H} L${pts[0][0].toFixed(1)} ${H} Z"/>
       <path class="pk-wline__l" d="${line}"/>
+      ${anyOther ? `<path class="pk-wline__other" d="${whole.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)} ${b.toFixed(1)}`).join(' ')}"/>` : ''}
       ${pts.slice(0, -1).map(([a, b]) => `<circle class="pk-wline__dot" cx="${a.toFixed(1)}" cy="${b.toFixed(1)}" r="2.5"/>`).join('')}
       <circle class="pk-wline__now" cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="4"/>
     </svg>
-    <div class="pk-wdays">${x.week.map((d) => `<small>${dow(d.date)}</small>`).join('')}</div>`;
+    <div class="pk-wdays">${x.week.map((d) => `<small>${dow(d.date)}</small>`).join('')}</div>
+    ${anyOther ? '<p class="waves__note"><i class="is-dashed"></i>Dashed: with what was spent outside your budget.</p>' : ''}`;
 }
 
-const arc = (r, a0, a1) => {
-  const T = (v) => -Math.PI / 2 + v * 2 * Math.PI;
-  const p = (a) => [75 + r * Math.cos(T(a)), 75 + r * Math.sin(T(a))];
-  const [x0, y0] = p(a0);
-  const [x1, y1] = p(a1);
-  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${a1 - a0 > 0.5 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
-};
+const arc = arcPath;
 
 export function peaksTop(f, status, month) {
   const x = topFigures(f);
@@ -278,14 +279,14 @@ export function peaksTop(f, status, month) {
   const donut = `<svg class="pk-donut" viewBox="0 0 150 150" aria-hidden="true">
       <circle class="pk-donut__trk" cx="75" cy="75" r="62"/>
       ${before > 0.005 ? `<path class="pk-donut__before" d="${arc(62, 0, before)}"/>` : ''}
-      ${all - before > 0.005 ? `<path class="pk-donut__week" d="${arc(62, before + (before > 0.005 ? 0.006 : 0), all)}"/>` : ''}
+      ${all - before > 0.005 ? `<path class="pk-donut__week" data-follow="arc" data-r="62" data-from="${before + (before > 0.005 ? 0.006 : 0)}" d="${arc(62, before + (before > 0.005 ? 0.006 : 0), all)}"/>` : ''}
     </svg>`;
   const sup = (n, unit = '₹') => `${n}<sup>${unit}</sup>`;
-  return `<div class="pk-panel ${f.free < 0 ? 'is-negative' : ''}">
+  return `<div class="pk-panel ${f.free < 0 ? 'is-negative' : ''}${x.closedUnder ? ' is-closed-under' : ''}" data-roll-scope data-limit="${x.limit}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
       <div class="pk-top"><span class="pk-lab">Left to spend</span><span class="pk-tiny">${x.period}</span></div>
-      <div class="pk-ring">${donut}<div class="pk-ring__mid"><b>${formatRupees(x.left)}</b><small>left</small></div></div>
+      <div class="pk-ring">${donut}<div class="pk-ring__mid"><b data-roll-kind="left" data-roll="${x.left}" data-roll-key="${x.rollKey}:left">${formatRupees(x.left)}</b><small>left</small></div></div>
       <div class="pk-figs">
-        <div><div class="pk-n pk-n--l">${sup(plain(x.spent))}</div><div class="pk-tiny">spent${x.limit > 0 ? ` of ${formatRupees(x.limit)}` : ''}${x.finished ? '' : ` · <span class="pk-hot">${formatRupees(x.weekTotal)} this week</span>`}</div></div>
+        <div><div class="pk-n pk-n--l" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${sup(plain(x.spent))}</div><div class="pk-tiny">spent${x.limit > 0 ? ` of ${formatRupees(x.limit)}` : ''}${x.finished ? '' : ` · <span class="pk-hot">${formatRupees(x.weekTotal)} this week</span>`}</div></div>
         <div class="pk-pair">
           ${x.finished ? '' : `<div><div class="pk-n pk-n--m">${x.perDay > 0 ? sup(plain(x.perDay)) : '-'}</div><div class="pk-tiny">a day</div></div>`}
           ${x.asideUsed != null ? `<div><div class="pk-n pk-n--m">${sup(plain(x.asideSpent))}</div><div class="pk-tiny">of ${formatRupees(x.asideTotal)} set aside</div></div>` : ''}
@@ -296,7 +297,8 @@ export function peaksTop(f, status, month) {
         ${x.finished ? `<div><span class="pk-tiny">Days</span><b>${x.monthDays}</b></div>` : `<div><span class="pk-tiny">Days left</span><b>${x.daysLeft}</b></div>
         <div><span class="pk-tiny">Day</span><b>${x.day} of ${x.monthDays}</b></div>`}
       </div>
-      <p class="pk-status ${tone(f)}">${escapeHtml(status)}</p>
+      <p class="pk-status ${tone(f)}" data-status>${escapeHtml(status)}</p>
+      ${closedNote(x)}
     </div><!--k:answer-->
     ${month || ''}<!--k:month-->
     ${x.week.length && !x.finished ? `<div class="pk-card pk-week"><div class="pk-row"><span class="pk-lab">This week</span><span class="pk-n pk-n--s">${sup(plain(x.weekTotal))}</span></div>${weekLine(x)}</div>` : ''}
@@ -364,26 +366,27 @@ const face = (smile) => {
 export function mindoraTop(f, status, month) {
   const x = topFigures(f);
   const now = mood(f);
-  const line = (label, v, cls, said) => `<div class="md-spent"><span>${label}</span><span>${said}</span></div><div class="md-prog"><i class="${cls}" style="width:${pct(v)}"></i></div>`;
-  return `<div class="md-glass md-hero ${f.free < 0 ? 'is-negative' : ''}">
+  const line = (label, v, cls, said, follow = false) => `<div class="md-spent"><span>${label}</span><span>${said}</span></div><div class="md-prog"><i class="${cls}"${follow ? ' data-follow="bar"' : ''} style="width:${pct(v)}"></i></div>`;
+  return `<div class="md-glass md-hero ${f.free < 0 ? 'is-negative' : ''}${x.closedUnder ? ' is-closed-under' : ''}" data-roll-scope data-limit="${x.limit}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
       <div class="md-top"><span class="md-kick">Left to spend</span><span class="md-period">${x.period}</span></div>
-      <div class="md-big">${formatRupees(x.left)}</div>
+      <div class="md-big" data-roll-kind="left" data-roll="${x.left}" data-roll-key="${x.rollKey}:left">${formatRupees(x.left)}</div>
       <div class="md-stats">
-        <div><span class="md-kick">Spent</span><b>${formatRupees(x.spent)}</b></div>
+        <div><span class="md-kick">Spent</span><b data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div>
         <div><span class="md-kick">Budget</span><b>${formatRupees(x.limit)}</b></div>
         <div><span class="md-kick">${x.finished ? 'Days' : 'A day'}</span><b>${x.finished ? x.monthDays : x.perDay > 0 ? formatRupees(x.perDay) : '-'}</b></div>
       </div>
-      ${line('Spent', x.used, tone(f), ofLimit(x))}
+      ${line('Spent', x.used, tone(f), ofLimit(x), true)}
       ${line(`Day ${x.day} of ${x.monthDays}`, x.gone, 'sky', x.finished ? 'month done' : `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`)}
       ${x.asideUsed != null ? line('Set aside used', x.asideUsed, 'blush', `${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}`) : ''}
     </div>
     <div class="md-glass">
       <div class="md-kick">${x.finished ? 'The month' : 'The month so far'}</div>
       <div class="md-moods">${MOODS.map(([id, word, smile]) => `<span class="md-mood md-mood--${id}${id === now ? ' on' : ''}"><b>${face(smile)}</b>${word}</span>`).join('')}</div>
-      <p class="md-line ${tone(f)}">${escapeHtml(status)}</p>
+      <p class="md-line ${tone(f)}" data-status>${escapeHtml(status)}</p>
+      ${closedNote(x)}
     </div><!--k:answer-->
     ${month || ''}<!--k:month-->
-    ${x.week.length && !x.finished ? `<div class="md-glass"><div class="md-top"><span class="md-kick">This week</span><span class="md-mid">${formatRupees(x.weekTotal)}</span></div>${weekCols(x, 'md-cols')}</div>` : ''}
+    ${x.week.length && !x.finished ? `<div class="md-glass"><div class="md-top"><span class="md-kick">This week</span><span class="md-mid">${formatRupees(x.weekTotal)}</span></div>${weekCols(x, 'md-cols')}${weekNote(x)}</div>` : ''}
     ${x.cards.length && !x.finished ? `<div class="md-glass"><div class="md-top"><span class="md-kick">Owed on cards</span><span class="md-mid">${formatRupees(x.owedCards)}</span></div>${x.bills ? `<span class="md-badge">${bills(x.bills)}</span>` : ''}
       <div class="md-bars">${x.cards.map((c) => `<div class="md-bar">${tagHtml(c)}<span class="md-prog">${cardBar(c)}</span><b>${formatRupees(c.amount)}</b>${cardKey(c)}</div>`).join('')}</div>${cardLegend(x.cards)}</div>` : ''}
     ${(x.kept || x.employer) && !x.finished ? `<div class="md-split" data-owed-anchor>
