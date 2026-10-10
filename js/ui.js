@@ -251,17 +251,51 @@ export function rollFigures(root = document) {
     const a = Math.abs(from) / 100;
     const b = Math.abs(to) / 100;
     const start = performance.now();
+    // A dial draws the same money: its marks and needle follow the figure frame by frame, on the
+    // same curve, so what is written and what is drawn never disagree while it moves.
+    const dial = el.closest('svg.in-dial');
+    const place = dial ? (left) => dialAt(dial, left) : () => {};
+    dial?.classList.add('is-rolling');
     el.textContent = shapeLike(final, Math.round(a));
+    place(from);
     const paint = (now) => {
       const t = Math.min(1, (now - start) / ROLL_MS);
       const eased = 1 - Math.pow(1 - t, 3);
       el.textContent = t >= 1 ? final : shapeLike(final, Math.round(a + (b - a) * eased));
+      place(from + (to - from) * eased);
       if (t < 1) requestAnimationFrame(paint);
+      else dial?.classList.remove('is-rolling');
     };
     requestAnimationFrame(paint);
     setTimeout(() => {
       if (el.textContent !== final) el.textContent = final;
+      place(to);
+      dial?.classList.remove('is-rolling');
     }, ROLL_MS + 400);
+  }
+}
+
+/* The Instrument dial for a given amount left (paise): marks lit up to what is spent, red past the
+ * even pace, the needle turned to match. The needle is drawn at its final place; here it is
+ * turned by how far the figure still is from it. Read from the dial's own data-limit, data-pace
+ * and data-spent, so the picture is always the one drawn by instrumentDial. */
+export function dialAt(dial, left) {
+  const limit = Number(dial.dataset.limit);
+  if (!(limit > 0)) return;
+  const frac = (spent) => Math.min(1, Math.max(0, spent / limit));
+  const fs = frac(limit - left);
+  const fp = dial.dataset.pace === '' || dial.dataset.pace == null ? 1 : frac(Number(dial.dataset.pace));
+  const marks = dial.querySelectorAll('.in-dial__m');
+  const last = marks.length - 1;
+  marks.forEach((m, i) => {
+    const f = i / last;
+    const state = f <= fs + 1e-9 ? (f <= fp + 1e-9 ? 'on' : 'ahead') : 'off';
+    m.setAttribute('class', `in-dial__m in-dial__m--${state}${m.classList.contains('is-major') ? ' is-major' : ''}`);
+  });
+  const needle = dial.querySelector('.in-dial__needle');
+  if (needle) {
+    needle.style.transformOrigin = '163px 148px';
+    needle.style.transform = `rotate(${(fs - frac(Number(dial.dataset.spent))) * 240}deg)`;
   }
 }
 

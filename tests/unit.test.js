@@ -48,7 +48,7 @@ import { searchWords, findCandidates } from '../js/category-match.js';
 import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, cashRiver, tickGauge } from '../js/charts.js';
-import { shapeLike, moneyTone, rollFigures } from '../js/ui.js';
+import { shapeLike, moneyTone, rollFigures, dialAt } from '../js/ui.js';
 import { askConfirm } from '../js/dialog.js';
 import { dragToClose } from '../js/sheet-drag.js';
 import { shortStatus, spentLine, spendingHero, monthWaves, monthMountains, monthScale, chartReadout, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
@@ -1657,6 +1657,43 @@ test('a figure that changed since it was last shown rolls to its new value; the 
   first.remove();
   second.remove();
   third.remove();
+});
+
+test('the dial rolls with its figure: marks and needle follow the money frame by frame', async () => {
+  const f = {
+    limit: rupees(10000), free: rupees(7000), spentThisCycle: rupees(3000), level: 'ok', daysIntoCycle: 10, daysToClose: 21,
+    spendDays: [rupees(3000)], spendByDay: [{ date: '2026-10-10', amount: rupees(3000) }], cycleStart: '2026-10-01', cycleKey: '2026-10-31', perDay: rupees(300),
+    cardBills: [], cards: [], tracker: [], totals: {},
+  };
+  const draw = (free, spent) => instrumentDial({ ...topFigures({ ...f, free, spentThisCycle: spent }), rollKey: 'dial-sync' }, false);
+  const mount = (html) => {
+    const el = document.createElement('div');
+    el.innerHTML = html;
+    document.body.append(el);
+    return el;
+  };
+  const lit = (el) => el.querySelectorAll('.in-dial__m--on, .in-dial__m--ahead').length;
+  const before = mount(draw(rupees(7000), rupees(3000)));
+  rollFigures(before);
+  const litBefore = lit(before);
+  const after = mount(draw(rupees(4000), rupees(6000)));
+  rollFigures(after);
+  equal(lit(after), litBefore, 'it starts from the marks it had');
+  const needle = after.querySelector('.in-dial__needle');
+  ok(after.querySelector('svg').classList.contains('is-rolling'), 'and says it is rolling, so no power-up plays over it');
+  await wait(330);
+  const mid = lit(after);
+  ok(mid > litBefore && mid < 61 * 0.6 + 1, 'part way, the marks are part way');
+  const midAngle = Number(needle.style.transform.match(/rotate\((-?[\d.]+)deg\)/)[1]);
+  ok(midAngle < 0 && midAngle > -((0.6 - 0.3) * 240) - 1, 'and the needle is part way back from where it ends');
+  await wait(1100);
+  equal(lit(after), Math.round(0.6 * 60) + 1, 'it ends on the marks the figure says');
+  equal(Number(needle.style.transform.match(/rotate\((-?[\d.]+)deg\)/)[1]), 0, 'with the needle where it was drawn');
+  ok(!after.querySelector('svg').classList.contains('is-rolling'), 'and is let go');
+  equal(lit(mount(draw(rupees(4000), rupees(6000)))), lit(after), 'the same marks as a dial drawn fresh');
+  document.querySelectorAll('[data-roll-key="dial-sync"]').forEach((n) => n.closest('div').remove());
+  dialAt(after.querySelector('svg'), rupees(10000));
+  equal(lit(after), 1, 'a dial with all of the budget left has only its zero mark lit, as drawn fresh');
 });
 
 test('a sheet is pulled down to close, and settles back when let go early', async () => {

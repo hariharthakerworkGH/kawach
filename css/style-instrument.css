@@ -273,7 +273,10 @@
 @keyframes in-dial-on { from { stroke: var(--in-track); filter: none; } }
 @media (prefers-reduced-motion: no-preference) {
   .is-arriving .in-dial__m--on, .is-arriving .in-dial__m--ahead { animation: in-dial-on 360ms var(--k-ease) both; animation-delay: calc(var(--i, 0) * 9ms + 120ms); }
-  .is-arriving .in-dial__needle { animation: in-dial-needle 420ms var(--k-ease) 520ms both; }
+  /* the needle appears as the lit marks reach it: its delay is the marks' own stagger times how many are lit */
+  .is-arriving .in-dial__needle { animation: in-dial-needle 240ms var(--k-ease) calc(var(--lit, 0) * 9ms + 120ms) both; }
+  /* while the figure rolls, the marks and needle follow it frame by frame: no power-up on top */
+  .in-dial.is-rolling .in-dial__m, .in-dial.is-rolling .in-dial__needle { animation: none; }
 }
 @keyframes in-dial-needle { from { opacity: 0; } }
 /* what an even pace would be, in words under the dial */

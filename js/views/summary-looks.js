@@ -204,7 +204,7 @@ export function instrumentDial(x, negative) {
   const [z1x, z1y] = pt(ang(1), R - 36);
   const paced = !(x.finished || !(x.limit > 0));
   const total = x.limit > 0 ? formatRupees(x.limit) : '';
-  return `<svg class="in-dial" viewBox="0 0 326 236" role="img" aria-label="${formatRupees(x.spent)} spent${x.limit > 0 ? ` of ${total}` : ''}${paced ? `, an even pace would be ${formatRupees(x.pace)} by now` : ''}">
+  return `<svg class="in-dial" data-limit="${x.limit > 0 ? x.limit : ''}" data-pace="${paced ? x.pace : ''}" data-spent="${x.spent}" style="--lit:${Math.round(fs * N)}" viewBox="0 0 326 236" role="img" aria-label="${formatRupees(x.spent)} spent${x.limit > 0 ? ` of ${total}` : ''}${paced ? `, an even pace would be ${formatRupees(x.pace)} by now` : ''}">
       ${marks}
       <line class="in-dial__needle" x1="${n1(nx1)}" y1="${n1(ny1)}" x2="${n1(nx2)}" y2="${n1(ny2)}"/>
       <text class="in-dial__end" x="${n1(z0x)}" y="${n1(z0y + 22)}" text-anchor="middle">₹0</text>
