@@ -124,6 +124,8 @@ export function useLearned(list) {
 }
 
 function readLearned(raw) {
+  // A real alert is a few hundred characters; a huge paste is never matched against taught patterns.
+  if (raw.length > 1500) return null;
   for (const f of learned) {
     let m;
     try {

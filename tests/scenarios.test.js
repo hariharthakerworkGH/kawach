@@ -1258,6 +1258,26 @@ test('a card number nobody owns is still linked when you confirm it', async () =
   equal(card.linkedLast4s, ['7777'], 'a reissued card number is learned');
 });
 
+// The time of day of a payment from a message: the bank's own where the message gives one, else the
+// time it reached the app on the day of the payment, else none (a day keyed in for an earlier day).
+test('a saved alert records its time: the bank time, or when it arrived', async () => {
+  await seedBasics();
+  const stamp = (y, mo, d, h, mi) => new Date(y, mo - 1, d, h, mi).getTime();
+  const save = async (text, receivedAt, edits) => {
+    await addToInbox(text, 'paste', receivedAt);
+    const item = (await pendingAlerts()).find((i) => i.rawText === text);
+    return saveAlert(item, { accountId: 'card', direction: 'debit', ...edits });
+  };
+  const withBankTime = await save('Spent Rs.50 On HDFC Bank Card 2222 At CHAI On 2026-09-29:10:05:00', stamp(2026, 9, 29, 18, 40), { date: '2026-09-29', description: 'CHAI', amount: 5000 });
+  equal(withBankTime.time, '10:05', 'the bank own time wins over when it was pasted');
+  const noTime = await save('Rs 80 sent to chai@paytm from A/c ending 2222 on 29-09-2026. UPI Ref 987654321012', stamp(2026, 9, 29, 21, 7), { date: '2026-09-29', description: 'chai@paytm', amount: 8000 });
+  equal(noTime.time, '21:07', 'no time in the message: the time it reached the app, that day');
+  const otherDay = await save('Rs 90 sent to chai@paytm from A/c ending 2222 on 20-09-2026. UPI Ref 987654321013', stamp(2026, 9, 29, 21, 9), { date: '2026-09-20', description: 'chai@paytm', amount: 9000 });
+  equal(otherDay.time, undefined, 'a payment from an earlier day has no time of day to speak of');
+  const moved = await save('Spent Rs.60 On HDFC Bank Card 2222 At CHAI On 2026-09-29:10:06:00', stamp(2026, 9, 29, 18, 41), { date: '2026-09-28', description: 'CHAI', amount: 6000 });
+  equal(moved.time, undefined, 'a date changed on the card drops the bank time');
+});
+
 // --- Reimbursable: a work cost you front, and the money coming back -----------
 // THE RULE (changed in 4.18 at the owner's request): money you will be paid back
 // is not money you spent. A work cost you flag is shown and followed - owed
@@ -1330,6 +1350,8 @@ test('card refunds: the refund of a work cost, of a set-aside purchase and of an
   await putAll('transactions', [refund('sw-back', 620, '2026-10-08', 'RSP*SWIGGY PVT LTD FO BENGALURU KAR (refund)')]);
   const w = await computeFreeToSpend(day('2026-10-09'));
   equal([w.free, w.spentThisCycle, w.reimbursable.owed], [before.free, before.spentThisCycle, 0], 'a refunded work cost: no new room, nothing owed');
+
+  equal(w.spendByDay.reduce((t, d) => t + (d.other || 0), 0), 0, 'a refunded work cost is not hatched on the chart either');
 
   // A purchase paid from a set-aside cost: refunded, the pot is as it was.
   await putAll('transactions', [txn({ id: 'zm', accountId: 'card', date: '2026-10-05', amount: 329, rawDescription: 'ZOMATO ORDER' })]);

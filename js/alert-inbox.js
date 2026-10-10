@@ -2,6 +2,7 @@ import { get, getAll, put, remove, newId } from './db.js';
 import { splitAlerts, parseAlert, alertFingerprint } from './alerts.js';
 import { learnFromAssignment } from './merchant-rules.js';
 import { loadLearned, learnFrom } from './alert-learning.js';
+import { isoLocal, clockOf } from './frequency.js';
 
 // Alerts waiting for you to confirm them.
 //
@@ -88,6 +89,13 @@ export async function dismissAlert(id) {
 // alert already exists and you didn't explicitly choose "Save anyway". Checked
 // here, against the database as it is now, because the screen's own picture
 // of what's already saved can be out of date.
+// "HH:MM" when the message arrived on the given day, otherwise nothing (a payment keyed in for
+// an earlier day has no time of day to speak of).
+function arrivedClock(receivedAt, date) {
+  const at = Math.min(receivedAt || Date.now(), Date.now());
+  return isoLocal(new Date(at)) === date ? clockOf(at) : undefined;
+}
+
 export async function saveAlert(item, edits) {
   const stillWaiting = await get(INBOX_STORE, item.id);
   if (!stillWaiting) return null;
@@ -120,11 +128,12 @@ export async function saveAlert(item, edits) {
     // alert shared twice is caught.
     alertKey,
     alertRef: parsed.ok ? parsed.ref : null,
-    // NEW, for History's same-day order: the bank's own time on the alert
-    // ("23:23") where it gave one, and when it was saved.
-    // (Dropped if you changed the date on the confirm card: the time belonged
-    // to the bank's date, not yours.)
-    time: parsed.ok && parsed.time && parsed.date === edits.date ? parsed.time : undefined,
+    // The time of day, shown in Edit and used for History's same-day order: the bank's own
+    // time on the alert ("23:23") where it gave one; else the time the message reached the
+    // app, when that was the day of the payment (an alert with no time in it is nearly
+    // always pasted within minutes). Dropped if you changed the date on the confirm card:
+    // the time belonged to the bank's date, not yours.
+    time: parsed.ok && parsed.time && parsed.date === edits.date ? parsed.time : arrivedClock(item.receivedAt, edits.date),
     // When the alert reached the app, not when you got round to tapping Save:
     // a morning's alerts saved together at lunch still sit in the order they
     // came. (Never later than now.)

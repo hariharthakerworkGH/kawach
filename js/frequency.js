@@ -79,3 +79,9 @@ export function isoLocal(date) {
 export function frequencyShort(frequency) {
   return (FREQUENCIES[frequency] || FREQUENCIES[DEFAULT_FREQUENCY]).short;
 }
+
+// The time of day on this phone as "HH:MM", for a payment logged on the day it happened.
+export function clockOf(ms = Date.now()) {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}

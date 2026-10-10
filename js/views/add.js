@@ -4,7 +4,7 @@ import { icon } from '../icons.js';
 import { CASH_ACCOUNT_ID } from '../config.js';
 import { categoryStyle } from '../category-style.js';
 import { showToast } from '../toast.js';
-import { FREQUENCIES, DEFAULT_FREQUENCY, toMonthly, toYearly, isoLocal } from '../frequency.js';
+import { FREQUENCIES, DEFAULT_FREQUENCY, toMonthly, toYearly, isoLocal, clockOf } from '../frequency.js';
 import { formatCurrency } from '../format.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
 import { isBusinessCategory, isBusinessAccount, activeSpace, accountInSpace } from '../business.js';
@@ -519,6 +519,8 @@ export async function render(container, params = {}) {
       // first by this (and by the bank's own time on alerts).
       createdAt: Date.now(),
     };
+    // Logged on the day it happened: the time is when it was logged, and Edit shows it.
+    if (transaction.date === today) transaction.time = clockOf();
     if (!transaction.commitmentId) delete transaction.commitmentId;
     // NEW: only the flag that fits the direction is ever written.
     if (direction === 'debit' && reimbEl.checked) transaction.isReimbursable = true;
@@ -593,6 +595,7 @@ export async function render(container, params = {}) {
       notes: null,
       createdAt: Date.now(),
     };
+    if (transaction.date === today) transaction.time = clockOf();
     await put('transactions', transaction);
     // The day to expect it back belongs to what they owe now; once nothing
     // is owed it goes, so the next loan never inherits an old date.

@@ -72,7 +72,8 @@ export function teach(raw, parsed, confirmed) {
   if (!parsed || !parsed.ok || parsed.confidence !== 'partial' || !confirmed || !confirmed.direction) return null;
   const spans = [];
 
-  const money = [...raw.matchAll(/(?:Rs\.?|INR|₹|Rupees|Amt\.?:?|Amount:?)\s*([\d,]+(?:\.\d{1,2})?)/gi)].find((m) => toPaise(m[1]) === confirmed.amount);
+  // After a currency word; SBI leaves it out ("debited by 250.0"), so that wording counts too.
+  const money = [...raw.matchAll(/(?:Rs\.?|INR|₹|Rupees|Amt\.?:?|Amount:?|(?:debited|credited)\s+(?:by|with|for))\s*([\d,]+(?:\.\d{1,2})?)/gi)].find((m) => toPaise(m[1]) === confirmed.amount);
   if (!money) return null;
   const at = money.index + money[0].length - money[1].length;
   spans.push({ start: at, end: at + money[1].length, name: 'amount', hole: '([\\d,]+(?:\\.\\d{1,2})?)', show: '{amount}' });

@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.35.2',
+    items: [
+      {
+        icon: 'history',
+        title: "Payments now keep their time",
+        text: "A payment from a pasted message, or one you add today, now records the time it was logged. A bank's own time on the message still wins. You can see and change it under Edit, in the Time box.",
+        guide: [{ view: 'history', target: '#view-container', text: "Open a payment and tap Edit to see its time." }],
+      },
+    ],
+  },
+  {
     version: '5.35',
     items: [
       {

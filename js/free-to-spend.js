@@ -860,7 +860,7 @@ export async function computeFreeToSpend(now = new Date()) {
     if (!isSetAside(b.item)) continue;
     for (const m of b.matches || []) if (!CASH_ENTRY_RE.test(m.description || '')) outside.set(m.id, { date: m.date, amount: m.amount });
   }
-  for (const t of transactions) if (isWorkCost(t) && ownedByHouse(t)) outside.set(t.id, { date: t.date, amount: t.amount });
+  for (const t of transactions) if (isWorkCost(t) && ownedByHouse(t) && notCancelled(t)) outside.set(t.id, { date: t.date, amount: t.amount });
   const otherDay = new Map();
   for (const o of outside.values()) if (o.date >= windowStart && o.date <= today) otherDay.set(o.date, (otherDay.get(o.date) || 0) + o.amount);
   const undated = spentThisCycle - datedSpends.reduce((s, e) => s + e.amount, 0);
