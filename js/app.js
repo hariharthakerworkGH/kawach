@@ -16,7 +16,7 @@ import { keepDataSafe, isInstalled } from './install.js';
 import { signIn, rememberGoogleAccount } from './drive.js';
 import { showIfUpdated } from './whats-new.js';
 import { moneyProfile, businesses, activeSpace, setCurrentSpace, settleSpaces } from './business.js';
-import { applyTheme, applyDisplay, appearance, chosen, setAppearance } from './appearance.js';
+import { applyTheme, applyDisplay, appearance, chosen, setAppearance, retireOldLooks } from './appearance.js';
 import * as appearanceView from './views/appearance.js';
 import * as addView from './views/add.js';
 import * as categoriesView from './views/categories.js';
@@ -592,11 +592,14 @@ async function init() {
   // The chosen light or dark. index.html has already done this inline before
   // the first paint; this is the same decision made from the one module that
   // owns it, so there is only ever one answer.
+  // Peaks and Mindora are gone (5.41): the person who wore one is on Instrument now, and told once.
+  const retired = retireOldLooks();
   applyTheme();
   applyDisplay();
 
   // The tab bar's and header's icons, before anything is drawn below them.
   fillIcons();
+  if (retired) showToast('Peaks and Mindora have retired. You are on Instrument now; change it in How it looks.', { ms: 7000 });
 
   // Wired first thing, so the banner's Reload works even if startup stalls
   // below - which is exactly when it's needed.

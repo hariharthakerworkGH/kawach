@@ -65,12 +65,14 @@
     // it is as light or dark as the phone, else Charts on a dark phone and
     // burning flame light on a light one. READY and LIGHT must match
     // js/looks.js.
-    var READY = { tactile: 1, peaks: 1, mindora: 1, instrument: 1 };
-    var LIGHT = { 'flame-light': 1, mindora: 1 };
+    var READY = { tactile: 1, instrument: 1 };
+    var LIGHT = { 'flame-light': 1 };
     // Instrument unless another style was chosen (the default since 5.27; Tactile was before).
     var st = a.style === 'charts' ? 'charts' : READY[a.style] ? a.style : 'instrument';
     if (st !== 'charts') r.setAttribute('data-style', st);
     var c = a.colour || ({ light: 'flame-light', dark: 'charts' })[a.theme] || 'auto';
+    // Peaks and Mindora were retired in 5.41: whoever wore them is on Instrument, following the phone.
+    if (c === 'peaks' || c === 'mindora') c = 'auto';
     var pl = Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
     if (c === 'auto') c = Boolean(LIGHT[st]) === pl ? st : pl ? 'flame-light' : 'charts';
     r.setAttribute('data-colour', c);
@@ -111,8 +113,6 @@
 <link rel="stylesheet" href="./css/dna.css">
 <link rel="stylesheet" href="./css/looks.css">
 <link rel="stylesheet" href="./css/style-tactile.css">
-<link rel="stylesheet" href="./css/style-peaks.css">
-<link rel="stylesheet" href="./css/style-mindora.css">
 <link rel="stylesheet" href="./css/style-instrument.css">
 <style>
   /* The opening (4.17.1). Inline so it is on screen in the first frame.

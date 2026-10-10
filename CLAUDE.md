@@ -320,13 +320,15 @@ demo in `demo.js`. Guided tour and a second household come next.
 
 ## Design
 
-**Styles and colourings (5.0).** Kawach comes in five styles (Charts,
-Tactile, Peaks, Mindora, Instrument) and thirteen colourings, chosen in How it looks
-(`js/looks.js`). Charts is the base every screen is built on; the other
-three are layers over it, restyling what they have caught up with and
+**Styles and colourings (5.0).** Kawach comes in three styles (Charts,
+Tactile, Instrument) and eleven colourings, chosen in How it looks
+(`js/looks.js`). Peaks and Mindora were retired in 5.41 (the owner found them
+useless); anyone who wore one is moved to Instrument once, with a toast
+(`retireOldLooks` in `js/appearance.js`). Charts is the base every screen is built on; the other
+two are layers over it, restyling what they have caught up with and
 falling back to Charts elsewhere. **Instrument is the default style (5.27; Tactile
-was from 5.17), and every new feature gets its look in Instrument first**; Charts, Peaks and
-Mindora are brought up to date together in a "mass update" (the last one was
+was from 5.17), and every new feature gets its look in Instrument first**; Charts and
+Tactile are brought up to date together in a "mass update" (the last one was
 5.24: the short Summary's cards, the explain bubble, Lent and borrowed and the
 salary question in each look's own card language) - never ship anything that
 breaks in them. **Instrument (5.25)** is dark and precise (a dial for the
@@ -356,10 +358,10 @@ on <html> picks it and `data-theme` follows its light or dark, so the light
 and dark material in the stylesheets comes with it. The three Charts
 gradients are `--k-grad-1a/1b`, `-2a/2b`, `-3a/3b`, with `--k-grad-N-ink` for
 text on each. A style other than Charts is one stylesheet keyed on
-`data-style` (`css/style-tactile.css` 5.6, `css/style-peaks.css` 5.7) that
+`data-style` (`css/style-tactile.css` 5.6) that
 changes material, never markup, and brings its own colouring (Tactile
-copper, Peaks slate) for "Follow my phone". The one drawing that differs is
-Summary's month: Peaks draws it as mountains (`monthMountains`), chosen in
+copper) for "Follow my phone". The drawing that differs is
+Summary's month: Instrument draws a ruled scale (`monthScale`), chosen in
 `monthWaves` by the style worn. Paint alone made the styles look alike, so
 since 5.9 each also lays out Summary's top half as its mockup does
 (`js/views/summary-looks.js`, same figures, own markup) and has its own tab
@@ -377,10 +379,8 @@ answer under the figure, "Needs you" (three at most: bank short, commitments
 due in three days, then the To do rows; the rest behind "N more"), the month,
 and everything else in one "More about this month" fold. The version line
 lives in Settings. No bare percentages on screen anywhere: amounts or words. Tabs swipe left and right
-round and round (`js/swipe.js`, nav order). Mindora (`css/style-mindora.css`, 5.8) is
-glass over a ridge scene cut with clip-path, its own colouring light, so
-"Follow my phone" gives a style its own colouring only when that matches the
-phone's light or dark. dna.css's tab and shell rules carry an id (`:has(#view-
+round and round (`js/swipe.js`, nav order). "Follow my phone" gives a style its own
+colouring only when that matches the phone's light or dark. dna.css's tab and shell rules carry an id (`:has(#view-
 container.k)`): a style beats them with `#tabs` or `#view-container`. Mix
 `color-mix(in oklch, x, transparent)` or white in srgb instead: in oklch the
 hue is lost and drifts red. SVG gradient ids are numbered per drawing. The

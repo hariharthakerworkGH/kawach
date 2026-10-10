@@ -729,7 +729,7 @@ function byRecentUse(categories, transactions) {
   return [...categories].sort((a, b) => (counts.get(b.id) || 0) - (counts.get(a.id) || 0));
 }
 
-/* NEW (5.12): Tactile, Peaks and Mindora group the form as their mockups do
+/* NEW (5.12): Tactile and Instrument group the form as their mockups do
  * (mockups/5.0): the direction first, the amount and the merchant together on
  * one card, the category, then account, date and repeats as rows, and the
  * bank SMS last. The same elements move - ids, values and listeners go with
@@ -737,7 +737,7 @@ function byRecentUse(categories, transactions) {
  * keeps the order it was built in. */
 function arrangeAdd(container) {
   const style = document.documentElement.dataset.style;
-  if (!['tactile', 'peaks', 'mindora', 'instrument'].includes(style)) return;
+  if (!['tactile', 'instrument'].includes(style)) return;
   const form = container.querySelector('#add-form');
   const hero = form.querySelector('.amount-hero');
   const toggle = hero.querySelector('.direction-toggle');
@@ -749,8 +749,7 @@ function arrangeAdd(container) {
   head.className = 'add-card add-card--category';
   const rows = document.createElement('div');
   rows.className = 'add-card add-rows';
-  if (style === 'mindora') card.append(toggle);
-  else form.prepend(toggle);
+  form.prepend(toggle);
   card.append(hero.querySelector('.amount-field'), field('add-desc'));
   head.append(container.querySelector('#add-cat-open').closest('.k-field'), field('add-reimb'), field('add-settle'));
   const account = field('add-account');

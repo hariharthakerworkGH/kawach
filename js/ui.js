@@ -257,7 +257,7 @@ const SOFT = 'cubic-bezier(0.65, 0, 0.35, 1)';
  * figure beside the bar counts on the bar's own eased progress, so the two can never disagree. */
 export function fillBars(root = document) {
   if (calm()) return;
-  for (const prog of root.querySelectorAll('.tl-prog, .md-hero .md-prog')) {
+  for (const prog of root.querySelectorAll('.tl-prog')) {
     const bar = prog.querySelector(':scope > i');
     if (!bar || !bar.animate) continue;
     bar.style.transformOrigin = 'left center';
@@ -487,7 +487,7 @@ export function rollFigures(root = document) {
   }
 }
 
-// A circle's arc as a path, from a fraction of the way round to another (the Peaks donut's pieces).
+// A circle's arc as a path, from a fraction of the way round to another (a donut's pieces).
 export function arcPath(r, a0, a1) {
   const T = (v) => -Math.PI / 2 + v * 2 * Math.PI;
   const p = (a) => [75 + r * Math.cos(T(a)), 75 + r * Math.sin(T(a))];

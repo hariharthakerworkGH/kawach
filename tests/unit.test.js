@@ -11,7 +11,7 @@ import { reimbursableTally, tidyFlags } from '../js/reimbursable.js';
 import { versionStatus } from '../js/version.js';
 import { cardPosition, bankBalance, statementDayFixes, balanceAt } from '../js/account-metrics.js';
 import { currentCycleStart } from '../js/billing-cycle.js';
-import { CHOICES, appearance, setAppearance, applyTheme } from '../js/appearance.js';
+import { CHOICES, appearance, setAppearance, applyTheme, retireOldLooks } from '../js/appearance.js';
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
 import { cardWorkSplit, cushionCard, cardFacts } from '../js/views/accounts.js';
 import { subscriptionsOf, isSubscription } from '../js/subscriptions.js';
@@ -20,7 +20,7 @@ import { forecast, costInMonth } from '../js/forecast.js';
 import { flexReport } from '../js/flex-report.js';
 import { flexCard } from '../js/views/recap.js';
 import { makeRecord, checkPin, waitFor, mustLock, makeKeyText, normaliseKey, formatKey, makeKeyRecord, checkKey } from '../js/lock.js';
-import { mood, comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, peaksTop, mindoraTop, chartsCards } from '../js/views/summary-looks.js';
+import { comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, chartsCards } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
 import { termFor } from '../js/explain.js';
 import { peopleStanding, personSpendEffects, lateBack, reminderText } from '../js/people.js';
@@ -54,7 +54,7 @@ import { dragRows } from '../js/reorder-drag.js';
 import { goalRing } from '../js/charts.js';
 import { askConfirm } from '../js/dialog.js';
 import { dragToClose } from '../js/sheet-drag.js';
-import { shortStatus, spentLine, spendingHero, monthWaves, monthMountains, monthScale, chartReadout, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
+import { shortStatus, spentLine, spendingHero, monthWaves, monthScale, chartReadout, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -439,14 +439,14 @@ test('colourings: follow the phone, carry over an old light or dark choice', () 
   equal(colouringFor('auto', false, 'tactile').id, 'tactile', 'in Tactile, a dark phone gets Tactile copper');
   equal(colouringFor('auto', true, 'tactile').id, 'flame-light', 'and a light phone burning flame light');
   equal(styleFor('tactile'), 'tactile', 'Tactile is ready');
-  equal(colouringFor('auto', true, 'mindora').id, 'mindora', "in Mindora, a light phone gets Mindora's own light colouring");
-  equal(colouringFor('auto', false, 'mindora').id, 'charts', 'and a dark phone a dark one, Charts');
-  equal(styleFor('mindora'), 'mindora', 'Mindora is ready');
+  equal(styleFor('mindora'), 'instrument', 'a style that was retired (Mindora, Peaks) is Instrument now');
+  equal(styleFor('peaks'), 'instrument', 'Peaks too');
+  equal(colouringFor('peaks', false, 'instrument').id, 'instrument', 'and a retired colouring is the style\'s own');
   equal(styleFor('instrument'), 'instrument', 'Instrument is ready');
   equal(colouringFor('auto', false, 'instrument').id, 'instrument', 'in Instrument, a dark phone gets Instrument amber');
   equal(colouringFor('auto', true, 'instrument').id, 'flame-light', 'and a light phone burning flame light, as Instrument is dark');
   ok(['instrument', 'instrument-ice', 'instrument-lime'].every((id) => COLOURINGS.some((c) => c.id === id && c.mode === 'dark')), 'Instrument comes in amber, ice and lime');
-  equal(styleFor('no-such'), 'charts', 'a style that does not exist is drawn as Charts');
+  equal(styleFor('no-such'), 'instrument', 'a style that does not exist is drawn as Instrument, the default');
   ok(COLOURINGS.every((c) => c.mode === 'light' || c.mode === 'dark'));
   const key = 'kawach-appearance';
   const before = localStorage.getItem(key);
@@ -1809,16 +1809,36 @@ test('a month that closed under budget says so on every look, and an over one sa
     spendDays: [rupees(22580)], spendByDay: [{ date: '2026-09-30', amount: rupees(22580) }], cycleStart: '2026-09-01', cycleKey: '2026-09-30', perDay: 0,
     cardBills: [], cards: [], tracker: [], totals: {},
   };
-  for (const [name, top] of [['tactile', tactileTop], ['peaks', peaksTop], ['mindora', mindoraTop], ['instrument', instrumentTop]]) {
+  for (const [name, top] of [['tactile', tactileTop], ['instrument', instrumentTop]]) {
     const html = top(f, 'x', '');
     ok(html.includes('under budget') && (html.includes('closed-note') || html.includes('in-legend--closed')), `${name}: Closed ₹8,920 under budget`);
     ok(html.includes('is-closed-under') || html.includes('in-dial--closed'), `${name}: the card carries the glow`);
     const over = top({ ...f, spentThisCycle: rupees(40000), free: -rupees(8500) }, 'x', '');
     ok(!over.includes('under budget'), `${name}: a month that went over says nothing of the kind`);
   }
-  for (const [name, top] of [['tactile', tactileTop], ['peaks', peaksTop], ['mindora', mindoraTop]]) {
+  for (const [name, top] of [['tactile', tactileTop]]) {
     const html = top({ ...f, finished: false, daysToClose: 20, daysIntoCycle: 11, spendByDay: [{ date: '2026-10-10', amount: rupees(5000) }] }, 'x', '');
     ok(html.includes('data-roll-scope') && html.includes('data-roll-kind="left"') && html.includes('data-follow='), `${name}: the figure rolls with its bar or ring`);
+  }
+});
+
+test('Peaks and Mindora were retired: a saved choice of either becomes Instrument, following the phone, once', () => {
+  const store = {};
+  globalThis.__ls = store;
+  const real = globalThis.localStorage;
+  const fake = { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } };
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: fake });
+  try {
+    store['kawach-appearance'] = JSON.stringify({ style: 'peaks', colour: 'peaks', text: 'large' });
+    ok(retireOldLooks(), 'a Peaks wearer is moved');
+    equal(JSON.parse(store['kawach-appearance']), { text: 'large' }, 'the style and colour are dropped, the rest is kept');
+    ok(!retireOldLooks(), 'and it is only ever done once');
+    store['kawach-appearance'] = JSON.stringify({ style: 'tactile', colour: 'mindora' });
+    ok(retireOldLooks() && JSON.parse(store['kawach-appearance']).style === 'tactile', 'a retired colouring under a style that stays: only the colouring goes');
+    store['kawach-appearance'] = JSON.stringify({ style: 'instrument', colour: 'instrument-ice' });
+    ok(!retireOldLooks(), 'anyone else is left alone');
+  } finally {
+    Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: real });
   }
 });
 
@@ -1938,16 +1958,6 @@ test('Summary waves and week: from the 1st to today, the biggest day marked, owe
   ok(week.includes('₹5,000') && (week.match(/pill-col--lit/g) || []).length === 1, 'the week so far, today lit');
   const cardsHtml = chartsCards(f);
   ok(cardsHtml.includes('Owed on cards') && cardsHtml.includes('₹11,500') && cardsHtml.includes('Yours <b>') && !week.includes('Owed on cards'), 'owed on cards has its own block: the total, then each card as yours, owed by the company and planned');
-  const peaks = monthMountains(f);
-  ok(peaks.includes('mountains-card') && peaks.includes('₹5,000') && peaks.includes('₹4,000 on 3 Oct'), 'Peaks draws the same month as mountains, same figures');
-  ok(peaks.includes('₹4,000</b><span class="waves__lab">Budget so far') && peaks.includes('₹1,000 a day') && peaks.includes('data-chart-days'), 'the same key as the waves, and the dashed line says an even day, ₹1,000');
-  equal((peaks.match(/mountains__rim/g) || []).length, 0, 'four days are a slope, nothing lit yet');
-  const week2 = ['2026-10-05', '2026-10-06'].map((date, i) => ({ date, amount: [rupees(900), rupees(100)][i] }));
-  const longer = monthMountains({ ...f, spendDays: [...f.spendDays, rupees(5900), rupees(6000)], spendByDay: [...f.spendByDay, ...week2] });
-  equal((longer.match(/mountains__rim/g) || []).length, 2, 'from five days the two biggest peaks are lit');
-  const noIds = (h) => h.replace(/mtn\d+/g, '');
-  equal(noIds(peaks), noIds(monthMountains(f)), 'the same month draws the same range every time');
-  equal(monthMountains({ ...f, spendDays: [rupees(500)], spendByDay: f.spendByDay.slice(0, 1) }), '', 'one day is not yet a range');
 });
 test("Plan in every style: what comes in split four ways, the same figures Charts rings", () => {
   const parts = planParts({ income: rupees(100000), must: rupees(50000), flex: rupees(20000), budget: rupees(25000), keep: rupees(5000) });
@@ -1982,12 +1992,7 @@ test('Swiping between tabs goes round and round in the order of the tab bar', ()
   equal(neighbour('summary', -1), 'coach', 'and before Summary, Coach');
   equal(neighbour('settings', 1), null, 'a screen that is not a tab does not swipe');
 });
-test('Summary in each style: the mood of the month, what is coming up, what is kept back', () => {
-  const base = { daysIntoCycle: 15, daysToClose: 16, level: 'ok', free: rupees(9000) };
-  equal(mood({ ...base, used: 0.2 }), 'easy', 'a fifth spent half way through is easy');
-  equal(mood({ ...base, used: 0.5 }), 'steady', 'spending with the month is steady');
-  equal(mood({ ...base, used: 0.8, level: 'warning' }), 'tight', 'a warning is tight');
-  equal(mood({ ...base, used: 1.1, level: 'over', free: -rupees(100) }), 'over', 'past the budget is over');
+test('Summary in each style: what is coming up, what is kept back', () => {
   const tracker = [
     { label: 'Phone', due: '2026-10-24', amount: rupees(499), left: rupees(499), status: 'due' },
     { label: 'Rent', due: '2026-10-05', amount: rupees(18000), left: rupees(18000), status: 'late' },
@@ -2314,7 +2319,7 @@ test('on Summary each card says yours, owed by the company and planned, in the s
   };
   const x = topFigures(f);
   equal(x.cards.map((c) => [c.amount, c.work, c.coming]), [[rupees(54000), rupees(44000), rupees(11000)], [0, 0, rupees(2000)]], 'a card with only planned costs still shows');
-  for (const top of [tactileTop(f, 's', ''), peaksTop(f, 's', ''), mindoraTop(f, 's', ''), instrumentTop(f, 's', '')]) {
+  for (const top of [tactileTop(f, 's', ''), instrumentTop(f, 's', '')]) {
     ok(top.includes('Yours <b>') && top.includes('Owed by company <b>') && top.includes('Planned <b>'), 'the three words, in every look');
     ok(top.includes('card-legend') && top.includes('class="cb"') && top.includes('class="plan"'), 'the bar has the planned part and the footnote says what planned is');
   }

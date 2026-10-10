@@ -2,10 +2,9 @@
  * 5.10).
  *
  * The styles began (5.6 to 5.8) as paint over the Charts layout, and on a
- * phone they all read as one design, so each now lays out Summary's top half
+ * phone they all read as one design, so each lays out Summary's top half
  * the way its mockup does (mockups/5.0): Tactile a raised instrument and
- * plain rows, Peaks a pale panel with a donut and the month as mountains,
- * Mindora glass with a face for how the month is going.
+ * plain rows, Instrument a dial. (Peaks and Mindora were retired in 5.41.)
  *
  * What a style may change is how things look, never what is said: every
  * style shows the same figures, in the same order -
@@ -20,7 +19,7 @@
  */
 
 import { formatRupees, formatDateNice } from '../format.js';
-import { arcPath, escapeHtml } from '../ui.js';
+import { escapeHtml } from '../ui.js';
 import { icon } from '../icons.js';
 import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
@@ -127,7 +126,6 @@ const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const dow = (iso) => DOW[new Date(`${iso}T12:00`).getDay()];
 const bills = (n) => (n ? `${n} bill${n === 1 ? '' : 's'} due` : '');
 export const tone = (f) => (f.level === 'over' || f.level === 'critical' ? 'bad' : f.level === 'warning' ? 'caution' : '');
-const plain = (v) => formatRupees(v).replace('₹', '');
 // The week as columns, today lit: the same in every style, drawn by its CSS.
 const weekCols = (x, cls) => {
   const top = Math.max(1, ...x.week.map((d) => d.amount || 0));
@@ -236,178 +234,6 @@ export function instrumentTop(f, status, month) {
       ${x.asideUsed != null ? `<div class="tl-prog tl-prog--aside"><i style="width:${pct(x.asideUsed)}"></i><span><span>Set aside used</span><span data-fillcount>${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}</span></span></div>` : ''}
     </div>`;
   return tactileTop(f, status, month, hero);
-}
-
-/* --- Peaks: the pale panel with a donut, the mountains, slate cards ------ */
-// The week as the reference's smooth orange line, today's point in teal.
-function weekLine(x) {
-  const n = x.week.length;
-  if (n < 2) return weekCols(x, 'pk-cols');
-  const W = 300, H = 72;
-  const top = Math.max(1, ...x.week.map((d) => d.amount || 0));
-  const px = (i) => 10 + (i * (W - 20)) / (n - 1);
-  const py = (v) => H - 10 - (v / top) * (H - 26);
-  const pts = x.week.map((d, i) => [px(i), py(d.amount || 0)]);
-  // The whole day's spending, outside the budget as well, as a dashed line above it (5.38).
-  const whole = x.week.map((d, i) => [px(i), Math.max(4, py(Math.min((d.amount || 0) + (d.other || 0), top * 3)))]);
-  const anyOther = x.week.some((d) => d.other > 0);
-  const line = pts.reduce((d, [a, b], i) => {
-    if (!i) return `M${a.toFixed(1)} ${b.toFixed(1)}`;
-    const [qa, qb] = pts[i - 1];
-    const m = (a - qa) / 2;
-    return `${d} C${(qa + m).toFixed(1)} ${qb.toFixed(1)} ${(a - m).toFixed(1)} ${b.toFixed(1)} ${a.toFixed(1)} ${b.toFixed(1)}`;
-  }, '');
-  const [lx, ly] = pts[n - 1];
-  return `<svg class="pk-wline" viewBox="0 0 ${W} ${H}" role="img" aria-label="This week ${formatRupees(x.weekTotal)}">
-      <path class="pk-wline__area" d="${line} L${lx.toFixed(1)} ${H} L${pts[0][0].toFixed(1)} ${H} Z"/>
-      <path class="pk-wline__l" d="${line}"/>
-      ${anyOther ? `<path class="pk-wline__other" d="${whole.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)} ${b.toFixed(1)}`).join(' ')}"/>` : ''}
-      ${pts.slice(0, -1).map(([a, b]) => `<circle class="pk-wline__dot" cx="${a.toFixed(1)}" cy="${b.toFixed(1)}" r="2.5"/>`).join('')}
-      <circle class="pk-wline__now" cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="4"/>
-    </svg>
-    <div class="pk-wdays">${x.week.map((d) => `<small>${dow(d.date)}</small>`).join('')}</div>
-    ${anyOther ? '<p class="waves__note"><i class="is-dashed"></i>Dashed: with what was spent outside your budget.</p>' : ''}`;
-}
-
-const arc = arcPath;
-
-export function peaksTop(f, status, month) {
-  const x = topFigures(f);
-  // The donut: spent before this week dark, this week in the accent.
-  const all = Math.min(0.999, x.used);
-  const before = x.limit > 0 ? Math.min(all, Math.max(0, (x.spent - x.weekTotal) / x.limit)) : 0;
-  const donut = `<svg class="pk-donut" viewBox="0 0 150 150" aria-hidden="true">
-      <circle class="pk-donut__trk" cx="75" cy="75" r="62"/>
-      ${before > 0.005 ? `<path class="pk-donut__before" d="${arc(62, 0, before)}"/>` : ''}
-      ${all - before > 0.005 ? `<path class="pk-donut__week" data-follow="arc" data-r="62" data-from="${before + (before > 0.005 ? 0.006 : 0)}" d="${arc(62, before + (before > 0.005 ? 0.006 : 0), all)}"/>` : ''}
-    </svg>`;
-  const sup = (n, unit = '₹') => `${n}<sup>${unit}</sup>`;
-  return `<div class="pk-panel ${f.free < 0 ? 'is-negative' : ''}${x.closedUnder ? ' is-closed-under' : ''}" data-roll-scope data-limit="${x.limit}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
-      <div class="pk-top"><span class="pk-lab">Left to spend</span><span class="pk-tiny">${x.period}</span></div>
-      <div class="pk-ring">${donut}<div class="pk-ring__mid"><b data-roll-kind="left" data-roll="${x.left}" data-roll-key="${x.rollKey}:left">${formatRupees(x.left)}</b><small>left</small></div></div>
-      <div class="pk-figs">
-        <div><div class="pk-n pk-n--l" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${sup(plain(x.spent))}</div><div class="pk-tiny">spent${x.limit > 0 ? ` of ${formatRupees(x.limit)}` : ''}${x.finished ? '' : ` · <span class="pk-hot">${formatRupees(x.weekTotal)} this week</span>`}</div></div>
-        <div class="pk-pair">
-          ${x.finished ? '' : `<div><div class="pk-n pk-n--m">${x.perDay > 0 ? sup(plain(x.perDay)) : '-'}</div><div class="pk-tiny">a day</div></div>`}
-          ${x.asideUsed != null ? `<div><div class="pk-n pk-n--m">${sup(plain(x.asideSpent))}</div><div class="pk-tiny">of ${formatRupees(x.asideTotal)} set aside</div></div>` : ''}
-        </div>
-      </div>
-      <div class="pk-foot">
-        <div><span class="pk-tiny">Budget</span><b>${formatRupees(x.limit)}</b></div>
-        ${x.finished ? `<div><span class="pk-tiny">Days</span><b>${x.monthDays}</b></div>` : `<div><span class="pk-tiny">Days left</span><b>${x.daysLeft}</b></div>
-        <div><span class="pk-tiny">Day</span><b>${x.day} of ${x.monthDays}</b></div>`}
-      </div>
-      <p class="pk-status ${tone(f)}" data-status>${escapeHtml(status)}</p>
-      ${closedNote(x)}
-    </div><!--k:answer-->
-    ${month || ''}<!--k:month-->
-    ${x.week.length && !x.finished ? `<div class="pk-card pk-week"><div class="pk-row"><span class="pk-lab">This week</span><span class="pk-n pk-n--s">${sup(plain(x.weekTotal))}</span></div>${weekLine(x)}</div>` : ''}
-    ${x.cards.length && !x.finished ? `<div class="pk-card"><div class="pk-row"><span class="pk-lab">Owed on cards${x.bills ? ` · <span class="pk-hot">${bills(x.bills)}</span>` : ''}</span><span class="pk-n pk-n--m">${sup(plain(x.owedCards))}</span></div>
-      <div class="pk-bars">${x.cards.map((c) => `<div class="pk-bar">${tagHtml(c)}<span class="pk-trk">${cardBar(c)}</span><b>${plain(c.amount)}</b>${cardKey(c, plain)}</div>`).join('')}</div>${cardLegend(x.cards)}</div>` : ''}
-    ${(x.kept || x.employer) && !x.finished ? `<div class="pk-two" data-owed-anchor>
-      ${x.kept ? `<button type="button" class="pk-card" id="set-aside-stat"><span class="pk-lab">Kept back</span><span class="pk-n pk-n--m">${sup(plain(x.kept))}</span><span class="pk-tiny">set aside, not spent yet</span></button>` : ''}
-      ${x.employer ? `<button type="button" class="pk-card" id="owed-back-stat"><span class="pk-lab">Owed back</span><span class="pk-n pk-n--m pk-good">${sup(plain(x.employer))}</span><span class="pk-tiny">by your employer</span></button>` : ''}
-    </div>` : ''}
-    ${x.coming.length && !x.finished ? `<div class="pk-card pk-coming">
-      <div class="pk-lab">Coming up</div>
-      <div class="pk-dashes">${x.coming
-        .map((c) => `<div class="pk-dash"><span class="pk-dash__t">${escapeHtml(c.label)}<small>${formatDateNice(c.due)}${c.late ? ' · late' : ''}</small></span><span class="pk-ln"><i class="${c.late ? 'late' : ''}" style="left:${monthPos(c.due)}"></i>${f.today ? `<u style="left:${monthPos(f.today)}"></u>` : ''}</span><b>${plain(c.amount)}</b></div>`)
-        .join('')}</div>
-      <div class="pk-still"><span class="pk-n pk-n--s">${sup(plain(x.stillToPay))}</span><span class="pk-tiny">still to pay</span></div>
-      ${pines()}
-    </div>` : ''}`;
-}
-
-const monthPos = (iso) => {
-  const d = Number(iso.slice(8, 10));
-  const last = new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)), 0).getDate();
-  return pct((d - 1) / Math.max(1, last - 1));
-};
-
-// Three dark pines with a warm glow behind them, out of the corner of a card.
-function pines() {
-  const tree = (cx, h, w) => {
-    let d = `M${cx} ${150 - h}`;
-    const tiers = 6;
-    for (let i = 1; i <= tiers; i++) d += ` L${cx + (w * i) / tiers / 2} ${150 - h + (h * i) / tiers} L${cx + ((w * i) / tiers / 2) * 0.45} ${150 - h + (h * i) / tiers}`;
-    d += ` L${cx + 2} 150 L${cx - 2} 150`;
-    for (let i = tiers; i >= 1; i--) d += ` L${cx - ((w * i) / tiers / 2) * 0.45} ${150 - h + (h * i) / tiers} L${cx - (w * i) / tiers / 2} ${150 - h + (h * i) / tiers}`;
-    return `${d} Z`;
-  };
-  return `<svg class="pk-pines" viewBox="0 0 150 150" aria-hidden="true">
-      <circle class="pk-pines__glow" cx="90" cy="88" r="70"/>
-      <path class="pk-pines__tree" d="${tree(112, 130, 54)}"/><path class="pk-pines__tree" d="${tree(70, 96, 40)}"/><path class="pk-pines__tree" d="${tree(138, 84, 34)}"/>
-    </svg>`;
-}
-
-/* --- Mindora: glass, the week's columns, a face for the month ------------ */
-// How the month is going, in one of four words: easy (spending well behind
-// the month), steady, tight (a warning) or over. Exported for a test.
-export function mood(f) {
-  if (f.level === 'over' || (f.free != null && f.free < 0)) return 'over';
-  if (f.level === 'warning' || f.level === 'critical') return 'tight';
-  const monthDays = (f.daysIntoCycle || 0) + (f.daysToClose || 1) - 1;
-  const gone = monthDays > 0 ? f.daysIntoCycle / monthDays : 0;
-  return (f.used || 0) < gone - 0.1 ? 'easy' : 'steady';
-}
-
-const MOODS = [
-  ['easy', 'Easy', 2],
-  ['steady', 'Steady', 1],
-  ['tight', 'Tight', 0],
-  ['over', 'Over', -1],
-];
-
-const face = (smile) => {
-  const y = 20 - smile * 2.4;
-  return `<svg viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="19.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><path d="M10 ${y} Q15 ${y + smile * 3.4} 20 ${y}"/></svg>`;
-};
-
-export function mindoraTop(f, status, month) {
-  const x = topFigures(f);
-  const now = mood(f);
-  const line = (label, v, cls, said, follow = false) => `<div class="md-spent"><span>${label}</span><span>${said}</span></div><div class="md-prog"><i class="${cls}"${follow ? ' data-follow="bar"' : ''} style="width:${pct(v)}"></i></div>`;
-  return `<div class="md-glass md-hero ${f.free < 0 ? 'is-negative' : ''}${x.closedUnder ? ' is-closed-under' : ''}" data-roll-scope data-limit="${x.limit}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
-      <div class="md-top"><span class="md-kick">Left to spend</span><span class="md-period">${x.period}</span></div>
-      <div class="md-big" data-roll-kind="left" data-roll="${x.left}" data-roll-key="${x.rollKey}:left">${formatRupees(x.left)}</div>
-      <div class="md-stats">
-        <div><span class="md-kick">Spent</span><b data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div>
-        <div><span class="md-kick">Budget</span><b>${formatRupees(x.limit)}</b></div>
-        <div><span class="md-kick">${x.finished ? 'Days' : 'A day'}</span><b>${x.finished ? x.monthDays : x.perDay > 0 ? formatRupees(x.perDay) : '-'}</b></div>
-      </div>
-      ${line('Spent', x.used, tone(f), ofLimit(x), true)}
-      ${line(`Day ${x.day} of ${x.monthDays}`, x.gone, 'sky', x.finished ? 'month done' : `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`)}
-      ${x.asideUsed != null ? line('Set aside used', x.asideUsed, 'blush', `${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}`) : ''}
-    </div>
-    <div class="md-glass">
-      <div class="md-kick">${x.finished ? 'The month' : 'The month so far'}</div>
-      <div class="md-moods">${MOODS.map(([id, word, smile]) => `<span class="md-mood md-mood--${id}${id === now ? ' on' : ''}"><b>${face(smile)}</b>${word}</span>`).join('')}</div>
-      <p class="md-line ${tone(f)}" data-status>${escapeHtml(status)}</p>
-      ${closedNote(x)}
-    </div><!--k:answer-->
-    ${month || ''}<!--k:month-->
-    ${x.week.length && !x.finished ? `<div class="md-glass"><div class="md-top"><span class="md-kick">This week</span><span class="md-mid">${formatRupees(x.weekTotal)}</span></div>${weekCols(x, 'md-cols')}${weekNote(x)}</div>` : ''}
-    ${x.cards.length && !x.finished ? `<div class="md-glass"><div class="md-top"><span class="md-kick">Owed on cards</span><span class="md-mid">${formatRupees(x.owedCards)}</span></div>${x.bills ? `<span class="md-badge">${bills(x.bills)}</span>` : ''}
-      <div class="md-bars">${x.cards.map((c) => `<div class="md-bar">${tagHtml(c)}<span class="md-prog">${cardBar(c)}</span><b>${formatRupees(c.amount)}</b>${cardKey(c)}</div>`).join('')}</div>${cardLegend(x.cards)}</div>` : ''}
-    ${(x.kept || x.employer) && !x.finished ? `<div class="md-split" data-owed-anchor>
-      ${x.kept ? `<button type="button" class="md-glass md-lake" id="set-aside-stat">${lake()}<span class="md-lake__text"><span class="md-kick">Kept back</span><span class="md-mid">${formatRupees(x.kept)}</span><small>set aside, not spent yet</small></span></button>` : ''}
-      ${x.employer ? `<button type="button" class="md-glass md-small" id="owed-back-stat"><span class="md-kick">Owed back</span><span class="md-mid md-good">${formatRupees(x.employer)}</span><small class="md-sub">by your employer</small></button>` : ''}
-    </div>` : ''}
-    ${x.coming.length && !x.finished ? `<div class="md-glass">
-      <div class="md-top"><span class="md-kick">Coming up</span><span class="md-sub">${formatRupees(x.stillToPay)} still to pay</span></div>
-      <div class="md-steps">${x.coming.map((c) => `<div class="md-step${c.late ? ' late' : ''}"><b>${categoryStyle(c.label).icon}</b><small><em>${escapeHtml(c.label)}</em>${formatRupees(c.amount)}<span>${formatDateNice(c.due)}${c.late ? ' · late' : ''}</span></small></div>`).join('')}</div>
-    </div>` : ''}`;
-}
-
-// A misty lake under hills, in the colouring's own colours.
-function lake() {
-  return `<svg class="md-lake__art" viewBox="0 0 180 210" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <rect class="md-lake__sky" width="180" height="210"/>
-      <path class="md-lake__far" d="M0 120 L40 88 L70 104 L110 70 L150 98 L180 84 L180 140 L0 140Z"/>
-      <path class="md-lake__near" d="M0 140 L30 122 L60 132 L100 112 L140 130 L180 118 L180 150 L0 150Z"/>
-      <rect class="md-lake__water" y="150" width="180" height="60"/>
-      <rect class="md-lake__mist" y="100" width="180" height="40"/>
-    </svg>`;
 }
 
 /* --- Charts: each card as yours, owed by the company and planned (5.28) --- */

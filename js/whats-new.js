@@ -12,6 +12,17 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.41',
+    items: [
+      {
+        icon: 'eye',
+        title: "Two styles retire",
+        text: "Peaks and Mindora are gone, so Kawach is lighter and every new thing can be made properly for the three that remain: Charts, Tactile and Instrument. If you wore one of them, you are on Instrument now and can change it in How it looks.",
+        guide: [{ view: 'appearance', target: '.look-styles', text: "Three styles now: Charts, Tactile and Instrument." }],
+      },
+    ],
+  },
+  {
     version: '5.40',
     items: [
       {

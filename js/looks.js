@@ -17,8 +17,6 @@
 export const STYLES = [
   { id: 'charts', name: 'Charts', ready: true, note: 'Gradient rings, waves and columns.' },
   { id: 'tactile', name: 'Tactile', ready: true, note: 'Raised cards, pressed-in fields, metal switches.' },
-  { id: 'peaks', name: 'Peaks', ready: true, note: 'A pale panel up top, the month as mountains.' },
-  { id: 'mindora', name: 'Mindora', ready: true, note: 'Frosted glass over a misty ridge, sage and serif.' },
   { id: 'instrument', name: 'Instrument', ready: true, note: 'Dark and precise: a dial, ruled scales, one lit colour.' },
 ];
 
@@ -26,8 +24,6 @@ export const STYLES = [
 export const COLOURINGS = [
   { id: 'charts', name: 'Charts', mode: 'dark', bg: '#050505', dots: ['#171717', '#f47ebc', '#7c62f2', '#7efdb4'] },
   { id: 'tactile', name: 'Tactile copper', mode: 'dark', bg: '#222125', dots: ['#38373c', '#b0552f', '#e2906a', '#d9d2cb'] },
-  { id: 'peaks', name: 'Peaks slate', mode: 'dark', bg: '#1c2328', dots: ['#eef6f6', '#fd8242', '#f6b74c', '#1efae0'] },
-  { id: 'mindora', name: 'Mindora mist', mode: 'light', bg: '#dfe6e7', dots: ['#f1f5f4', '#4e786c', '#e8aeb7', '#a7c7e7'] },
   { id: 'instrument', name: 'Instrument amber', mode: 'dark', bg: '#0b0d10', dots: ['#12151a', '#ffb020', '#ff8a3d', '#46d68c'] },
   { id: 'instrument-ice', name: 'Instrument ice', mode: 'dark', bg: '#0b0d10', dots: ['#12151a', '#5ad1ff', '#3b8fe0', '#46d68c'] },
   { id: 'instrument-lime', name: 'Instrument lime', mode: 'dark', bg: '#0b0d10', dots: ['#12151a', '#b6f23c', '#7ccf2a', '#46d68c'] },
@@ -41,9 +37,9 @@ export const COLOURINGS = [
 
 // "Follow my phone": the style's own colouring when it is as light or dark as
 // the phone (each style brings one), otherwise Charts on a dark phone and
-// burning flame light on a light one. Mindora's own colouring is light.
+// burning flame light on a light one.
 export const AUTO = { dark: 'charts', light: 'flame-light' };
-const OWN = { charts: 'charts', tactile: 'tactile', peaks: 'peaks', mindora: 'mindora', instrument: 'instrument' };
+const OWN = { charts: 'charts', tactile: 'tactile', instrument: 'instrument' };
 
 /* The colouring a style brings with it. */
 export const ownColouring = (style) => OWN[style] || AUTO.dark;
@@ -57,9 +53,9 @@ export function colouringFor(choice, prefersLight, style = 'charts') {
   return (own.mode === 'light') === Boolean(prefersLight) ? own : byId.get(prefersLight ? AUTO.light : AUTO.dark);
 }
 
-/* The style worn: one that is ready, or Charts. */
+/* The style worn: one that is ready, or Instrument (a style that was retired, as Peaks and Mindora were in 5.41, lands there). */
 export function styleFor(choice) {
-  return STYLES.some((s) => s.id === choice && s.ready) ? choice : 'charts';
+  return STYLES.some((s) => s.id === choice && s.ready) ? choice : 'instrument';
 }
 
 function prefersLight() {

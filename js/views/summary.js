@@ -1,5 +1,5 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
-import { tactileTop, peaksTop, mindoraTop, instrumentTop, keptBack, chartsComing, chartsCards } from './summary-looks.js';
+import { tactileTop, instrumentTop, keptBack, chartsComing, chartsCards } from './summary-looks.js';
 import { isDemo } from '../demo-flag.js';
 import { icon } from '../icons.js';
 import { isFixed, isLiveCommitment, coveredByFixed, commitmentFromSuggestion } from '../commitments.js';
@@ -196,8 +196,8 @@ function wireSetup(el, container) {
 function answerFirst(html) {
   const t = document.createElement('template');
   t.innerHTML = html;
-  const status = t.content.querySelector('.hero-status, .tl-line, .md-line');
-  const figure = t.content.querySelector('.hero-amount, .tl-big, .md-big');
+  const status = t.content.querySelector('.hero-status, .tl-line');
+  const figure = t.content.querySelector('.hero-amount, .tl-big');
   if (status && figure) {
     status.classList.add('sum-answer');
     // Red only when over the budget: the bank running short, which also
@@ -686,9 +686,10 @@ function asideRing(f) {
  * total), where an even pace through the budget would be by now, and what
  * each day took on its own along the bottom, the biggest day marked. From
  * the 1st to today; the days to come are not drawn. Exported for a test. */
+// Each hatched drawing gets its own pattern id, so two on one page never share one.
+let hatches = 0;
 export function monthWaves(f) {
   const look = typeof document !== 'undefined' ? document.documentElement.dataset.style : '';
-  if (look === 'peaks') return monthMountains(f);
   if (look === 'instrument') return monthScale(f);
   const totals = f.spendDays || [];
   const daily = (f.spendByDay || []).map((d) => d.amount || 0);
@@ -950,99 +951,6 @@ function wireCharts(root) {
   });
 }
 
-/* NEW (5.7, the Peaks style): the same month as a mountain range. Each day's
- * spending is a ridge, its two biggest days catch the light on their
- * right-hand slope, and a dashed line marks what an even day of the budget
- * would be. Heights are square-rooted so one huge day does not flatten the
- * rest. The roughness of the rock is fixed per day, so the range is the same
- * every time it is drawn. Exported for a test. */
-// Each drawing gets its own gradient ids, so two drawings on one page never
-// share one.
-let mountainsDrawn = 0;
-let hatches = 0;
-export function monthMountains(f) {
-  const totals = f.spendDays || [];
-  const daily = (f.spendByDay || []).map((d) => d.amount || 0);
-  const n = Math.min(totals.length, daily.length);
-  if (n < 2 || !(f.limit > 0) || !daily.some((v) => v > 0)) return '';
-  const monthDays = (f.daysIntoCycle || n) + (f.daysToClose || 1) - 1;
-  const evenDay = f.limit / monthDays;
-  const W = 360, H = 170, base = 156, STEP = 4;
-  const peak = Math.max(...daily.slice(0, n));
-  const soft = daily.slice(0, n).map((v, i) => (daily[i - 1] ?? v) * 0.2 + v * 0.6 + (daily[i + 1] ?? v) * 0.2);
-  const xs = (i) => 8 + (i / (n - 1)) * (W - 22);
-  const rough = (k) => (((k * 7919) % 101) / 101 - 0.35);
-  const calm = Math.min(1, Math.sqrt(14 / n));
-  // What was spent outside the budget (5.38): a hatched ridge behind the front one, as tall as the
-  // whole day's spending on the front ridge's own scale, flat-topped where it would leave the drawing.
-  const otherDay = (f.spendByDay || []).map((d) => d.other || 0);
-  const wholeDay = daily.map((v, i) => v + (otherDay[i] || 0));
-  const hasOther = otherDay.slice(0, n).some((v) => v > 0);
-  const softWhole = wholeDay.slice(0, n).map((v, i) => (wholeDay[i - 1] ?? v) * 0.2 + v * 0.6 + (wholeDay[i + 1] ?? v) * 0.2);
-  const ridge = (scale, lift, jag, src = soft) => {
-    const pts = [];
-    const cap = base - 12;
-    for (let i = 0; i < n; i++) {
-      const h = Math.min(cap, lift + Math.sqrt(src[i] / peak) * scale);
-      pts.push([xs(i), base - h]);
-      if (i === n - 1) break;
-      const h2 = Math.min(cap, lift + Math.sqrt(src[i + 1] / peak) * scale);
-      for (let j = 1; j < STEP; j++) {
-        const t = j / STEP;
-        pts.push([xs(i) + (xs(i + 1) - xs(i)) * t, base - (h + (h2 - h) * t) + rough(i * STEP + j) * jag * (1 - Math.abs(t - 0.5))]);
-      }
-    }
-    return pts;
-  };
-  const back = hasOther ? ridge(112, 10, 16 * calm, softWhole) : ridge(78, 30, 14 * calm).map(([px, py]) => [px + 7, py - 6]);
-  const front = ridge(112, 10, 16 * calm);
-  const end = front[front.length - 1][0];
-  const poly = (pts, x1) => `M${pts[0][0].toFixed(1)} ${base} ${pts.map(([px, py]) => `L${px.toFixed(1)} ${py.toFixed(1)}`).join(' ')} L${x1.toFixed(1)} ${base} Z`;
-  // Only a real peak is lit (higher than the days beside it), and only once
-  // there are five days: two or three days make one slope, not a range.
-  const isPeak = (d) => daily[d] > 0 && daily[d] >= (daily[d - 1] ?? 0) && daily[d] >= (daily[d + 1] ?? 0);
-  const big = n < 5 ? [] : [...daily.slice(0, n).keys()].filter(isPeak).sort((a, b) => daily[b] - daily[a]).slice(0, 2);
-  const bigDay = daily.indexOf(peak);
-  const id = `mtn${++mountainsDrawn}`;
-  const lit = big.map((d) => {
-    const i = d * STEP, slope = [front[i]];
-    for (let k = i + 1; k < front.length && slope.length < 7 && front[k][1] >= slope[slope.length - 1][1] - 2; k++) slope.push(front[k]);
-    const [px, py] = front[i], last = slope[slope.length - 1];
-    const face = `M${px.toFixed(1)} ${py.toFixed(1)} ${slope.slice(1).map(([sx, sy]) => `L${sx.toFixed(1)} ${sy.toFixed(1)}`).join(' ')} L${(last[0] - 2).toFixed(1)} ${base} L${(px + (last[0] - px) * 0.3).toFixed(1)} ${base} Z`;
-    return `<path class="mountains__lit" fill="url(#${id}-lit)" d="${face}"/><polyline class="mountains__rim" points="${slope.map(([sx, sy]) => `${sx.toFixed(1)},${sy.toFixed(1)}`).join(' ')}"/>`;
-  }).join('');
-  const paceY = base - (10 + Math.sqrt(Math.min(1, evenDay / peak)) * 112);
-  const ticks = [...new Set([0, Math.round((n - 1) / 3), Math.round((2 * (n - 1)) / 3), n - 1])]
-    .map((i) => `<text class="mountains__tick" x="${xs(i).toFixed(1)}" y="${H - 2}" text-anchor="middle">${Number(f.spendByDay[i].date.slice(8))}</text>`).join('');
-  const days = daily.slice(0, n).map((v, i) => [f.spendByDay[i].date, v, totals[i], Math.round(evenDay * (i + 1)), +xs(i).toFixed(1), +front[i * STEP][1].toFixed(1), otherDay[i] || 0]);
-  const lastD = days[n - 1];
-  return `<div class="totals-card waves-card mountains-card" data-draw-key="${f.cycleKey || ''}" ${chartData(days, 8, W - 14, W, f)}>
-      ${chartHead(f)}
-      <svg class="mountains no-swipe" viewBox="0 0 ${W} ${H}" role="img" aria-label="${f.finished ? 'The month' : 'This month so far'}: ${formatRupees(totals[n - 1])} spent; an even day of the budget is ${formatRupees(Math.round(evenDay))}. Most in one day: ${formatRupees(daily[bigDay])} on ${formatDateNice(f.spendByDay[bigDay].date)}.">
-        <defs>
-          <linearGradient id="${id}-front" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="mountains__front-top"/><stop offset="1" class="mountains__front-foot"/></linearGradient>
-          <linearGradient id="${id}-lit" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="mountains__lit-top"/><stop offset="0.9" class="mountains__lit-foot"/></linearGradient>
-        </defs>
-        ${hasOther ? `<defs><pattern id="${id}-hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line class="waves__hatch" x1="0" y1="0" x2="0" y2="4"/></pattern></defs>` : ''}
-        <path class="mountains__back${hasOther ? ' mountains__back--other' : ''}" ${hasOther ? `style="fill:url(#${id}-hatch)" ` : ''}d="${poly(back, hasOther ? end : Math.min(W, end + 7))}"/>
-        <path class="mountains__front" fill="url(#${id}-front)" d="${poly(front, end)}"/>
-        ${lit}
-        <line class="mountains__pace" x1="8" x2="${end.toFixed(1)}" y1="${paceY.toFixed(1)}" y2="${paceY.toFixed(1)}"/>
-        <text class="mountains__pace-k" x="${(end - 2).toFixed(1)}" y="${(paceY - 5).toFixed(1)}" text-anchor="end">${formatRupees(Math.round(evenDay))} a day</text>
-        <line class="waves__guide" data-guide x1="${lastD[4]}" x2="${lastD[4]}" y1="8" y2="${base}"/>
-        <circle class="waves__dot" data-dot cx="${lastD[4]}" cy="${lastD[5]}" r="4"/>
-        ${ticks}
-      </svg>
-      <p class="chart-readout" data-readout aria-live="polite">${chartReadout(lastD, dayWord(lastD[0]), f.finished)}</p>
-      <div class="waves__key">
-        <span class="waves__k waves--spent"><b>${formatRupees(totals[n - 1])}</b><span class="waves__lab">${f.finished ? 'You spent' : "You've spent"}</span></span>
-        <span class="waves__k waves--pace"><b>${formatRupees(Math.round(evenDay * n))}</b><span class="waves__lab">Budget so far</span></span>
-        <button type="button" class="waves__k waves--day" data-pick-day="${bigDay}"><b>${formatRupees(daily[bigDay])} · ${formatDateNice(f.spendByDay[bigDay].date)}</b><span class="waves__lab">Most in one day</span></button>
-      </div>
-      ${hasOther ? '<p class="waves__note"><i></i>The hatched range behind: spent, but not from your budget (set-aside costs, work costs owed back).</p>' : ''}
-    </div>`;
-}
-
 /* NEW (5.0): this week in pill columns, today lit, and what is owed on each
  * card the same way, the card with most on it lit. Exported for a test. */
 export function weekPills(f) {
@@ -1235,7 +1143,7 @@ function incomeLine(f) {
 
 const monthShort = (month) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(month.slice(5, 7)) - 1];
 
-const LOOK_TOPS = { tactile: tactileTop, peaks: peaksTop, mindora: mindoraTop, instrument: instrumentTop };
+const LOOK_TOPS = { tactile: tactileTop, instrument: instrumentTop };
 
 function renderCardsHero(f, opts = {}) {
   const past = opts.past || null;
@@ -1257,7 +1165,7 @@ function renderCardsHero(f, opts = {}) {
 
   // CHANGED (4.22): the figures under the headline are one card of rows,
   // one figure a row, rather than figures side by side.
-  // NEW (5.9): Tactile, Peaks and Mindora draw this month's top half their
+  // NEW (5.9): Tactile and Instrument draw this month's top half their
   // own way (summary-looks.js); a finished month and the plain look keep the
   // Charts one.
   const style = typeof document !== 'undefined' ? document.documentElement.dataset.style : '';
@@ -1269,7 +1177,7 @@ function renderCardsHero(f, opts = {}) {
   const lookTop = ['full', 'short'].includes(appearance('summary')) && f.limit != null && LOOK_TOPS[style];
   const drawn = past ? { ...shown, finished: true } : f;
   const top = lookTop
-    ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), style === 'peaks' ? monthMountains(drawn) : monthWaves(drawn))
+    ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), monthWaves(drawn))
     : spendingHero(shown, short ? 'full' : appearance('summary'), past ? `Final for ${past.name}` : null, short ? shortStatus(f) : null) + `<!--k:answer-->
     ${past ? '' : monthWaves(f)}<!--k:month-->
     ${past ? '' : weekPills(f)}

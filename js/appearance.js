@@ -17,6 +17,22 @@ import { isDemo } from './demo-flag.js';
 // The demo copies your look when it starts and keeps its own from then on (js/demo.js).
 const KEY = isDemo() ? 'kawach-demo-appearance' : 'kawach-appearance';
 
+/* Peaks and Mindora were retired in 5.41. Whoever had chosen one (as the style or as the colouring) is
+ * moved to Instrument, following the phone, once, and told. True when something was changed. */
+export function retireOldLooks() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(KEY)) || {};
+    const gone = (v) => v === 'peaks' || v === 'mindora';
+    if (!gone(stored.style) && !gone(stored.colour)) return false;
+    if (gone(stored.style)) delete stored.style;
+    if (gone(stored.colour)) delete stored.colour;
+    localStorage.setItem(KEY, JSON.stringify(stored));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const CHOICES = {
   // The style screens are built in (js/looks.js): only those that are ready.
   // Instrument is the default since 5.27 (the owner's choice; Tactile was from
