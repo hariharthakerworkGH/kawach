@@ -620,7 +620,8 @@ export async function render(container, params = {}) {
     container.querySelector('#add-commitment').value = '';
     showWorkRows();
     showNextMonthRow();
-    amountInput.focus();
+    // Not back into the amount: that raised the keyboard over the very line that says it was saved.
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
   });
 
   // NEW (5.20): money given to or got from a person. Saved as a payment of
@@ -676,7 +677,7 @@ export async function render(container, params = {}) {
       container.querySelector('.add-people').prepend(chip);
     }
     pickPerson(null);
-    amountInput.focus();
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
   };
 
   // Opened from a person on Accounts ("Got it back", "Paid it back"): the

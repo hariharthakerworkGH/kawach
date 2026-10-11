@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.46.1',
+    items: [
+      {
+        icon: 'check',
+        title: "Saving no longer raises the keyboard",
+        text: "After you save a payment, the amount box is no longer selected, so the keyboard stays down and you can see that it was saved. The little messages at the bottom (Saved, Synced) and the new-version bar are now slim, one line and quiet. The tab names fit on small phones, and syncing no longer says hundreds of payments were updated when only their stamp changed.",
+      },
+    ],
+  },
+  {
     version: '5.46',
     items: [
       {

@@ -370,7 +370,8 @@ async function runSync({ silent = true, opening = false } = {}) {
     setSyncIndicator('ok');
     const { added, updated, deleted } = result.pulled;
     if (!silent && (added || updated || deleted)) {
-      showToast(`Synced: ${added} new, ${updated} updated`);
+      const n = added + updated + deleted;
+      showToast(`Synced · ${n} change${n === 1 ? '' : 's'}`);
     }
     // Bringing in another device's changes makes what's on screen stale - but
     // redrawing a screen you're filling in would throw away what you typed:
@@ -537,7 +538,7 @@ async function showUpdateBannerIfStale({ mayReload = false } = {}) {
     location.reload();
     return;
   }
-  showNotice(`A new version of Kawach is ready - you're still seeing ${status.running}.`, 'Reload');
+  showNotice('A new version is ready', 'Reload');
 }
 
 function wireUpdateBanner() {

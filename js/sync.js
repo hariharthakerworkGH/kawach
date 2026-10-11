@@ -269,6 +269,8 @@ export function mergeLists(base, mine, theirs, mineIsNewer) {
 }
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+// A copy only re-stamped (another device tidied every row on opening) says nothing new: it is taken, not counted.
+const sameApartFromStamp = (a, b) => same({ ...a, updatedAt: 0 }, { ...b, updatedAt: 0 });
 
 export function mergeSnapshots(local, remote, { base = {}, now = Date.now() } = {}) {
   const stats = { added: 0, updated: 0, deleted: 0 };
@@ -308,7 +310,7 @@ export function mergeSnapshots(local, remote, { base = {}, now = Date.now() } = 
         }
       } else if (stamp(incoming) > stamp(mine)) {
         byId.set(incoming.id, taken(incoming));
-        stats.updated++;
+        if (!sameApartFromStamp(incoming, mine)) stats.updated++;
       } else if (stamp(incoming) === stamp(mine) && !same(incoming, mine) && JSON.stringify(incoming) > JSON.stringify(mine)) {
         // Same moment, different content: both devices pick the same one, so they cannot swap forever.
         byId.set(incoming.id, taken(incoming));

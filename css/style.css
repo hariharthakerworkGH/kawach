@@ -2037,11 +2037,13 @@ textarea {
   justify-content: space-between;
   gap: var(--space-xs);
   margin: 0 var(--space-sm) var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--accent);
-  color: var(--accent-ink);
-  border-radius: var(--radius-md);
-  font-size: var(--text-label);
+  /* A slim strip, not a coloured slab: it is a notice, not the news of the day. */
+  padding: var(--space-3xs) var(--space-xs) var(--space-3xs) var(--space-sm);
+  background: var(--surface-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-meta);
   font-weight: 600;
   max-width: 520px;
   margin-left: auto;
@@ -2053,8 +2055,8 @@ textarea {
   border: none;
   border-radius: var(--radius-pill);
   padding: var(--space-2xs) var(--space-sm);
-  background: var(--accent-ink);
-  color: var(--accent-text);
+  background: var(--accent);
+  color: var(--accent-ink);
   font-family: inherit;
   font-size: var(--text-meta);
   font-weight: 700;
@@ -2083,13 +2085,18 @@ textarea {
   position: fixed;
   left: 50%;
   transform: translateX(-50%) translateY(20px);
-  bottom: calc(var(--nav-height, 84px) + 20px);
-  background: var(--accent);
-  color: var(--accent-ink);
-  padding: var(--space-xs) var(--space-md);
+  bottom: calc(var(--nav-height, 84px) + 12px);
+  /* One quiet line, as wide as its words and never wider than the screen. It used to be the accent colour and
+     only half the screen wide, so a sentence wrapped into a two-line slab over the figures. */
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  background: var(--text);
+  color: var(--bg);
+  padding: 7px 14px;
   border-radius: var(--radius-pill);
   font-size: var(--text-label);
-  font-weight: 700;
+  font-weight: 600;
+  text-align: center;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-out);

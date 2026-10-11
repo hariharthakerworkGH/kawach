@@ -164,3 +164,7 @@
 
 /* Six tabs, none under a fingertip wide. */
 .nav-btn { flex: 1 1 auto; min-width: 44px; margin-inline: 0; border-inline-width: 1px; }
+/* On any phone the six tab names are written small and in full, never capitals that run out of room and end in dots. */
+@media (max-width: 430px) {
+  #tabs .nav-btn > span:not(.nav-icon) { text-transform: none; letter-spacing: 0; font-size: min(var(--text-micro), 3.1vw); text-overflow: clip; }
+}

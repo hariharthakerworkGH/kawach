@@ -149,6 +149,14 @@ test('safety: Drive keeps the newest five and the newest of each of the last six
   equal(backupsToDelete(files.slice(0, 5)), [], 'few backups: nothing goes');
 });
 
+test('sync: a copy that only carries a newer stamp is taken but not counted as an update', () => {
+  const t = (stamp, amount = 500) => ({ id: 't1', date: '2026-10-01', amount, direction: 'debit', accountId: 'a', updatedAt: stamp });
+  const quiet = mergeSnapshots(snap([], [t(100)]), snap([], [t(900)]), { now: 1000 });
+  equal([quiet.stats.updated, quiet.data.transactions[0].updatedAt], [0, 900], 'same payment, newer stamp: kept, not shown as news');
+  const real = mergeSnapshots(snap([], [t(100)]), snap([], [t(900, 700)]), { now: 1000 });
+  equal([real.stats.updated, real.data.transactions[0].amount], [1, 700], 'a changed amount is a real update');
+});
+
 /* --- sync keeps what both devices added ---------------------------------------------------------- */
 const snap = (settings = [], transactions = [], deletions = []) => ({ data: { accounts: [], transactions, categories: [], merchantRules: [], recurring: [], importBatches: [], settings }, deletions });
 const people = (list, at) => ({ id: 'people', value: list, updatedAt: at });
