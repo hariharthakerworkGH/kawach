@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.49',
+    items: [
+      {
+        icon: 'check',
+        title: "Plan shows what is left, and lists are A to Z",
+        text: "On Plan, the month now lists only what is still to pay; paid and skipped costs fold under one line, ones fully used up fold too, and only a cost that has gone over its limit is flagged at the top. Fixed costs, accounts and the lists in drop-downs are in alphabetical order unless you arranged them yourself. Choosing another account on Add works again, every box on Add is the same height, the actions on an open payment sit in one tidy row, and money paid back by someone is worded for everyone, not only friends.",
+        guide: [{ view: 'plan', target: '.plan-month', text: "Only what is still to pay is here. Paid ones are under one line at the bottom." }],
+      },
+    ],
+  },
+  {
     version: '5.48',
     items: [
       {

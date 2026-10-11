@@ -333,7 +333,8 @@ function resetPage(container) {
 // `list`: the categories to offer; a payment is offered the ones that fit
 // its account (business or home), the filters every one.
 function categoryOptions(selectedId, list = cache.categories) {
-  return list
+  return [...list]
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' }))
     .map((c) => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)
     .join('');
 }
@@ -748,7 +749,7 @@ function subHtml(t) {
       : t.direction === 'credit' && t.isSettlement
         ? '<span class="hist-tag hist-tag--in">Paid back</span>'
         : t.direction === 'credit' && t.isShareBack
-          ? '<span class="hist-tag hist-tag--in">Paid back by friends</span>'
+          ? '<span class="hist-tag hist-tag--in">Paid back by someone</span>'
           : '';
   const bill = cardBill(t);
   const text = [account ? escapeHtml(account.label) : '', bill ? 'card bill' : t.isTransfer ? 'moved' : '', isSplit(t) ? 'split' : '', cache.cancelled && cache.cancelled.has(t.id) ? (t.direction === 'credit' ? 'cancels a purchase' : 'refunded') : ''].filter(Boolean).join(' · ');
@@ -807,10 +808,12 @@ function expandedTemplate(t) {
         ${more ? `<details class="loan-detail hist-more"><summary>More</summary>${more}</details>` : ''}
       </div>
       <div class="hist-actions">
+        <div class="hist-actions__more">
+          <button type="button" class="link-btn txn-split-btn">${split ? 'Edit split' : 'Split'}</button>
+          ${cardBill(t) ? '' : `<button type="button" class="link-btn review-transfer-toggle">${t.isTransfer ? 'Counts as spending' : 'Moved, not spent'}</button>`}
+          <button type="button" class="link-btn danger txn-delete">Delete</button>
+        </div>
         <button type="button" class="k-btn k-btn--primary hist-save">Save</button>
-        <button type="button" class="link-btn txn-split-btn">${split ? 'Edit split' : 'Split'}</button>
-        ${cardBill(t) ? '' : `<button type="button" class="link-btn review-transfer-toggle">${t.isTransfer ? 'Counts as spending' : 'Moved, not spent'}</button>`}
-        <button type="button" class="link-btn danger txn-delete">Delete</button>
       </div>
     </div>
   `;
@@ -830,12 +833,12 @@ function workFlagField(t) {
       <input type="checkbox" class="rv-field" data-field="${field}" ${t[field] ? 'checked' : ''}>
       <span>${debit ? 'Work cost: my employer pays this back' : 'This pays back a work cost'}</span>
     </label>`;
-  // Money in can also be friends paying back what you paid up front: it comes off what you spent.
+  // Money in can also be someone paying back their share of what you paid up front: it comes off what you spent.
   return debit || t.personId
     ? work
     : `${work}<label class="hist-flag">
       <input type="checkbox" class="rv-field" data-field="isShareBack" ${t.isShareBack ? 'checked' : ''}>
-      <span>Friends paying me back: counts against what I spent</span>
+      <span>Someone paying me back their share: comes off what I spent</span>
     </label>`;
 }
 
@@ -1106,7 +1109,7 @@ async function handleChange(e, container) {
     if (e.type !== 'change') return;
     if (e.target.checked) t[field] = true;
     else delete t[field];
-    // Money in is an employer paying back or friends, never both.
+    // Money in is an employer paying back or someone else, never both.
     if (e.target.checked && field === 'isSettlement') delete t.isShareBack;
     if (e.target.checked && field === 'isShareBack') delete t.isSettlement;
     await save(t);

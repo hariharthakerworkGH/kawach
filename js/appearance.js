@@ -123,9 +123,10 @@ export const CHOICES = {
   plan: {
     label: 'The Plan screen',
     question: 'In what order should your fixed costs sit?',
-    fallback: 'yours',
+    fallback: 'name',
     where: 'Plan',
     options: [
+      { value: 'name', label: 'A to Z', note: 'By name, so any one is easy to find.' },
       { value: 'yours', label: 'The order you arranged', note: 'However you put them with Reorder. Kawach leaves them alone.' },
       { value: 'day', label: 'By the day they are due', note: 'Earliest in the month first, so what is coming next is at the top.' },
       { value: 'size', label: 'Biggest first', note: 'The largest amounts at the top, to see what dominates the month.' },

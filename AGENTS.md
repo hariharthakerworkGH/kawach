@@ -491,6 +491,9 @@ Control sizes are set once, in `css/compact.css` (loaded last, 5.47): a field 36
 chip 28; buttons, chips, switches and toggles keep a 44px reach strip, and a text field or list keeps its 36px (the audit's floor for fields); every screen shares one rhythm (16px gutter, 14/16 inside a
 card, 12px between cards, 24px before a heading). History's open payment shows the amount, a category list,
 the day and a Save at once; Add shows account and date beside each other, never behind a fold.
+Lists a person keeps (fixed costs, accounts, the lists in a drop-down) are A to Z unless they arranged them with Reorder
+(`byYourOrder`). Plan shows what is still to pay; paid and used-up ones fold under a line, and only a set-aside that
+has gone over its limit is flagged at the top. The title and tab bars are hidden while the opening is up (`html.booting`).
 
 ## Working on it
 

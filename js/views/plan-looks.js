@@ -58,13 +58,18 @@ export function planMonth(style, rows, now = new Date()) {
   // Steps on a line: done ticked, late marked, still to pay showing its
   // icon. Many of them scroll sideways.
   const done = rows.filter((r) => r.state === 'paid').length;
+  const byName = (a, b) => String(a.label).localeCompare(String(b.label), undefined, { sensitivity: 'base' });
+  const open = rows.filter((r) => r.state === 'due' || r.state === 'late');
+  const finished = rows.filter((r) => r.state === 'paid' || r.state === 'skipped').sort(byName);
+  const doneRow = (r) => `<button type="button" class="pl-done__row" ${tap(r)} aria-label="${escapeHtml(said(r))}"><strong>${escapeHtml(r.label)}</strong><small>${ordinal(r.day)}</small><span>${formatRupees(r.amount)}</span><em>${r.state === 'skipped' ? 'skipped' : 'paid'}</em></button>`;
   const step = (r) => {
     const mark = r.state === 'paid' ? icon('check') : r.state === 'late' ? icon('alert') : r.state === 'skipped' ? icon('ban') : style === 'tactile' ? categoryStyle(r.label).icon : `${r.day}`;
     return `<button type="button" class="pl-step is-${r.state}" ${tap(r)} aria-label="${escapeHtml(said(r))}"><b>${mark}</b><small><strong>${escapeHtml(r.label)}</strong>${ordinal(r.day)}<span>${r.state === 'skipped' ? 'skipped' : formatRupees(r.amount)}</span></small></button>`;
   };
   return `<div class="pl-month pl-month--${style}">
-      <div class="pl-steps no-swipe" style="--pl-n:${rows.length}; --pl-done:${done}">${rows.map(step).join('')}</div>
+      ${open.length ? `<div class="pl-steps no-swipe" style="--pl-n:${open.length}; --pl-done:0">${open.map(step).join('')}</div>` : '<p class="pl-clear">Everything is paid for this month.</p>'}
       <p class="pl-today">${done} of ${rows.length} paid · today is the ${ordinal(today)}</p>
-      <p class="pl-hint">Tap a step to mark paid or skip</p>
+      ${open.length ? '<p class="pl-hint">Tap a step to mark paid or skip</p>' : ''}
+      ${finished.length ? `<details class="pl-done"><summary>Paid or skipped (${finished.length})</summary><div class="pl-done__list">${finished.map(doneRow).join('')}</div></details>` : ''}
     </div>`;
 }

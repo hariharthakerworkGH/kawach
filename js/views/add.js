@@ -53,7 +53,8 @@ export async function render(container, params = {}) {
         <div class="k-picker k-picker--select">
           <span class="k-picker__mark" id="add-account-mark"></span>
           <select id="add-account" class="k-select">
-            ${accounts
+            ${[...accounts]
+              .sort(byYourOrder)
               // A loan or the provident fund is not somewhere you spend from.
               .filter((a) => ['bank', 'card', 'cash', 'savings'].includes(a.type))
               .map((a) => `<option value="${a.id}" ${a.id === initialAccountId ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
@@ -174,7 +175,7 @@ export async function render(container, params = {}) {
            Spent/Received choice is shown. -->
       ${reimbursableSwitch('add-reimb', 'Work cost', 'Your employer will pay this back')}
       ${reimbursableSwitch('add-settle', 'Pays back a work cost', 'Money your employer paid back', true)}
-      ${reimbursableSwitch('add-shareback', 'Friends paying me back', 'For something I paid for. It counts against what I spent', true)}
+      ${reimbursableSwitch('add-shareback', 'Someone is paying me back', 'Their share of something I paid for. It comes off what I spent', true)}
 
       ${detailFields}
 
@@ -245,7 +246,7 @@ export async function render(container, params = {}) {
     toggle.addEventListener('click', () => {
       box.checked = !box.checked;
       toggle.setAttribute('aria-checked', String(box.checked));
-      // Money in is one thing or the other: an employer paying back, or friends.
+      // Money in is one thing or the other: an employer paying back, or someone else.
       const other = box === settleEl ? shareEl : box === shareEl ? settleEl : null;
       if (box.checked && other) {
         other.checked = false;

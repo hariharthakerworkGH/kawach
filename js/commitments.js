@@ -39,7 +39,8 @@ export function isFinished(r, today = isoLocal(new Date())) {
 // place after the rest.
 export function byYourOrder(a, b) {
   const rank = (r) => (Number.isFinite(r.sortOrder) ? r.sortOrder : Number.MAX_SAFE_INTEGER);
-  return rank(a) - rank(b);
+  // Never moved: A to Z, so a long list is not left in the order it happened to be typed.
+  return rank(a) - rank(b) || String(a.label || '').localeCompare(String(b.label || ''), undefined, { sensitivity: 'base' });
 }
 
 // Counted in budgets and free-to-spend: fixed, not switched off, not over.

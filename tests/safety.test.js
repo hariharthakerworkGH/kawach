@@ -8,6 +8,8 @@ import { computeFreeToSpend } from '../js/free-to-spend.js';
 import { mergeSnapshots, mergeLists } from '../js/sync.js';
 import { restoreBackup, screenBackup, undoInfo, undoRestore } from '../js/backup.js';
 import { backupsToDelete } from '../js/drive.js';
+import { planMonth } from '../js/views/plan-looks.js';
+import { byYourOrder } from '../js/commitments.js';
 import { cleanStatementText, sizeProblem, MAX_PDF_BYTES } from '../js/statement-text.js';
 
 // Writes straight to the test database, the way a restore from another version or an old sync could.
@@ -446,4 +448,25 @@ test('money parts: the by-day series starts from what has no day and adds each d
   const { spendDays, spendByDay } = spendSeries({ undated: 500, perDay: new Map([['2026-10-02', 300]]), otherDay: new Map([['2026-10-03', 70]]), windowStart: '2026-10-01', today: '2026-10-03' });
   equal(spendDays, [500, 800, 800]);
   equal(spendByDay, [{ date: '2026-10-01', amount: 0, other: 0 }, { date: '2026-10-02', amount: 300, other: 0 }, { date: '2026-10-03', amount: 0, other: 70 }]);
+});
+
+/* --- Plan shows what is left, and lists are A to Z (5.49) --------------------------------------- */
+test('plan: the steps are the ones still to pay; paid and skipped ones are folded away', () => {
+  const rows = [
+    { id: 'a', label: 'Rent', day: 5, amount: 2500000, state: 'paid' },
+    { id: 'b', label: 'Zeta loan', day: 9, amount: 100000, state: 'due' },
+    { id: 'c', label: 'Alpha club', day: 12, amount: 50000, state: 'late' },
+    { id: 'd', label: 'Broadband', day: 3, amount: 80000, state: 'skipped' },
+  ];
+  const html = planMonth('tactile', rows, new Date(2026, 9, 11));
+  const steps = (html.match(/class="pl-step /g) || []).length;
+  equal(steps, 2, 'only the due and the late one are steps');
+  ok(/Paid or skipped \(2\)/.test(html), 'the other two are under one line');
+  ok(/1 of 4 paid/.test(html));
+  ok(/Everything is paid/.test(planMonth('tactile', [rows[0]], new Date(2026, 9, 11))), 'nothing left says so');
+});
+
+test('lists: a commitment or account never moved is A to Z, one arranged by hand keeps its place first', () => {
+  const list = [{ label: 'zinc' }, { label: 'Apple' }, { label: 'mango', sortOrder: 0 }, { label: 'Banana' }];
+  equal([...list].sort(byYourOrder).map((x) => x.label), ['mango', 'Apple', 'Banana', 'zinc']);
 });

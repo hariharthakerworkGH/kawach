@@ -83,6 +83,9 @@
     if (!DEMO && localStorage.getItem('kawach-lock')) r.classList.add('is-locked');
   } catch (e) {}
 
+  // The bars of the app (title, tabs) are not shown until the opening leaves, so they can never be seen beside it.
+  document.documentElement.classList.add('booting');
+
   // The opening, carried on rather than started again. When a new version
   // took over during the opening, the page reloads behind it; this page then
   // opens on the opening's resting frame, so it reads as one opening, not two.
@@ -193,6 +196,11 @@
      that was the gap seen at the hand-over). 242px is measured from the same
      screenshot: Android's shield and this one at the same width (it is drawn
      in dp, which is CSS px on a phone). */
+  /* Hidden under the opening, and shown again by the script when it leaves; the animation puts them back by itself
+     if no script ever runs. */
+  .booting .app-header, .booting #tabs { visibility: hidden; animation: boot-chrome 0s linear 12.5s forwards; }
+  @keyframes boot-chrome { to { visibility: visible; } }
+
   .boot-art {
     position: relative;
     width: min(242px, 64vw); aspect-ratio: 1;
@@ -506,11 +514,13 @@
     // tab in the background - since an invisible overlay left in place would
     // still be in the way.
     function unmount() {
+      document.documentElement.classList.remove('booting');
       if (boot.parentNode) boot.parentNode.removeChild(boot);
     }
     function leave() {
       if (leaving) return;
       leaving = true;
+      document.documentElement.classList.remove('booting');
       clearInterval(timer);
       boot.addEventListener('transitionend', function (e) {
         if (e.target === boot && e.propertyName === 'background-color') unmount();

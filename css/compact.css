@@ -169,3 +169,35 @@
 :root[data-style] .k #hist-hero .hero-under { border: 0; background: none; box-shadow: none; padding: 0; margin: 12px 0 0; }
 /* A short word is reached from a little either side of it as well. */
 .k .account-actions-inline .k-btn::before { left: -10px; right: -10px; }
+
+/* --- 5.49 ------------------------------------------------------------------------------------------- */
+/* The account list is a real select under a drawn row; the reach strip over it caught the tap, so it never opened. */
+.k .k-picker--select::before { display: none; }
+
+/* Every field is exactly one height, whatever it holds. */
+.k .add-card .k-input:not(textarea),
+.k .add-card .k-picker,
+.k .add-card .k-picker--select .k-select,
+.k .hist-edit .rv-field:not([type="checkbox"]),
+.k .hist-edit select.hist-catsel,
+.k .hist-amount { box-sizing: border-box; height: var(--k-ctl-md); min-height: var(--k-ctl-md); }
+.k .add-card--amount .amount-input-wrap { box-sizing: border-box; min-height: 48px; }
+
+/* The open payment's last row: the three small actions together on the left, Save on the right, one centre line. */
+.k .hist-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--k-3); padding: var(--k-2) 0 0; border-top: 1px solid var(--k-hairline); margin-top: var(--k-2); }
+.k .hist-actions__more { display: flex; align-items: center; gap: var(--k-4); min-width: 0; flex-wrap: wrap; }
+.k .hist-actions .link-btn { min-height: var(--k-ctl-sm); padding: 0; font-size: 13px; font-weight: 600; }
+.k .hist-actions .hist-save { flex: none; min-height: var(--k-ctl-sm); height: var(--k-ctl-sm); padding: 0 var(--k-5); letter-spacing: .06em; }
+
+/* Plan: what is still to pay, then the paid ones tucked under a line. */
+.k .plan-flag { margin-bottom: 12px; }
+.k .pl-clear { margin: 4px 2px 0; color: var(--k-text-2); font-size: 14px; }
+.k .pl-done, .k .plan-used { margin-top: var(--k-2); border-top: 1px solid var(--k-hairline); }
+.k .pl-done > summary, .k .plan-used > summary { padding: var(--k-2) 0; color: var(--k-text-2); font-size: 13px; }
+.k .pl-done__list { display: grid; }
+.k .pl-done__row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: var(--k-3); align-items: center; width: 100%; min-height: var(--k-ctl-md); padding: 0; border: 0; background: none; color: var(--k-text); font: inherit; font-size: 13px; text-align: left; }
+.k .pl-done__row + .pl-done__row { border-top: 1px solid var(--k-hairline); }
+.k .pl-done__row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.k .pl-done__row small { color: var(--k-text-3); }
+.k .pl-done__row span { font-variant-numeric: tabular-nums; }
+.k .pl-done__row em { color: var(--k-text-3); font-style: normal; min-width: 44px; text-align: right; }

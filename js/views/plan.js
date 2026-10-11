@@ -70,6 +70,8 @@ export async function render(container) {
   const ordering =
     planOrder === 'day'
       ? (a, b) => (a.dayOfMonth || 32) - (b.dayOfMonth || 32) || byYourOrder(a, b)
+      : planOrder === 'name'
+        ? (a, b) => String(a.label || '').localeCompare(String(b.label || ''), undefined, { sensitivity: 'base' })
       : planOrder === 'size'
         ? (a, b) => monthlyAmountOf(b) - monthlyAmountOf(a) || byYourOrder(a, b)
         : byYourOrder;
@@ -164,7 +166,17 @@ export async function render(container) {
   // Whether the hero's rings and figures are on screen (they need an income).
   const shown = budget != null && (incomeValue || 0) + sideExtra > 0;
   container.classList.add('k', 'k-plan');
+  // Only a set-aside that has gone past its limit is flagged at the top; everything else stays quiet.
+  const over = tracker.filter((t) => t.setAside && t.status === 'over');
+  const overFlag = over.length
+    ? `<div class="k-context k-context--alert plan-flag">
+        <span class="k-context__mark">${icon('alert')}</span>
+        <span class="k-context__body"><span class="k-context__k">Over its limit</span>
+        <p class="k-context__note">${over.map((t) => `${escapeHtml(t.label)} by ${formatRupees(-t.left)}`).join(' · ')}</p></span>
+      </div>`
+    : '';
   container.innerHTML = `
+    ${overFlag}
     ${
       inBusiness
         ? ''
@@ -884,9 +896,12 @@ export function monthRows(tracker, items) {
 /* What is left of each set-aside this month, as a bar that fills as it is
  * spent: amber when the pace takes it over, red once it is over. */
 export function flexBars(tracker) {
-  const rows = tracker.filter((t) => t.setAside && t.status !== 'untracked' && t.amount > 0);
-  if (!rows.length) return '';
-  return `<div class="plan-flex">${rows
+  const all = tracker.filter((t) => t.setAside && t.status !== 'untracked' && t.amount > 0).sort((a, b) => String(a.label).localeCompare(String(b.label), undefined, { sensitivity: 'base' }));
+  if (!all.length) return '';
+  // What is left to spend comes first; one used right up folds away, and one past its limit stays in view.
+  const rows = all.filter((t) => t.left !== 0 || t.status === 'over');
+  const usedUp = all.filter((t) => !rows.includes(t));
+  const draw = (list) => `<div class="plan-flex">${list
     .map((t) => {
       const used = Math.max(0, Math.min(1, t.used / t.amount));
       const tone = t.status === 'over' ? 'is-over' : t.status === 'heading-over' ? 'is-warn' : '';
@@ -897,6 +912,7 @@ export function flexBars(tracker) {
         </div>`;
     })
     .join('')}</div>`;
+  return `${rows.length ? draw(rows) : ''}${usedUp.length ? `<details class="plan-used"><summary>Used up this month (${usedUp.length})</summary>${draw(usedUp)}</details>` : ''}`;
 }
 
 function budgetCard(b) {
