@@ -138,7 +138,7 @@ export const CHOICES = {
     where: 'Add',
     options: [
       { value: 'full', label: 'Everything at once', note: 'Amount, what it was for, category, account, date and repeats, all on the screen.' },
-      { value: 'quick', label: 'Just the essentials', note: 'Amount, what it was for and category. Date, account and repeats fold behind one tap.' },
+      { value: 'quick', label: 'Just the essentials', note: 'Amount, what it was for, date, account and category. Repeats fold behind one tap.' },
     ],
   },
   opening: {

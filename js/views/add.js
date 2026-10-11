@@ -92,7 +92,7 @@ export async function render(container, params = {}) {
   `;
   const detailFields =
     appearance('add') === 'quick'
-      ? `<details class="k-disclose k-add-more"><summary>Date, account and repeats</summary>
+      ? `<details class="k-disclose k-add-more"><summary>Repeats</summary>
          <div class="k-add-more__body">${rest}</div></details>`
       : rest;
   container.innerHTML = `
@@ -791,28 +791,28 @@ function arrangeAdd(container) {
   const rows = document.createElement('div');
   rows.className = 'add-card add-rows';
   form.prepend(toggle);
-  card.append(hero.querySelector('.amount-field'), field('add-desc'));
+  // Account and date sit side by side under the merchant: they are what is checked on every payment, so they are
+  // never behind a fold, and one row of two fields costs less height than two rows of one.
+  const pair = document.createElement('div');
+  pair.className = 'add-pair';
+  pair.append(field('add-account'), field('add-date'));
+  card.append(hero.querySelector('.amount-field'), field('add-desc'), pair, container.querySelector('#add-cash-note'));
   head.append(container.querySelector('#add-cat-open').closest('.k-field'), field('add-reimb'), field('add-settle'), field('add-shareback'));
-  const account = field('add-account');
-  const quick = account.parentElement !== form ? account.closest('details') : null;
-  const mark = (el, name) => {
+  const repeats = container.querySelector('#add-repeats-toggle').closest('.k-switch-row');
+  const fold = repeats.closest('details');
+  if (fold) rows.append(fold);
+  else {
     const ic = document.createElement('span');
     ic.className = 'add-row-ic';
-    ic.innerHTML = icon(name);
-    el.prepend(ic);
-    el.classList.add('add-row');
-  };
-  if (quick) rows.append(quick);
-  else {
-    mark(account, 'card');
-    mark(field('add-date'), 'clock');
-    const repeats = container.querySelector('#add-repeats-toggle').closest('.k-switch-row');
-    mark(repeats, 'sync');
-    rows.append(account, field('add-date'), repeats, container.querySelector('#add-repeat-options'));
+    ic.innerHTML = icon('sync');
+    repeats.prepend(ic);
+    repeats.classList.add('add-row');
+    rows.append(repeats, container.querySelector('#add-repeat-options'));
   }
   hero.replaceWith(card);
-  card.after(head);
-  head.after(rows);
+  // Order: what and how much, where and when, repeats, then the category.
+  card.after(rows);
+  rows.after(head);
   const person = container.querySelector('#add-person');
   person.classList.add('add-card', 'add-card--person');
   card.after(person);

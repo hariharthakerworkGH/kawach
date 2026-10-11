@@ -1,0 +1,100 @@
+/* Compact controls (5.47). Loaded last, so the sizes the screens share are set in one place.
+
+   The owner found the buttons, bars and text boxes too big. A field is 38px now (it was 44), a full-width
+   button 46 (it was 52), a chip 30 (it was 34). What a fingertip needs does not shrink: a chip, switch or
+   button keeps a 44px reach strip, drawn by --k-tap as before, and a text field keeps the whole 38px because it
+   is a target in itself and a thumb lands on it easily. */
+
+:root {
+  --k-ctl-lg: 46px;
+  --k-ctl-md: 38px;
+  --k-ctl-sm: 30px;
+  --control-lg: 44px;
+  --control-md: 38px;
+  --control-sm: 30px;
+}
+
+.k-input,
+.k-select { font-size: 15px; }
+.k .k-field { margin-bottom: var(--k-3); }
+.k .k-field > .k-label { margin-bottom: var(--k-1); }
+
+/* --- Add -------------------------------------------------------------------------------------------- */
+:root[data-style] .k .add-card { gap: var(--k-2); padding: var(--k-3); margin-bottom: var(--k-2); }
+:root[data-style] .k .add-card--amount .amount-input-wrap { padding: 6px 12px; }
+:root[data-style] .k .add-card--amount .amount-input { font-size: 34px; }
+:root[data-style] .k .add-card--category .k-picker { min-height: var(--k-ctl-md); }
+:root[data-style] .k .add-rows { padding-top: 0; padding-bottom: 0; }
+:root[data-style] .k .add-row { padding: var(--k-2) 0; }
+:root[data-style] .k .add-row > .add-row-ic { width: 30px; height: 30px; }
+:root[data-style] .k .add-row > .add-row-ic svg { width: 16px; height: 16px; }
+
+/* Account and date, side by side. */
+.k .add-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--k-2); }
+.k .add-pair .k-field { min-width: 0; margin: 0; }
+.k .add-pair #add-account-mark { display: none; }
+.k .add-pair .k-picker { padding-left: var(--k-3); }
+.k .add-pair .k-picker--select::after { margin-right: var(--k-3); }
+.k .add-pair .field-date .k-input { min-height: var(--k-ctl-md); padding: 0 var(--k-3); }
+.k .add-pair .k-picker--select .k-select { min-height: var(--k-ctl-md); }
+
+/* The categories used most, in one line you can slide, not three lines of chips. */
+.k .add-card--category .k-quick { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: var(--k-2); margin: 0 calc(var(--k-3) * -1) var(--k-1); padding: var(--k-2) var(--k-3); }
+.k .add-card--category .k-quick::-webkit-scrollbar { display: none; }
+.k .add-card--category .k-quick__chip { flex: none; min-height: var(--k-ctl-sm); padding: 0 var(--k-3); position: relative; font-size: 13px; }
+.k .add-card--category .k-quick__chip::before { content: ""; position: absolute; inset: 50% 0 auto 0; height: var(--k-tap); transform: translateY(-50%); }
+
+.k .k-switch-row { min-height: 0; padding: var(--k-1) 0; gap: var(--k-3); }
+.k .k-switch-row__text { font-size: 14px; }
+.k .k-switch-row__sub { font-size: 12px; margin-top: 0; }
+.k .k-add-more { margin-top: 0; }
+
+/* --- History: the open payment ---------------------------------------------------------------------- */
+.k .txn-expanded { gap: var(--k-2); }
+.k .hist-edit { display: grid; gap: var(--k-2); margin-top: var(--k-2); }
+.k .hist-edit__top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--k-2); align-items: stretch; }
+.k .hist-amount { display: flex; align-items: center; gap: var(--k-1); min-width: 0; padding: 0 var(--k-3); min-height: var(--k-ctl-md); border: 1px solid var(--k-border-subtle); border-radius: var(--k-r-md); background: var(--k-glass-1); color: var(--k-text-2); font-size: 18px; }
+:root[data-style="instrument"] .k .hist-amount { border-radius: var(--in-r-sm); border-color: var(--in-rule-hi); }
+.k .hist-amount:focus-within { border-color: var(--k-accent); box-shadow: 0 0 0 1px var(--k-accent); }
+.k .hist-amount .rv-amount-input { flex: 1; min-width: 0; width: 100%; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; color: var(--k-text); font: inherit; font-weight: 600; font-variant-numeric: tabular-nums; }
+.k .hist-amount .rv-amount-input:focus-visible { outline: none; box-shadow: none; }
+.k .hist-edit .direction-toggle { align-self: stretch; }
+.k .hist-edit .dir-btn { min-height: var(--k-ctl-md); padding: 0 var(--k-3); }
+.k .hist-edit__pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--k-2); }
+.k .hist-edit .rv-field,
+.k .hist-edit select.hist-catsel { width: 100%; min-height: var(--k-ctl-md); margin: 0; padding: 0 var(--k-3); font-size: 15px; }
+.k .hist-edit .rv-field[type="checkbox"] { width: 22px; min-height: 22px; padding: 0; }
+.k .hist-more { margin: 0; }
+.k .hist-more > summary { min-height: 0; padding: var(--k-2) 0; color: var(--k-text-2); font-size: var(--k-label); }
+.k .hist-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--k-2) var(--k-4); padding: var(--k-1) 0 0; }
+.k .hist-actions .hist-save { flex: none; min-height: var(--k-ctl-md); padding: 0 var(--k-6); }
+
+/* A row of chips that slides must never make its card wider than the screen. */
+:root[data-style] .k .add-card { grid-template-columns: minmax(0, 1fr); }
+:root[data-style] .k .add-card > * { min-width: 0; }
+
+/* The amount is one box holding the sign and the figure; the field inside it draws nothing of its own. */
+:root[data-style] .k .hist-amount input.rv-amount-input { border: 0; border-radius: 0; background: none; box-shadow: none; min-height: 0; padding: 0; }
+/* Date and time look like the other fields. */
+.k .hist-edit input[type="date"],
+.k .hist-edit input[type="time"] { border: 1px solid var(--k-border-subtle); border-radius: var(--k-r-md); background-color: var(--k-glass-1); background-image: var(--k-sheen); color: var(--k-text); font-family: inherit; }
+:root[data-style="instrument"] .k .hist-edit input[type="date"],
+:root[data-style="instrument"] .k .hist-edit input[type="time"] { border-radius: var(--in-r-sm); border-color: var(--in-rule-hi); }
+.k .hist-actions { gap: var(--k-2) var(--k-3); }
+.k .hist-actions .hist-save { padding: 0 var(--k-5); }
+:root[data-style] .k .hist-edit select.hist-catsel { border-radius: var(--k-r-md); height: var(--k-ctl-md); }
+:root[data-style="instrument"] .k .hist-edit select.hist-catsel { border-radius: var(--in-r-sm); }
+.k .hist-actions { gap: var(--k-2) var(--k-3); }
+.k .hist-actions .link-btn { padding-inline: var(--k-1); }
+/* The Spent / Received pair is as tall as the amount beside it, not taller. */
+.k .hist-edit .direction-toggle { padding: 2px; min-height: var(--k-ctl-md); }
+.k .hist-edit .dir-btn { min-height: calc(var(--k-ctl-md) - 6px); }
+.k .hist-edit .direction-toggle { margin: 0; }
+
+/* A button is shorter than a fingertip, its reach is not: an invisible 44px strip does the touching. */
+.k .k-btn,
+.k .btn-secondary,
+.k .k-picker { position: relative; }
+.k .k-btn::before,
+.k .btn-secondary::before,
+.k .k-picker::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--k-tap); transform: translateY(-50%); }

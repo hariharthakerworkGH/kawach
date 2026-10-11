@@ -43,6 +43,8 @@ let cache = { transactions: [], categories: [], accounts: [], commitments: [], q
 let selected = new Set();
 let selecting = false;
 let expanded = null;
+// The last field change still being kept, so Save can wait for it.
+let inflight = Promise.resolve();
 // Draft splits for the row being split, kept out of the database until saved
 // so a half-finished split never affects any total.
 let splitDraft = null;
@@ -307,8 +309,8 @@ export async function render(container, params = {}) {
     if (go) container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: go.dataset.go } }));
   });
   listEl.addEventListener('click', (e) => handleClick(e, container));
-  listEl.addEventListener('change', (e) => handleChange(e, container));
-  listEl.addEventListener('input', (e) => handleChange(e, container));
+  listEl.addEventListener('change', (e) => { inflight = handleChange(e, container); });
+  listEl.addEventListener('input', (e) => { inflight = handleChange(e, container); });
   wireQuick(listEl, container);
 
   renderList(container);
@@ -766,56 +768,46 @@ function expandedTemplate(t) {
   if (splitDraft && splitDraft.id === t.id) return splitTemplate(t);
   const split = isSplit(t);
   const fits = fitting(t);
-  const quick = cache.quick.filter((id) => fits.some((c) => c.id === id)).slice(0, 4);
-  const chip = (id) => {
-    const name = catName(id);
-    return `<button type="button" class="plan-chip hist-cat-pick ${t.categoryId === id ? 'on' : ''}" data-cat="${id}" aria-pressed="${t.categoryId === id}">${categoryStyle(name).icon} ${escapeHtml(name)}</button>`;
-  };
+  const timeValue = /^\d{2}:\d{2}/.test(t.time || '') ? t.time.slice(0, 5) : '';
+  const commitment = t.direction === 'debit' && !paysCardLike(t) && !t.personId ? commitmentField(cache.commitments, t.commitmentId, `commitment-${t.id}`, 'class="rv-field" data-field="commitmentId"') : '';
+  const card = paysCardLike(t) ? cardPaymentField(cache.accounts.filter((a) => a.type === 'card'), t.paysCardId, `pays-card-${t.id}`, 'class="rv-field" data-field="paysCardId"') : '';
+  const more = [card, commitment, workFlagField(t), nextMonthField(t), salaryMonthField(t), personField(t)].filter(Boolean).join('');
+  // What you came to change comes first and is open: the amount, what it was for, the day. One Save at the end
+  // says it is kept (every field also keeps itself as it is changed, so nothing is lost if you walk away).
   return `
     <div class="txn-expanded">
-      <p class="muted-note hist-raw">${escapeHtml(t.rawDescription)} · ${formatFull(t.date)} · ${formatCurrency(t.amount)}</p>
-      ${
-        split
-          ? `<p class="muted-note">${t.splits
-              .map((s) => `${categoryStyle(catName(s.categoryId)).icon} ${escapeHtml(catName(s.categoryId) || 'Needs a category')} ${formatRupees(s.amount)}`)
-              .join(' · ')}</p>`
-          : t.personId
-            ? '' // a person's money is under them, not in a category
-            : `<div class="hist-cats">
-              ${quick.map(chip).join('')}
-              <select class="txn-cat hist-cat-more ${t.categoryId ? '' : 'needs-category'}" data-field="categoryId" aria-label="Category">
-                <option value="">${t.categoryId ? 'Other…' : 'Needs a category'}</option>
-                ${categoryOptions(quick.includes(t.categoryId) ? null : t.categoryId, fits)}
-              </select>
-            </div>`
-      }
-      ${
-        paysCardLike(t)
-          ? cardPaymentField(cache.accounts.filter((a) => a.type === 'card'), t.paysCardId, `pays-card-${t.id}`, 'class="rv-field" data-field="paysCardId"')
-          : ''
-      }
-      ${t.direction === 'debit' && !paysCardLike(t) && !t.personId ? commitmentField(cache.commitments, t.commitmentId, `commitment-${t.id}`, 'class="rv-field" data-field="commitmentId"') : ''}
-      ${workFlagField(t)}
-      <details class="loan-detail hist-edit">
-        <summary>Edit</summary>
-        <div class="txn-edit-row">
-          <input type="date" class="rv-field" data-field="date" value="${t.date}" aria-label="Date">
+      <p class="muted-note hist-raw">${escapeHtml(t.rawDescription)}</p>
+      <div class="hist-edit">
+        <div class="hist-edit__top">
+          <label class="hist-amount"><span aria-hidden="true">₹</span>
+            <input type="number" step="0.01" inputmode="decimal" class="rv-field rv-amount-input" data-field="amount" value="${(t.amount / 100).toFixed(2)}" aria-label="Amount">
+          </label>
           <div class="direction-toggle small">
             <button type="button" class="dir-btn rv-dir ${t.direction === 'debit' ? 'active' : ''}" data-dir="debit">Spent</button>
             <button type="button" class="dir-btn rv-dir ${t.direction === 'credit' ? 'active' : ''}" data-dir="credit">Received</button>
           </div>
         </div>
-        <label class="hist-flag hist-time">
-          <span>Time</span>
-          <input type="time" class="rv-field" data-field="time" value="${/^\d{2}:\d{2}/.test(t.time || '') ? t.time.slice(0, 5) : ''}" aria-label="Time of day">
-        </label>
+        ${
+          split
+            ? `<p class="muted-note">${t.splits
+                .map((x) => `${categoryStyle(catName(x.categoryId)).icon} ${escapeHtml(catName(x.categoryId) || 'Needs a category')} ${formatRupees(x.amount)}`)
+                .join(' · ')}</p>`
+            : t.personId
+              ? '' // a person's money is under them, not in a category
+              : `<select class="txn-cat hist-catsel ${t.categoryId ? '' : 'needs-category'}" data-field="categoryId" aria-label="Category">
+                  <option value="">${t.categoryId ? 'No category' : 'Needs a category'}</option>
+                  ${categoryOptions(t.categoryId, fits)}
+                </select>`
+        }
+        <div class="hist-edit__pair">
+          <input type="date" class="rv-field" data-field="date" value="${t.date}" aria-label="Date">
+          <input type="time" class="rv-field" data-field="time" value="${timeValue}" aria-label="Time of day">
+        </div>
         <input type="text" class="rv-field rv-desc" data-field="rawDescription" value="${escapeAttr(t.rawDescription)}" aria-label="Description">
-        <input type="number" step="0.01" class="rv-field rv-amount-input" data-field="amount" value="${(t.amount / 100).toFixed(2)}" aria-label="Amount">
-        ${nextMonthField(t)}
-        ${salaryMonthField(t)}
-        ${personField(t)}
-      </details>
+        ${more ? `<details class="loan-detail hist-more"><summary>More</summary>${more}</details>` : ''}
+      </div>
       <div class="hist-actions">
+        <button type="button" class="k-btn k-btn--primary hist-save">Save</button>
         <button type="button" class="link-btn txn-split-btn">${split ? 'Edit split' : 'Split'}</button>
         ${cardBill(t) ? '' : `<button type="button" class="link-btn review-transfer-toggle">${t.isTransfer ? 'Counts as spending' : 'Moved, not spent'}</button>`}
         <button type="button" class="link-btn danger txn-delete">Delete</button>
@@ -1414,11 +1406,19 @@ async function handleClick(e, container) {
     return;
   }
 
-  const pick = e.target.closest('.hist-cat-pick');
-  if (pick) {
-    // Tapping the category it already has takes it off again.
-    await setCategory(t, t.categoryId === pick.dataset.cat ? null : pick.dataset.cat, container, rowEl);
-    pop(container.querySelector(`.hist-row[data-id="${t.id}"] .hist-cat-pick.on`));
+  if (e.target.closest('.hist-save')) {
+    // A field still being typed in is taken first (blurring fires its change), then everything in flight is waited for.
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    await inflight;
+    expanded = null;
+    splitDraft = null;
+    renderList(container);
+    const row = container.querySelector(`.hist-row[data-id="${t.id}"]`);
+    if (row) {
+      washRow(row);
+      row.scrollIntoView({ block: 'nearest' });
+    }
+    showToast(`Saved ${t.direction === 'debit' ? '-' : '+'}${formatRupees(t.amount)}`);
     return;
   }
 

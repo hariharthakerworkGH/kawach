@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.47',
+    items: [
+      {
+        icon: 'edit',
+        title: "Edit a payment in one go",
+        text: "Open a payment in History and the amount, category list, date and name are all there, with a Save button that says it is kept. Buttons, bars and text boxes are smaller everywhere, and the opening screen no longer lets the app show through the shield. On Add, account and date sit side by side and the categories you use most slide along one line.",
+        guide: [{ view: 'add', target: '#add-account', text: "Account and date are on the screen now, side by side. Slide the category line for more." }],
+      },
+    ],
+  },
+  {
     version: '5.46.1',
     items: [
       {

@@ -115,6 +115,7 @@
 <link rel="stylesheet" href="./css/style-tactile.css">
 <link rel="stylesheet" href="./css/style-instrument.css">
 <link rel="stylesheet" href="./css/fit.css">
+<link rel="stylesheet" href="./css/compact.css">
 <style>
   /* The opening (4.17.1). Inline so it is on screen in the first frame.
 
@@ -175,12 +176,15 @@
 
   /* The exit: a transition, so nothing can re-time it. Taps reach the app
      from the first moment of the fade. */
+  /* The mark goes first, over the same dark plate, and only then does the plate clear: the shield and the app
+     are never both on screen at once (a single fade showed the app through a half-faded shield). */
   .boot.is-leaving {
     animation: none;
-    opacity: 0;
+    background-color: transparent;
     pointer-events: none;
-    transition: opacity 450ms var(--ease-exit);
+    transition: background-color 280ms var(--ease-exit) 170ms;
   }
+  .boot.is-leaving .boot-art { opacity: 0; transition: opacity 170ms var(--ease-exit); }
 
   /* The mark is the only thing in the middle - the name hangs below it - so
      it sits dead centre, which is where Android puts the icon. No nudge: on
@@ -270,7 +274,8 @@
     .boot-edge { animation: none; stroke-dashoffset: 0; }
     .boot.is-type .boot-word span { animation: none; }
     .boot-word span { opacity: 1; }
-    .boot.is-leaving { transition-duration: 200ms; }
+    .boot.is-leaving { transition-duration: 150ms; transition-delay: 0s; }
+    .boot.is-leaving .boot-art { transition-duration: 0s; }
   }
 </style>
 </head>
@@ -439,7 +444,7 @@
     // and the new one is taken the next time.
     var UPDATE_CAP = 10000;
     var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var FADE = reduced ? 200 : 450; // matches the transition in the CSS
+    var FADE = reduced ? 150 : 450; // the mark's 170ms plus the plate's 280ms in the CSS
     var leaving = false;
     var updating = false;
     // The new version has taken over and the reload onto it is on its way.
@@ -508,7 +513,7 @@
       leaving = true;
       clearInterval(timer);
       boot.addEventListener('transitionend', function (e) {
-        if (e.target === boot && e.propertyName === 'opacity') unmount();
+        if (e.target === boot && e.propertyName === 'background-color') unmount();
       });
       setTimeout(unmount, FADE + 250);
       boot.classList.add('is-leaving');
