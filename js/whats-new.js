@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.44',
+    items: [
+      {
+        icon: 'wallet',
+        title: "Cash counts when you spend it",
+        text: "Write down cash you spend and it comes off Left to spend that day. Cash you take out at an ATM is moved into your cash pocket and is not counted a second time. Cash you take out and never write down is counted as spent after 30 days, so the number is never too rosy. Accounts shows what is in your pocket. If you had an ATM cash plan, it is no longer set aside: cash counts as you spend it. Months already worked out do not change.",
+        guide: [{ view: 'add', target: '#add-account', text: "Cash is picked here. A line under it says how a cash spend counts." }],
+      },
+    ],
+  },
+  {
     version: '5.43.3',
     items: [
       {

@@ -62,6 +62,8 @@ export async function render(container, params = {}) {
         </div>
       </label>
 
+      <p class="muted-note add-cash-note" id="add-cash-note" hidden></p>
+
       <label class="k-field field field-date">
         <span class="k-label">Date</span>
         <input id="add-date" class="k-input" type="date" value="${today}" max="${today}">
@@ -253,7 +255,17 @@ export async function render(container, params = {}) {
   });
   // Shows the row that fits the way the money went, and clears the other: a
   // payment switched from Spent to Received must not carry "Reimbursable" with it.
+  // Cash is a pocket (js/cash.js): a cash spend counts today, and the screen says so. Not shown while the rule is off.
+  const cashRuleOn = Boolean(await getSetting('cashRuleFrom', null));
+  const showCashNote = () => {
+    const chosen = accounts.find((a) => a.id === container.querySelector('#add-account').value);
+    const note = container.querySelector('#add-cash-note');
+    const on = cashRuleOn && chosen && chosen.type === 'cash' && direction === 'debit';
+    note.hidden = !on;
+    if (on) note.textContent = 'Counts today: it comes off Left to spend. Cash you took out at an ATM is not counted a second time.';
+  };
   const showWorkRows = () => {
+    showCashNote();
     const business = isBusinessAccount(accounts.find((a) => a.id === container.querySelector('#add-account').value));
     reimbEl.closest('.k-switch-row').hidden = business || direction !== 'debit';
     settleEl.closest('.k-switch-row').hidden = business || direction !== 'credit';
@@ -576,7 +588,8 @@ export async function render(container, params = {}) {
     } else {
       // A work cost is never spending (js/free-to-spend.js), so saying so
       // here answers the question it raises: did that just eat my budget?
-      const work = transaction.isReimbursable ? ' · Left to spend unchanged' : '';
+      const cashSpend = cashRuleOn && direction === 'debit' && (accounts.find((a) => a.id === transaction.accountId) || {}).type === 'cash' && !transaction.isReimbursable;
+      const work = transaction.isReimbursable ? ' · Left to spend unchanged' : cashSpend ? ' · counted in Left to spend' : '';
       showToast(`Saved ${direction === 'debit' ? '-' : '+'}₹${(amount / 100).toLocaleString('en-IN')}${work}`);
     }
     savedFeedback(form.querySelector('button[type="submit"]'));

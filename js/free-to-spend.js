@@ -1,7 +1,7 @@
 import { getAll, getSetting } from './db.js';
 import { bankBalance, cardBillDue, cardOwedThisCycle, cardPosition, statementDay, afterKnownBalance, isEverydayBank, isPutAway } from './account-metrics.js';
 import { nextOccurrence, isoLocal, frequencyOf, monthlyAmountOf } from './frequency.js';
-import { isLiveCommitment, commitmentDueInWindow, paidAround, commitmentMatcher, matchWords, isSetAside, CASH_ENTRY_RE } from './commitments.js';
+import { isLiveCommitment, commitmentDueInWindow, paidAround, commitmentMatcher, matchWords, isSetAside, isAtmPlan, CASH_ENTRY_RE } from './commitments.js';
 import { looksLikeCardPayment } from './transfers.js';
 import { findDuplicates } from './duplicates.js';
 import { isLoanAccount, loanCommitment, loanPosition, assignLoanPayments } from './loans.js';
@@ -10,6 +10,7 @@ import { businessPlan, businessMonth } from './business.js';
 import { reimbursableTally, unsettledCosts } from './reimbursable.js';
 import { isPersonMoney, personSpendEffects, peopleStanding } from './people.js';
 import { refundPairs } from './card-refunds.js';
+import { cashPocket } from './cash.js';
 import { formatRupees } from './format.js';
 import { DAY_MS, MIN_DAYS_FOR_PACE, addDays, dateOf, daysBetweenInclusive, trackCommitments, spendSeries } from './free-to-spend-parts.js';
 
@@ -143,7 +144,7 @@ function paidBack(debits, transactions, today) {
 }
 
 export async function computeFreeToSpend(now = new Date()) {
-  const [allAccounts, allTransactions, importBatches, allRecurring, incomeSetting, salaryDay, keepInBank, incomeKind, categories, sideSetting] = await Promise.all([
+  const [allAccounts, allTransactions, importBatches, allRecurring, incomeSetting, salaryDay, keepInBank, incomeKind, categories, sideSetting, cashRuleFrom] = await Promise.all([
     getAll('accounts'),
     getAll('transactions'),
     getAll('importBatches'),
@@ -154,6 +155,7 @@ export async function computeFreeToSpend(now = new Date()) {
     getSetting('incomeType', 'salary'),
     getAll('categories'),
     getSetting('businesses', []),
+    getSetting('cashRuleFrom', null),
   ]);
   // The house's accounts. The business's are left to its own card.
   const accounts = allAccounts.filter((a) => !a.business);
@@ -169,6 +171,8 @@ export async function computeFreeToSpend(now = new Date()) {
   const transactions = duplicateIds.size ? allTransactions.filter((t) => !duplicateIds.has(t.id)) : allTransactions;
 
   const today = isoLocal(now);
+  // Cash as a pocket (js/cash.js): on from the day it first ran on this phone, so no month already worked out changes.
+  const cashOn = Boolean(cashRuleFrom) && cashRuleFrom <= today;
   // A cost you will be refunded for (a hotel for work), and that refund
   // arriving. Neither is part of your own spending: see the header.
   const isWorkCost = (t) => t.direction === 'debit' && t.isReimbursable === true && !t.isTransfer;
@@ -560,6 +564,7 @@ export async function computeFreeToSpend(now = new Date()) {
   // commitments taken off) is how the app once said nearly ₹2 lakh was free.
   const budgetItems = live
     .filter((item) => paidBy(item) !== 'cash') // cash comes out of the ATM commitment
+    .filter((item) => !(cashOn && isAtmPlan(item))) // ...which under the cash rule is no longer set aside
     .filter((item) => !skipped(item))
     .map((item) => ({ item, label: item.label, amount: monthlyAmountOf(item), paidBy: paidBy(item) }));
   const skippedItems = live.filter((item) => paidBy(item) !== 'cash' && skipped(item));
@@ -714,7 +719,26 @@ export async function computeFreeToSpend(now = new Date()) {
   );
   // Ordinary spending: whatever no commitment claimed - transfers, being money
   // moved rather than spent, excepted, and anything that has since come back.
-  const unclaimed = bankWindow.filter((t) => !claimed.has(t.id) && !t.isTransfer && !loanEmiIds.has(t.id));
+  // --- Cash as a pocket (js/cash.js) -------------------------------------------------------------------------------
+  // A withdrawal at an ATM is cash moved into the pocket, not spending. Cash you spend counts the day you write it
+  // down; cash taken out and never written down counts after 30 days. Withdrawals before the rule began count as
+  // they always did.
+  const heldAsCash = (t) => cashIds.has(t.accountId) || t.accountId === 'cash';
+  const slim = (t) => ({ id: t.id, date: t.date, amount: t.amount });
+  const takenOut = cashOn
+    ? transactions.filter((t) => t.direction === 'debit' && bankIds.has(t.accountId) && CASH_ENTRY_RE.test(t.rawDescription || '') && t.date >= cashRuleFrom && t.date <= today).map(slim)
+    : [];
+  const cashSpendList = cashOn
+    ? transactions
+        .filter((t) => heldAsCash(t) && t.direction === 'debit' && !t.isTransfer && !isWorkCost(t) && !isPersonMoney(t) && t.date >= cashRuleFrom && t.date <= today)
+        .map(slim)
+    : [];
+  const pocket = cashPocket({ takenOut, spends: cashSpendList, today });
+  const takenOutIds = new Set(takenOut.map((t) => t.id));
+  const cashSpends = cashSpendList.filter((t) => t.date >= windowStart && t.date <= spendEnd);
+  const cashExpired = pocket.expired.filter((e) => e.date >= windowStart && e.date <= spendEnd);
+  const cashSpent = sum(cashSpends) + sum(cashExpired);
+  const unclaimed = bankWindow.filter((t) => !claimed.has(t.id) && !t.isTransfer && !loanEmiIds.has(t.id) && !takenOutIds.has(t.id));
   const returned = paidBack(unclaimed.filter((t) => t.direction === 'debit'), transactions, today);
   const returnedIds = new Set(returned.map((p) => p.sent.id));
   const bankSpends = unclaimed.filter((t) => !returnedIds.has(t.id));
@@ -755,7 +779,7 @@ export async function computeFreeToSpend(now = new Date()) {
     .filter((t) => t.isShareBack && t.direction === 'credit' && !t.isTransfer && !isPersonMoney(t) && t.date >= windowStart && t.date <= spendEnd && t.date <= today)
     .map((t) => ({ date: t.date, amount: -t.amount }));
   const shareBackTotal = -shareBackSpends.reduce((s, e) => s + e.amount, 0);
-  const spentThisCycle = cardSpent + bankSpent + personSpent - shareBackTotal;
+  const spentThisCycle = cardSpent + bankSpent + personSpent + cashSpent - shareBackTotal;
 
   // Work costs: shown and followed, never spent. Every account of the house,
   // cards included, since the hotel was swiped on one.
@@ -842,6 +866,8 @@ export async function computeFreeToSpend(now = new Date()) {
     ),
     ...personSpends,
     ...shareBackSpends,
+    ...cashSpends.map((t) => ({ date: t.date, amount: t.amount })),
+    ...cashExpired.map((e) => ({ date: e.date, amount: e.amount })),
   ].filter((e) => e.date >= windowStart && e.date <= today);
   const perDay = new Map();
   for (const e of datedSpends) perDay.set(e.date, (perDay.get(e.date) || 0) + e.amount);
@@ -1064,6 +1090,16 @@ export async function computeFreeToSpend(now = new Date()) {
     spendDays,
     spendByDay,
     shareBackThisCycle: shareBackTotal,
+    // The cash pocket (js/cash.js): what was taken out and written down this month, what is still in it, and what
+    // was counted as spent because it was never written down.
+    cash: {
+      on: cashOn,
+      from: cashOn ? cashRuleFrom : null,
+      takenOut: sum(takenOut.filter((t) => t.date >= windowStart && t.date <= spendEnd)),
+      spent: sum(cashSpends),
+      inPocket: pocket.inPocket,
+      unloggedCounted: sum(cashExpired),
+    },
     tracker,
     cutBack,
     flexible,

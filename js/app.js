@@ -1,4 +1,4 @@
-import { openDB, getAll, put, onLocalChange, forgetCachedReads, damagedRecords } from './db.js';
+import { openDB, getAll, put, onLocalChange, forgetCachedReads, damagedRecords, getSetting, setSetting } from './db.js';
 import { wireExplain } from './explain.js';
 import { wireSwipe } from './swipe.js';
 import { guardApp } from './lock.js';
@@ -12,6 +12,7 @@ import { setCustomStyles } from './category-style.js';
 import { versionStatus, APP_VERSION } from './version.js';
 import { fillIcons, icon } from './icons.js';
 import { redraw } from './redraw.js';
+import { isoLocal } from './frequency.js';
 import { keepDataSafe, isInstalled } from './install.js';
 import { signIn, rememberGoogleAccount } from './drive.js';
 import { showIfUpdated } from './whats-new.js';
@@ -675,6 +676,8 @@ async function init() {
   // Ask the phone not to clear Kawach's data when it runs low on space.
   if (!isDemo()) keepDataSafe();
   await seedIfNeeded();
+  // Cash as a pocket starts today (js/cash.js): months already worked out stay as they were.
+  if (!isDemo() && (await getSetting('cashRuleFrom', null)) === null) await setSetting('cashRuleFrom', isoLocal(new Date()));
   // The demo: a made-up household in its own database, and its ribbon (js/demo.js). Your own Kawach
   // opening normally clears out any demo left behind by an app that was closed in the middle of one.
   if (isDemo()) {

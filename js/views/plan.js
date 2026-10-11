@@ -9,7 +9,7 @@ import { getBudgets, setBudget, budgetStatusForMonth } from '../budgets.js';
 import { DEFAULT_KEEP_IN_BANK, computeFreeToSpend } from '../free-to-spend.js';
 import { currentMonthKey } from '../spending-month.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequencyShort, hasDueDate, toMonthly, toYearly, isoLocal } from '../frequency.js';
-import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder, isSetAside, duplicateCommitments } from '../commitments.js';
+import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder, isSetAside, isAtmPlan, duplicateCommitments } from '../commitments.js';
 import { appearance } from '../appearance.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
@@ -38,7 +38,11 @@ let reordering = false;
 // bills; `source` tells them apart so detection never clobbers what you
 // entered by hand.
 
+// Cash counts as it is spent (js/cash.js): set each time the screen is drawn.
+let cashRuleOn = false;
+
 export async function render(container) {
+  cashRuleOn = Boolean(await getSetting('cashRuleFrom', null));
   const [categories, recurring, transactions, income, budgets] = await Promise.all([
     getAll('categories'),
     getAll('recurring'),
@@ -1043,6 +1047,11 @@ function fixedRow(f, categories, paidFrom, index, count) {
   const parts = [when];
   if (f.emi) parts.push(`EMI ${f.emi.current}/${f.emi.total}`);
   parts.push(f.accountId === 'cash' ? 'cash' : paidFrom ? escapeHtml(paidFrom) : 'bank');
+  // Under the cash rule the ATM plan is not set aside any more: cash counts as it is spent.
+  if (cashRuleOn && isAtmPlan(f)) {
+    parts.length = 0;
+    parts.push('cash', 'counted as you spend it, not set aside');
+  }
 
   const inner = `
       <span class="k-icon" style="--k-tint:${color}">${mark}</span>

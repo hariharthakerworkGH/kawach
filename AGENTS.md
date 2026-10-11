@@ -331,6 +331,25 @@ opened, an example message read, a question asked), and can be skipped or brough
 demo's Settings. Its place is kept in sessionStorage. Next: a shop-owner household and a Try it
 link on `welcome.html`, then Hindi.
 
+## Cash as a pocket (5.44)
+
+`js/cash.js` is pure; `js/free-to-spend.js` calls it when the `cashRuleFrom` setting is set (the app sets it to
+today the first time it opens after the update, so no month already worked out changes).
+
+- A bank debit with ATM wording (`CASH_ENTRY_RE`) dated on or after that day is cash moved into the pocket: not
+  spending, and not claimed by any commitment.
+- Cash you spend (a debit on a cash account, not a transfer, work cost or lent money) counts the day you write it
+  down, whether or not an ATM plan exists.
+- Cash taken out and never written down counts as spent 30 days after it was taken out (on that day, in that
+  month), and only the part not written down: written spends are taken from the oldest cash first (FIFO); a spend
+  made after a lot's 30 days cannot use it again; a spend with no cash to take from is still a spend.
+- The "ATM cash" plan (`isAtmPlan`: `cash: true` or ATM in its name) is no longer taken out of the budget, because
+  cash now counts as it is spent. Withdrawals before the start day count exactly as they always did.
+- `computeFreeToSpend().cash` = `{ on, from, takenOut, spent, inPocket, unloggedCounted }` for the month, shown on
+  Accounts (Cash row), as a note on Add when Cash is chosen, and on the ATM plan's row on Plan.
+- Tests: `tests/cash.test.js`; whole flow: `tools/release/cashflow.mjs`; with the setting absent the answers are
+  identical to before (`tools/release/diffrun.mjs`: 1,440 households).
+
 ## Safety net (5.43.1)
 
 Found by a hostile review of 5.43 and fixed together. Tests: `tests/safety.test.js`.

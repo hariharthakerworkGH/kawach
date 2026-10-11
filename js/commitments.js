@@ -50,6 +50,9 @@ export function isLiveCommitment(r, today = isoLocal(new Date())) {
 // Cash withdrawals are recognisable without being told: HDFC writes them as
 // "NWD-<card>-<ATM id>", other banks as "ATM" or "CASH WDL".
 const CASH_LABEL_RE = /\b(atm|cash)\b/i;
+// The plan Kawach sets up by itself when cash comes out of the ATM most months (js/recurring.js), or one you named
+// ATM. Under the cash rule (js/cash.js) it is no longer set aside: cash counts as it is spent.
+export const isAtmPlan = (item) => item.cash === true || /\batm\b/i.test(item.label || '');
 export const CASH_ENTRY_RE =/\bNWD-|\bATM\b|\bCASH\s*(WDL|WITHDRAWAL)|\bATW-/i;
 
 // Letters and digits only, lower case. Statements break a narration across

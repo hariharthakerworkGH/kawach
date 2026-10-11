@@ -27,6 +27,8 @@ import { showToast } from '../toast.js';
 
 // null = form closed, 'new' = adding, otherwise the id being edited
 let editing = null;
+// What the cash pocket holds, worked out each time the screen is drawn (js/cash.js); empty while the rule is off.
+let cashPocketNote = '';
 // The extra monthly payment picked in a loan's planner, per loan, while the
 // app is open, so a redraw keeps your choice.
 const loanExtra = {};
@@ -76,6 +78,7 @@ export async function render(container) {
   // banks. The same figures Summary shows, from the same calculation, so the
   // two screens can never disagree; Home's only, as that calculation is.
   const homeFigures = space === 'home' ? await computeFreeToSpend() : null;
+  cashPocketNote = homeFigures && homeFigures.cash && homeFigures.cash.on ? cashNoteText(homeFigures.cash) : '';
   // What part of each card is work, owed back by the employer (5.23).
   workByCard = new Map(((homeFigures && homeFigures.cards) || []).map((c) => [c.account.id, { cycle: c.workCycle || 0, owed: c.workOwed || 0, coming: c.comingFixed || 0, items: c.comingItems || [] }]));
   // Copies saved by overlapping statement imports are left out of every
@@ -904,6 +907,19 @@ function rowActions(account, { spendable = false } = {}) {
     </div>`;
 }
 
+function cashNoteText(c) {
+  const parts = ['This month'];
+  if (c.takenOut) parts.push(`taken out ${formatRupees(c.takenOut)}`);
+  if (c.spent) parts.push(`spent ${formatRupees(c.spent)}`);
+  parts.push(c.inPocket ? `${formatRupees(c.inPocket)} still in your pocket` : 'nothing left in your pocket');
+  const tail = c.unloggedCounted
+    ? ` ${formatRupees(c.unloggedCounted)} taken out and never written down was counted as spent.`
+    : c.inPocket
+      ? ' Cash you do not write down is counted as spent after 30 days.'
+      : '';
+  return escapeHtml(parts.join(' · ') + '.' + tail);
+}
+
 function accountCard(account, transactions, importBatches, allLoans = [], place = {}) {
   const acctTxns = transactions.filter((t) => t.accountId === account.id);
   // "+ Spend" sits beside Edit in the card's top line rather than on a row of
@@ -1113,6 +1129,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
   const now = new Date();
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   const thisMonth = acctTxns.filter((t) => t.date >= monthStart && !t.isTransfer);
+  const cashLine = account.type === 'cash' && cashPocketNote ? cashPocketNote : '';
   const inAmt = thisMonth.filter((t) => t.direction === 'credit').reduce((s, t) => s + t.amount, 0);
   const outAmt = thisMonth.filter((t) => t.direction === 'debit').reduce((s, t) => s + t.amount, 0);
 
@@ -1128,7 +1145,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
           canOpen: true,
           place,
         }),
-        '',
+        cashLine,
         { spendable: true }
       )}
     </div>
