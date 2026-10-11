@@ -6,12 +6,12 @@
    is a target in itself and a thumb lands on it easily. */
 
 :root {
-  --k-ctl-lg: 46px;
-  --k-ctl-md: 38px;
-  --k-ctl-sm: 30px;
-  --control-lg: 44px;
-  --control-md: 38px;
-  --control-sm: 30px;
+  --k-ctl-lg: 42px;
+  --k-ctl-md: 36px;
+  --k-ctl-sm: 28px;
+  --control-lg: 42px;
+  --control-md: 36px;
+  --control-sm: 28px;
 }
 
 .k-input,
@@ -98,3 +98,74 @@
 .k .k-btn::before,
 .k .btn-secondary::before,
 .k .k-picker::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--k-tap); transform: translateY(-50%); }
+
+
+/* --- One rhythm for every screen (5.47.1) -----------------------------------------------------------
+   The screens had grown their own paddings (12, 14, 16, 20, 24) and gaps (8, 12, 16, 20), so edges did not line
+   up and the page felt crowded even where it was not. Now: a 16px gutter, 14/16 inside a card, 12px between
+   cards, 24px before a heading and 8px after it, and a heading starts on the card's own edge. */
+:root[data-style] .k .totals-card,
+:root[data-style] .k .tl-hero,
+:root[data-style] .k .tl-card,
+:root[data-style] .k .hero,
+:root[data-style] .k .hist-days-card,
+:root[data-style] .k .plan-sums,
+:root[data-style] .k .summary-viz,
+:root[data-style] .k .k-context,
+:root[data-style] .k .warn-card { padding: 14px 16px; }
+:root[data-style] .k .totals-card,
+:root[data-style] .k .tl-hero,
+:root[data-style] .k .tl-card,
+:root[data-style] .k .hero,
+:root[data-style] .k .hist-days-card,
+:root[data-style] .k .plan-sums,
+:root[data-style] .k .tl-list,
+:root[data-style] .k .segmented { margin-top: 0; margin-bottom: 12px; }
+:root[data-style] .k .summary-viz,
+:root[data-style] .k .k-context.summary-insight { margin-top: 12px; margin-bottom: 0; }
+.k .section-head { margin: 24px 0 8px; }
+.k .account-group-sec { margin-top: 20px; }
+.k .account-group-label { padding-inline: 0; margin-bottom: 6px; }
+.k .accounts-actions--top { margin-bottom: 8px; }
+
+/* Search and the filter chips: one size, one line. */
+.k .hist-top { margin: 12px 0 8px; }
+.k .hist-search { min-height: var(--k-ctl-md); padding: 0 var(--k-3); font-size: 14px; }
+.k .hist-select-btn { min-height: var(--k-ctl-md); padding: 0 var(--k-4); font-size: 13px; }
+.k select.hist-chip, .k button.hist-chip { min-height: var(--k-ctl-sm); padding: 0 var(--k-3); font-size: 13px; }
+.k .hist-chips { margin-bottom: 8px; }
+
+/* The big figures are a little quieter: a number can lead without shouting. */
+.k .hero .hero-amount { font-size: clamp(2rem, 10.5vw, 2.6rem); }
+
+/* Buttons: smaller type, lighter weight, full-width ones no taller than a field. */
+.k .k-btn, .k .btn-secondary { font-size: 13px; }
+.k .btn-block, .k .k-btn--primary.btn-primary { min-height: var(--k-ctl-lg); }
+:root[data-style] .k .add-card--amount .amount-input { font-size: 28px; }
+.k .hist-actions .hist-save { min-height: var(--k-ctl-sm); padding: 0 var(--k-4); font-size: 13px; }
+.k .hist-actions .link-btn { font-size: 13px; }
+.k .hist-edit .dir-btn { font-size: 11px; }
+
+/* Quiet actions line up under the name they belong to, and the screen's own two sit at its edges. */
+.k .account-actions-inline { margin: 0 0 0 48px; gap: var(--k-3); }
+.k .account-actions-inline .k-btn { min-height: var(--k-ctl-sm); padding: 0; }
+.k .accounts-actions--top { justify-content: space-between; }
+.k .accounts-actions--top .k-btn--ghost { flex: none; padding: 0; min-height: var(--k-ctl-md); }
+.k .accounts-actions--top .k-btn--secondary { flex: 1 0 100%; }
+
+/* A card inside a card is a second frame round the same figures: the figures keep a hairline, not a box. */
+:root[data-style] .k .tl-hero .tl-list,
+:root[data-style] .k .hero .tl-list { border: 0; background: none; box-shadow: none; padding: 0; }
+:root[data-style="tactile"] .k .tl-big,
+:root[data-style="instrument"] .k .tl-big { font-size: 40px; margin-top: 6px; }
+
+.k .account-actions-inline { justify-content: flex-start; }
+:root[data-style] .k .hero-under { border: 0; background: none; box-shadow: none; padding: 0; margin: 12px 0 0; }
+.k .coach-hub { width: 84px; height: 84px; }
+:root[data-style] .k .add-form > .direction-toggle { margin: 0 0 12px; }
+:root[data-style] .k .k-add-sms { margin: 0 0 12px; padding: 10px 14px; }
+.k .add-form { padding-top: 0; }
+:root[data-style] .k .hero .hero-under,
+:root[data-style] .k #hist-hero .hero-under { border: 0; background: none; box-shadow: none; padding: 0; margin: 12px 0 0; }
+/* A short word is reached from a little either side of it as well. */
+.k .account-actions-inline .k-btn::before { left: -10px; right: -10px; }

@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.48',
+    items: [
+      {
+        icon: 'layers',
+        title: "A calmer, tidier look",
+        text: "Every screen now shares one spacing: the same side margin, the same padding inside cards and the same gap between them, and headings start on the card's own edge. Boxes inside boxes are gone, figures and buttons are a little smaller, the Save button is slimmer, and quiet actions line up under the name they belong to.",
+      },
+    ],
+  },
+  {
     version: '5.47',
     items: [
       {

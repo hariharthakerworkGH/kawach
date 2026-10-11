@@ -487,8 +487,9 @@ paragraphs under headings.
 
 Comments explain why, in plain English, especially where a rule looks odd.
 
-Control sizes are set once, in `css/compact.css` (loaded last, 5.47): a field 38px, a full-width button 46, a
-chip 30; buttons, chips, switches and toggles keep a 44px reach strip, and a text field or list keeps its 38px (the audit's floor for fields). History's open payment shows the amount, a category list,
+Control sizes are set once, in `css/compact.css` (loaded last, 5.47): a field 36px, a full-width button 42, a
+chip 28; buttons, chips, switches and toggles keep a 44px reach strip, and a text field or list keeps its 36px (the audit's floor for fields); every screen shares one rhythm (16px gutter, 14/16 inside a
+card, 12px between cards, 24px before a heading). History's open payment shows the amount, a category list,
 the day and a Save at once; Add shows account and date beside each other, never behind a fold.
 
 ## Working on it
