@@ -115,3 +115,22 @@ test('cash rule: a cash work cost is not spending, and friends paying back in ca
   const f = await computeFreeToSpend(day('2026-09-16'));
   paise(f.spentThisCycle, rupees(1000 - 600));
 });
+
+test('cash rule: a plan the owner named "Cash Withdrawal" (set aside bit by bit) is recognised, so cash is not counted twice', async () => {
+  await seedBasics();
+  await put('accounts', { id: 'acct-cash', label: 'Cash', type: 'cash' });
+  await putAll('recurring', [commitment({ label: 'Cash Withdrawal', amount: 31000, spread: true }), commitment({ label: 'House Rent', amount: 20000 })]);
+  await putAll('transactions', [atm('2026-10-01', 10000, 41), atm('2026-10-01', 10000, 42), atm('2026-10-01', 10000, 43)]);
+  const before = await computeFreeToSpend(day('2026-10-11'));
+  await setSetting('cashRuleFrom', '2026-10-11');
+  await putAll('transactions', [cashSpend('2026-10-11', 500), cashSpend('2026-10-11', 500)]);
+  const after = await computeFreeToSpend(day('2026-10-11'));
+  ok(!after.budgetItems.some((b) => /Cash Withdrawal/.test(b.label)), 'not set aside any more');
+  paise(after.limit - before.limit, rupees(31000));
+  // the 30,000 taken out before the rule began counts as it did, the two chais count: nothing is counted twice
+  paise(after.free, before.free + rupees(31000) - rupees(30000) - rupees(1000), 'the 1,000 not yet taken out of the 31,000 plan pays for the two chais');
+  // a fixed bill that merely has the word cash in its name is not the ATM plan
+  await putAll('recurring', [commitment({ label: 'Cash gift to cousin', amount: 2000, dayOfMonth: 12 })]);
+  const gift = await computeFreeToSpend(day('2026-10-11'));
+  ok(gift.budgetItems.some((b) => /Cash gift/.test(b.label)), 'a dated cost with cash in its name stays set aside');
+});

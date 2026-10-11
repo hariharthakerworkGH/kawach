@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.45.1',
+    items: [
+      {
+        icon: 'wallet',
+        title: "Cash plan named your own way is recognised",
+        text: "If your plan for ATM cash has a name of your own, like Cash Withdrawal, it is now treated as the cash plan: it is no longer set aside, because cash you write down counts as you spend it. Before this, such a plan stayed set aside and the cash you wrote down was counted on top of it.",
+      },
+    ],
+  },
+  {
     version: '5.45',
     items: [
       {
