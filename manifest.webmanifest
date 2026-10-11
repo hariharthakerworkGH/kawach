@@ -1,9 +1,86 @@
 {
+  "id": "./",
   "name": "Kawach",
   "short_name": "Kawach",
+  "description": "See what you can safely spend this month. Free, and your data stays on your phone.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "categories": [
+    "finance",
+    "productivity"
+  ],
+  "background_color": "#07090f",
+  "theme_color": "#07090f",
+  "icons": [
+    {
+      "src": "icons/kawach-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/kawach-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/kawach-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/kawach.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add a payment",
+      "short_name": "Add",
+      "description": "Write down something you just spent",
+      "url": "./?open=add",
+      "icons": [
+        {
+          "src": "icons/kawach-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "What is left to spend",
+      "short_name": "Left",
+      "description": "Open the Summary",
+      "url": "./?open=summary",
+      "icons": [
+        {
+          "src": "icons/kawach-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "icons/screenshots/summary.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "What is left to spend this month, with made-up money"
+    },
+    {
+      "src": "icons/screenshots/plan.png",
+      "sizes": "780x1688",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "The costs that must go out, and what is set aside"
+    }
+  ],
   "share_target": {
     "action": "./share-target",
     "method": "POST",
@@ -13,13 +90,5 @@
       "text": "text",
       "url": "url"
     }
-  },
-  "background_color": "#07090f",
-  "theme_color": "#07090f",
-  "icons": [
-    { "src": "icons/kawach-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/kawach-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icons/kawach-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "icons/kawach.svg", "sizes": "any", "type": "image/svg+xml" }
-  ]
+  }
 }

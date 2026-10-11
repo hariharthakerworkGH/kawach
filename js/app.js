@@ -727,6 +727,9 @@ async function init() {
   // ?shared=1 with the text parked by the service worker. Pick it up before
   // anything renders and go straight to it.
   const openedFromShare = new URLSearchParams(location.search).has('shared');
+  // A home-screen shortcut (manifest.webmanifest) names the screen it wants. Read here, before the back-button set-up
+  // below tidies the address and the question is gone.
+  const openedAt = new URLSearchParams(location.search).get('open');
   // (A bank alert shared to the phone belongs to the person, never to the demo.)
   const sharedCount = isDemo() ? 0 : await collectSharedAlerts();
 
@@ -755,7 +758,7 @@ async function init() {
     // Which screen to open on is the person's choice (js/appearance.js), and
     // only ever a screen that stands on its own: Add and Accounts are fine to
     // land on, the rest are somewhere you go from here.
-    await showView(appearance('opening'), {}, true);
+    await showView(['summary', 'add', 'accounts', 'plan', 'transactions'].includes(openedAt) ? openedAt : appearance('opening'), {}, true);
     // After an update, once: what changed, for this person.
     if (!isDemo()) setTimeout(async () => showIfUpdated(APP_VERSION, await moneyProfile(), { isNew: false }), 600);
   }

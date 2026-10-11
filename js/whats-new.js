@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.45',
+    items: [
+      {
+        icon: 'phone',
+        title: "Shortcuts on your home screen",
+        text: "Press and hold the Kawach icon on your home screen: Add a payment and What is left to spend open straight on those screens. The install sheet now shows two pictures of the app. The privacy page also says where the app's files come from, and how the lock and the demo work.",
+      },
+    ],
+  },
+  {
     version: '5.44',
     items: [
       {

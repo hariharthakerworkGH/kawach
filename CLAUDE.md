@@ -331,6 +331,16 @@ opened, an example message read, a question asked), and can be skipped or brough
 demo's Settings. Its place is kept in sessionStorage. Next: a shop-owner household and a Try it
 link on `welcome.html`, then Hindi.
 
+## Home screen and the install sheet (5.45)
+
+`manifest.webmanifest` carries an `id` (the same address the app already had, so installed copies keep their
+identity), two shortcuts (`./?open=add`, `./?open=summary`) and two screenshots in `icons/screenshots/`, made with
+`tools/release/store_shots.mjs` from the made-up demo household (re-make them when Summary or Plan changes). The app
+reads `?open=` before the back-button set-up tidies the address (js/app.js). The privacy page says where the files
+come from (GitHub Pages sees the address of a visit), how the lock's PIN and key are kept, and what the demo does.
+Not yet there, because they need the owner's own details: a contact address, the operator's name, a grievance route
+and governing law on privacy.html and terms.html.
+
 ## Cash as a pocket (5.44)
 
 `js/cash.js` is pure; `js/free-to-spend.js` calls it when the `cashRuleFrom` setting is set (the app sets it to
