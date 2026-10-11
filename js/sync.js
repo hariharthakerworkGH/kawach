@@ -1,6 +1,7 @@
-import { getAll, put, remove, get } from './db.js';
+import { getAllRaw, put, remove, get } from './db.js';
+import { tidyRecord, problemWith } from './records.js';
 import { encryptPayload, decryptPayload } from './backup.js';
-import { backupPassphrase, readSyncFile, writeSyncFile } from './drive.js';
+import { backupPassphrase, readSyncFile, writeSyncFile, noteServerTime, clockSkew } from './drive.js';
 
 // Sync between your own devices through one encrypted file, kept either in
 // Kawach's hidden folder in your own Google Drive (the usual way: same Google
@@ -21,17 +22,18 @@ const SYNCED_STORES = ['accounts', 'transactions', 'categories', 'merchantRules'
 const API = 'https://api.github.com';
 
 export async function getSyncConfig() {
-  const [provider, token, gistId, lastSync, deviceName] = await Promise.all([
+  const [provider, token, gistId, lastSync, deviceName, clockSkewMs] = await Promise.all([
     getMeta('provider'),
     getMeta('token'),
     getMeta('gistId'),
     getMeta('lastSync'),
     getMeta('deviceName'),
+    getMeta('clockSkewMs'),
   ]);
   // Phones that synced through GitHub before Google was an option have a
   // token and no provider saved.
   const via = provider || (token ? 'github' : null);
-  return { provider: via, token, gistId, lastSync, deviceName, configured: via === 'google' || Boolean(token) };
+  return { provider: via, token, gistId, lastSync, deviceName, clockSkewMs, configured: via === 'google' || Boolean(token) };
 }
 
 export async function turnOnGoogleSync() {
@@ -106,20 +108,25 @@ export async function syncNow(passphrase, { onProgress = () => {}, previous = nu
 
   onProgress('Merging…');
   const local = await readLocal();
-  const merged = remote ? mergeSnapshots(local, remote) : { data: local.data, deletions: local.deletions, changed: false };
+  const base = await readBases();
+  const merged = remote ? mergeSnapshots(local, remote, { base }) : { data: local.data, deletions: local.deletions, changed: false };
 
   // Only rewrite local storage when the remote actually contributed something.
+  let skipped = 0;
   if (remote) {
-    await applyMerged(merged, local);
+    skipped = await applyMerged(merged, local);
   }
 
   onProgress('Uploading…');
   const payload = { data: merged.data, deletions: merged.deletions, syncedAt: Date.now() };
   await place.write(await encryptPayload(payload, passphrase));
 
+  await writeBases(merged.data.settings);
+  const skew = clockSkew();
+  if (skew != null) await setMeta('clockSkewMs', skew);
   await setMeta('lastSync', Date.now());
   return {
-    pulled: merged.stats || { added: 0, updated: 0, deleted: 0 },
+    pulled: { ...(merged.stats || { added: 0, updated: 0, deleted: 0 }), skipped },
     counts: Object.fromEntries(SYNCED_STORES.map((s) => [s, merged.data[s].length])),
   };
 }
@@ -185,8 +192,8 @@ async function gistPlace({ token, gistId }, onProgress) {
 
 async function readLocal() {
   const data = {};
-  for (const store of SYNCED_STORES) data[store] = await getAll(store);
-  const deletions = await getAll('deletions');
+  for (const store of SYNCED_STORES) data[store] = await getAllRaw(store);
+  const deletions = await getAllRaw('deletions');
   return { data, deletions };
 }
 
@@ -195,10 +202,40 @@ async function readLocal() {
 // Records missing `updatedAt` predate sync. Treating them as age zero would
 // let any remote copy silently overwrite them, so they count as "old but
 // present": kept unless the other side genuinely has a timestamp.
-const stampOf = (record) => (typeof record.updatedAt === 'number' ? record.updatedAt : 0);
+//
+// A stamp more than five minutes ahead of this phone's clock belongs to a device whose clock runs fast. A record
+// arriving with one is re-stamped "now" as it is taken in (and goes back out that way), so one wrong clock cannot
+// keep winning every edit for as long as it is wrong.
+const SKEW_ALLOWED_MS = 5 * 60 * 1000;
+const stampOf = (record, now = Date.now()) => (typeof record.updatedAt === 'number' ? Math.min(record.updatedAt, now + SKEW_ALLOWED_MS) : 0);
 
-export function mergeSnapshots(local, remote) {
+/* Settings that hold a list of things (people, goals, businesses...). One whole-record winner loses what the
+ * other device added, so these are merged item by item against what both sides agreed at the last sync
+ * (`base`): an item added on either side stays, an item removed on a side that had it is removed, and an item
+ * on both takes the newer side's version. With no base (the first sync) nothing is removed. */
+export const LIST_SETTINGS = ['businesses', 'people', 'goals', 'dismissedAnomalies', 'remindersSent', 'spendingAlertsSent'];
+const itemKey = (x) => (x && typeof x === 'object' ? x.id : x);
+
+export function mergeLists(base, mine, theirs, mineIsNewer) {
+  const had = new Set((Array.isArray(base) ? base : []).map(itemKey));
+  const here = new Map(mine.map((x) => [itemKey(x), x]));
+  const there = new Map(theirs.map((x) => [itemKey(x), x]));
+  const out = new Map();
+  for (const [k, v] of here) {
+    if (there.has(k)) out.set(k, mineIsNewer ? v : there.get(k));
+    else if (!had.has(k)) out.set(k, v); // added here
+    // otherwise it was removed on the other side
+  }
+  for (const [k, v] of there) if (!here.has(k) && !had.has(k)) out.set(k, v); // added there
+  return [...out.values()];
+}
+
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+export function mergeSnapshots(local, remote, { base = {}, now = Date.now() } = {}) {
   const stats = { added: 0, updated: 0, deleted: 0 };
+  const stamp = (r) => stampOf(r, now);
+  const taken = (r) => (typeof r.updatedAt === 'number' && r.updatedAt > now + SKEW_ALLOWED_MS ? { ...r, updatedAt: now } : r);
 
   // Tombstones from both sides, keyed "store:id", keeping the latest delete.
   const tombstones = new Map();
@@ -215,10 +252,21 @@ export function mergeSnapshots(local, remote) {
     for (const incoming of remote.data?.[store] || []) {
       const mine = byId.get(incoming.id);
       if (!mine) {
-        byId.set(incoming.id, incoming);
+        byId.set(incoming.id, taken(incoming));
         stats.added++;
-      } else if (stampOf(incoming) > stampOf(mine)) {
-        byId.set(incoming.id, incoming);
+      } else if (store === 'settings' && LIST_SETTINGS.includes(incoming.id) && Array.isArray(mine.value) && Array.isArray(incoming.value)) {
+        const value = mergeLists(base[incoming.id], mine.value, incoming.value, stamp(mine) >= stamp(incoming));
+        if (!same(value, mine.value) || !same(value, incoming.value)) {
+          const updatedAt = Math.max(stamp(mine), stamp(incoming)) + 1;
+          byId.set(incoming.id, { ...mine, value, updatedAt });
+          if (!same(value, mine.value)) stats.updated++;
+        }
+      } else if (stamp(incoming) > stamp(mine)) {
+        byId.set(incoming.id, taken(incoming));
+        stats.updated++;
+      } else if (stamp(incoming) === stamp(mine) && !same(incoming, mine) && JSON.stringify(incoming) > JSON.stringify(mine)) {
+        // Same moment, different content: both devices pick the same one, so they cannot swap forever.
+        byId.set(incoming.id, taken(incoming));
         stats.updated++;
       }
     }
@@ -228,7 +276,7 @@ export function mergeSnapshots(local, remote) {
     // edit is what you meant.
     for (const [id, record] of [...byId]) {
       const tomb = tombstones.get(`${store}:${id}`);
-      if (tomb && tomb.deletedAt > stampOf(record)) {
+      if (tomb && tomb.deletedAt > stamp(record)) {
         byId.delete(id);
         stats.deleted++;
       }
@@ -240,9 +288,27 @@ export function mergeSnapshots(local, remote) {
   return { data, deletions: [...tombstones.values()], stats, changed: true };
 }
 
+// What both sides agreed each list setting held at the last sync, kept on this device only (syncMeta).
+async function readBases() {
+  const out = {};
+  for (const key of LIST_SETTINGS) {
+    const v = await getMeta(`base:${key}`);
+    if (Array.isArray(v)) out[key] = v;
+  }
+  return out;
+}
+
+async function writeBases(settings) {
+  for (const key of LIST_SETTINGS) {
+    const row = (settings || []).find((r) => r.id === key);
+    if (row && Array.isArray(row.value)) await setMeta(`base:${key}`, row.value);
+  }
+}
+
 // Write the merged result back, touching only what actually differs so a
 // no-op sync doesn't rewrite every row (and re-stamp nothing).
 async function applyMerged(merged, local) {
+  let skipped = 0;
   for (const store of SYNCED_STORES) {
     const before = new Map((local.data[store] || []).map((r) => [r.id, r]));
     const after = new Map(merged.data[store].map((r) => [r.id, r]));
@@ -250,6 +316,13 @@ async function applyMerged(merged, local) {
     for (const [id, record] of after) {
       const mine = before.get(id);
       if (!mine || stampOf(record) > stampOf(mine)) {
+        // A record from another device that cannot be used is left out, not stored: the database would
+        // refuse it half way through and stop everything after it.
+        tidyRecord(store, record);
+        if (problemWith(store, record)) {
+          skipped++;
+          continue;
+        }
         await put(store, record, { stamp: false });
       }
     }
@@ -263,6 +336,7 @@ async function applyMerged(merged, local) {
   for (const t of merged.deletions) {
     if (!known.has(t.id)) await put('deletions', t, { stamp: false });
   }
+  return skipped;
 }
 
 // --- GitHub Gist API ------------------------------------------------------
@@ -323,6 +397,12 @@ async function updateGist(token, gistId, content) {
     body: JSON.stringify({ files: { [GIST_FILENAME]: { content } } }),
   });
   await assertOk(res, 'save to the gist');
+  // GitHub says what time it thinks it is: used to tell when this phone's clock is off.
+  try {
+    noteServerTime((await res.json()).updated_at);
+  } catch {
+    // no time given: the check simply has nothing to go on
+  }
 }
 
 // Turns GitHub's status codes into something that says what to do about it.

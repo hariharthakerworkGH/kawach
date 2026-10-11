@@ -266,7 +266,7 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   (not installed, nothing set up) goes to `welcome.html` once.
 
 - `sw.js` service worker: `CACHE_NAME` must match `APP_VERSION` in
-  `js/version.js`, and `APP_SHELL` must list every js file, both stylesheets
+  `js/version.js`, and `APP_SHELL` must list every js file, every stylesheet
   and the font, or the app breaks offline.
 
 **Plans stay on the laptop (5.26.1).** `expense-tracker-versions/_private/` holds
@@ -330,6 +330,39 @@ what to touch; it opens each screen, waits where it asks for something (a paymen
 opened, an example message read, a question asked), and can be skipped or brought back from the
 demo's Settings. Its place is kept in sessionStorage. Next: a shop-owner household and a Try it
 link on `welcome.html`, then Hindi.
+
+## Safety net (5.43.1)
+
+Found by a hostile review of 5.43 and fixed together. Tests: `tests/safety.test.js`.
+
+- **A damaged record cannot blank the app.** `js/records.js` says what a payment, account, commitment or category
+  must look like (a real `YYYY-MM-DD` day, an amount that is a number between 0 and 1,000 crore rupees in paise, a
+  direction). `db.put` refuses anything else with a `BadRecordError`; `db.getAll` leaves a damaged record out (never
+  deletes it) and counts it; `getAllRaw` returns everything and is what backups and sync use, so nothing is lost for
+  good. Settings shows "N records could not be read" with a Remove button. A setting stored as null, or as a list
+  that is no longer a list, reads as its fallback (`getSetting`).
+- **A screen that fails says so.** `showView` catches a failing render and draws a card (Try again, Save a report,
+  Open Settings) instead of leaving it blank; uncaught errors give one calm toast; a start-up failure offers Reload.
+- **Restore is all or nothing, and can be undone.** `db.replaceAll` swaps whole stores in ONE transaction. Before a
+  restore, `backup.js` keeps a copy of what is on the phone in its own small database (`<db>-undo`, two weeks);
+  Settings offers "Undo the last restore". Damaged records inside a backup are skipped and counted, not fatal.
+- **Drive keeps the newest 5 backups and the newest of each of the last 6 months** (`backupsToDelete`), so a bad
+  backup can never push out the good ones.
+- **Sync merges lists item by item.** People, goals, businesses and the small "already told" lists
+  (`LIST_SETTINGS` in `js/sync.js`) are merged against what both devices agreed at the last sync (`base:<key>` in
+  `syncMeta`): an addition on either side stays, a removal on a side that had the item stays removed. A tie on the
+  stamp is settled the same way on both devices; a record stamped more than five minutes in the future is taken in as
+  "now"; Settings warns when the phone's clock is more than two minutes out (measured from Google's or GitHub's own
+  time when sync writes). Whole-record newest-wins still applies to everything else (`budgets` is a map and still
+  loses a concurrent edit: known).
+- **Readers are not handed absurd text.** `js/statement-text.js` cuts lines to 1,200 characters and runs of digits
+  to 40, refuses files over 25 MB (PDF) or 15 MB (CSV), and Import drops any row whose amount is not believable.
+  pdf.js runs with `isEvalSupported: false`.
+- **Releases are gated.** `tools/release/gate.py` (in the project, not a temp folder) runs the static check, the
+  tests (and refuses if fewer ran than last time), the 66-check animation probe and a screen audit in a real browser;
+  `release.py` will not push unless it passes. `tools/release/push.py` pushes with the GitHub CLI's own sign-in.
+  The other scripts there (`kh.mjs` harness, `corrupt.mjs`, `fuzz2.mjs`, `perf.mjs`...) are the checks used for the
+  review and are worth re-running after any change to storage, sync or the money rule.
 
 ## Design
 
@@ -418,7 +451,8 @@ Comments explain why, in plain English, especially where a rule looks odd.
 
 ## Working on it
 
-There is no Node and no git on the owner's machine; Python is `py`.
+Node (v24) and Python (`py`) are installed; there is no git. The browser checks and release tools in
+`tools/release` use Node.
 
 1. Serve the folder and open `/tests/index.html`. Results land in
    `window.testResults`; every money-rule change gets a test. Tests use a

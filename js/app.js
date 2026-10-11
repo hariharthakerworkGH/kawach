@@ -1,4 +1,4 @@
-import { openDB, getAll, put, onLocalChange, forgetCachedReads } from './db.js';
+import { openDB, getAll, put, onLocalChange, forgetCachedReads, damagedRecords } from './db.js';
 import { wireExplain } from './explain.js';
 import { wireSwipe } from './swipe.js';
 import { guardApp } from './lock.js';
@@ -32,7 +32,7 @@ import * as inboxView from './views/inbox.js';
 import * as setupView from './views/setup.js';
 import { collectSharedAlerts } from './alert-inbox.js';
 import { refreshSchedule, runDueReminders } from './reminders.js';
-import { countUpHeroes, rollFigures, fillBars, levelWatch, beginArrival } from './ui.js';
+import { countUpHeroes, rollFigures, fillBars, levelWatch, beginArrival, emptyState } from './ui.js';
 import { wirePullRefresh } from './pull-refresh.js';
 
 const SEED_CATEGORIES = [
@@ -159,9 +159,11 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0, sli
   try {
     await view.module.render(next, params);
   } catch (err) {
-    clearTimeout(slow);
-    next.remove();
-    throw err;
+    // A screen that fails is replaced by a plain card with a way on, never left blank or half drawn:
+    // the tabs still work, and the report says what broke without saying whose money it was.
+    console.error(`The ${name} screen could not be drawn`, err);
+    next.innerHTML = brokenScreen();
+    wireBrokenScreen(next, name, params);
   }
   clearTimeout(slow);
   if (mine !== drawing) {
@@ -209,6 +211,41 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0, sli
   levelWatch(next);
   clearTimeout(enterTimer);
   enterTimer = setTimeout(() => next.classList.remove('view-enter'), 1400);
+}
+
+function brokenScreen() {
+  return `${emptyState({
+    what: "This screen couldn't be drawn",
+    why: 'Nothing of yours is lost. Try again, or save a report so it can be fixed.',
+    art: 'error',
+    action: { id: 'broken-retry', label: 'Try again' },
+  })}
+    <div class="broken-more">
+      <button type="button" class="btn-secondary" id="broken-report">Save a report</button>
+      <button type="button" class="btn-secondary" id="broken-settings">Open Settings</button>
+    </div>`;
+}
+
+function wireBrokenScreen(root, name, params) {
+  root.querySelector('#broken-retry').addEventListener('click', () => showView(name, params, true, 0));
+  root.querySelector('#broken-settings').addEventListener('click', () => showView('settings'));
+  root.querySelector('#broken-report').addEventListener('click', async () => {
+    try {
+      const { buildDiagnosticReport } = await import('./diagnostics.js');
+      const report = await buildDiagnosticReport();
+      const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 1)], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kawach-report-v${report.appVersion}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      showToast('Report saved');
+    } catch {
+      showToast("Couldn't make the report");
+    }
+  });
 }
 
 // Something folded away opens with a short unfold, but only when you tap it:
@@ -606,6 +643,33 @@ async function init() {
   const bannerBtn = document.getElementById('update-banner-btn');
   if (bannerBtn) bannerBtn.addEventListener('click', () => window.location.reload());
 
+  // A failure nothing caught (a button, a background step) is said once in a while, in plain words. It
+  // used to be silent: the tap simply did nothing.
+  let lastOops = 0;
+  const oops = () => {
+    if (Date.now() - lastOops < 15000) return;
+    lastOops = Date.now();
+    showToast('Something went wrong. Nothing was lost. Try again.', { ms: 5000 });
+  };
+  window.addEventListener('unhandledrejection', (e) => {
+    console.error('Unhandled', e.reason);
+    oops();
+  });
+  window.addEventListener('error', (e) => {
+    // The browser's own layout notice is not a fault.
+    if (/ResizeObserver/.test(e.message || '')) return;
+    console.error('Error', e.error || e.message);
+    oops();
+  });
+  // Records that cannot be read are left out of every screen (js/db.js); it is said once, with where to look.
+  let toldDamaged = false;
+  document.addEventListener('records-damaged', () => {
+    const n = damagedRecords().length;
+    if (!n || toldDamaged) return;
+    toldDamaged = true;
+    showToast(`${n} ${n === 1 ? 'record' : 'records'} could not be read and ${n === 1 ? 'is' : 'are'} left out. See Settings.`, { ms: 8000 });
+  });
+
   // Both cases involve two copies of the app open at once during an update.
   document.addEventListener('db-blocked', () => {
     showNotice('Kawach is open in another tab or window with the older version. Close it and this one will continue.');
@@ -735,5 +799,17 @@ async function init() {
   wireUpdateBanner();
 }
 
-init();
+init().catch((err) => {
+  console.error('Kawach could not start', err);
+  const box = document.getElementById('view-container');
+  if (!box) return;
+  box.hidden = false;
+  box.innerHTML = `${emptyState({
+    what: "Kawach couldn't start",
+    why: 'Nothing of yours is lost. Reloading usually fixes it.',
+    art: 'error',
+    action: { id: 'start-reload', label: 'Reload' },
+  })}`;
+  box.querySelector('#start-reload').addEventListener('click', () => location.reload());
+});
 

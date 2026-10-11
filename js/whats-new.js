@@ -12,6 +12,23 @@ import { runGuide } from './guide.js';
 
 const NOTES = [
   {
+    version: '5.43.1',
+    items: [
+      {
+        icon: 'restore',
+        title: "Safer when something goes wrong",
+        text: "One damaged record can no longer blank your screens: it is left out, and Settings tells you and lets you remove it. If a screen cannot be drawn you get a card with Try again and Save a report. A restore now happens all at once or not at all, and you can Undo the last restore for two weeks. Google Drive keeps one backup from each month, so a bad backup never pushes out a good one.",
+        guide: [{ view: 'settings', target: '#restore-toggle', text: "After a restore, Undo the last restore appears under this row for two weeks." }],
+      },
+      {
+        icon: 'sync',
+        title: "Sync keeps what both devices added",
+        text: "If you add a person, a goal or a business on one device and another on your other device, sync now keeps both. A removal on one device stays removed. Settings also tells you when this phone's clock is minutes out, because sync keeps the newer copy by the clock.",
+        guide: [{ view: 'settings', target: '#sync-now', text: "Sync now, here. If your clock is out, a line under it says so." }],
+      },
+    ],
+  },
+  {
     version: '5.43',
     items: [
       {

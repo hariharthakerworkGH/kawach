@@ -4,6 +4,9 @@ import { isDemo } from '../demo-flag.js';
 import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
 import { extractPdfText, PdfPasswordError, PdfNoTextError } from '../pdf-text.js';
+import { cleanStatementText, sizeProblem } from '../statement-text.js';
+import { MAX_PAISE } from '../records.js';
+import { showToast } from '../toast.js';
 import { detectParser, parsers } from '../parsers/registry.js';
 import { matchCategoryForDescription, learnFromAssignment, fitsDirection } from '../merchant-rules.js';
 import { detectTransfers } from '../transfers.js';
@@ -198,6 +201,12 @@ function readChosenFile(file) {
     showStatus(status, 'This is an Excel file. Open it in Excel or Google Sheets, save it as CSV, and choose that file.', true);
     return;
   }
+  // Too big to read: said plainly, before anything is tried (js/statement-text.js).
+  const tooBig = sizeProblem(file);
+  if (tooBig) {
+    showStatus(status, tooBig, true);
+    return;
+  }
   if (/\.(csv|txt)$/i.test(file.name) || /csv|text\/plain/i.test(file.type)) {
     parseCsvFile(file);
     return;
@@ -215,7 +224,7 @@ async function readPdf(file, password) {
   resultsEl.innerHTML = '';
 
   try {
-    const text = await extractPdfText(file, password);
+    const text = cleanStatementText(await extractPdfText(file, password));
     // Done with the file and its password - drop both now.
     lockedFile = null;
     passwordInput.value = '';
@@ -254,7 +263,7 @@ async function parseCsvFile(file) {
   const resultsEl = screen.querySelector('#import-results');
   resultsEl.innerHTML = '';
   try {
-    const text = await file.text();
+    const text = cleanStatementText(await file.text());
     if (!csvParser.detect(text)) {
       showStatus(status, "Couldn't find the columns in this file. It needs a header row with a date, a description, and either withdrawal and deposit columns or an amount column.", true);
       return;
@@ -269,7 +278,13 @@ async function parsePasted(container) {
   const status = container.querySelector('#import-status');
   const resultsEl = container.querySelector('#import-results');
   const textarea = container.querySelector('#import-paste');
-  const text = textarea.value;
+  let text;
+  try {
+    text = cleanStatementText(textarea.value);
+  } catch (err) {
+    showStatus(status, err.message, true);
+    return;
+  }
   resultsEl.innerHTML = '';
 
   if (!text.trim()) {
@@ -294,7 +309,12 @@ async function parsePasted(container) {
 
 // Parses one card's worth of text and builds the review.
 async function startReview({ parser, text, last4 = null, queue }, status, resultsEl) {
-  const { rows, meta } = parser.parse(text);
+  const parsed = parser.parse(text);
+  const meta = parsed.meta;
+  // A line whose amount is not believable (a misread, a number run together) is left out and said so,
+  // rather than becoming a payment of a thousand crore.
+  const rows = parsed.rows.filter((r) => Number.isFinite(r.amount) && r.amount >= 0 && r.amount <= MAX_PAISE);
+  if (rows.length < parsed.rows.length) showToast(`${parsed.rows.length - rows.length} line${parsed.rows.length - rows.length === 1 ? ' was' : 's were'} left out: the amount could not be right`, { ms: 6000 });
   if (last4 && !meta.accountLast4) meta.accountLast4 = last4;
 
   // An EPFO passbook: the fund's own record, which beats anything the app

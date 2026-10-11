@@ -46,7 +46,9 @@ export function passwordErrorKind(err) {
 
 export async function extractPdfText(file, password) {
   const arrayBuffer = await file.arrayBuffer();
-  const params = { data: arrayBuffer };
+  // isEvalSupported off: pdf.js builds some font code with eval, which a hostile PDF has abused in older
+  // versions. The page policy already forbids eval; this makes the reader not even try.
+  const params = { data: arrayBuffer, isEvalSupported: false };
   if (password) params.password = password;
 
   let pdf;

@@ -1,5 +1,7 @@
 // The test page (tests/index.html) sets its own database name before loading
 // any module, so tests can never read or overwrite your real data.
+import { tidyRecord, problemWith, screenRecords, BadRecordError } from './records.js';
+
 const DB_NAME = globalThis.EXPENSE_TRACKER_DB_NAME || 'expense-tracker';
 const DB_VERSION = 4;
 
@@ -123,6 +125,10 @@ async function store(storeName, mode) {
 // writing records that already carry their own timestamp - re-stamping them
 // would make incoming data always look newest and defeat the merge.
 export async function put(storeName, value, { stamp = true } = {}) {
+  // A record that would break the screens is refused here, with a plain reason (js/records.js).
+  tidyRecord(storeName, value);
+  const why = problemWith(storeName, value);
+  if (why) throw new BadRecordError(storeName, value && value.id, why);
   if (stamp) value.updatedAt = Date.now();
   const s = await store(storeName, 'readwrite');
   await reqToPromise(s.put(value));
@@ -135,7 +141,8 @@ export async function get(storeName, id) {
   return reqToPromise(s.get(id));
 }
 
-export async function getAll(storeName) {
+/* Every record as stored, damaged ones included: for backups and sync, which must carry everything. */
+export async function getAllRaw(storeName) {
   if (!readCache.has(storeName)) {
     readCache.set(
       storeName,
@@ -151,6 +158,30 @@ export async function getAll(storeName) {
     readCache.delete(storeName);
     throw err;
   }
+}
+
+/* Records the screens may use. A damaged one is left out (never deleted here) and counted, so a single bad
+ * record cannot blank Summary, History and Plan; Settings lists them and offers to remove them. */
+const damaged = new Map(); // store -> Map(id -> why)
+export async function getAll(storeName) {
+  const { good, bad } = screenRecords(storeName, await getAllRaw(storeName));
+  const before = damagedRecords().length;
+  if (bad.length) damaged.set(storeName, new Map(bad.map((b) => [b.id, b.why])));
+  else damaged.delete(storeName);
+  if (damagedRecords().length !== before && typeof document !== 'undefined') document.dispatchEvent(new CustomEvent('records-damaged'));
+  return good;
+}
+
+export function damagedRecords() {
+  return [...damaged].flatMap(([storeName, ids]) => [...ids].map(([id, why]) => ({ store: storeName, id, why })));
+}
+
+/* Removes the damaged records. Tombstoned, so a synced device lets go of them too. */
+export async function removeDamaged() {
+  const list = damagedRecords();
+  for (const d of list) await remove(d.store, d.id);
+  damaged.clear();
+  return list.length;
 }
 
 // For writes that bypass put/remove (the service worker, another tab).
@@ -177,9 +208,43 @@ export function newId() {
 
 export async function getSetting(key, fallback = null) {
   const row = await get('settings', key);
-  return row ? row.value : fallback;
+  // A stored null, or a list that is no longer a list, is the same as nothing stored: the screens
+  // ask for a list and use it as one.
+  if (!row || row.value == null) return fallback;
+  if (Array.isArray(fallback) && !Array.isArray(row.value)) return fallback;
+  return row.value;
 }
 
 export async function setSetting(key, value) {
   await put('settings', { id: key, value });
+}
+
+/* Swaps whole stores for the given records in ONE transaction: it all happens or none of it does. A restore
+ * used to clear and refill record by record, so a failure half way left a half-restored phone. Records not in
+ * `incoming` leave a tombstone (so a synced device lets go of them); the incoming ones are stamped now, because
+ * restoring is you saying this is the truth. */
+export async function replaceAll(incoming, stores) {
+  const db = await openDB();
+  const now = Date.now();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction([...stores, 'deletions'], 'readwrite');
+    tx.oncomplete = () => resolve();
+    tx.onabort = () => reject(tx.error || new Error('Nothing was changed.'));
+    tx.onerror = () => reject(tx.error);
+    const deletions = tx.objectStore('deletions');
+    for (const name of stores) {
+      const os = tx.objectStore(name);
+      const rows = incoming[name] || [];
+      const keep = new Set(rows.map((r) => r.id));
+      const keys = os.getAllKeys();
+      keys.onsuccess = () => {
+        for (const id of keys.result) if (!keep.has(id)) deletions.put({ id: `${name}:${id}`, store: name, recordId: id, deletedAt: now });
+        os.clear();
+        for (const r of rows) os.put({ ...r, updatedAt: now });
+      };
+    }
+  });
+  readCache.clear();
+  damaged.clear();
+  for (const name of stores) notifyChanged(name);
 }

@@ -1,7 +1,7 @@
-import { getAll, remove, setSetting, getSetting } from '../db.js';
+import { getAll, remove, setSetting, getSetting, damagedRecords, removeDamaged } from '../db.js';
 import { icon } from '../icons.js';
 import { isDemo } from '../demo-flag.js';
-import { exportEncrypted, decryptBackup, restoreBackup } from '../backup.js';
+import { exportEncrypted, decryptBackup, restoreBackup, undoInfo, undoRestore } from '../backup.js';
 import { formatDateNice } from '../format.js';
 import { remindersEnabled, reminderDaysBefore, permissionState, enableReminders, disableReminders, refreshSchedule } from '../reminders.js';
 import { buildDiagnosticReport } from '../diagnostics.js';
@@ -23,6 +23,9 @@ import { backupStatus, backupPassphrase, setBackupPassphrase, markFileBackup, si
 import { escapeHtml } from '../ui.js';
 import { getRecord, bioAvailable, enableLock, disableLock, setFingerprint, setAway, confirmPin, newRecoveryKey, AWAY } from '../lock.js';
 import { showSecret } from '../secret-sheet.js';
+
+// Loaded each time the screen is drawn: the copy kept before the last restore, if any (js/backup.js).
+let undoCopy = null;
 
 // Kept while this screen is open, so a redraw doesn't lose them: the Drive
 // backups found for a restore, whether Restore is open, and whether the
@@ -46,9 +49,23 @@ export async function render(container, params = {}) {
   const kept = await dataIsKept();
   const backup = await backupStatus();
   const profile = await moneyProfile();
+  undoCopy = await undoInfo();
+  // Records that cannot be read are left out of every screen; looking at all four lists makes sure this
+  // count is up to date, and says where they are.
+  await Promise.all(['transactions', 'accounts', 'recurring', 'categories'].map((store) => getAll(store)));
+  const damaged = damagedRecords();
 
   container.innerHTML = `
     ${moneyCard(profile)}
+    ${
+      damaged.length
+        ? `<div class="totals-card warn-card" id="damaged-card">
+      <div class="totals-row"><span><strong>${icon('alert')} ${damaged.length} ${damaged.length === 1 ? 'record' : 'records'} could not be read</strong></span></div>
+      <p class="muted-note">${damaged.length === 1 ? 'It is' : 'They are'} left out of every screen so nothing else breaks. A backup still has ${damaged.length === 1 ? 'it' : 'them'}. Removing ${damaged.length === 1 ? 'it' : 'them'} cannot be undone.</p>
+      <button type="button" class="btn-secondary btn-block" id="damaged-remove">Remove ${damaged.length === 1 ? 'it' : 'them'}</button>
+    </div>`
+        : ''
+    }
     <div class="totals-card data-safety ${safety.ok ? '' : 'warn-card'}">
       <div class="totals-row"><span><strong>${safety.ok ? `${icon('check')} Your data is safe` : `${icon('alert')} Your data is only on this phone`}</strong></span></div>
       <div class="totals-row"><span class="muted">Sync</span><span>${safety.syncText}</span></div>
@@ -624,6 +641,15 @@ function backupSection(backup) {
         ${icon(restoreOpen ? 'up' : 'forward')}
       </button>
       ${restoreOpen ? restorePanel() : ''}
+      ${
+        undoCopy
+          ? `<button type="button" class="backup-row backup-row-btn" id="undo-restore">
+        ${icon('restore')}
+        <span>Undo the last restore<br><span class="muted-note">Back to how it was on ${formatDateNice(isoLocal(new Date(undoCopy.at)))}, ${undoCopy.counts.transactions} payments</span></span>
+        ${icon('forward')}
+      </button>`
+          : ''
+      }
       <p id="backup-status" class="status" hidden></p>
     </div>
     ${setUp ? '<p class="muted-note backup-foot">Passphrase set · <button type="button" class="link-btn" id="backup-pass-show">Show</button> · <button type="button" class="link-btn" id="backup-pass-change">Change</button></p>' : ''}
@@ -790,6 +816,35 @@ function wireBackup(container, params) {
       orSignIn(err, 'restore');
     }
   };
+  const undoBtn = container.querySelector('#undo-restore');
+  if (undoBtn) {
+    undoBtn.addEventListener('click', async () => {
+      const ok = await askConfirm({
+        title: 'Undo the last restore?',
+        message: `Everything goes back to how it was on ${formatDateNice(isoLocal(new Date(undoCopy.at)))}. What the restore brought in is replaced.`,
+        confirmLabel: 'Undo it',
+      });
+      if (!ok) return;
+      try {
+        await undoRestore();
+        showToast('Back to how it was');
+        setTimeout(() => location.replace(location.pathname), 800);
+      } catch (err) {
+        showStatus(statusEl, `Couldn't undo: ${err.message}`, true);
+      }
+    });
+  }
+  const removeBtn = container.querySelector('#damaged-remove');
+  if (removeBtn) {
+    removeBtn.addEventListener('click', async () => {
+      const n = damagedRecords().length;
+      const ok = await askConfirm({ title: `Remove ${n} unreadable ${n === 1 ? 'record' : 'records'}?`, message: 'They are not shown anywhere now. This cannot be undone.', confirmLabel: 'Remove', danger: true });
+      if (!ok) return;
+      await removeDamaged();
+      showToast('Removed');
+      again();
+    });
+  }
   if (restoreOpen) {
     container.querySelector('#drive-restore-btn').addEventListener('click', loadList);
     container.querySelector('#restore-btn').addEventListener('click', async () => {
@@ -808,12 +863,12 @@ function wireBackup(container, params) {
           danger: true,
         });
         if (!ok) return showStatus(statusEl, 'Restore cancelled.', false);
-        await restoreBackup(data);
+        const { skipped } = await restoreBackup(data);
         // The passphrase that opened it is the one for future backups too.
         await setBackupPassphrase(passphrase);
         driveList = null;
         restoreOpen = false;
-        showToast(`Restored ${counts.transactions} transactions`);
+        showToast(skipped.length ? `Restored ${counts.transactions - skipped.filter((x) => x.store === 'transactions').length} payments. ${skipped.length} damaged ${skipped.length === 1 ? 'record was' : 'records were'} left out.` : `Restored ${counts.transactions} payments. You can undo this for two weeks.`, { ms: 6000 });
         setTimeout(() => location.replace(location.pathname), 800);
       } catch (err) {
         orSignIn(err, 'restore');
@@ -866,6 +921,14 @@ async function saveWhereYouChoose(made) {
 // The usual way is Google: same account and passphrase on each device.
 // GitHub stays for those already syncing through it, folded away.
 
+// Sync keeps whichever copy is newer by the phone's clock, so a clock that is minutes out can keep the wrong one.
+function clockNote(sync) {
+  const off = Number(sync.clockSkewMs);
+  if (!Number.isFinite(off) || Math.abs(off) < 120000) return '';
+  const minutes = Math.round(Math.abs(off) / 60000);
+  return `<p class="muted-note warn-note">This phone's clock is about ${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ${off < 0 ? 'fast' : 'slow'}. Sync keeps the newer copy by the clock, so set the date and time to automatic in your phone's settings.</p>`;
+}
+
 function syncSection(sync, syncPass, backup) {
   if (sync.provider === 'google') {
     return `
@@ -876,6 +939,7 @@ function syncSection(sync, syncPass, backup) {
           <span>${sync.lastSync ? 'Synced' : 'Not synced yet'}<br><span class="muted-note">${[sync.lastSync ? timeAgo(sync.lastSync) : '', backup.email ? escapeHtml(backup.email) : ''].filter(Boolean).join(' · ') || 'Google Drive'}</span></span>
           <button type="button" class="btn-tiny primary" id="sync-now">Sync now</button>
         </div>
+        ${clockNote(sync)}
         <p id="sync-status" class="status" hidden></p>
       </div>
       <p class="muted-note backup-foot"><button type="button" class="link-btn" id="sync-off">Turn off sync</button></p>`;

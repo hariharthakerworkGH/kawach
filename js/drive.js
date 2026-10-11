@@ -25,13 +25,38 @@ import { exportEncrypted, decryptBackup } from './backup.js';
 const CLIENT_ID = '319741505837-p59f9beph0rt2m8ke1o7mcgi068mdl8j.apps.googleusercontent.com';
 const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 const API = 'https://www.googleapis.com';
-// A few recent backups are kept, so one saved over a mistake isn't the only
-// copy; older ones are removed.
+// The newest few backups are kept, and so is the newest of each of the last six months: one saved over a
+// mistake (a wiped phone backed up empty) must never push out the good ones before it. The rest are removed.
 const KEEP = 5;
+const KEEP_MONTHS = 6;
 const BACKUP_PREFIX = 'kawach-backup-';
 export const SYNC_FILE = 'kawach-sync.json';
 
 const PASS_KEY = 'kawach-google-pass';
+
+// What time Google (or GitHub) says it is, set when sync writes. The gap to this phone's clock is kept, because
+// sync picks the newer copy by clock: a phone whose clock is minutes out can pick the wrong one (js/sync.js).
+let skewMs = null;
+export function noteServerTime(iso) {
+  const at = Date.parse(iso);
+  if (Number.isFinite(at)) skewMs = at - Date.now();
+}
+export const clockSkew = () => skewMs;
+
+/* Which backups to delete: all but the newest KEEP and the newest of each of the last KEEP_MONTHS months.
+ * `files` are newest first, each with a name or modifiedTime that starts with its date. */
+export function backupsToDelete(files) {
+  const keep = new Set(files.slice(0, KEEP).map((f) => f.id));
+  const months = new Set();
+  for (const f of files) {
+    const month = String(f.modifiedTime || f.name.slice(BACKUP_PREFIX.length)).slice(0, 7);
+    if (!months.has(month) && months.size < KEEP_MONTHS) {
+      months.add(month);
+      keep.add(f.id);
+    }
+  }
+  return files.filter((f) => !keep.has(f.id));
+}
 const PENDING_KEY = 'kawach-drive-pending';
 
 async function meta(key) {
@@ -164,7 +189,7 @@ async function call(path, options = {}) {
 // the start of the name.
 async function findFiles({ name, prefix }) {
   const q = name ? `name = '${name}'` : `name contains '${prefix}'`;
-  const params = new URLSearchParams({ spaces: 'appDataFolder', q, fields: 'files(id,name,modifiedTime,size)', orderBy: 'modifiedTime desc', pageSize: '20' });
+  const params = new URLSearchParams({ spaces: 'appDataFolder', q, fields: 'files(id,name,modifiedTime,size)', orderBy: 'modifiedTime desc', pageSize: '50' });
   const res = await call(`/drive/v3/files?${params}`);
   return (await res.json()).files || [];
 }
@@ -182,12 +207,14 @@ async function createFile(name, text) {
     text,
     `--${boundary}--`,
   ].join('\r\n');
-  const res = await call('/upload/drive/v3/files?uploadType=multipart&fields=id', {
+  const res = await call('/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime', {
     method: 'POST',
     headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
     body,
   });
-  return (await res.json()).id;
+  const made = await res.json();
+  noteServerTime(made.modifiedTime);
+  return made.id;
 }
 
 async function readFile(id) {
@@ -211,9 +238,9 @@ export async function backUpToDrive() {
   const { envelope, counts } = await exportEncrypted(passphrase);
   const name = `${BACKUP_PREFIX}${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`;
   await createFile(name, JSON.stringify(envelope));
-  // Tidy up: only the newest few are kept.
+  // Tidy up: the newest few and one a month are kept (backupsToDelete).
   const all = await listBackups();
-  for (const old of all.slice(KEEP)) {
+  for (const old of backupsToDelete(all)) {
     await call(`/drive/v3/files/${old.id}`, { method: 'DELETE' }).catch(() => {});
   }
   await setMeta('driveLastBackupAt', Date.now());
@@ -236,10 +263,15 @@ export async function readSyncFile() {
 
 export async function writeSyncFile(id, text) {
   if (!id) return createFile(SYNC_FILE, text);
-  await call(`/upload/drive/v3/files/${encodeURIComponent(id)}?uploadType=media`, {
+  const res = await call(`/upload/drive/v3/files/${encodeURIComponent(id)}?uploadType=media&fields=id,modifiedTime`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: text,
   });
+  try {
+    noteServerTime((await res.json()).modifiedTime);
+  } catch {
+    // no time given: the clock check simply has nothing to go on
+  }
   return id;
 }

@@ -5464,3 +5464,8 @@ label.look-style { position: relative; cursor: pointer; }
 .k .ca-actions { display: flex; gap: var(--k-3); flex-wrap: wrap; }
 .k .ca-actions .k-btn { flex: 1; gap: 8px; }
 .k .ca-actions svg { width: 16px; height: 16px; }
+
+/* --- Safety (5.43.1): the card for a screen that could not be drawn, and a clock note ------------------ */
+.broken-more { display: flex; gap: var(--space-xs); justify-content: center; flex-wrap: wrap; margin-top: var(--space-sm); }
+.broken-more .btn-secondary { min-height: 44px; }
+.warn-note { color: var(--warn); }

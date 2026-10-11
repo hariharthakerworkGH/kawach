@@ -1,4 +1,5 @@
-import { getAll, put, remove } from './db.js';
+import { getAllRaw, replaceAll } from './db.js';
+import { tidyRecord, problemWith } from './records.js';
 
 // `settings` carries your income, budgets and reminder preferences - a restore
 // that dropped them would look like the app had forgotten how you set it up.
@@ -14,7 +15,8 @@ const PBKDF2_ITERATIONS = 210000;
 export async function exportEncrypted(passphrase) {
   const data = {};
   for (const store of STORES) {
-    data[store] = await getAll(store);
+    // As stored, damaged records included: a backup must carry everything, so nothing is lost for good.
+    data[store] = await getAllRaw(store);
   }
 
   return {
@@ -104,24 +106,89 @@ async function parseEnvelopeRaw(fileText, passphrase) {
   return { payload: JSON.parse(new TextDecoder().decode(plaintext)), createdAt: envelope.createdAt };
 }
 
-// Replaces everything. The caller is responsible for confirming with the user
-// first - there is no undo beyond restoring another backup.
-export async function restoreBackup(data) {
+/* What a restore would do with this backup, before anything is touched: the usable records per store and
+ * how many were skipped (damaged, with why). */
+export function screenBackup(data) {
+  const usable = {};
+  const skipped = [];
   for (const store of STORES) {
-    const existing = await getAll(store);
-    const incoming = new Set((data[store] || []).map((r) => r.id));
-    for (const record of existing) {
-      // Clearing a record that the backup is about to put straight back must
-      // not leave a tombstone behind - on the next sync that tombstone could
-      // out-rank the restored record and delete it again on every device.
-      await remove(store, record.id, { tombstone: !incoming.has(record.id) });
-    }
-    for (const record of data[store] || []) {
-      // Stamped as of now: restoring is you asserting that this is the truth,
-      // so it should win against whatever the other device is holding.
-      await put(store, record);
+    usable[store] = [];
+    for (const record of Array.isArray(data[store]) ? data[store] : []) {
+      tidyRecord(store, record);
+      const why = problemWith(store, record);
+      if (why) skipped.push({ store, id: record && record.id, why });
+      else usable[store].push(record);
     }
   }
+  return { usable, skipped };
+}
+
+// Replaces everything, all at once or not at all (one transaction, js/db.js), after keeping a copy of what
+// is on the phone now so the restore can be undone (undoRestore). The caller confirms with the person first.
+// Records in the backup that cannot be used are left out and counted in `skipped`.
+export async function restoreBackup(data) {
+  const { usable, skipped } = screenBackup(data);
+  // The copy comes first. If it cannot be kept, nothing is changed.
+  try {
+    await saveUndoCopy();
+  } catch {
+    throw new Error("Couldn't keep a copy of what is on this phone now, so nothing was changed. Free some space and try again.");
+  }
+  await replaceAll(usable, STORES);
+  return { skipped };
+}
+
+/* --- The way back (5.43.1) ----------------------------------------------------
+ * The copy made just before a restore lives in a small database of its own on this phone, never synced and
+ * never put in a backup, and goes after two weeks. Settings offers "Undo the last restore" while it exists. */
+const UNDO_DB = `${globalThis.EXPENSE_TRACKER_DB_NAME || 'expense-tracker'}-undo`;
+const UNDO_DAYS = 14;
+
+function undoStore(mode) {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open(UNDO_DB, 1);
+    open.onupgradeneeded = () => open.result.createObjectStore('copy', { keyPath: 'id' });
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const db = open.result;
+      const tx = db.transaction('copy', mode);
+      tx.oncomplete = () => db.close();
+      resolve(tx.objectStore('copy'));
+    };
+  });
+}
+const done = (req) => new Promise((resolve, reject) => {
+  req.onsuccess = () => resolve(req.result);
+  req.onerror = () => reject(req.error);
+});
+
+export async function saveUndoCopy() {
+  const data = {};
+  for (const store of STORES) data[store] = await getAllRaw(store);
+  const os = await undoStore('readwrite');
+  await done(os.put({ id: 'last', at: Date.now(), data, counts: Object.fromEntries(STORES.map((s) => [s, data[s].length])) }));
+}
+
+/* { at, counts } while a copy is kept, else null. */
+export async function undoInfo(now = Date.now()) {
+  try {
+    const row = await done((await undoStore('readonly')).get('last'));
+    if (!row) return null;
+    if (now - row.at > UNDO_DAYS * 86400000) {
+      await done((await undoStore('readwrite')).delete('last'));
+      return null;
+    }
+    return { at: row.at, counts: row.counts };
+  } catch {
+    return null;
+  }
+}
+
+export async function undoRestore() {
+  const row = await done((await undoStore('readonly')).get('last'));
+  if (!row) throw new Error('There is no restore to undo.');
+  await replaceAll(row.data, STORES);
+  await done((await undoStore('readwrite')).delete('last'));
 }
 
 async function deriveKey(passphrase, salt, iterations = PBKDF2_ITERATIONS) {
