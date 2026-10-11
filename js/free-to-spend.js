@@ -10,6 +10,8 @@ import { businessPlan, businessMonth } from './business.js';
 import { reimbursableTally, unsettledCosts } from './reimbursable.js';
 import { isPersonMoney, personSpendEffects, peopleStanding } from './people.js';
 import { refundPairs } from './card-refunds.js';
+import { formatRupees } from './format.js';
+import { DAY_MS, MIN_DAYS_FOR_PACE, addDays, dateOf, daysBetweenInclusive, trackCommitments, spendSeries } from './free-to-spend-parts.js';
 
 // THE RULE - how much you can spend this month (the 1st to the last day).
 //
@@ -82,21 +84,10 @@ import { refundPairs } from './card-refunds.js';
 //
 // Every line is returned so the screen can show the sum, not just its answer.
 
-const DAY_MS = 86400000;
 const SALARY_EARLY_DAYS = 7;
 const SALARY_LATE_DAYS = 5;
 // Saved each month (stored as "keepInBank"), unless changed on Plan: ₹10,000.
 export const DEFAULT_KEEP_IN_BANK = 1000000;
-
-function addDays(iso, delta) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return isoLocal(new Date(y, m - 1, d + delta));
-}
-
-function dateOf(iso) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
 
 // The latest payday on or before `iso`, with the day clamped to short months.
 function paydayOnOrBefore(dayOfMonth, iso) {
@@ -149,12 +140,6 @@ function paidBack(debits, transactions, today) {
     pairs.push({ sent: d, back });
   }
   return pairs;
-}
-
-function daysBetweenInclusive(fromIso, toIso) {
-  const [fy, fm, fd] = fromIso.split('-').map(Number);
-  const [ty, tm, td] = toIso.split('-').map(Number);
-  return Math.round((new Date(ty, tm - 1, td) - new Date(fy, fm - 1, fd)) / DAY_MS) + 1;
 }
 
 export async function computeFreeToSpend(now = new Date()) {
@@ -872,15 +857,7 @@ export async function computeFreeToSpend(now = new Date()) {
   const otherDay = new Map();
   for (const o of outside.values()) if (o.date >= windowStart && o.date <= today) otherDay.set(o.date, (otherDay.get(o.date) || 0) + o.amount);
   const undated = spentThisCycle - datedSpends.reduce((s, e) => s + e.amount, 0);
-  const spendDays = [];
-  const spendByDay = [];
-  let running = undated;
-  for (let i = 0; i < daysBetweenInclusive(windowStart, today); i += 1) {
-    const on = addDays(windowStart, i);
-    running += perDay.get(on) || 0;
-    spendDays.push(running);
-    spendByDay.push({ date: on, amount: Math.max(0, perDay.get(on) || 0), other: otherDay.get(on) || 0 });
-  }
+  const { spendDays, spendByDay } = spendSeries({ undated, perDay, otherDay, windowStart, today });
   const free = limit == null || noCommitments ? null : limit - spentThisCycle;
   if (monthlyIncome && noCommitments) notes.push('Add your fixed commitments on Plan - without them your whole income looks free.');
 
@@ -925,49 +902,7 @@ export async function computeFreeToSpend(now = new Date()) {
   // Paid in one go (EMI, rent): paid or still due. Spread through the cycle
   // (Tiffin, Rapido, ATM cash): how much of it is used, and whether the pace
   // so far takes it over the planned amount by the statement day.
-  const tracker = budgetItems.map((b) => {
-    const variable = Boolean(b.item.spread) || frequencyOf(b.item) !== 'monthly';
-    const p = periodOf(b.item);
-    const daysInto = Math.max(1, daysBetweenInclusive(p.start, today));
-    const length = Math.max(daysInto, daysBetweenInclusive(p.start, p.end));
-    const row = {
-      id: b.item.id,
-      label: b.label,
-      amount: b.amount,
-      paidBy: b.paidBy,
-      used: b.used,
-      matches: b.matches || [],
-      // Payments you took off it with "Not this", so they can be put back.
-      notThis: b.notThis || [],
-      // Where you placed it in the list on Plan.
-      order: b.item.sortOrder ?? null,
-      tracked: b.tracked,
-      variable,
-      // Money kept back rather than owed. It has no day, so it is never
-      // late, and whatever is not spent of it is still there.
-      setAside: isSetAside(b.item),
-      left: b.amount - b.used,
-      marked: markedPaid(b.item),
-      // A loan's EMI is set up on the loan account, not on Plan.
-      kind: b.item.source === 'loan' ? 'loan' : 'fixed',
-      // Mark paid and Skip are saved against this key.
-      cycleKey: p.key,
-      periodStart: p.start,
-      period: p.kind === 'card' ? 'cycle' : 'month',
-    };
-    if (b.used > b.amount * 1.02) return { ...row, status: 'over', over: b.used - b.amount };
-    if (row.marked) return { ...row, status: 'paid' };
-    if (!b.tracked) return { ...row, status: 'untracked' };
-    if (!variable) {
-      if (b.used >= b.amount * 0.9) return { ...row, status: 'paid' };
-      const due = nextOccurrence(b.item.dayOfMonth, dateOf(p.start));
-      if (b.used > 0) return { ...row, status: 'part', due };
-      return { ...row, status: due < today ? 'late' : 'due', due };
-    }
-    const projected = Math.round((b.used / daysInto) * length);
-    if (daysInto >= MIN_DAYS_FOR_PACE && projected > b.amount * 1.02) return { ...row, status: 'heading-over', projected };
-    return { ...row, status: 'ok', projected };
-  });
+  const tracker = trackCommitments(budgetItems, { periodOf, today, markedPaid });
   // --- Why a commitment found nothing ------------------------------------
   // "₹0 used" on its own leaves you guessing. Look for the words (or amount)
   // everywhere, and say what stood in the way.
@@ -1174,10 +1109,6 @@ function commitmentForMonth(item, from, to, bankEntries, today) {
   return { amount, detail: dues.length ? `due ${dues.join(', ')}` : '' };
 }
 
-function formatRupees(minor) {
-  return `₹${Math.round(minor / 100).toLocaleString('en-IN')}`;
-}
-
 function formatShort(iso) {
   return dateOf(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
@@ -1185,7 +1116,6 @@ function formatShort(iso) {
 // Warn at three quarters of the limit, and call it critical at 90%.
 const WARNING_SHARE = 0.75;
 const CRITICAL_SHARE = 0.9;
-const MIN_DAYS_FOR_PACE = 5;
 // An account with nothing new for more than a week gets a "data is old" warning.
 // Estimated (not imported) bills below ₹10 are ignored.
 const MIN_ESTIMATED_BILL = 1000;

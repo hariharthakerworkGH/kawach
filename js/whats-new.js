@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.43.3',
+    items: [
+      {
+        icon: 'play',
+        title: "Quicker with years of payments",
+        text: "Opening Summary with tens of thousands of payments takes about a third of the time it did, and a sync only sends what changed. A budget set on one device now joins the ones set on the other. Behind the scenes, a delete and its record are saved together, and a failed save says so.",
+      },
+    ],
+  },
+  {
     version: '5.43.2',
     items: [
       {

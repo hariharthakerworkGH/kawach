@@ -61,7 +61,7 @@ export function startGuide(hooks = {}, from = null) {
   let movedFor = -1;
 
   // Any payment saved while a step waits for one counts, whichever way it was made.
-  onLocalChange((store) => {
+  const stopListening = onLocalChange((store) => {
     if (store === 'transactions') state.saved = true;
   });
   const onClick = (e) => {
@@ -153,6 +153,7 @@ export function startGuide(hooks = {}, from = null) {
   };
 
   const close = () => {
+    stopListening();
     clearInterval(timer);
     document.removeEventListener('click', onClick, true);
     window.removeEventListener('resize', place);

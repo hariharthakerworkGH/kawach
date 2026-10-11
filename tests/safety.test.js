@@ -284,3 +284,158 @@ test('lighter: sync sends only when this phone has something new, and what it br
     drive.done();
   }
 });
+
+/* --- speed that must not change an answer (5.43.3) ------------------------------------------------- */
+import { detectAnomalies } from '../js/anomalies.js';
+import { significantTokens } from '../js/merchant-rules.js';
+
+test('speed: the unusual-spend check gives the same answers as the plain, slow way of working it out', async () => {
+  await seedBasics();
+  let seed = 99;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const shops = ['SWIGGY ORDER', 'AMAZON PAY INDIA', 'FUEL PUMP MUMBAI', 'GROCERY MART', 'PHARMACY HEALTH', 'CAFE COFFEE DAY', 'METRO CARD RECHARGE', 'ONLINE BOOKS STORE'];
+  const rows = [];
+  for (let i = 0; i < 500; i++) {
+    const day = 1 + Math.floor(rnd() * 28);
+    const amount = rnd() < 0.05 ? 400000 + Math.floor(rnd() * 900000) : 20000 + Math.floor(rnd() * 90000);
+    rows.push(txn({ accountId: 'bank', date: `2026-0${1 + Math.floor(rnd() * 9)}-${String(day).padStart(2, '0')}`, amount: amount / 100, rawDescription: shops[Math.floor(rnd() * shops.length)] + ' ' + Math.floor(rnd() * 3), isTransfer: false }));
+  }
+  rows.push(txn({ accountId: 'bank', date: '2026-09-20', amount: 5000, rawDescription: 'BRAND NEW JEWELLER' }));
+  await putAll('transactions', rows);
+  const since = '2026-09-01';
+  const key = (d) => significantTokens(d).slice(0, 3).join(' ');
+  const debits = (await getAll('transactions')).filter((t) => t.direction === 'debit' && !t.isTransfer);
+  const expected = [];
+  for (const t of debits.filter((x) => x.date >= since)) {
+    const history = debits.filter((h) => key(h.rawDescription) === key(t.rawDescription) && key(t.rawDescription) && h.id !== t.id && h.date < t.date);
+    if (history.length >= 2) {
+      const avg = history.reduce((s, h) => s + h.amount, 0) / history.length;
+      const sd = Math.sqrt(history.reduce((s, h) => s + (h.amount - avg) ** 2, 0) / history.length);
+      if (t.amount > Math.max(avg + 2 * sd, avg * 1.5)) expected.push(t.id + ':unusual');
+    } else if (history.length === 0 && t.amount >= 100000) expected.push(t.id + ':new-merchant');
+  }
+  const got = (await detectAnomalies(since)).map((f) => f.transaction.id + ':' + f.reason);
+  equal(got.sort(), expected.sort());
+  ok(expected.length > 0, 'the test has something to find');
+});
+
+test('speed: opening Summary with twenty-five thousand payments takes under a second of work', async () => {
+  await seedBasics();
+  const rows = Array.from({ length: 25000 }, (_, i) => txn({ accountId: i % 2 ? 'bank' : 'card', date: `2026-0${1 + (i % 9)}-${String(1 + (i % 27)).padStart(2, '0')}`, amount: 50 + (i % 900), rawDescription: `SHOP ${i % 300} PAYMENT` }));
+  await putAll('transactions', rows);
+  const t0 = performance.now();
+  await computeFreeToSpend(day('2026-09-16'));
+  await detectAnomalies('2026-09-01');
+  const ms = performance.now() - t0;
+  ok(ms < 1500, `took ${Math.round(ms)} ms`);
+});
+
+/* --- the parts that had no test (5.43.3): the Coach's answers, the escaping, the account kinds ------------- */
+import { affordability, savingsPlan, whereToCut } from '../js/planner.js';
+import { escapeHtml, escapeAttr } from '../js/ui.js';
+import { isEverydayBank, isPutAway } from '../js/account-metrics.js';
+
+const snapshotOf = (over = {}) => ({
+  now: new Date(2026, 9, 11),
+  leftToSpend: 2000000,
+  perDayAllowance: 100000,
+  daysLeft: 10,
+  runRate: 150000,
+  free: 3000000,
+  fixedCategoryIds: new Set(['rent']),
+  spentMap: new Map(),
+  daysInMonth: 31,
+  categoryName: (id) => ({ food: 'Food', shop: 'Shopping', fun: 'Fun', rent: 'Rent', uncategorized: 'Uncategorized' }[id] || id),
+  categoryAverages: { averages: new Map([['food', 1000000]]) },
+  ...over,
+});
+
+test('coach: can I afford this? fits, does not fit, and fits but leaves little', () => {
+  const s = snapshotOf();
+  const fits = affordability(s, 500000);
+  equal([fits.known, fits.canAfford, fits.after, fits.daysOfAllowance, fits.newPerDay, fits.tight], [true, true, 1500000, 5, 150000, false]);
+  const tight = affordability(s, 1800000);
+  equal([tight.canAfford, tight.after, tight.newPerDay, tight.tight], [true, 200000, 20000, true]);
+  const no = affordability(s, 2500000);
+  equal([no.canAfford, no.after], [false, -500000]);
+  equal(affordability(snapshotOf({ leftToSpend: null }), 100), { known: false, reason: 'no-income' });
+});
+
+test('coach: saving for something works out the monthly amount, says if it fits, and where to cut if not', () => {
+  const s = snapshotOf();
+  const easy = savingsPlan(s, 6000000, '2027-04-11');
+  equal([easy.valid, easy.monthsLeft, easy.requiredPerMonth, easy.typicalSpare, easy.feasible, easy.shortfall, easy.cuts], [true, 6, 1000000, 2000000, true, 0, []]);
+  const hard = savingsPlan(s, 24000000, '2027-04-11');
+  equal([hard.requiredPerMonth, hard.feasible, hard.shortfall], [4000000, false, 2000000]);
+  equal(hard.cuts.map((c) => [c.categoryId, c.cut]), [['food', 333333]], 'a third of a category at most');
+  equal(savingsPlan(s, 1000, '2026-01-01'), { valid: false, reason: 'past' });
+  equal(savingsPlan(snapshotOf({ free: null }), 6000000, '2027-04-11').known, false);
+  // rounded up to a whole rupee a month: 10,000 rupees over 6 months is 1,666.67, so 1,667
+  equal(savingsPlan(s, 1000000, '2027-04-11').requiredPerMonth, 166700);
+});
+
+test('coach: where to cut leaves rent, fixed costs and the unsorted alone, and never asks for more than a third', () => {
+  const s = snapshotOf({
+    fixedCategoryIds: new Set(['fixedcat']),
+    categoryAverages: { averages: new Map([['food', 3000000], ['shop', 2000000], ['fun', 1000000], ['rent', 5000000], ['uncategorized', 4000000], ['fixedcat', 3500000]]) },
+  });
+  const cuts = whereToCut(s, 1500000);
+  equal(cuts.map((c) => [c.categoryId, c.cut, c.newTarget, c.pct]), [['food', 750000, 2250000, 25], ['shop', 500000, 1500000, 25], ['fun', 250000, 750000, 25]]);
+  const most = whereToCut(s, 6000000);
+  equal(most.map((c) => c.cut), [1000000, 666667, 333333], 'each capped at a third of what it usually is');
+  equal(whereToCut(snapshotOf({ categoryAverages: { averages: new Map([['rent', 100]]) } }), 1000), []);
+});
+
+test('escaping: what is typed cannot become part of a page', () => {
+  equal(escapeHtml('<img src=x onerror="a()"> & \'q\''), '&lt;img src=x onerror=&quot;a()&quot;&gt; &amp; &#39;q&#39;');
+  ok(!/[<>"]/.test(escapeAttr('"><script>')), 'an attribute value cannot close its quote');
+  equal(escapeHtml(null), '');
+});
+
+test('accounts: only a bank you spend from counts as spending; a savings account or a bank turned off does not', () => {
+  ok(isEverydayBank({ type: 'bank' }) && isEverydayBank({ type: 'bank', spending: true }));
+  ok(!isEverydayBank({ type: 'bank', spending: false }) && !isEverydayBank({ type: 'card' }) && !isEverydayBank({ type: 'savings' }));
+  ok(isPutAway({ type: 'savings' }) && isPutAway({ type: 'bank', spending: false }) && !isPutAway({ type: 'bank' }));
+});
+
+test('safety sync: a budget set for one category on each device is kept, and one removed stays removed', () => {
+  const budgets = (value, at) => ({ id: 'budgets', value, updatedAt: at });
+  const m = mergeSnapshots(snap([budgets({ food: 500000 }, 100)]), snap([budgets({ fuel: 300000 }, 200)]), { now: 1000 });
+  equal(m.data.settings[0].value, { food: 500000, fuel: 300000 });
+  const base = { budgets: { food: 500000, fuel: 300000 } };
+  const removed = mergeSnapshots(snap([budgets({ food: 500000 }, 300)]), snap([budgets({ food: 500000, fuel: 300000 }, 200)]), { base, now: 1000 });
+  equal(removed.data.settings[0].value, { food: 500000 }, 'fuel was removed here and stays removed');
+  const both = mergeSnapshots(snap([budgets({ food: 100 }, 100)]), snap([budgets({ food: 900 }, 200)]), { now: 1000 });
+  equal(both.data.settings[0].value, { food: 900 }, 'the newer side wins for the same category');
+});
+
+/* --- the pieces taken out of the money calculation (5.43.3) --------------------------------------------- */
+import { trackCommitments, spendSeries, addDays, daysBetweenInclusive } from '../js/free-to-spend-parts.js';
+
+test('money parts: day arithmetic crosses months, years and a leap day', () => {
+  equal([addDays('2028-02-28', 1), addDays('2026-12-31', 1), addDays('2026-03-01', -1), addDays('2026-10-11', 0)], ['2028-02-29', '2027-01-01', '2026-02-28', '2026-10-11']);
+  equal([daysBetweenInclusive('2026-10-01', '2026-10-01'), daysBetweenInclusive('2026-10-01', '2026-10-31'), daysBetweenInclusive('2028-02-01', '2028-03-01')], [1, 31, 30]);
+});
+
+test('money parts: a fixed cost reads due, late, part, paid or over; a spread one reads ok or heading over', () => {
+  const period = { kind: 'bank', start: '2026-10-01', end: '2026-10-31', key: '2026-10-31' };
+  const rent = (used, extra = {}) => ({ item: { id: 'rent', dayOfMonth: 5, frequency: 'monthly' }, label: 'Rent', amount: 2500000, paidBy: 'bank', used, tracked: true, matches: [], notThis: [], ...extra });
+  const status = (b, today, marked = false) => trackCommitments([b], { periodOf: () => period, today, markedPaid: () => marked })[0].status;
+  equal(status(rent(0), '2026-10-03'), 'due');
+  equal(status(rent(0), '2026-10-11'), 'late');
+  equal(status(rent(1000000), '2026-10-11'), 'part');
+  equal(status(rent(2500000), '2026-10-11'), 'paid');
+  equal(status(rent(0), '2026-10-11', true), 'paid', 'marked paid');
+  equal(status(rent(3000000), '2026-10-11'), 'over');
+  equal(status(rent(0, { tracked: false }), '2026-10-11'), 'untracked');
+  const tiffin = (used) => ({ item: { id: 'tf', spread: true, frequency: 'monthly' }, label: 'Tiffin', amount: 2000000, paidBy: 'bank', used, tracked: true, matches: [], notThis: [] });
+  equal(status(tiffin(1000000), '2026-10-11'), 'heading-over', 'half gone by the 11th will pass the plan');
+  equal(status(tiffin(1000000), '2026-10-03'), 'ok', 'too early in the month to say');
+  equal(status(tiffin(300000), '2026-10-11'), 'ok');
+});
+
+test('money parts: the by-day series starts from what has no day and adds each day\'s spending', () => {
+  const { spendDays, spendByDay } = spendSeries({ undated: 500, perDay: new Map([['2026-10-02', 300]]), otherDay: new Map([['2026-10-03', 70]]), windowStart: '2026-10-01', today: '2026-10-03' });
+  equal(spendDays, [500, 800, 800]);
+  equal(spendByDay, [{ date: '2026-10-01', amount: 0, other: 0 }, { date: '2026-10-02', amount: 300, other: 0 }, { date: '2026-10-03', amount: 0, other: 70 }]);
+});

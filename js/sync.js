@@ -237,7 +237,22 @@ const stampOf = (record, now = Date.now()) => (typeof record.updatedAt === 'numb
  * (`base`): an item added on either side stays, an item removed on a side that had it is removed, and an item
  * on both takes the newer side's version. With no base (the first sync) nothing is removed. */
 export const LIST_SETTINGS = ['businesses', 'people', 'goals', 'dismissedAnomalies', 'remindersSent', 'spendingAlertsSent'];
+/* Settings that hold a map (a budget for each category). Merged key by key the same way: a budget set on either
+ * device stays, one removed on a device that had it stays removed, one set on both takes the newer side's. */
+export const MAP_SETTINGS = ['budgets'];
 const itemKey = (x) => (x && typeof x === 'object' ? x.id : x);
+const isMap = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+export function mergeMaps(base, mine, theirs, mineIsNewer) {
+  const had = new Set(Object.keys(base || {}));
+  const out = {};
+  for (const [k, v] of Object.entries(mine)) {
+    if (k in theirs) out[k] = mineIsNewer ? v : theirs[k];
+    else if (!had.has(k)) out[k] = v;
+  }
+  for (const [k, v] of Object.entries(theirs)) if (!(k in mine) && !had.has(k)) out[k] = v;
+  return out;
+}
 
 export function mergeLists(base, mine, theirs, mineIsNewer) {
   const had = new Set((Array.isArray(base) ? base : []).map(itemKey));
@@ -284,6 +299,13 @@ export function mergeSnapshots(local, remote, { base = {}, now = Date.now() } = 
           byId.set(incoming.id, { ...mine, value, updatedAt });
           if (!same(value, mine.value)) stats.updated++;
         }
+      } else if (store === 'settings' && MAP_SETTINGS.includes(incoming.id) && isMap(mine.value) && isMap(incoming.value)) {
+        const value = mergeMaps(base[incoming.id], mine.value, incoming.value, stamp(mine) >= stamp(incoming));
+        if (!same(value, mine.value) || !same(value, incoming.value)) {
+          const updatedAt = Math.max(stamp(mine), stamp(incoming)) + 1;
+          byId.set(incoming.id, { ...mine, value, updatedAt });
+          if (!same(value, mine.value)) stats.updated++;
+        }
       } else if (stamp(incoming) > stamp(mine)) {
         byId.set(incoming.id, taken(incoming));
         stats.updated++;
@@ -314,17 +336,17 @@ export function mergeSnapshots(local, remote, { base = {}, now = Date.now() } = 
 // What both sides agreed each list setting held at the last sync, kept on this device only (syncMeta).
 async function readBases() {
   const out = {};
-  for (const key of LIST_SETTINGS) {
+  for (const key of [...LIST_SETTINGS, ...MAP_SETTINGS]) {
     const v = await getMeta(`base:${key}`);
-    if (Array.isArray(v)) out[key] = v;
+    if (Array.isArray(v) || isMap(v)) out[key] = v;
   }
   return out;
 }
 
 async function writeBases(settings) {
-  for (const key of LIST_SETTINGS) {
+  for (const key of [...LIST_SETTINGS, ...MAP_SETTINGS]) {
     const row = (settings || []).find((r) => r.id === key);
-    if (row && Array.isArray(row.value)) await setMeta(`base:${key}`, row.value);
+    if (row && (Array.isArray(row.value) || isMap(row.value))) await setMeta(`base:${key}`, row.value);
   }
 }
 

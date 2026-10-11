@@ -5,7 +5,7 @@
 // counter, not the version people see). The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v215';
+const CACHE_NAME = 'expense-tracker-v216';
 
 const APP_SHELL = [
   './',
@@ -67,6 +67,7 @@ const APP_SHELL = [
   './js/alerts.js',
   './js/alert-inbox.js',
   './js/free-to-spend.js',
+  './js/free-to-spend-parts.js',
   './js/commitments.js',
   './js/duplicates.js',
   './js/loans.js',
@@ -256,7 +257,9 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match('./index.html'));
+        // A page that is not cached falls back to the app's own page; anything else (a script, a style) that cannot
+        // be had is an honest failure, not the home page handed over as if it were that file.
+        .catch(() => (event.request.mode === 'navigate' ? caches.match('./index.html') : Response.error()));
     })
   );
 });

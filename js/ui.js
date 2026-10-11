@@ -11,7 +11,8 @@
  * files; it lives here now so there is one copy to be right.
  */
 export function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+  // Nothing is "", not the word null on a screen.
+  return String(str ?? '').replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
 }
 
 export function escapeAttr(str) {

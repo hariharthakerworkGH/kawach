@@ -112,9 +112,13 @@ export async function applyLearnedCategories({ dryRun = false } = {}) {
 
   const incomeIds = await incomeCategoryIds();
   let changed = 0;
+  // The same wording comes back again and again (a shop, a bill): the answer for it is worked out once.
+  const memo = new Map();
   for (const t of transactions) {
     if (t.categoryId || t.isTransfer || t.personId || (Array.isArray(t.splits) && t.splits.length)) continue;
-    const categoryId = matchWithRules(t.rawDescription, rules, t.direction, incomeIds);
+    const memoKey = `${t.direction}|${t.rawDescription}`;
+    if (!memo.has(memoKey)) memo.set(memoKey, matchWithRules(t.rawDescription, rules, t.direction, incomeIds));
+    const categoryId = memo.get(memoKey);
     if (!categoryId) continue;
     changed++;
     if (dryRun) continue;

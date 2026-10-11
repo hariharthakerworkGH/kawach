@@ -12,6 +12,8 @@ let dbPromise = null;
 // attention list, upcoming bills, range breakdown); with a few years of
 // statements that is tens of thousands of records per tap.
 const readCache = new Map();
+// The same lists with damaged records taken out (js/records.js), worked out once per change instead of once per read.
+const screenCache = new Map();
 
 // Lets go of the connection, so a database can be deleted (the demo's, when it ends or starts over).
 export async function closeDB() {
@@ -23,12 +25,16 @@ export async function closeDB() {
   }
   dbPromise = null;
   readCache.clear();
+  screenCache.clear();
 }
 
 // Called after any write, so sync knows there is something to push.
-let changeListener = null;
+// Several things may listen (the sync trigger, the demo's guide). The old single slot let whichever came last
+// silently replace the others. Returns the way to stop listening.
+const changeListeners = new Set();
 export function onLocalChange(fn) {
-  changeListener = fn;
+  changeListeners.add(fn);
+  return () => changeListeners.delete(fn);
 }
 // Something on this phone changed since the last sync: the next sync must send it. Kept where a reload keeps it.
 export const DIRTY_KEY = 'kawach-sync-dirty';
@@ -44,12 +50,13 @@ function markDirty() {
 // it is not a change for the sync trigger or anything else watching for the person's own changes.
 function notifyChanged(storeName, fromSync = false) {
   readCache.delete(storeName);
+  screenCache.delete(storeName);
   if (fromSync) return;
   if (storeName !== 'syncMeta' && storeName !== 'alertInbox') markDirty();
   // Stores that never leave the device must not trigger an upload: sync
   // bookkeeping, and alerts that haven't been confirmed yet.
   if (storeName === 'syncMeta' || storeName === 'alertInbox') return;
-  if (changeListener) changeListener(storeName);
+  for (const fn of [...changeListeners]) fn(storeName);
 }
 
 // All six stores from the data model are created now, even though Phase 1
@@ -129,6 +136,14 @@ function reqToPromise(req) {
   });
 }
 
+// Resolves when the browser has really committed the transaction (or says why it could not).
+const committed = (tx) =>
+  new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onabort = () => reject(tx.error || new Error('The database could not save that.'));
+    tx.onerror = () => reject(tx.error);
+  });
+
 async function store(storeName, mode) {
   const db = await openDB();
   return db.transaction(storeName, mode).objectStore(storeName);
@@ -145,7 +160,9 @@ export async function put(storeName, value, { stamp = true, fromSync = false } =
   if (why) throw new BadRecordError(storeName, value && value.id, why);
   if (stamp) value.updatedAt = Date.now();
   const s = await store(storeName, 'readwrite');
-  await reqToPromise(s.put(value));
+  const saved = committed(s.transaction);
+  s.put(value);
+  await saved;
   notifyChanged(storeName, fromSync);
   return value;
 }
@@ -155,35 +172,53 @@ export async function get(storeName, id) {
   return reqToPromise(s.get(id));
 }
 
-/* Every record as stored, damaged ones included: for backups and sync, which must carry everything. */
-export async function getAllRaw(storeName) {
+/* The list as stored, held once and shared: nobody may change what this returns. */
+function rawShared(storeName) {
   if (!readCache.has(storeName)) {
     readCache.set(
       storeName,
       store(storeName, 'readonly').then((s) => reqToPromise(s.getAll()))
     );
   }
-  try {
-    // Each caller gets its own copy: screens attach working fields to records
-    // (and sometimes change them before saving), which must never leak into
-    // what the next screen reads.
-    return structuredClone(await readCache.get(storeName));
-  } catch (err) {
+  return readCache.get(storeName).catch((err) => {
     readCache.delete(storeName);
     throw err;
+  });
+}
+
+// Each caller gets its own copy: screens attach working fields to records (and sometimes change them before
+// saving), which must never leak into what the next screen reads. A record is flat apart from a few lists, so
+// it is copied flat and only what is nested is cloned: about ten times quicker than cloning every record whole,
+// which was the biggest cost of opening Summary with tens of thousands of payments.
+function copyRows(rows) {
+  const out = new Array(rows.length);
+  for (let i = 0; i < rows.length; i++) {
+    const copy = { ...rows[i] };
+    for (const key in copy) {
+      const value = copy[key];
+      if (value !== null && typeof value === 'object') copy[key] = structuredClone(value);
+    }
+    out[i] = copy;
   }
+  return out;
+}
+
+/* Every record as stored, damaged ones included: for backups and sync, which must carry everything. */
+export async function getAllRaw(storeName) {
+  return copyRows(await rawShared(storeName));
 }
 
 /* Records the screens may use. A damaged one is left out (never deleted here) and counted, so a single bad
  * record cannot blank Summary, History and Plan; Settings lists them and offers to remove them. */
 const damaged = new Map(); // store -> Map(id -> why)
 export async function getAll(storeName) {
-  const { good, bad } = screenRecords(storeName, await getAllRaw(storeName));
+  if (!screenCache.has(storeName)) screenCache.set(storeName, rawShared(storeName).then((rows) => screenRecords(storeName, rows)));
+  const { good, bad } = await screenCache.get(storeName);
   const before = damagedRecords().length;
   if (bad.length) damaged.set(storeName, new Map(bad.map((b) => [b.id, b.why])));
   else damaged.delete(storeName);
   if (damagedRecords().length !== before && typeof document !== 'undefined') document.dispatchEvent(new CustomEvent('records-damaged'));
-  return good;
+  return copyRows(good);
 }
 
 export function damagedRecords() {
@@ -201,17 +236,23 @@ export async function removeDamaged() {
 // For writes that bypass put/remove (the service worker, another tab).
 export function forgetCachedReads() {
   readCache.clear();
+  screenCache.clear();
 }
 
 export async function remove(storeName, id, { tombstone = true, fromSync = false } = {}) {
-  const s = await store(storeName, 'readwrite');
-  await reqToPromise(s.delete(id));
-  // Record that this was deleted here and when, so the next sync removes it on
-  // your other device instead of sending it back.
-  if (tombstone && storeName !== 'deletions' && storeName !== 'syncMeta') {
-    const d = await store('deletions', 'readwrite');
-    await reqToPromise(d.put({ id: `${storeName}:${id}`, store: storeName, recordId: id, deletedAt: Date.now() }));
+  const db = await openDB();
+  // Record that this was deleted here and when, so the next sync removes it on your other device instead of
+  // sending it back. Written in the same transaction as the delete: if the app is closed in between, either both
+  // happened or neither did (before, the record could be deleted here and come back from the other device).
+  const leaves = tombstone && storeName !== 'deletions' && storeName !== 'syncMeta';
+  const tx = db.transaction(leaves ? [storeName, 'deletions'] : [storeName], 'readwrite');
+  const saved = committed(tx);
+  tx.objectStore(storeName).delete(id);
+  if (leaves) tx.objectStore('deletions').put({ id: `${storeName}:${id}`, store: storeName, recordId: id, deletedAt: Date.now() });
+  await saved;
+  if (leaves) {
     readCache.delete('deletions');
+    screenCache.delete('deletions');
   }
   notifyChanged(storeName, fromSync);
 }
@@ -259,6 +300,7 @@ export async function replaceAll(incoming, stores) {
     }
   });
   readCache.clear();
+  screenCache.clear();
   damaged.clear();
   for (const name of stores) notifyChanged(name);
 }
