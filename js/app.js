@@ -17,19 +17,6 @@ import { signIn, rememberGoogleAccount } from './drive.js';
 import { showIfUpdated } from './whats-new.js';
 import { moneyProfile, businesses, activeSpace, setCurrentSpace, settleSpaces } from './business.js';
 import { applyTheme, applyDisplay, appearance, chosen, setAppearance, retireOldLooks } from './appearance.js';
-import * as appearanceView from './views/appearance.js';
-import * as addView from './views/add.js';
-import * as categoriesView from './views/categories.js';
-import * as summaryView from './views/summary.js';
-import * as transactionsView from './views/transactions.js';
-import * as accountsView from './views/accounts.js';
-import * as importView from './views/import.js';
-import * as settingsView from './views/settings.js';
-import * as planView from './views/plan.js';
-import * as recapView from './views/recap.js';
-import * as coachView from './views/coach.js';
-import * as inboxView from './views/inbox.js';
-import * as setupView from './views/setup.js';
 import { collectSharedAlerts } from './alert-inbox.js';
 import { refreshSchedule, runDueReminders } from './reminders.js';
 import { countUpHeroes, rollFigures, fillBars, levelWatch, beginArrival, emptyState } from './ui.js';
@@ -51,20 +38,22 @@ const SEED_CATEGORIES = [
 
 const SEED_ACCOUNT = { id: CASH_ACCOUNT_ID, label: 'Cash', type: 'cash', issuer: null, last4: null };
 
+// A screen is loaded the first time it is opened, not all thirteen when the app starts: the first visit (the one that
+// has to feel quick) reads about a third of the code. `module` is null until then.
 const views = {
-  summary: { title: 'Summary', module: summaryView },
-  add: { title: 'Add', module: addView },
-  transactions: { title: 'History', module: transactionsView },
-  accounts: { title: 'Accounts', module: accountsView },
-  plan: { title: 'Plan', module: planView },
-  coach: { title: 'Coach', module: coachView },
-  inbox: { title: 'Bank alerts', module: inboxView },
-  recap: { title: 'Month in review', module: recapView },
-  categories: { title: 'Categories', module: categoriesView },
-  import: { title: 'Import Statement', module: importView },
-  settings: { title: 'Backup & Settings', module: settingsView },
-  setup: { title: 'Set up', module: setupView },
-  appearance: { title: 'How it looks', module: appearanceView },
+  summary: { title: 'Summary', module: null, load: () => import('./views/summary.js') },
+  add: { title: 'Add', module: null, load: () => import('./views/add.js') },
+  transactions: { title: 'History', module: null, load: () => import('./views/transactions.js') },
+  accounts: { title: 'Accounts', module: null, load: () => import('./views/accounts.js') },
+  plan: { title: 'Plan', module: null, load: () => import('./views/plan.js') },
+  coach: { title: 'Coach', module: null, load: () => import('./views/coach.js') },
+  inbox: { title: 'Bank alerts', module: null, load: () => import('./views/inbox.js') },
+  recap: { title: 'Month in review', module: null, load: () => import('./views/recap.js') },
+  categories: { title: 'Categories', module: null, load: () => import('./views/categories.js') },
+  import: { title: 'Import Statement', module: null, load: () => import('./views/import.js') },
+  settings: { title: 'Backup & Settings', module: null, load: () => import('./views/settings.js') },
+  setup: { title: 'Set up', module: null, load: () => import('./views/setup.js') },
+  appearance: { title: 'How it looks', module: null, load: () => import('./views/appearance.js') },
 };
 
 async function seedIfNeeded() {
@@ -157,6 +146,7 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0, sli
     old.append(sk);
   }, old.childElementCount ? 700 : 120);
   try {
+    if (!view.module) view.module = await view.load();
     await view.module.render(next, params);
   } catch (err) {
     // A screen that fails is replaced by a plain card with a way on, never left blank or half drawn:
@@ -300,7 +290,7 @@ function wireBackButton() {
       history.back();
       return;
     }
-    const stepBack = views[currentView]?.module.onBack;
+    const stepBack = views[currentView]?.module?.onBack;
     if (typeof stepBack === 'function' && stepBack()) {
       history.pushState(TOP, '', urlFor(currentView));
       return;
@@ -392,7 +382,7 @@ async function runSync({ silent = true, opening = false } = {}) {
       // In place, keeping where you are on the screen and what you opened.
       const container = document.getElementById('view-container');
       const view = views[currentView];
-      await redraw(container, () => view.module.render(container, currentParams));
+      if (view.module) await redraw(container, () => view.module.render(container, currentParams));
     }
   } catch (err) {
     if (err.needsSignIn && opening && renewGooglePassOnce()) return;
@@ -435,7 +425,7 @@ function wirePull() {
       await runSync({ silent: true });
       const container = document.getElementById('view-container');
       const view = views[currentView];
-      if (container && view) await redraw(container, () => view.module.render(container, currentParams));
+      if (container && view && view.module) await redraw(container, () => view.module.render(container, currentParams));
     },
   });
 }
@@ -494,7 +484,7 @@ document.addEventListener('visibilitychange', () => {
   if (!SAFE_TO_REFRESH.has(currentView) || typingInView()) return;
   const container = document.getElementById('view-container');
   const view = views[currentView];
-  if (container && view) void redraw(container, () => view.module.render(container, currentParams));
+  if (container && view && view.module) void redraw(container, () => view.module.render(container, currentParams));
 });
 
 // Reuses the update banner for anything that needs you to act before the app
@@ -747,7 +737,7 @@ async function init() {
     await showView('settings', { drive: driveReturn });
   } else if (openedFromShare || sharedCount > 0) {
     await showView('inbox');
-  } else if (await setupView.needsSetup()) {
+  } else if (await (views.setup.module || (views.setup.module = await views.setup.load())).needsSetup()) {
     // Someone opening the link in a browser for the first time sees what
     // Kawach is and how to install it before any setup. Once only.
     if (!isInstalled() && firstVisit()) {

@@ -12,6 +12,8 @@
 // confirming button is held down for under a second while it fills, and letting
 // go early cancels. A keyboard or a screen reader presses it as a button, once.
 
+import { holdFocus } from './overlay.js';
+
 let open = null;
 const HOLD_MS = 800;
 
@@ -54,18 +56,21 @@ function show({ title, message, confirmLabel, cancelLabel, danger, ask }) {
   if (cancelBtn) cancelBtn.textContent = cancelLabel;
 
   document.body.appendChild(backdrop);
-  okBtn.focus();
+  // A dangerous question opens on Cancel, so a stray Enter keeps things as they were. Tab stays inside,
+  // the page behind is inert, and focus goes back to what opened it (js/overlay.js).
+  const release = holdFocus(backdrop, { initial: danger && cancelBtn ? cancelBtn : okBtn });
 
   return new Promise((resolve) => {
     const close = (answer) => {
       document.removeEventListener('keydown', onKey);
+      release();
       backdrop.remove();
       open = null;
       resolve(answer);
     };
     const onKey = (e) => {
       if (e.key === 'Escape') close(false);
-      if (e.key === 'Enter' && document.activeElement === okBtn) close(true);
+      if (e.key === 'Enter' && document.activeElement === okBtn && !hold) close(true);
     };
     open = { cancel: () => close(false) };
     document.addEventListener('keydown', onKey);

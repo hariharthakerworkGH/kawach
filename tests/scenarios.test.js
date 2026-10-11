@@ -708,7 +708,7 @@ test('a new user whose card has no statement yet: this month is the period, not 
 // Nothing here reaches Google: fetch is replaced for the length of each test
 // by a small copy of the parts of the Drive API the app uses.
 
-function fakeDrive() {
+export function fakeDrive() {
   const files = new Map();
   let n = 0;
   const original = window.fetch;
@@ -755,13 +755,13 @@ function fakeDrive() {
   };
 }
 
-async function googleSyncOn(passphrase) {
+export async function googleSyncOn(passphrase) {
   await setBackupPassphrase(passphrase);
   await turnOnGoogleSync();
 }
 
 // What another device would have put in the sync file.
-async function otherDevice(transactions, passphrase) {
+export async function otherDevice(transactions, passphrase) {
   const stores = ['accounts', 'transactions', 'categories', 'merchantRules', 'recurring', 'importBatches', 'settings'];
   const data = Object.fromEntries(stores.map((s) => [s, s === 'transactions' ? transactions : []]));
   return encryptPayload({ data, deletions: [], syncedAt: Date.now() }, passphrase);

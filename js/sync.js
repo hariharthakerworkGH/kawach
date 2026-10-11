@@ -1,4 +1,4 @@
-import { getAllRaw, put, remove, get } from './db.js';
+import { getAllRaw, put, remove, get, DIRTY_KEY } from './db.js';
 import { tidyRecord, problemWith } from './records.js';
 import { encryptPayload, decryptPayload } from './backup.js';
 import { backupPassphrase, readSyncFile, writeSyncFile, noteServerTime, clockSkew } from './drive.js';
@@ -117,9 +117,15 @@ export async function syncNow(passphrase, { onProgress = () => {}, previous = nu
     skipped = await applyMerged(merged, local);
   }
 
-  onProgress('Uploading…');
-  const payload = { data: merged.data, deletions: merged.deletions, syncedAt: Date.now() };
-  await place.write(await encryptPayload(payload, passphrase));
+  // Sent only when there is something to send: this phone changed since the last sync, there is no synced copy
+  // yet, or the passphrase changed. Opening the app and coming back to it used to upload everything every time.
+  const dirty = readDirty();
+  if (dirty || !found || previous) {
+    onProgress('Uploading…');
+    const payload = { data: merged.data, deletions: merged.deletions, syncedAt: Date.now() };
+    await place.write(await encryptPayload(payload, passphrase));
+    clearDirty(dirty);
+  }
 
   await writeBases(merged.data.settings);
   const skew = clockSkew();
@@ -129,6 +135,23 @@ export async function syncNow(passphrase, { onProgress = () => {}, previous = nu
     pulled: { ...(merged.stats || { added: 0, updated: 0, deleted: 0 }), skipped },
     counts: Object.fromEntries(SYNCED_STORES.map((s) => [s, merged.data[s].length])),
   };
+}
+
+function readDirty() {
+  try {
+    return localStorage.getItem(DIRTY_KEY);
+  } catch {
+    return '1'; // cannot tell: send
+  }
+}
+
+// Cleared only if nothing changed while the sync ran, or that change would never be sent.
+function clearDirty(seen) {
+  try {
+    if (localStorage.getItem(DIRTY_KEY) === seen) localStorage.removeItem(DIRTY_KEY);
+  } catch {
+    // nothing kept, nothing to clear
+  }
 }
 
 async function openWithEither(content, passphrase, previous) {
@@ -323,18 +346,18 @@ async function applyMerged(merged, local) {
           skipped++;
           continue;
         }
-        await put(store, record, { stamp: false });
+        await put(store, record, { stamp: false, fromSync: true });
       }
     }
     for (const id of before.keys()) {
-      if (!after.has(id)) await remove(store, id, { tombstone: false });
+      if (!after.has(id)) await remove(store, id, { tombstone: false, fromSync: true });
     }
   }
 
   // Keep every tombstone we learned about, so the next device to sync sees it.
   const known = new Set((local.deletions || []).map((d) => d.id));
   for (const t of merged.deletions) {
-    if (!known.has(t.id)) await put('deletions', t, { stamp: false });
+    if (!known.has(t.id)) await put('deletions', t, { stamp: false, fromSync: true });
   }
   return skipped;
 }

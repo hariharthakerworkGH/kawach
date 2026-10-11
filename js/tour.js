@@ -7,6 +7,7 @@
 // nobody anything, and it is not kept for offline use: a video is too big to
 // store on every phone for one viewing.
 import { icon } from './icons.js';
+import { holdFocus } from './overlay.js';
 import { showToast } from './toast.js';
 
 const TOUR_VIDEO = './media/kawach-tour.mp4';
@@ -28,9 +29,11 @@ export function playTour() {
     </div>
   `;
   const video = backdrop.querySelector('video');
+  let release = () => {};
   const close = () => {
     video.pause();
     document.removeEventListener('keydown', onKey);
+    release();
     backdrop.remove();
   };
   const onKey = (e) => {
@@ -45,6 +48,7 @@ export function playTour() {
   });
   document.addEventListener('keydown', onKey);
   document.body.appendChild(backdrop);
+  release = holdFocus(backdrop, { initial: '.tour-close' });
 }
 
 // Passing Kawach on: the phone's own share menu with the welcome page, or

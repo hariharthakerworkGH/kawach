@@ -1,6 +1,7 @@
 import { get, put } from './db.js';
 import { icon } from './icons.js';
 import { runGuide } from './guide.js';
+import { holdFocus } from './overlay.js';
 
 // What each version brought, told once after the update, and kept in
 // Settings. Every item is one line; one with a `guide` has a "Show me" that
@@ -11,6 +12,22 @@ import { runGuide } from './guide.js';
 // user would notice. Plain words, no version jargon.
 
 const NOTES = [
+  {
+    version: '5.43.2',
+    items: [
+      {
+        icon: 'eye',
+        title: "Easier to use, whoever is using it",
+        text: "Boxes that open over the app now keep Tab and screen readers inside them, start on the safe button when the question is risky, and put you back where you were. Every button has a full fingertip to tap. On a small phone with the largest text, names no longer get squeezed to nothing or pushed off the screen. The quieter writing is lighter, so it reads in every colouring.",
+        guide: [{ view: 'appearance', target: 'label.look-option:has(input[name="look-text"])', text: "Try Larger or Largest here: names wrap instead of being cut off." }],
+      },
+      {
+        icon: 'sync',
+        title: "Lighter backups and a quicker first open",
+        text: "Backups and sync files are squeezed before they are locked, so they are about five times smaller and send faster. Sync only sends when something changed on this phone. Screens load when you first open them, so the first time Kawach opens it reads about a quarter of the code it used to. An older browser now says so in plain words instead of showing a screen without colour.",
+      },
+    ],
+  },
   {
     version: '5.43.1',
     items: [
@@ -1751,8 +1768,10 @@ export function openNotes(notes, { title }) {
       <button type="button" class="btn-primary notes-close">Got it</button>
     </div>
   `;
+  let release = () => {};
   const close = () => {
     document.removeEventListener('keydown', onKey);
+    release();
     backdrop.remove();
   };
   const onKey = (e) => {
@@ -1771,6 +1790,6 @@ export function openNotes(notes, { title }) {
   });
   document.addEventListener('keydown', onKey);
   document.body.appendChild(backdrop);
-  backdrop.querySelector('.notes-close').focus();
+  release = holdFocus(backdrop, { initial: '.notes-close' });
 }
 

@@ -1,4 +1,5 @@
 import { appearance } from '../appearance.js';
+import { holdFocus } from '../overlay.js';
 import { put, getAll, newId, getSetting } from '../db.js';
 import { icon } from '../icons.js';
 import { CASH_ACCOUNT_ID } from '../config.js';
@@ -388,13 +389,15 @@ export async function render(container, params = {}) {
   });
 
   let lastFocus = null;
+  let releaseSheet = () => {};
   const openSheet = () => {
     lastFocus = document.activeElement;
     sheet.hidden = false;
     const first = sheet.querySelector('.k-cat-row.active') || sheet.querySelector('.k-cat-row');
-    if (first) first.focus({ preventScroll: true });
+    releaseSheet = holdFocus(sheet, { initial: first });
   };
   const closeSheet = () => {
+    releaseSheet();
     sheet.hidden = true;
     const back = lastFocus && lastFocus !== document.body ? lastFocus : openBtn;
     back.focus({ preventScroll: true });

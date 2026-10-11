@@ -30,8 +30,22 @@ let changeListener = null;
 export function onLocalChange(fn) {
   changeListener = fn;
 }
-function notifyChanged(storeName) {
+// Something on this phone changed since the last sync: the next sync must send it. Kept where a reload keeps it.
+export const DIRTY_KEY = 'kawach-sync-dirty';
+function markDirty() {
+  try {
+    localStorage.setItem(DIRTY_KEY, String(Date.now()));
+  } catch {
+    // no storage: the next sync simply sends everything, as it always did
+  }
+}
+
+// `fromSync`: this write is sync bringing in another device's data. It is not something to send back, and
+// it is not a change for the sync trigger or anything else watching for the person's own changes.
+function notifyChanged(storeName, fromSync = false) {
   readCache.delete(storeName);
+  if (fromSync) return;
+  if (storeName !== 'syncMeta' && storeName !== 'alertInbox') markDirty();
   // Stores that never leave the device must not trigger an upload: sync
   // bookkeeping, and alerts that haven't been confirmed yet.
   if (storeName === 'syncMeta' || storeName === 'alertInbox') return;
@@ -124,7 +138,7 @@ async function store(storeName, mode) {
 // a record is the newer one. `stamp: false` is for restore and sync, which are
 // writing records that already carry their own timestamp - re-stamping them
 // would make incoming data always look newest and defeat the merge.
-export async function put(storeName, value, { stamp = true } = {}) {
+export async function put(storeName, value, { stamp = true, fromSync = false } = {}) {
   // A record that would break the screens is refused here, with a plain reason (js/records.js).
   tidyRecord(storeName, value);
   const why = problemWith(storeName, value);
@@ -132,7 +146,7 @@ export async function put(storeName, value, { stamp = true } = {}) {
   if (stamp) value.updatedAt = Date.now();
   const s = await store(storeName, 'readwrite');
   await reqToPromise(s.put(value));
-  notifyChanged(storeName);
+  notifyChanged(storeName, fromSync);
   return value;
 }
 
@@ -189,7 +203,7 @@ export function forgetCachedReads() {
   readCache.clear();
 }
 
-export async function remove(storeName, id, { tombstone = true } = {}) {
+export async function remove(storeName, id, { tombstone = true, fromSync = false } = {}) {
   const s = await store(storeName, 'readwrite');
   await reqToPromise(s.delete(id));
   // Record that this was deleted here and when, so the next sync removes it on
@@ -199,7 +213,7 @@ export async function remove(storeName, id, { tombstone = true } = {}) {
     await reqToPromise(d.put({ id: `${storeName}:${id}`, store: storeName, recordId: id, deletedAt: Date.now() }));
     readCache.delete('deletions');
   }
-  notifyChanged(storeName);
+  notifyChanged(storeName, fromSync);
 }
 
 export function newId() {

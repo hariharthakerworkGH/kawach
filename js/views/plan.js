@@ -1,4 +1,5 @@
 import { getAll, put, remove, newId, getSetting, setSetting } from '../db.js';
+import { holdFocus } from '../overlay.js';
 import { planTop, planMonth } from './plan-looks.js';
 import { icon } from '../icons.js';
 import { formatRupees, ordinal, formatDateNice, formatMonthYear } from '../format.js';
@@ -522,7 +523,9 @@ export async function render(container) {
     // On the page itself, not the screen: the screen sits below the tab bar, and a
     // sheet inside it left its last button behind the bar.
     document.body.append(sheet);
+    let release = () => {};
     const close = () => {
+      release();
       sheet.remove();
       window.removeEventListener('hashchange', close);
     };
@@ -530,7 +533,7 @@ export async function render(container) {
     sheet.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
     sheet.addEventListener('keydown', (e) => e.key === 'Escape' && close());
     dragToClose(sheet.querySelector('.k-sheet'), close, sheet.querySelector('.k-scrim'));
-    sheet.querySelector('.k-sheet').querySelector('.month-act, .k-sheet__close').focus();
+    release = holdFocus(sheet, { initial: sheet.querySelector('.k-sheet .month-act, .k-sheet .k-sheet__close') });
     const cycle = (field, on, message) => async () => {
       const item = (await getAll('recurring')).find((r) => r.id === t.id);
       if (!item) return;

@@ -236,3 +236,51 @@ test('safety: the slow readers now finish quickly on the text that used to hold 
   const ms = performance.now() - t0;
   ok(ms < 3000, `took ${Math.round(ms)} ms`);
 });
+
+/* --- lighter and faster (5.43.3) ------------------------------------------------------------------ */
+import { encryptPayload, decryptPayload } from '../js/backup.js';
+import { DIRTY_KEY } from '../js/db.js';
+import { syncNow, getSyncPassphrase } from '../js/sync.js';
+import { fakeDrive, googleSyncOn, otherDevice } from './scenarios.test.js';
+import { putAll } from './fixtures.js';
+
+test('lighter: a backup is squeezed before it is locked, opens again, and an older plain one still opens', async () => {
+  const rows = Array.from({ length: 3000 }, (_, i) => ({ id: 't' + i, accountId: 'bank', date: '2026-09-05', rawDescription: 'GROCERY STORE ' + (i % 40), merchant: 'GROCERY STORE', amount: 100000 + i, direction: 'debit' }));
+  const payload = { transactions: rows };
+  const squeezed = JSON.parse(await encryptPayload(payload, 'phrase-123456'));
+  const whole = JSON.parse(await encryptPayload(payload, 'phrase-123456', { compress: false }));
+  equal([squeezed.compression, squeezed.formatVersion, whole.compression, whole.formatVersion], ['gzip', 2, undefined, 1]);
+  ok(squeezed.data.length < whole.data.length * 0.4, `squeezed ${squeezed.data.length} against ${whole.data.length}`);
+  equal((await decryptPayload(JSON.stringify(squeezed), 'phrase-123456')).transactions.length, 3000);
+  equal((await decryptPayload(JSON.stringify(whole), 'phrase-123456')).transactions.length, 3000, 'a backup made before this version');
+});
+
+test('lighter: sync sends only when this phone has something new, and what it brings in is not sent back', async () => {
+  await seedBasics();
+  localStorage.removeItem(DIRTY_KEY);
+  const drive = fakeDrive();
+  try {
+    await googleSyncOn('shield-phrase-1');
+    const pass = await getSyncPassphrase();
+    await putAll('transactions', [txn({ accountId: 'bank', date: '2026-09-10', amount: 450, rawDescription: 'CAFE', updatedAt: 1 })]);
+    ok(localStorage.getItem(DIRTY_KEY), 'a change on this phone is marked');
+    await syncNow(pass);
+    const first = drive.syncFile().text;
+    equal(localStorage.getItem(DIRTY_KEY), null, 'sent, so no longer waiting');
+    await syncNow(pass);
+    equal(drive.syncFile().text, first, 'nothing new on this phone: nothing was uploaded');
+    // the other device adds a payment; this phone takes it in and does not send it back
+    drive.syncFile().text = await otherDevice([txn({ accountId: 'bank', date: '2026-09-12', amount: 900, rawDescription: 'FROM LAPTOP', updatedAt: 9 })], 'shield-phrase-1');
+    const before = drive.syncFile().text;
+    await syncNow(pass);
+    ok((await getAll('transactions')).some((t) => t.rawDescription === 'FROM LAPTOP'));
+    equal(localStorage.getItem(DIRTY_KEY), null, 'what arrived is not this phone\'s own change');
+    equal(drive.syncFile().text, before, 'and it was not sent back');
+    // a change here makes the next sync send
+    await putAll('transactions', [txn({ accountId: 'bank', date: '2026-09-13', amount: 100, rawDescription: 'NEW HERE', updatedAt: 20 })]);
+    await syncNow(pass);
+    ok((await decryptPayload(drive.syncFile().text, 'shield-phrase-1')).data.transactions.some((t) => t.rawDescription === 'NEW HERE'));
+  } finally {
+    drive.done();
+  }
+});

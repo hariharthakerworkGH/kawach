@@ -5,7 +5,9 @@ import { tidyRecord, problemWith } from './records.js';
 // that dropped them would look like the app had forgotten how you set it up.
 const STORES = ['accounts', 'transactions', 'categories', 'merchantRules', 'recurring', 'importBatches', 'settings'];
 const FORMAT = 'expense-tracker-backup';
-const FORMAT_VERSION = 1;
+// 2 = the data is compressed (gzip) before it is locked; 1 is what every older backup says. An older app that
+// meets a 2 says it was made by a newer version, instead of trying to read compressed bytes as text.
+const FORMAT_VERSION = 2;
 const PBKDF2_ITERATIONS = 210000;
 
 // Everything lives in one browser's IndexedDB, so a backup is the only thing
@@ -28,8 +30,19 @@ export async function exportEncrypted(passphrase) {
 // The encryption on its own, so sync can reuse exactly the same envelope
 // format as a downloaded backup file - one thing to get right, not two.
 // Returns the envelope as a JSON string, ready to be a file or a gist.
-export async function encryptPayload(payload, passphrase) {
-  const plaintext = new TextEncoder().encode(JSON.stringify(payload));
+export async function encryptPayload(payload, passphrase, { compress = true } = {}) {
+  let plaintext = new TextEncoder().encode(JSON.stringify(payload));
+  // Squeezed before it is locked (a locked file cannot be squeezed afterwards): five to eight times smaller,
+  // which is how long a sync or a backup takes on a phone's connection.
+  let compressed = false;
+  if (compress && typeof CompressionStream === 'function') {
+    try {
+      plaintext = await pipeThrough(plaintext, new CompressionStream('gzip'));
+      compressed = true;
+    } catch {
+      compressed = false; // a browser that cannot: it is simply sent whole, as before
+    }
+  }
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(passphrase, salt);
@@ -37,7 +50,8 @@ export async function encryptPayload(payload, passphrase) {
 
   return JSON.stringify({
     format: FORMAT,
-    formatVersion: FORMAT_VERSION,
+    formatVersion: compressed ? FORMAT_VERSION : 1,
+    ...(compressed ? { compression: 'gzip' } : {}),
     createdAt: new Date().toISOString(),
     kdf: { name: 'PBKDF2', hash: 'SHA-256', iterations: PBKDF2_ITERATIONS, salt: toBase64(salt) },
     iv: toBase64(iv),
@@ -103,7 +117,12 @@ async function parseEnvelopeRaw(fileText, passphrase) {
     throw new Error('Could not decrypt - wrong passphrase, or the file is damaged.');
   }
 
-  return { payload: JSON.parse(new TextDecoder().decode(plaintext)), createdAt: envelope.createdAt };
+  let bytes = new Uint8Array(plaintext);
+  if (envelope.compression === 'gzip') {
+    if (typeof DecompressionStream !== 'function') throw new Error('This browser cannot open a compressed backup. Update your browser and try again.');
+    bytes = await pipeThrough(bytes, new DecompressionStream('gzip'));
+  }
+  return { payload: JSON.parse(new TextDecoder().decode(bytes)), createdAt: envelope.createdAt };
 }
 
 /* What a restore would do with this backup, before anything is touched: the usable records per store and
@@ -189,6 +208,13 @@ export async function undoRestore() {
   if (!row) throw new Error('There is no restore to undo.');
   await replaceAll(row.data, STORES);
   await done((await undoStore('readwrite')).delete('last'));
+}
+
+async function pipeThrough(bytes, stream) {
+  const writer = stream.writable.getWriter();
+  writer.write(bytes);
+  writer.close();
+  return new Uint8Array(await new Response(stream.readable).arrayBuffer());
 }
 
 async function deriveKey(passphrase, salt, iterations = PBKDF2_ITERATIONS) {

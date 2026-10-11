@@ -5,6 +5,8 @@
  * Nothing here leaves the phone on its own. Copy, Save and Share are things the person presses, and
  * where the text goes after that is their choice. */
 
+import { holdFocus } from './overlay.js';
+
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function frame(inner, label) {
@@ -12,6 +14,7 @@ function frame(inner, label) {
   backdrop.className = 'dialog-backdrop';
   backdrop.innerHTML = `<div class="dialog secret-dialog" role="dialog" aria-modal="true" aria-label="${esc(label)}">${inner}</div>`;
   document.body.appendChild(backdrop);
+  backdrop._release = holdFocus(backdrop);
   return backdrop;
 }
 
@@ -73,6 +76,7 @@ export function showSecret({ title, intro = '', secret, fileName = 'kawach-secre
     const said = box.querySelector('.secret-said');
     const close = (answer) => {
       document.removeEventListener('keydown', onKey, true);
+      box._release();
       box.remove();
       resolve(answer);
     };
@@ -117,6 +121,7 @@ export function choose({ title, message = '', options, backLabel = 'Back' }) {
     );
     const close = (v) => {
       document.removeEventListener('keydown', onKey, true);
+      box._release();
       box.remove();
       resolve(v);
     };
@@ -157,6 +162,7 @@ export function askText({ title, message = '', placeholder = '', submitLabel = '
     const ok = box.querySelector('.dialog-ok');
     const close = (v) => {
       document.removeEventListener('keydown', onKey, true);
+      box._release();
       box.remove();
       resolve(v);
     };

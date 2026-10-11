@@ -114,6 +114,7 @@
 <link rel="stylesheet" href="./css/looks.css">
 <link rel="stylesheet" href="./css/style-tactile.css">
 <link rel="stylesheet" href="./css/style-instrument.css">
+<link rel="stylesheet" href="./css/fit.css">
 <style>
   /* The opening (4.17.1). Inline so it is on screen in the first frame.
 
@@ -364,6 +365,26 @@
     <span class="nav-icon" data-icon="coach"></span><span>Coach</span>
   </button>
 </nav>
+<script>
+  // A browser too old to draw Kawach says so in plain words, instead of showing a screen with no colour. Every
+  // colour in the app is written in a form (oklch) that browsers before 2023 do not know, and the screens use
+  // :has(), structuredClone and inert. Nothing is lost: the data is still on the phone, and opens when the
+  // browser is updated. Plain colours here on purpose: this is the one box that cannot use the app's own.
+  (function () {
+    var ok = false;
+    try {
+      ok = window.CSS && CSS.supports('color', 'oklch(50% 0.1 200)') && CSS.supports('selector(:has(a))') && typeof structuredClone === 'function' && 'inert' in HTMLElement.prototype;
+    } catch (e) {
+      ok = false;
+    }
+    if (ok) return;
+    var box = document.createElement('div');
+    box.setAttribute('role', 'alert');
+    box.style.cssText = 'position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:24px;background:#10131a;color:#f2f4f8;font:16px/1.5 system-ui,sans-serif;text-align:center';
+    box.innerHTML = '<div style="max-width:340px"><p style="font-size:20px;font-weight:700;margin:0 0 12px">Kawach needs a newer browser</p><p style="margin:0 0 12px;color:#c3c9d4">This browser is too old to show Kawach properly. Update Chrome, Samsung Internet, Safari or Firefox, then open Kawach again.</p><p style="margin:0;color:#c3c9d4">Nothing is lost. Anything you saved is still on this phone.</p></div>';
+    document.body.appendChild(box);
+  })();
+</script>
 <script type="module" src="./js/app.js"></script>
 <script>
   // Always on the latest version, and when the opening leaves.

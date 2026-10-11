@@ -1,4 +1,5 @@
 import { getAll, put, remove, getSetting, setSetting } from '../db.js';
+import { holdFocus } from '../overlay.js';
 import { countsFor, nextMonthKey, salaryLike } from '../spending-month.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { personNamed } from '../people.js';
@@ -1351,7 +1352,9 @@ function openQuick(id, container) {
       </div>
     </div>`;
   document.body.append(sheet);
+  let release = () => {};
   const close = () => {
+    release();
     sheet.remove();
     window.removeEventListener('hashchange', close);
   };
@@ -1359,7 +1362,7 @@ function openQuick(id, container) {
   sheet.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
   sheet.addEventListener('keydown', (e) => e.key === 'Escape' && close());
   dragToClose(sheet.querySelector('.k-sheet'), close, sheet.querySelector('.k-scrim'));
-  sheet.querySelector('.month-act').focus();
+  release = holdFocus(sheet, { initial: '.month-act' });
   const on = (cls, fn) => sheet.querySelector(cls)?.addEventListener('click', fn);
   on('.q-flag', async () => {
     if (t[flag]) delete t[flag];
