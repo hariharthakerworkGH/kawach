@@ -6,7 +6,7 @@ import { CASH_ACCOUNT_ID } from '../config.js';
 import { categoryStyle } from '../category-style.js';
 import { showToast } from '../toast.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, toMonthly, toYearly, isoLocal, clockOf } from '../frequency.js';
-import { formatCurrency } from '../format.js';
+import { formatCurrency, formatRupees } from '../format.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
 import { isBusinessCategory, isBusinessAccount, activeSpace, accountInSpace } from '../business.js';
 import { escapeHtml, invalidField, markFresh, slidingPill } from '../ui.js';
@@ -257,13 +257,27 @@ export async function render(container, params = {}) {
   // payment switched from Spent to Received must not carry "Reimbursable" with it.
   // Cash is a pocket (js/cash.js): a cash spend counts today, and the screen says so. Not shown while the rule is off.
   const cashRuleOn = Boolean(await getSetting('cashRuleFrom', null));
+  // With a plan for ATM cash the note says how much of it is left; worked out beside the screen so Add opens at once.
+  let cashPlan = null;
   const showCashNote = () => {
     const chosen = accounts.find((a) => a.id === container.querySelector('#add-account').value);
     const note = container.querySelector('#add-cash-note');
     const on = cashRuleOn && chosen && chosen.type === 'cash' && direction === 'debit';
     note.hidden = !on;
-    if (on) note.textContent = 'Counts today: it comes off Left to spend. Cash you took out at an ATM is not counted a second time.';
+    if (!on) return;
+    note.textContent = cashPlan
+      ? `Comes out of your cash plan, ${formatRupees(Math.max(0, cashPlan.left))} of ${formatRupees(cashPlan.amount)} left this month. Left to spend only moves if it goes past the plan.`
+      : 'Counts today: it comes off Left to spend. Cash you took out at an ATM is not counted a second time.';
   };
+  if (cashRuleOn) {
+    import('../free-to-spend.js')
+      .then((m) => m.computeFreeToSpend())
+      .then((f) => {
+        cashPlan = f.cash && f.cash.plan;
+        showCashNote();
+      })
+      .catch(() => {});
+  }
   const showWorkRows = () => {
     showCashNote();
     const business = isBusinessAccount(accounts.find((a) => a.id === container.querySelector('#add-account').value));
@@ -589,7 +603,7 @@ export async function render(container, params = {}) {
       // A work cost is never spending (js/free-to-spend.js), so saying so
       // here answers the question it raises: did that just eat my budget?
       const cashSpend = cashRuleOn && direction === 'debit' && (accounts.find((a) => a.id === transaction.accountId) || {}).type === 'cash' && !transaction.isReimbursable;
-      const work = transaction.isReimbursable ? ' · Left to spend unchanged' : cashSpend ? ' · counted in Left to spend' : '';
+      const work = transaction.isReimbursable ? ' · Left to spend unchanged' : cashSpend ? (cashPlan ? ' · comes off your cash plan' : ' · counted in Left to spend') : '';
       showToast(`Saved ${direction === 'debit' ? '-' : '+'}₹${(amount / 100).toLocaleString('en-IN')}${work}`);
     }
     savedFeedback(form.querySelector('button[type="submit"]'));

@@ -1047,10 +1047,10 @@ function fixedRow(f, categories, paidFrom, index, count) {
   const parts = [when];
   if (f.emi) parts.push(`EMI ${f.emi.current}/${f.emi.total}`);
   parts.push(f.accountId === 'cash' ? 'cash' : paidFrom ? escapeHtml(paidFrom) : 'bank');
-  // Under the cash rule the ATM plan is not set aside any more: cash counts as it is spent.
+  // Under the cash rule the ATM plan stays set aside, and cash you write down draws it down (js/cash.js).
   if (cashRuleOn && isAtmPlan(f)) {
     parts.length = 0;
-    parts.push('cash', 'counted as you spend it, not set aside');
+    parts.push('cash', 'cash you write down comes off it');
   }
 
   const inner = `

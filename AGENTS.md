@@ -341,24 +341,33 @@ come from (GitHub Pages sees the address of a visit), how the lock's PIN and key
 Not yet there, because they need the owner's own details: a contact address, the operator's name, a grievance route
 and governing law on privacy.html and terms.html.
 
-## Cash as a pocket (5.44)
+## Cash as a pocket (5.44, with a plan 5.46)
 
 `js/cash.js` is pure; `js/free-to-spend.js` calls it when the `cashRuleFrom` setting is set (the app sets it to
-today the first time it opens after the update, so no month already worked out changes).
+today the first time it opens after the update, so no month already worked out changes; absent, every answer is
+identical to before: `tools/release/diffrun.mjs`).
 
 - A bank debit with ATM wording (`CASH_ENTRY_RE`) dated on or after that day is cash moved into the pocket: not
   spending, and not claimed by any commitment.
 - Cash you spend (a debit on a cash account, not a transfer, work cost or lent money) counts the day you write it
-  down, whether or not an ATM plan exists.
-- Cash taken out and never written down counts as spent 30 days after it was taken out (on that day, in that
-  month), and only the part not written down: written spends are taken from the oldest cash first (FIFO); a spend
-  made after a lot's 30 days cannot use it again; a spend with no cash to take from is still a spend.
-- The "ATM cash" plan (`isAtmPlan`: `cash: true` or ATM in its name) is no longer taken out of the budget, because
-  cash now counts as it is spent. Withdrawals before the start day count exactly as they always did.
-- `computeFreeToSpend().cash` = `{ on, from, takenOut, spent, inPocket, unloggedCounted }` for the month, shown on
-  Accounts (Cash row), as a note on Add when Cash is chosen, and on the ATM plan's row on Plan.
-- Tests: `tests/cash.test.js`; whole flow: `tools/release/cashflow.mjs`; with the setting absent the answers are
-  identical to before (`tools/release/diffrun.mjs`: 1,440 households).
+  down.
+- Cash taken out and never written down counts 30 days after it was taken out (on that day, in that month), and only
+  the part not written down: written spends come off the oldest cash first (FIFO); a spend after a lot's 30 days
+  cannot use it again; a spend with no cash to take from is still a spend.
+- Cash taken out in the 30 days before the rule began is still in the pocket and marked `counted`: it was counted
+  when it left the bank (as spending, or against the plan), so what is spent from it, and what is left of it, is not
+  counted again.
+- **The plan for ATM cash** (`isAtmPlan` in js/commitments.js: `cash: true`, or a set-aside-bit-by-bit plan with ATM
+  or cash in its name, such as the owner's "Cash Withdrawal") stays set aside. What counts as above draws it down
+  (`used`), and what goes past it is spending like any other plan's overspend: Left to spend only moves once the plan
+  is used up. With no plan, what counts is spending of its own, each cash spend moving Left to spend. (5.44 dropped
+  the plan from the budget; the owner chose to keep it set aside, 5.46.)
+- `computeFreeToSpend().cash` = `{ on, from, takenOut, spent, inPocket, unloggedCounted, plan }` for the month, shown
+  on Accounts (Cash row), as a note on Add when Cash is chosen (with what is left of the plan), and on the plan's row
+  on Plan.
+- Tests: `tests/cash.test.js`; whole flow: `tools/release/cashflow.mjs`; the owner's own redacted report can be
+  replayed with `tools/release/report_probe.mjs` (it reads a report from where it is, never copies it into the
+  project).
 
 ## Safety net (5.43.1)
 

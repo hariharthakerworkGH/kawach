@@ -912,6 +912,7 @@ function cashNoteText(c) {
   if (c.takenOut) parts.push(`taken out ${formatRupees(c.takenOut)}`);
   if (c.spent) parts.push(`spent ${formatRupees(c.spent)}`);
   parts.push(c.inPocket ? `${formatRupees(c.inPocket)} still in your pocket` : 'nothing left in your pocket');
+  if (c.plan) parts.push(`cash plan ${formatRupees(Math.max(0, c.plan.left))} of ${formatRupees(c.plan.amount)} left`);
   const tail = c.unloggedCounted
     ? ` ${formatRupees(c.unloggedCounted)} taken out and never written down was counted as spent.`
     : c.inPocket

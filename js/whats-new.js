@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.46',
+    items: [
+      {
+        icon: 'wallet',
+        title: "Your cash plan stays, and cash draws it down",
+        text: "If you set money aside for cash each month (ATM cash, Cash Withdrawal), that plan stays set aside. Cash you write down now comes off the plan, and Left to spend only moves once you go past it. Taking cash out of the ATM no longer uses the plan up by itself. Cash you take out and never write down uses the plan up after 30 days. Accounts shows what is left of the plan.",
+        guide: [{ view: 'add', target: '#add-account', text: "With Cash picked, a line below says how much of your cash plan is left." }],
+      },
+    ],
+  },
+  {
     version: '5.45.1',
     items: [
       {

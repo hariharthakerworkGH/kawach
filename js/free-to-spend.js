@@ -10,7 +10,7 @@ import { businessPlan, businessMonth } from './business.js';
 import { reimbursableTally, unsettledCosts } from './reimbursable.js';
 import { isPersonMoney, personSpendEffects, peopleStanding } from './people.js';
 import { refundPairs } from './card-refunds.js';
-import { cashPocket } from './cash.js';
+import { cashPocket, CASH_GRACE_DAYS, addDaysIso } from './cash.js';
 import { formatRupees } from './format.js';
 import { DAY_MS, MIN_DAYS_FOR_PACE, addDays, dateOf, daysBetweenInclusive, trackCommitments, spendSeries } from './free-to-spend-parts.js';
 
@@ -564,7 +564,6 @@ export async function computeFreeToSpend(now = new Date()) {
   // commitments taken off) is how the app once said nearly ₹2 lakh was free.
   const budgetItems = live
     .filter((item) => paidBy(item) !== 'cash') // cash comes out of the ATM commitment
-    .filter((item) => !(cashOn && isAtmPlan(item))) // ...which under the cash rule is no longer set aside
     .filter((item) => !skipped(item))
     .map((item) => ({ item, label: item.label, amount: monthlyAmountOf(item), paidBy: paidBy(item) }));
   const skippedItems = live.filter((item) => paidBy(item) !== 'cash' && skipped(item));
@@ -693,7 +692,33 @@ export async function computeFreeToSpend(now = new Date()) {
   // its own rule below.
   // A card bill is never spending here either, even one switched to "counts as
   // spending" in History: the purchases it pays were counted when swiped.
-  const bankPool = transactions.filter((t) => holdingIds.has(t.accountId) && !looksLikeCardPayment(t, 'bank') && !t.paysCardId && !isWorkCost(t) && !isPersonMoney(t));
+  // --- Cash as a pocket (js/cash.js) -------------------------------------------------------------------------------
+  // A withdrawal at an ATM is cash moved into the pocket, not spending. Cash you spend counts the day you write it
+  // down; cash taken out and never written down counts after 30 days. Withdrawals before the rule began count as
+  // they always did, and the cash from them that is still in your pocket is not counted a second time.
+  // A plan for ATM cash on Plan stays set aside: what counts here draws it down (below), and Left to spend only moves
+  // once the plan is used up.
+  const atmPlan = cashOn ? budgetItems.find((b) => isAtmPlan(b.item) && b.paidBy === 'bank') || null : null;
+  const heldAsCash = (t) => cashIds.has(t.accountId) || t.accountId === 'cash';
+  const slim = (t) => ({ id: t.id, date: t.date, amount: t.amount });
+  const takenOut = cashOn
+    ? transactions
+        .filter((t) => t.direction === 'debit' && bankIds.has(t.accountId) && CASH_ENTRY_RE.test(t.rawDescription || '') && t.date >= addDaysIso(cashRuleFrom, -CASH_GRACE_DAYS) && t.date <= today)
+        .map((t) => ({ ...slim(t), counted: t.date < cashRuleFrom && (!t.isTransfer || Boolean(atmPlan)) }))
+    : [];
+  const cashSpendList = cashOn
+    ? transactions
+        .filter((t) => heldAsCash(t) && t.direction === 'debit' && !t.isTransfer && !isWorkCost(t) && !isPersonMoney(t) && t.date >= cashRuleFrom && t.date <= today)
+        .map(slim)
+    : [];
+  const pocket = cashPocket({ takenOut, spends: cashSpendList, today });
+  // Cash taken out from the day the rule began is neither spending nor part of any plan's use.
+  const takenOutIds = new Set(takenOut.filter((t) => t.date >= cashRuleFrom).map((t) => t.id));
+  const cashSpends = pocket.spends.filter((t) => t.date >= windowStart && t.date <= spendEnd);
+  const cashExpired = pocket.expired.filter((e) => e.date >= windowStart && e.date <= spendEnd);
+  // What counts this month: cash written down (less what came out of cash already counted) and cash never written down.
+  const cashCounted = cashSpends.reduce((n, t) => n + t.counts, 0) + sum(cashExpired);
+  const bankPool = transactions.filter((t) => holdingIds.has(t.accountId) && !looksLikeCardPayment(t, 'bank') && !t.paysCardId && !isWorkCost(t) && !isPersonMoney(t) && !takenOutIds.has(t.id));
   for (const b of budgetItems) {
     // Same rule as above for what has already been paid: an allowance is
     // drawn down by any card, a named bill only by its own.
@@ -702,6 +727,17 @@ export async function computeFreeToSpend(now = new Date()) {
     );
     matchedTo(b, b.paidBy === 'card' ? cardPool : bankPool);
   }
+  // The ATM plan is used up by cash that counts, not by cash taken out; whatever goes past it is spending, like any
+  // other plan.
+  if (atmPlan && cashCounted > 0) {
+    const room = Math.max(0, atmPlan.amount - atmPlan.charges.bank);
+    const inside = Math.min(room, cashCounted);
+    atmPlan.charges.bank += inside;
+    atmPlan.charges.bankBeyond += cashCounted - inside;
+    atmPlan.used += cashCounted;
+  }
+  // With no plan, what counts is spending of its own.
+  const cashSpent = atmPlan ? 0 : cashCounted;
   const cardCommitmentCharges = budgetItems.filter((b) => b.charges.card > 0).map((b) => ({ label: b.label, amount: b.charges.card }));
   const bankCommitmentPayments = budgetItems.filter((b) => b.charges.bank > 0).map((b) => ({ label: b.label, amount: b.charges.bank }));
   const bankWindow = bankPool.filter((t) => bankIds.has(t.accountId)).filter(inRange(bankPeriod.start, bankPeriod.end));
@@ -719,26 +755,7 @@ export async function computeFreeToSpend(now = new Date()) {
   );
   // Ordinary spending: whatever no commitment claimed - transfers, being money
   // moved rather than spent, excepted, and anything that has since come back.
-  // --- Cash as a pocket (js/cash.js) -------------------------------------------------------------------------------
-  // A withdrawal at an ATM is cash moved into the pocket, not spending. Cash you spend counts the day you write it
-  // down; cash taken out and never written down counts after 30 days. Withdrawals before the rule began count as
-  // they always did.
-  const heldAsCash = (t) => cashIds.has(t.accountId) || t.accountId === 'cash';
-  const slim = (t) => ({ id: t.id, date: t.date, amount: t.amount });
-  const takenOut = cashOn
-    ? transactions.filter((t) => t.direction === 'debit' && bankIds.has(t.accountId) && CASH_ENTRY_RE.test(t.rawDescription || '') && t.date >= cashRuleFrom && t.date <= today).map(slim)
-    : [];
-  const cashSpendList = cashOn
-    ? transactions
-        .filter((t) => heldAsCash(t) && t.direction === 'debit' && !t.isTransfer && !isWorkCost(t) && !isPersonMoney(t) && t.date >= cashRuleFrom && t.date <= today)
-        .map(slim)
-    : [];
-  const pocket = cashPocket({ takenOut, spends: cashSpendList, today });
-  const takenOutIds = new Set(takenOut.map((t) => t.id));
-  const cashSpends = cashSpendList.filter((t) => t.date >= windowStart && t.date <= spendEnd);
-  const cashExpired = pocket.expired.filter((e) => e.date >= windowStart && e.date <= spendEnd);
-  const cashSpent = sum(cashSpends) + sum(cashExpired);
-  const unclaimed = bankWindow.filter((t) => !claimed.has(t.id) && !t.isTransfer && !loanEmiIds.has(t.id) && !takenOutIds.has(t.id));
+  const unclaimed = bankWindow.filter((t) => !claimed.has(t.id) && !t.isTransfer && !loanEmiIds.has(t.id));
   const returned = paidBack(unclaimed.filter((t) => t.direction === 'debit'), transactions, today);
   const returnedIds = new Set(returned.map((p) => p.sent.id));
   const bankSpends = unclaimed.filter((t) => !returnedIds.has(t.id));
@@ -866,8 +883,8 @@ export async function computeFreeToSpend(now = new Date()) {
     ),
     ...personSpends,
     ...shareBackSpends,
-    ...cashSpends.map((t) => ({ date: t.date, amount: t.amount })),
-    ...cashExpired.map((e) => ({ date: e.date, amount: e.amount })),
+    ...(atmPlan ? [] : cashSpends.filter((t) => t.counts > 0).map((t) => ({ date: t.date, amount: t.counts }))),
+    ...(atmPlan ? [] : cashExpired.map((e) => ({ date: e.date, amount: e.amount }))),
   ].filter((e) => e.date >= windowStart && e.date <= today);
   const perDay = new Map();
   for (const e of datedSpends) perDay.set(e.date, (perDay.get(e.date) || 0) + e.amount);
@@ -1095,10 +1112,12 @@ export async function computeFreeToSpend(now = new Date()) {
     cash: {
       on: cashOn,
       from: cashOn ? cashRuleFrom : null,
-      takenOut: sum(takenOut.filter((t) => t.date >= windowStart && t.date <= spendEnd)),
+      takenOut: sum(takenOut.filter((t) => t.date >= cashRuleFrom && t.date >= windowStart && t.date <= spendEnd)),
       spent: sum(cashSpends),
       inPocket: pocket.inPocket,
       unloggedCounted: sum(cashExpired),
+      // The plan for ATM cash, when there is one: it stays set aside and this cash draws it down.
+      plan: atmPlan ? { label: atmPlan.label, amount: atmPlan.amount, used: atmPlan.used, left: atmPlan.amount - atmPlan.used } : null,
     },
     tracker,
     cutBack,
