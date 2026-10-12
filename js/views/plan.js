@@ -19,7 +19,7 @@ import { committedBar, goalRing, radialMeter } from '../charts.js';
 import { bankBalance } from '../account-metrics.js';
 import { incomeType, incomeWords, businessPlan, isBusinessCategory, businesses, activeSpace, commitmentInSpace, accountInSpace } from '../business.js';
 import { subscriptionsOf } from '../subscriptions.js';
-import { forecast } from '../forecast.js';
+import { forecast, bankAhead } from '../forecast.js';
 import { escapeHtml, emptyState, sectionHead, hero } from '../ui.js';
 import { askConfirm } from '../dialog.js';
 import { dragToClose } from '../sheet-drag.js';
@@ -168,13 +168,19 @@ export async function render(container) {
   container.classList.add('k', 'k-plan');
   // Only a set-aside that has gone past its limit is flagged at the top; everything else stays quiet.
   const over = tracker.filter((t) => t.setAside && t.status === 'over');
-  const overFlag = over.length
-    ? `<div class="k-context k-context--alert plan-flag">
+  // A cost skipped this month is back next month, so the coming months count it (5.50).
+  const skippedItems = [...fixed, ...loanItems].filter((r) => tracker.some((t) => t.id === r.id && t.status === 'skipped'));
+  const shortMonth = inBusiness ? null : comingMonths(figures, todayIso, skippedItems).find((m) => m.short);
+  const flag = (title, note) => `<div class="k-context k-context--alert plan-flag">
         <span class="k-context__mark">${icon('alert')}</span>
-        <span class="k-context__body"><span class="k-context__k">Over its limit</span>
-        <p class="k-context__note">${over.map((t) => `${escapeHtml(t.label)} by ${formatRupees(-t.left)}`).join(' · ')}</p></span>
-      </div>`
-    : '';
+        <span class="k-context__body"><span class="k-context__k">${title}</span>
+        <p class="k-context__note">${note}</p></span>
+      </div>`;
+  const overFlag =
+    (over.length ? flag('Over its limit', over.map((t) => `${escapeHtml(t.label)} by ${formatRupees(-t.left)}`).join(' · ')) : '') +
+    (shortMonth
+      ? flag(`${monthWord(shortMonth.key)} is ${formatRupees(-shortMonth.free)} short`, `Fixed costs and saving come to ${formatRupees(shortMonth.costs + (figures.keep || 0))} against ${formatRupees(shortMonth.costs + (figures.keep || 0) + shortMonth.free)} coming in.${shortMonth.renewals.length ? ` ${escapeHtml(shortMonth.renewals[0].label)} ${formatRupees(shortMonth.renewals[0].amount)} is due.` : ''}`)
+      : '');
   container.innerHTML = `
     ${overFlag}
     ${
@@ -260,7 +266,7 @@ export async function render(container) {
     }
 
     ${thisMonth ? `${sectionHead('This month')}<div class="totals-card plan-month">${thisMonth}</div>` : ''}
-    ${inBusiness ? '' : forecastList(figures, todayIso)}
+    ${inBusiness ? '' : forecastList(figures, todayIso, skippedItems)}
     ${
       // How much of the month is spoken for, from the same figures the hero
       // above is made of. No second calculation.
@@ -1005,11 +1011,29 @@ function renewalsList(items, today) {
  * fixed costs and your saving are out - with the renewals that make a month heavy named.
  * A month that comes up short says so in words and in red. Fixed costs only: everyday
  * spending is what the figure is for (js/forecast.js). */
-export function forecastList(figures, today) {
-  if (!figures || figures.limit == null) return '';
+/* The coming months. A cost skipped for this month is not in this month's figures but is back in the next, so
+ * `skipped` (its items) is counted in every month ahead: skipping once must not hide a short month. */
+export function comingMonths(figures, today, skipped = []) {
+  if (!figures || figures.limit == null) return [];
   const income = figures.limit + figures.budgetItems.reduce((t, b) => t + b.amount, 0) + (figures.keep || 0);
-  const months = forecast({ items: figures.budgetItems.map((b) => b.item), income, keep: figures.keep || 0, today, months: 3 });
+  const items = [...figures.budgetItems.map((b) => b.item), ...skipped.filter((s) => !figures.budgetItems.some((b) => b.item.id === s.id))];
+  return forecast({ items, income, keep: figures.keep || 0, today, months: 3 });
+}
+
+const monthWord = (key) => new Date(`${key}-01T12:00`).toLocaleDateString('en-IN', { month: 'long' });
+
+export function forecastList(figures, today, skipped = []) {
+  const months = comingMonths(figures, today, skipped);
   if (!months.length) return '';
+  // What the bank will hold, following what has been spent so far (5.50).
+  const ahead = bankAhead({ bankAfter: figures.bankAfterBills, freeNow: figures.free, months, keep: figures.keep || 0 });
+  const level = (v) => (v < 0 ? `<b class="is-short">${formatRupees(-v)} short</b>` : `<b>${formatRupees(v)}</b>`);
+  const bankLine = (i) =>
+    ahead
+      ? `<span class="k-row__meta forecast-bank"><span>In your bank by then ${level(ahead.spend[i])}</span>${
+          i === 0 ? `<small>${level(ahead.stop)} if you spend nothing more this month${(figures.refundInBankCheck || 0) > 0 && ahead.stop < 0 ? `, ${formatRupees(figures.refundInBankCheck)} more when your employer pays back` : ''}</small>` : ''
+        }</span>`
+      : '';
   const name = (key) => new Date(`${key}-01T12:00`).toLocaleDateString('en-IN', { month: 'long' });
   return `${sectionHead('Next 3 months')}
     <div class="totals-card forecast">
@@ -1020,9 +1044,11 @@ export function forecastList(figures, today) {
             m.renewals.length ? `${escapeHtml(m.renewals[0].label)} ${formatRupees(m.renewals[0].amount)}${m.renewals.length > 1 ? ` and ${m.renewals.length - 1} more` : ''} due` : 'a usual month'
           }</span></span>
           <span class="k-row__value">${m.short ? `${formatRupees(-m.free)} short` : `${formatRupees(m.free)} to spend`}</span>
+          ${bankLine(months.indexOf(m))}
         </div>`
         )
         .join('')}
+      ${ahead ? '<p class="muted-note forecast-note">Bank figures follow what you have spent so far and count each month\'s "to spend" as spent in full.</p>' : ''}
     </div>`;
 }
 

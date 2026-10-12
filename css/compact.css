@@ -201,3 +201,12 @@
 .k .pl-done__row small { color: var(--k-text-3); }
 .k .pl-done__row span { font-variant-numeric: tabular-nums; }
 .k .pl-done__row em { color: var(--k-text-3); font-style: normal; min-width: 44px; text-align: right; }
+
+/* --- 5.50: the coming months, with what the bank will hold ----------------------------------------- */
+.k .forecast-bank { display: block; margin-top: 2px; line-height: 1.35; }
+.k .forecast-bank b { font-weight: 600; color: var(--k-text); font-variant-numeric: tabular-nums; }
+.k .forecast-bank b.is-short { color: var(--k-negative); }
+.k .forecast-note { margin: var(--k-2) 0 0; font-size: 12px; }
+.k .forecast-row { flex-wrap: wrap; row-gap: 4px; }
+.k .forecast-bank { flex: 1 1 100%; display: grid; gap: 1px; margin: 0; padding-top: 6px; border-top: 1px solid var(--k-hairline); }
+.k .forecast-bank small { font-size: 12px; color: var(--k-text-3); }

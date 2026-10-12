@@ -25,6 +25,25 @@ export function costInMonth(item, key) {
   return { amount: monthlyAmountOf(item), dated: false };
 }
 
+/* What is in the bank at the start of each coming month, once that month's salary is in and its fixed costs
+ * are out (5.50). It starts from the bank check on Summary (`bankAfter`: the bank after this month's bills, the
+ * next salary and the next month's commitments, if nothing more is spent), so it follows what has been spent so far.
+ *   stop  - the first month only: if you spend nothing more this month.
+ *   spend - if you spend what is left of this month's budget (`freeNow`), and each coming month's "to spend" in full.
+ * A month that comes up short has no "to spend", so nothing is taken off for it. Null when the bank check is not set up. */
+export function bankAhead({ bankAfter, freeNow = 0, months, keep = 0 }) {
+  if (bankAfter == null || !months.length) return null;
+  const spend = [];
+  let level = bankAfter - Math.max(0, freeNow || 0);
+  spend.push(level);
+  for (let n = 1; n < months.length; n++) {
+    const income = months[n].free + months[n].costs + keep;
+    level = level - Math.max(0, months[n - 1].free) + income - months[n].costs;
+    spend.push(level);
+  }
+  return { stop: bankAfter, spend };
+}
+
 /* The coming months, from the one after today's. `income` is what comes in a month, `keep`
  * what is saved. Each: { key, costs, free, short, renewals: [{ label, amount }], extra } where
  * `extra` is how much more than an ordinary month the fixed costs are. */

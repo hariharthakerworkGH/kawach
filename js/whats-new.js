@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.50',
+    items: [
+      {
+        icon: 'alert',
+        title: "Plan warns you about a short month",
+        text: "If a coming month will not cover its fixed costs and your saving, a note at the top of Plan says which month and by how much. A cost you skipped this month now counts in the next one, so skipping once cannot hide a short month. Next 3 months also shows what your bank will hold after each salary and its commitments, following what you have spent so far.",
+        guide: [{ view: 'plan', target: '.forecast', text: "Each month shows what is left to spend and what your bank will hold by then." }],
+      },
+    ],
+  },
+  {
     version: '5.49',
     items: [
       {

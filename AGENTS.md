@@ -493,7 +493,9 @@ card, 12px between cards, 24px before a heading). History's open payment shows t
 the day and a Save at once; Add shows account and date beside each other, never behind a fold.
 Lists a person keeps (fixed costs, accounts, the lists in a drop-down) are A to Z unless they arranged them with Reorder
 (`byYourOrder`). Plan shows what is still to pay; paid and used-up ones fold under a line, and only a set-aside that
-has gone over its limit is flagged at the top. The title and tab bars are hidden while the opening is up (`html.booting`).
+has gone over its limit is flagged at the top. So is a coming month that is short (5.50:
+`comingMonths` counts a cost skipped this month, because it returns). "Next 3 months" also says what the bank will hold
+(`bankAhead`, from the Summary bank check, so it follows what has been spent). The title and tab bars are hidden while the opening is up (`html.booting`).
 
 ## Working on it
 

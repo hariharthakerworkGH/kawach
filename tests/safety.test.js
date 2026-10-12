@@ -9,6 +9,8 @@ import { mergeSnapshots, mergeLists } from '../js/sync.js';
 import { restoreBackup, screenBackup, undoInfo, undoRestore } from '../js/backup.js';
 import { backupsToDelete } from '../js/drive.js';
 import { planMonth } from '../js/views/plan-looks.js';
+import { comingMonths } from '../js/views/plan.js';
+import { bankAhead, forecast } from '../js/forecast.js';
 import { byYourOrder } from '../js/commitments.js';
 import { cleanStatementText, sizeProblem, MAX_PDF_BYTES } from '../js/statement-text.js';
 
@@ -469,4 +471,27 @@ test('plan: the steps are the ones still to pay; paid and skipped ones are folde
 test('lists: a commitment or account never moved is A to Z, one arranged by hand keeps its place first', () => {
   const list = [{ label: 'zinc' }, { label: 'Apple' }, { label: 'mango', sortOrder: 0 }, { label: 'Banana' }];
   equal([...list].sort(byYourOrder).map((x) => x.label), ['mango', 'Apple', 'Banana', 'zinc']);
+});
+
+/* --- the coming months follow what has been spent (5.50) ----------------------------------------- */
+test('forecast: a cost skipped for this month is counted in the months ahead, so it cannot hide a short month', () => {
+  const rent = { id: 'rent', label: 'Rent', amount: 5000000, frequency: 'monthly' };
+  const policy = { id: 'pol', label: 'Policy', amount: 1350000, frequency: 'monthly' };
+  const figures = { limit: 1000000, keep: 500000, budgetItems: [{ amount: 5000000, item: rent }] };
+  const without = comingMonths(figures, '2026-10-12');
+  const withIt = comingMonths(figures, '2026-10-12', [policy]);
+  equal([without[0].short, withIt[0].short], [false, true]);
+  equal(withIt[0].free, without[0].free - 1350000);
+  equal(comingMonths(figures, '2026-10-12', [rent]).map((m) => m.free), without.map((m) => m.free), 'one already in the budget is not counted twice');
+});
+
+test('forecast: the bank by each month follows what is in it now, and what is spent of the budget', () => {
+  const months = forecast({ items: [{ id: 'a', label: 'A', amount: 100000, frequency: 'monthly' }], income: 300000, keep: 50000, today: '2026-10-12', months: 3 });
+  equal(months[0].free, 150000);
+  const a = bankAhead({ bankAfter: 400000, freeNow: 30000, months, keep: 50000 });
+  equal(a.stop, 400000);
+  equal(a.spend[0], 370000, 'what is left of this month spent');
+  equal(a.spend[1], 370000 - 150000 + 200000, 'next month: its to-spend spent, then the next salary less the next costs');
+  equal(bankAhead({ bankAfter: null, months }), null, 'no bank check, no figure');
+  equal(bankAhead({ bankAfter: -1000, freeNow: -500, months }).spend[0], -1000, 'an overspent month takes nothing more off');
 });
