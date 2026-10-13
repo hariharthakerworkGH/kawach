@@ -1,4 +1,5 @@
 import { appearance } from '../appearance.js';
+import { sortCommitments, sortAccounts, sortCategories, usageCounts } from '../list-order.js';
 import { holdFocus } from '../overlay.js';
 import { put, getAll, newId, getSetting } from '../db.js';
 import { icon } from '../icons.js';
@@ -31,7 +32,7 @@ export async function render(container, params = {}) {
   const peopleOrder = [...standing].sort((a, b) => Number(b.owed !== 0) - Number(a.owed !== 0) || (b.entries[0]?.date || '').localeCompare(a.entries[0]?.date || ''));
   // The accounts of the lane on screen: Home's, or one business's.
   const accounts = allAccounts.filter(accountInSpace(space));
-  const commitments = recurring.filter((r) => isLiveCommitment(r)).sort(byYourOrder);
+  const commitments = sortCommitments(recurring.filter((r) => isLiveCommitment(r)));
   // The phone's own date. toISOString() is UTC, which in India is still
   // yesterday until 5:30am - so late-night spends were being dated the day
   // before, and on the 1st of the month, filed under the previous month.
@@ -53,8 +54,7 @@ export async function render(container, params = {}) {
         <div class="k-picker k-picker--select">
           <span class="k-picker__mark" id="add-account-mark"></span>
           <select id="add-account" class="k-select">
-            ${[...accounts]
-              .sort(byYourOrder)
+            ${sortAccounts(accounts)
               // A loan or the provident fund is not somewhere you spend from.
               .filter((a) => ['bank', 'card', 'cash', 'savings'].includes(a.type))
               .map((a) => `<option value="${a.id}" ${a.id === initialAccountId ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
@@ -210,7 +210,7 @@ export async function render(container, params = {}) {
               <span class="k-row__body"><span class="k-row__title">Uncategorized</span></span>
               <span class="k-cat-row__tick" aria-hidden="true"></span>
             </button>
-            ${catList
+            ${sortCategories(catList, undefined, usageCounts(transactions))
               .map(
                 (c) => `<button type="button" class="k-row k-cat-row chip" data-cat="${c.id}" data-business="${isBusinessCategory(c) ? '1' : ''}" data-income="${isIncomeCategory(c) ? '1' : ''}">
                   <span class="k-icon" style="--k-tint:${categoryStyle(c.name).color}">${categoryStyle(c.name).icon}</span>

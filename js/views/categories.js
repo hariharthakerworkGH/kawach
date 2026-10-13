@@ -1,3 +1,4 @@
+import { sortCategories } from '../list-order.js';
 import { getAll, put, remove, newId } from '../db.js';
 import { categoryStyle, setCustomStyles, categoryIconKey, COLOR_CHOICES } from '../category-style.js';
 import { categoryIcon, PICKABLE_ICONS } from '../category-icons.js';
@@ -218,7 +219,7 @@ function categoryForm(cat, topLevel) {
         <span>Sits under <span class="muted">(optional)</span></span>
         <select class="cf-parent">
           <option value="">Nothing, it is a main category</option>
-          ${topLevel
+          ${sortCategories(topLevel)
             .filter((c) => !cat || c.id !== cat.id)
             .map((c) => `<option value="${c.id}" ${cat && cat.parentId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)
             .join('')}

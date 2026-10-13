@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.51',
+    items: [
+      {
+        icon: 'history',
+        title: "Every list is A to Z, and you choose the order",
+        text: "Commitments, accounts and the lists you pick from (categories, accounts, commitments in a drop-down) now start A to Z. Plan and Accounts have a small control to change it: A to Z, by due day, biggest first, or the order you arranged with Reorder. Categories can go by most used. The same choice is in Settings, How it looks.",
+        guide: [{ view: 'plan', target: '#plan-sort', text: "Change how your commitments are ordered here." }],
+      },
+    ],
+  },
+  {
     version: '5.50',
     items: [
       {

@@ -11,6 +11,7 @@ import { backupsToDelete } from '../js/drive.js';
 import { planMonth } from '../js/views/plan-looks.js';
 import { comingMonths } from '../js/views/plan.js';
 import { bankAhead, forecast } from '../js/forecast.js';
+import { sortCommitments, sortAccounts, sortCategories, usageCounts } from '../js/list-order.js';
 import { byYourOrder } from '../js/commitments.js';
 import { cleanStatementText, sizeProblem, MAX_PDF_BYTES } from '../js/statement-text.js';
 
@@ -494,4 +495,31 @@ test('forecast: the bank by each month follows what is in it now, and what is sp
   equal(a.spend[1], 370000 - 150000 + 200000, 'next month: its to-spend spent, then the next salary less the next costs');
   equal(bankAhead({ bankAfter: null, months }), null, 'no bank check, no figure');
   equal(bankAhead({ bankAfter: -1000, freeNow: -500, months }).spend[0], -1000, 'an overspent month takes nothing more off');
+});
+
+/* --- lists are A to Z unless the person chose another way (5.51) ---------------------------------- */
+test('lists: commitments go A to Z, by day, biggest first, or the way the person arranged them', () => {
+  const list = [
+    { label: 'rent', amount: 4000000, frequency: 'monthly', dayOfMonth: 5, sortOrder: 1 },
+    { label: 'Netflix', amount: 64900, frequency: 'monthly', dayOfMonth: 20 },
+    { label: 'EMI 2', amount: 100000, frequency: 'monthly', dayOfMonth: 2, sortOrder: 0 },
+    { label: 'EMI 10', amount: 90000, frequency: 'monthly', dayOfMonth: 9 },
+  ];
+  const names = (mode) => sortCommitments(list, mode).map((x) => x.label);
+  equal(names('name'), ['EMI 2', 'EMI 10', 'Netflix', 'rent'], 'case ignored, numbers read as numbers');
+  equal(names('day'), ['EMI 2', 'rent', 'EMI 10', 'Netflix']);
+  equal(names('size'), ['rent', 'EMI 2', 'EMI 10', 'Netflix']);
+  equal(names('yours'), ['EMI 2', 'rent', 'EMI 10', 'Netflix'], 'arranged ones first, the rest A to Z');
+});
+
+test('lists: accounts and categories are A to Z, or by size or use when asked', () => {
+  const accounts = [{ label: 'Card 2', id: 'b' }, { label: 'Bank 1', id: 'a' }, { label: 'Cash', id: 'c' }];
+  const size = { a: 100, b: 500, c: 500 };
+  equal(sortAccounts(accounts, 'name').map((a) => a.id), ['a', 'b', 'c']);
+  equal(sortAccounts(accounts, 'size', (a) => size[a.id]).map((a) => a.id), ['b', 'c', 'a'], 'ties fall back to A to Z');
+  const cats = [{ id: 'x', name: 'Travel' }, { id: 'y', name: 'Food' }, { id: 'z', name: 'Bills' }];
+  const used = usageCounts([{ categoryId: 'x' }, { categoryId: 'x' }, { categoryId: 'y' }]);
+  equal(sortCategories(cats, 'name').map((c) => c.id), ['z', 'y', 'x']);
+  equal(sortCategories(cats, 'used', used).map((c) => c.id), ['x', 'y', 'z']);
+  equal(sortCategories(cats, 'used').map((c) => c.id), ['z', 'y', 'x'], 'without counts, A to Z');
 });

@@ -10,7 +10,8 @@ import { DEFAULT_KEEP_IN_BANK, computeFreeToSpend } from '../free-to-spend.js';
 import { currentMonthKey } from '../spending-month.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequencyShort, hasDueDate, toMonthly, toYearly, isoLocal } from '../frequency.js';
 import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder, isSetAside, isAtmPlan, duplicateCommitments } from '../commitments.js';
-import { appearance } from '../appearance.js';
+import { appearance, setAppearance } from '../appearance.js';
+import { sortCommitments, sortAccounts, sortCategories, sortPicker } from '../list-order.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
 import { COMMON_COSTS, RENEWAL_MONTHS, renews, nextRenewal, renewalsAhead } from '../calendar.js';
@@ -67,15 +68,7 @@ export async function render(container) {
   // coming next at the top; biggest first shows what dominates the month.
   // Either way it is only the order - nothing is added, hidden or recounted.
   const planOrder = appearance('plan');
-  const ordering =
-    planOrder === 'day'
-      ? (a, b) => (a.dayOfMonth || 32) - (b.dayOfMonth || 32) || byYourOrder(a, b)
-      : planOrder === 'name'
-        ? (a, b) => String(a.label || '').localeCompare(String(b.label || ''), undefined, { sensitivity: 'base' })
-      : planOrder === 'size'
-        ? (a, b) => monthlyAmountOf(b) - monthlyAmountOf(a) || byYourOrder(a, b)
-        : byYourOrder;
-  const fixed = recurring.filter((r) => inLane(r) && isLiveCommitment(r, todayIso)).sort(ordering);
+  const fixed = sortCommitments(recurring.filter((r) => inLane(r) && isLiveCommitment(r, todayIso)), planOrder);
   const finished = recurring.filter((r) => inLane(r) && isFixed(r) && r.active !== false && isFinished(r, todayIso));
   const laneAccounts = accounts.filter(accountInSpace(space));
   const laneCategories = categories.filter((c) => isBusinessCategory(c) === inBusiness);
@@ -312,9 +305,10 @@ export async function render(container) {
     }
     ${sectionHead(
       inBusiness ? 'Fixed costs' : 'Commitments',
-      fixed.length > 1 && planOrder === 'yours'
-        ? `<button type="button" class="icon-btn" id="plan-reorder">${reordering ? 'Done' : 'Reorder'}</button>`
-        : ''
+      (fixed.length > 1 ? sortPicker('plan-sort', 'plan', 'Order of your commitments') : '') +
+        (fixed.length > 1 && planOrder === 'yours'
+          ? `<button type="button" class="icon-btn" id="plan-reorder">${reordering ? 'Done' : 'Reorder'}</button>`
+          : '')
     )}
     ${
       fixed.length
@@ -724,6 +718,14 @@ export async function render(container) {
 
   // Move a commitment up or down the list. Every commitment gets its place
   // number; only the ones whose number changed are saved.
+  const sortBy = container.querySelector('#plan-sort');
+  if (sortBy) {
+    sortBy.addEventListener('change', () => {
+      setAppearance('plan', sortBy.value);
+      reordering = false;
+      redraw(container, () => render(container));
+    });
+  }
   const reorderBtn = container.querySelector('#plan-reorder');
   if (reorderBtn) {
     reorderBtn.addEventListener('click', () => {
@@ -950,7 +952,7 @@ function budgetForm(categories) {
       <label class="field">
         <span>Category</span>
         <select class="bf-category" required>
-          ${categories.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+          ${sortCategories(categories).map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
         </select>
       </label>
       <label class="field">
@@ -1175,11 +1177,11 @@ function fixedForm(categories, accounts, item) {
         <select class="ff-account">
           <option value="">Any bank account</option>
           <option value="cash" ${selected('cash', v.accountId)}>Cash (from your ATM money)</option>
-          ${accounts
+          ${sortAccounts(accounts)
             .filter((a) => a.type === 'bank')
             .map((a) => `<option value="${a.id}" ${selected(a.id, v.accountId)}>${escapeHtml(a.label)}</option>`)
             .join('')}
-          ${accounts
+          ${sortAccounts(accounts)
             .filter((a) => a.type === 'card')
             .map((a) => `<option value="${a.id}" ${selected(a.id, v.accountId)}>${escapeHtml(a.label)}</option>`)
             .join('')}
@@ -1198,7 +1200,7 @@ function fixedForm(categories, accounts, item) {
         <span>Category <span class="muted">(so this spend isn't counted twice)</span></span>
         <select class="ff-category">
           <option value="">None</option>
-          ${categories.map((c) => `<option value="${c.id}" ${selected(c.id, v.categoryId)}>${escapeHtml(c.name)}</option>`).join('')}
+          ${sortCategories(categories).map((c) => `<option value="${c.id}" ${selected(c.id, v.categoryId)}>${escapeHtml(c.name)}</option>`).join('')}
         </select>
       </label>
       <button type="submit" class="btn-primary">${item ? 'Save' : 'Add'}</button>

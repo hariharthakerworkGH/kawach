@@ -16,6 +16,7 @@ import { computeFreeToSpend } from '../free-to-spend.js';
 import { loanPosition } from '../loans.js';
 import { listTakenOn } from '../account-metrics.js';
 import { detectEmis, emiCommitment, emiCommitmentId } from '../commitments.js';
+import { sortAccounts, sortCategories } from '../list-order.js';
 import { isoLocal } from '../frequency.js';
 import { sameTransaction } from '../duplicates.js';
 import * as csvParser from '../parsers/csv.js';
@@ -916,7 +917,7 @@ function renderResults(resultsEl) {
             `<label class="field" style="margin:var(--space-xs) 0 var(--space-3xs)">
               <span>Which account is this?</span>
               <select id="import-card">
-                ${accounts
+                ${sortAccounts(accounts)
                   .filter((a) => a.type === parser.accountType)
                   .map((a) => `<option value="${a.id}" ${account && account.id === a.id ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
                   .join('')}
@@ -1166,7 +1167,7 @@ function rowTemplate(row, idx, categories) {
         <input type="number" step="0.01" class="ir-field ir-amount" data-field="amount" value="${(row.amount / 100).toFixed(2)}">
         <select class="ir-field ir-category" id="ir-cat-${idx}" data-field="categoryId">
           <option value="">Uncategorized</option>
-          ${categories.filter((c) => fitsDirection(c, row.direction)).map((c) => `<option value="${c.id}" ${c.id === row.categoryId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+          ${sortCategories(categories.filter((c) => fitsDirection(c, row.direction))).map((c) => `<option value="${c.id}" ${c.id === row.categoryId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -1283,8 +1284,8 @@ function handleClick(e, resultsEl, container) {
     if (cat && !fitsDirection(cat, row.direction)) row.categoryId = null;
     const pick = rowEl.querySelector('.ir-category');
     if (pick) {
-      pick.innerHTML = `<option value="">Uncategorized</option>${categoriesFor(categoriesCache, state.account)
-        .filter((c) => fitsDirection(c, row.direction))
+      pick.innerHTML = `<option value="">Uncategorized</option>${sortCategories(categoriesFor(categoriesCache, state.account)
+        .filter((c) => fitsDirection(c, row.direction)))
         .map((c) => `<option value="${c.id}" ${c.id === row.categoryId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)
         .join('')}`;
     }

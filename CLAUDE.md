@@ -491,8 +491,10 @@ Control sizes are set once, in `css/compact.css` (loaded last, 5.47): a field 36
 chip 28; buttons, chips, switches and toggles keep a 44px reach strip, and a text field or list keeps its 36px (the audit's floor for fields); every screen shares one rhythm (16px gutter, 14/16 inside a
 card, 12px between cards, 24px before a heading). History's open payment shows the amount, a category list,
 the day and a Save at once; Add shows account and date beside each other, never behind a fold.
-Lists a person keeps (fixed costs, accounts, the lists in a drop-down) are A to Z unless they arranged them with Reorder
-(`byYourOrder`). Plan shows what is still to pay; paid and used-up ones fold under a line, and only a set-aside that
+Every list a person picks from or reads down is A to Z by default and ordered by `js/list-order.js` (5.51): commitments
+(A to Z, due day, biggest, their own order), accounts (A to Z, biggest, their own order), categories (A to Z, most used). The
+choice is on the screen (a small control on Plan and Accounts) and in Settings, How it looks; Reorder works in "their own
+order" (`byYourOrder`). Plan shows what is still to pay; paid and used-up ones fold under a line, and only a set-aside that
 has gone over its limit is flagged at the top. So is a coming month that is short (5.50:
 `comingMonths` counts a cost skipped this month, because it returns). "Next 3 months" also says what the bank will hold
 (`bankAhead`, from the Summary bank check, so it follows what has been spent). The title and tab bars are hidden while the opening is up (`html.booting`).

@@ -210,3 +210,8 @@
 .k .forecast-row { flex-wrap: wrap; row-gap: 4px; }
 .k .forecast-bank { flex: 1 1 100%; display: grid; gap: 1px; margin: 0; padding-top: 6px; border-top: 1px solid var(--k-hairline); }
 .k .forecast-bank small { font-size: 12px; color: var(--k-text-3); }
+
+/* --- 5.51: how a list is ordered -------------------------------------------------------------------- */
+.k .sort-pick { height: var(--k-ctl-md); min-height: var(--k-ctl-md); padding: 0 var(--k-6) 0 var(--k-3); border-radius: var(--k-r-pill); border: 1px solid var(--k-border-subtle); background-color: var(--k-glass-1); color: var(--k-text-2); font: inherit; font-size: 12px; font-weight: 600; width: auto; }
+:root[data-style="instrument"] .k .sort-pick { border-radius: var(--in-r-sm); }
+.k .accounts-actions--top .sort-pick { margin-left: auto; }

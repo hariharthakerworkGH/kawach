@@ -8,6 +8,7 @@ import { loadLearned, forgetLearned } from '../alert-learning.js';
 import { showToast } from '../toast.js';
 import { commitmentField, cardPaymentField } from './add.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
+import { sortAccounts, sortCategories } from '../list-order.js';
 import { looksLikeCardPayment } from '../transfers.js';
 import { redraw } from '../redraw.js';
 import { escapeHtml, escapeAttr, sectionHead, invalidField, slidingPill } from '../ui.js';
@@ -191,7 +192,7 @@ function draftTemplate(d) {
         <span>Account</span>
         <select class="al-account">
           <option value="">Pick the account</option>
-          ${context.accounts
+          ${sortAccounts(context.accounts)
             .map((a) => `<option value="${a.id}" ${d.account && d.account.id === a.id ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
             .join('')}
         </select>
@@ -210,7 +211,7 @@ function draftTemplate(d) {
         <span>Category</span>
         <select class="al-category">
           <option value="">Needs a category</option>
-          ${context.categories
+          ${sortCategories(context.categories)
             // Income is not offered for money going out.
             .filter((c) => fitsDirection(c, parsed.direction))
             .map((c) => `<option value="${c.id}" ${isIncomeCategory(c) ? 'data-income="1"' : ''} ${c.id === d.categoryId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)

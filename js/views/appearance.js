@@ -117,7 +117,9 @@ function previewFor(name, value) {
       { label: 'Phone bill', amount: 49900, day: 2, arranged: 3 },
     ];
     const order =
-      value === 'day'
+      value === 'name'
+        ? (a, b) => a.label.localeCompare(b.label)
+        : value === 'day'
         ? (a, b) => a.day - b.day
         : value === 'size'
           ? (a, b) => b.amount - a.amount

@@ -132,6 +132,27 @@ export const CHOICES = {
       { value: 'size', label: 'Biggest first', note: 'The largest amounts at the top, to see what dominates the month.' },
     ],
   },
+  accountOrder: {
+    label: 'Your accounts',
+    question: 'In what order should your accounts sit?',
+    fallback: 'name',
+    where: 'Accounts',
+    options: [
+      { value: 'name', label: 'A to Z', note: 'By name, within each kind of account.' },
+      { value: 'size', label: 'Biggest first', note: 'The largest balance or bill at the top of each kind.' },
+      { value: 'yours', label: 'The order you arranged', note: 'However you put them with Reorder.' },
+    ],
+  },
+  categoryOrder: {
+    label: 'Your categories',
+    question: 'In what order should categories be listed?',
+    fallback: 'name',
+    where: 'History',
+    options: [
+      { value: 'name', label: 'A to Z', note: 'By name, in every list of categories.' },
+      { value: 'used', label: 'Most used first', note: 'The ones you give to most payments at the top.' },
+    ],
+  },
   add: {
     label: 'The Add screen',
     question: 'How much of the form do you want to see?',

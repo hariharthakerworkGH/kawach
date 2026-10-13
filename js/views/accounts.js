@@ -15,7 +15,8 @@ import { icon } from '../icons.js';
 import { brandMark } from '../brand.js';
 import { reminderText, updatePerson, shareReminder } from '../people.js';
 import { allocationRing, tickGauge } from '../charts.js';
-import { appearance } from '../appearance.js';
+import { appearance, setAppearance } from '../appearance.js';
+import { sortAccounts, sortPicker } from '../list-order.js';
 import { displayName } from './transactions.js';
 import { cushion } from '../goals.js';
 import { limitUse, bestDay, payBy } from '../card-smarts.js';
@@ -95,8 +96,9 @@ export async function render(container) {
   depositsOf = new Map();
   for (const a of accounts.filter(isInsideParent)) depositsOf.set(a.depositOf, [...(depositsOf.get(a.depositOf) || []), a]);
   const groups = { cash: [], bank: [], card: [], savings: [], loan: [], pf: [] };
-  // In the order you arranged them, new ones last.
-  for (const a of [...accounts].sort(byYourOrder)) {
+  // A to Z, biggest first or the order you arranged them: the person's choice (js/list-order.js).
+  const accountOrder = appearance('accountOrder');
+  for (const a of sortAccounts(accounts, accountOrder, (x) => Math.abs(bankBalance(x, transactions) || 0))) {
     if (isInsideParent(a) || !accountInSpace(space)(a)) continue;
     (groups[groupOf(a)] || (groups[groupOf(a)] = [])).push(a);
   }
@@ -115,7 +117,8 @@ export async function render(container) {
       }
       <button type="button" id="go-import-btn" class="k-btn k-btn--ghost">Import a statement</button>
       ${appearance('accounts') === 'private' ? `<button type="button" id="accounts-reveal" class="k-btn k-btn--ghost">${balancesShown ? 'Hide' : 'Show'} balances</button>` : ''}
-      ${accounts.length > 1 ? `<button type="button" id="accounts-reorder" class="k-btn k-btn--ghost">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
+      ${accounts.length > 1 ? sortPicker('accounts-sort', 'accountOrder', 'Order of your accounts') : ''}
+      ${accounts.length > 1 && accountOrder === 'yours' ? `<button type="button" id="accounts-reorder" class="k-btn k-btn--ghost">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
     </div>
     ${accountsTotal(groups, transactions, homeFigures)}
     ${cushionCard(homeFigures)}
@@ -181,6 +184,14 @@ export async function render(container) {
   const addBtn = container.querySelector('#add-account-btn');
   if (addBtn) addBtn.addEventListener('click', openAdd);
 
+  const sortBy = container.querySelector('#accounts-sort');
+  if (sortBy) {
+    sortBy.addEventListener('change', () => {
+      setAppearance('accountOrder', sortBy.value);
+      reordering = false;
+      redraw(container, () => render(container));
+    });
+  }
   const reorderBtn = container.querySelector('#accounts-reorder');
   if (reorderBtn) {
     reorderBtn.addEventListener('click', () => {
@@ -539,7 +550,7 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
           <span>Paid from</span>
           <select class="af-paid-from">
             <option value="">Pick the account</option>
-            ${payFromOptions.map((p) => `<option value="${p.id}" ${a.loan?.paidFromId === p.id ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
+            ${sortAccounts(payFromOptions).map((p) => `<option value="${p.id}" ${a.loan?.paidFromId === p.id ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
           </select>
         </label>
         <label class="field">
@@ -1443,7 +1454,7 @@ function billPanel(account) {
         <span class="k-label">Paid from</span>
         <select class="k-select bill-pay-source">
           <option value="">Choose an account</option>
-          ${payFrom.map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}
+          ${sortAccounts(payFrom).map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}
         </select>
       </label>
       <label class="k-field field">

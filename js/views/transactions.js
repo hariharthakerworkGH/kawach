@@ -18,6 +18,7 @@ import { bankBalance, balanceAt } from '../account-metrics.js';
 import { isoLocal } from '../frequency.js';
 import { icon } from '../icons.js';
 import { categoriesFor, activeSpace, accountInSpace, isBusinessAccount } from '../business.js';
+import { sortCommitments, sortAccounts, sortCategories, usageCounts } from '../list-order.js';
 import { tidyFlags } from '../reimbursable.js';
 import { inOutBars, cashRiver } from '../charts.js';
 import { appearance } from '../appearance.js';
@@ -79,7 +80,7 @@ export async function render(container, params = {}) {
     transactions,
     categories,
     accounts,
-    commitments: recurring.filter((r) => isLiveCommitment(r)).sort(byYourOrder),
+    commitments: sortCommitments(recurring.filter((r) => isLiveCommitment(r))),
     quick: quickCategories(transactions),
     people,
   };
@@ -129,7 +130,7 @@ export async function render(container, params = {}) {
     <div class="hist-chips">
       <select id="txn-account" class="hist-chip" aria-label="Account">
         <option value="">All accounts</option>
-        ${accounts.map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}
+        ${sortAccounts(accounts, undefined, null).map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}
       </select>
       <select id="txn-category" class="hist-chip" aria-label="Category">
         <option value="">All categories</option>
@@ -333,8 +334,7 @@ function resetPage(container) {
 // `list`: the categories to offer; a payment is offered the ones that fit
 // its account (business or home), the filters every one.
 function categoryOptions(selectedId, list = cache.categories) {
-  return [...list]
-    .sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' }))
+  return sortCategories(list, undefined, usageCounts(cache.transactions))
     .map((c) => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)
     .join('');
 }
