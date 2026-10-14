@@ -21,7 +21,7 @@ import { forecast, costInMonth } from '../js/forecast.js';
 import { flexReport } from '../js/flex-report.js';
 import { flexCard } from '../js/views/recap.js';
 import { makeRecord, checkPin, waitFor, mustLock, makeKeyText, normaliseKey, formatKey, makeKeyRecord, checkKey } from '../js/lock.js';
-import { comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, chartsCards } from '../js/views/summary-looks.js';
+import { comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, havenTop, tideMood, tideSvg, chartsCards } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
 import { termFor } from '../js/explain.js';
 import { peopleStanding, personSpendEffects, lateBack, reminderText } from '../js/people.js';
@@ -408,7 +408,7 @@ test('a look that was never offered falls back to the one that was', () => {
     equal(appearance('nothing-by-this-name'), null);
     localStorage.removeItem(key);
     for (const name of Object.keys(CHOICES)) equal(appearance(name), CHOICES[name].fallback, name);
-    equal(appearance('style'), 'instrument', 'with nothing chosen, Kawach opens in Instrument (5.27; Tactile before)');
+    equal(appearance('style'), 'haven', 'with nothing chosen, Kawach opens in Haven (5.52; Instrument before, Tactile before that)');
   } finally {
     if (before === null) localStorage.removeItem(key);
     else localStorage.setItem(key, before);
@@ -440,14 +440,20 @@ test('colourings: follow the phone, carry over an old light or dark choice', () 
   equal(colouringFor('auto', false, 'tactile').id, 'tactile', 'in Tactile, a dark phone gets Tactile copper');
   equal(colouringFor('auto', true, 'tactile').id, 'flame-light', 'and a light phone burning flame light');
   equal(styleFor('tactile'), 'tactile', 'Tactile is ready');
-  equal(styleFor('mindora'), 'instrument', 'a style that was retired (Mindora, Peaks) is Instrument now');
-  equal(styleFor('peaks'), 'instrument', 'Peaks too');
+  equal(styleFor('mindora'), 'haven', 'a style that was retired (Mindora, Peaks) is Haven now (5.52)');
+  equal(styleFor('peaks'), 'haven', 'Peaks too');
+  equal(styleFor('haven'), 'haven', 'Haven is ready');
+  equal(colouringFor('auto', true, 'haven').id, 'haven-day', 'in Haven, a light phone gets its day');
+  equal(colouringFor('auto', false, 'haven').id, 'haven-night', 'and a dark phone its night');
+  equal(colouringFor('haven-night', true, 'haven').id, 'haven-night', 'a chosen night is kept in daylight');
+  equal(colouringFor('instrument', true, 'haven').id, 'haven-day', 'the colouring everyone wore before 5.52 follows the phone in Haven');
+  equal(colouringFor('ember-dusk', false, 'haven').id, 'ember-dusk', 'a colouring chosen on purpose is kept');
   equal(colouringFor('peaks', false, 'instrument').id, 'instrument', 'and a retired colouring is the style\'s own');
   equal(styleFor('instrument'), 'instrument', 'Instrument is ready');
   equal(colouringFor('auto', false, 'instrument').id, 'instrument', 'in Instrument, a dark phone gets Instrument amber');
   equal(colouringFor('auto', true, 'instrument').id, 'flame-light', 'and a light phone burning flame light, as Instrument is dark');
   ok(['instrument', 'instrument-ice', 'instrument-lime'].every((id) => COLOURINGS.some((c) => c.id === id && c.mode === 'dark')), 'Instrument comes in amber, ice and lime');
-  equal(styleFor('no-such'), 'instrument', 'a style that does not exist is drawn as Instrument, the default');
+  equal(styleFor('no-such'), 'haven', 'a style that does not exist is drawn as Haven, the default');
   ok(COLOURINGS.every((c) => c.mode === 'light' || c.mode === 'dark'));
   const key = 'kawach-appearance';
   const before = localStorage.getItem(key);
@@ -1986,11 +1992,26 @@ test('A name on screen has one plain sentence behind it', () => {
   equal(termFor('₹135'), null, 'a figure is not a name');
   equal(termFor('Groceries'), null, 'and nothing is explained that has no sentence');
 });
+test('Haven: the tide has a mood, always said in words, and the figure stays the one everything reads', () => {
+  const x = (o) => ({ limit: 3300000, left: 2000000, gone: 0.4, finished: false, closedUnder: false, ...o });
+  equal(tideMood(x({}), false)[0], 'calm', 'more left than an even pace leaves is calm');
+  equal(tideMood(x({}), false)[1], 'Ahead of pace', 'and says so');
+  equal(tideMood(x({ left: 1200000 }), false)[0], 'watch', 'behind an even pace but not nearly out is watch');
+  equal(tideMood(x({ left: 400000 }), false)[0], 'low', 'under a fifth left is low');
+  equal(tideMood(x({ left: -50000 }), true)[1], 'Over budget', 'over budget says so');
+  equal(tideMood(x({ finished: true, closedUnder: true }), false)[1], 'Closed under budget', 'a month closed with money to spare');
+  ok(tideSvg(0.5, 0.6).includes('class="pace"') && !tideSvg(0.5, 0).includes('class="pace"'), 'the even-pace line only when there is a pace');
+  const f = { free: 2425000, limit: 3300000, level: 'ok', cycleKey: '2026-10-31', cycleStart: '2026-10-01', spentThisCycle: 875000, used: 0.26, daysIntoCycle: 14, daysToClose: 18, perDay: 134700, cards: [], tracker: [], spendByDay: [] };
+  const html = havenTop(f, 'On track', '');
+  ok(html.includes('data-roll-kind="left"') && html.includes('data-status') && html.includes('class="tide"'), 'the figure keeps its hooks (rolling number, status line) and the tide is drawn');
+  ok(html.includes('Ahead of pace'), 'and the mood is written out, not only coloured');
+});
 test('Swiping between tabs goes round and round in the order of the tab bar', () => {
-  equal(neighbour('summary', 1), 'add', 'left from Summary is Add');
-  equal(neighbour('transactions', 1), 'coach', 'History then Coach');
-  equal(neighbour('coach', 1), 'summary', 'past Coach comes Summary again');
-  equal(neighbour('summary', -1), 'coach', 'and before Summary, Coach');
+  equal(neighbour('summary', 1), 'accounts', 'left from Summary is Accounts');
+  equal(neighbour('accounts', 1), 'add', 'Add is in the middle');
+  equal(neighbour('transactions', 1), 'summary', 'past History comes Summary again');
+  equal(neighbour('summary', -1), 'transactions', 'and before Summary, History');
+  equal(neighbour('coach', 1), null, 'Coach is opened from Plan, not swiped to');
   equal(neighbour('settings', 1), null, 'a screen that is not a tab does not swipe');
 });
 test('Summary in each style: what is coming up, what is kept back', () => {

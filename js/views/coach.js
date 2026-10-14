@@ -89,7 +89,7 @@ function heroTemplate(snapshot) {
   const over = leftAtEnd < 0;
   const pct = c.free > 0 ? Math.min(100, Math.round((projected / c.free) * 100)) : 100;
   const style = document.documentElement.dataset.style;
-  if (['tactile', 'instrument'].includes(style)) {
+  if (['tactile', 'instrument', 'haven'].includes(style)) {
     return coachTop(style, {
       left: pace === 0 ? '-' : formatRupees(leftAtEnd),
       over,

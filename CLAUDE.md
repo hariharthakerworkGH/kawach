@@ -249,7 +249,7 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   the mark; `scenes.js`: the timeline). It is one canvas and every frame is
   `drawFrame(ctx, t)`, a pure function of time, so a frame is exact however it
   is reached. Eight scenes: the opening, then one per screen in the nav's
-  order (Summary, Add, Accounts, Plan, History, Coach), then the close. It
+  order (Summary, Accounts, Add, Plan, History; Coach is a button on Plan since 5.52), then the close. It
   shows what each screen really does, with example figures that agree with
   each other ("Example figures" is on screen); it makes no claim the app does
   not keep (Coach is arithmetic, never "AI"). Kawach's mark in it
@@ -404,14 +404,14 @@ Found by a hostile review of 5.43 and fixed together. Tests: `tests/safety.test.
 
 ## Design
 
-**Styles and colourings (5.0).** Kawach comes in three styles (Charts,
-Tactile, Instrument) and eleven colourings, chosen in How it looks
+**Styles and colourings (5.0).** Kawach comes in four styles (Haven,
+Charts, Tactile, Instrument) and the colourings, chosen in How it looks
 (`js/looks.js`). Peaks and Mindora were retired in 5.41 (the owner found them
-useless); anyone who wore one is moved to Instrument once, with a toast
+useless); anyone who wore one is moved to the default once, with a toast
 (`retireOldLooks` in `js/appearance.js`). Charts is the base every screen is built on; the other
 two are layers over it, restyling what they have caught up with and
-falling back to Charts elsewhere. **Instrument is the default style (5.27; Tactile
-was from 5.17), and every new feature gets its look in Instrument first**; Charts and
+falling back to Charts elsewhere. **Haven is the default style (5.52; Instrument
+was from 5.27, Tactile from 5.17), and every new feature gets its look in Haven first**; Charts and
 Tactile are brought up to date together in a "mass update" (the last one was
 5.24: the short Summary's cards, the explain bubble, Lent and borrowed and the
 salary question in each look's own card language) - never ship anything that
@@ -424,6 +424,13 @@ values in `css/style-instrument.css`, which loads after it. So a feature built f
 (Instrument first, since 5.27) arrives in the other for free, and its own file only holds what
 Tactile has no equivalent of (radii, cell bars, the flush tab bar, the dial in
 `summary-looks.js` `instrumentDial`, the chart `monthScale` in `summary.js`).
+**Haven (5.52)** is the default and the fourth look: calm and light by day, deep navy by night
+(`haven-day` / `haven-night`, always paired with the style, and "Follow my phone" picks between them). Its signature is the tide
+(`summary-looks.js` `havenTop`, `tideMood`, `tideSvg`): what is left rises in a shield, with moods
+(calm, watch, low) that are always written in words too. It also shares Tactile's markup (every
+shared selector is `:is([data-style="tactile"], [data-style="instrument"], [data-style="haven"])`) and repaints through `--t-*` in
+`css/style-haven.css` (springs are CSS `linear()` easings from `tools/spring.mjs`). The tab bar is five tabs
+with Add raised in the middle; Coach is a button at the top of Plan, and Plan stays lit while it is open.
 `plan.js`, `coach.js`, `add.js` and `transactions.js` list it beside the others.
 Its colourings come from `looks.py`; the contrast scan (text of every kind
 against what is behind it) is clean in all three. **Readable text is made by

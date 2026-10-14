@@ -1,14 +1,15 @@
 /* Swipe left and right between the tabs, round and round (5.10).
  *
  * The screen follows your finger; let go past a quarter of the width, or
- * with a quick flick, and the next tab slides in from that side. Past Coach
- * comes Summary again, and before Summary comes Coach. A swipe that starts
+ * with a quick flick, and the next tab slides in from that side. Past History
+ * comes Summary again, and before Summary comes History. A swipe that starts
  * in a field, on something that scrolls sideways, in an open sheet or near
  * the screen's edge (where the phone's own back gesture lives) is left
- * alone, and so is any screen that is not one of the six tabs.
+ * alone, and so is any screen that is not one of the five tabs.
  */
 
-export const TAB_ORDER = ['summary', 'add', 'accounts', 'plan', 'transactions', 'coach'];
+// Coach is not a tab since 5.52: it is a button at the top of Plan (Add sits in the middle of the bar).
+export const TAB_ORDER = ['summary', 'accounts', 'add', 'plan', 'transactions'];
 
 /* The tab a swipe lands on: dir 1 is the next one, -1 the one before. */
 export function neighbour(view, dir) {

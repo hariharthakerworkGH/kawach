@@ -15,6 +15,7 @@
  */
 
 export const STYLES = [
+  { id: 'haven', name: 'Haven', ready: true, note: 'Calm and light, in day and night: a tide shows what is left.' },
   { id: 'charts', name: 'Charts', ready: true, note: 'Gradient rings, waves and columns.' },
   { id: 'tactile', name: 'Tactile', ready: true, note: 'Raised cards, pressed-in fields, metal switches.' },
   { id: 'instrument', name: 'Instrument', ready: true, note: 'Dark and precise: a dial, ruled scales, one lit colour.' },
@@ -29,6 +30,8 @@ export const COLOURINGS = [
   { id: 'instrument-lime', name: 'Instrument lime', mode: 'dark', bg: '#0b0d10', dots: ['#12151a', '#b6f23c', '#7ccf2a', '#46d68c'] },
   { id: 'ember-dusk', name: 'Ember dusk', mode: 'dark', bg: '#101c30', dots: ['#143041', '#e2773a', '#ffcb68', '#5fb3a8'] },
   { id: 'strawberry-night', name: 'Strawberry night', mode: 'dark', bg: '#142030', dots: ['#1e3442', '#ff5c8d', '#a83a78', '#85a3b2'] },
+  { id: 'haven-day', name: 'Haven day', mode: 'light', bg: '#f5f8fc', dots: ['#ffffff', '#11234f', '#145ec1', '#0c7a52'] },
+  { id: 'haven-night', name: 'Haven night', mode: 'dark', bg: '#070c19', dots: ['#10192d', '#1161bb', '#38c9dc', '#5ed99e'] },
   { id: 'flame-light', name: 'Burning flame, light', mode: 'light', bg: '#eee9df', dots: ['#f8f5ef', '#a35139', '#ffb162', '#2c3b4d'] },
   { id: 'flame-dark', name: 'Burning flame, dark', mode: 'dark', bg: '#1b2632', dots: ['#2c3b4d', '#ffb162', '#a35139', '#c9c1b1'] },
   { id: 'feather-forest', name: 'Feather forest', mode: 'dark', bg: '#071f1b', dots: ['#0b2e29', '#d77428', '#3f8f83', '#b53f0d'] },
@@ -39,7 +42,7 @@ export const COLOURINGS = [
 // the phone (each style brings one), otherwise Charts on a dark phone and
 // burning flame light on a light one.
 export const AUTO = { dark: 'charts', light: 'flame-light' };
-const OWN = { charts: 'charts', tactile: 'tactile', instrument: 'instrument' };
+const OWN = { charts: 'charts', tactile: 'tactile', instrument: 'instrument', haven: 'haven-night' };
 
 /* The colouring a style brings with it. */
 export const ownColouring = (style) => OWN[style] || AUTO.dark;
@@ -48,14 +51,18 @@ const byId = new Map(COLOURINGS.map((c) => [c.id, c]));
 
 /* The colouring actually worn for a choice ('auto' or an id). */
 export function colouringFor(choice, prefersLight, style = 'charts') {
-  if (byId.has(choice)) return byId.get(choice);
+  // Haven brings both: its day on a light phone, its night on a dark one. Another look's own colouring (what
+  // everyone wore before Haven became the default, 5.52) means "follow the phone" there.
+  const own3 = choice === 'charts' || choice === 'tactile' || choice === 'instrument';
+  if (byId.has(choice) && !(style === 'haven' && own3)) return byId.get(choice);
+  if (style === 'haven') return byId.get(prefersLight ? 'haven-day' : 'haven-night');
   const own = byId.get(ownColouring(style));
   return (own.mode === 'light') === Boolean(prefersLight) ? own : byId.get(prefersLight ? AUTO.light : AUTO.dark);
 }
 
-/* The style worn: one that is ready, or Instrument (a style that was retired, as Peaks and Mindora were in 5.41, lands there). */
+/* The style worn: one that is ready, or Haven (the default since 5.52; a style that was retired, as Peaks and Mindora were in 5.41, lands there). */
 export function styleFor(choice) {
-  return STYLES.some((s) => s.id === choice && s.ready) ? choice : 'instrument';
+  return STYLES.some((s) => s.id === choice && s.ready) ? choice : 'haven';
 }
 
 function prefersLight() {

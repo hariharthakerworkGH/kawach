@@ -1,5 +1,5 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
-import { tactileTop, instrumentTop, keptBack, chartsComing, chartsCards } from './summary-looks.js';
+import { tactileTop, instrumentTop, havenTop, keptBack, chartsComing, chartsCards } from './summary-looks.js';
 import { isDemo } from '../demo-flag.js';
 import { icon } from '../icons.js';
 import { isFixed, isLiveCommitment, coveredByFixed, commitmentFromSuggestion } from '../commitments.js';
@@ -1143,7 +1143,7 @@ function incomeLine(f) {
 
 const monthShort = (month) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(month.slice(5, 7)) - 1];
 
-const LOOK_TOPS = { tactile: tactileTop, instrument: instrumentTop };
+const LOOK_TOPS = { tactile: tactileTop, instrument: instrumentTop, haven: havenTop };
 
 function renderCardsHero(f, opts = {}) {
   const past = opts.past || null;

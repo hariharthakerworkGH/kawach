@@ -152,7 +152,8 @@ function lookCard(spec) {
   const style = appearance('style');
   const dots = (c) => c.dots.map((d) => `<i style="background:${d}"></i>`).join('');
   const auto = COLOURINGS.find((c) => c.id === ownColouring(style));
-  const autoLight = COLOURINGS.find((c) => c.id === AUTO.light);
+  // Haven follows the phone into its own day, the others into burning flame light.
+  const autoLight = COLOURINGS.find((c) => c.id === (style === 'haven' ? 'haven-day' : AUTO.light));
   const tile = (value, name, sub, swatch) => `
         <label class="look-option look-swatch${value === current ? ' chosen' : ''}">
           <input type="radio" name="look-colour" value="${value}"${value === current ? ' checked' : ''}>
@@ -172,7 +173,7 @@ function lookCard(spec) {
     <h3>${spec.label}</h3>
     <div class="totals-card look-card">
       <div class="look-swatches">
-        ${tile('auto', 'Follow my phone', 'Style colours or flame', [auto.bg, auto.dots[1], autoLight.bg, autoLight.dots[1]].map((d) => `<i style="background:${d}"></i>`).join(''))}
+        ${tile('auto', 'Follow my phone', style === 'haven' ? 'Haven day or night' : 'Style colours or flame', [auto.bg, auto.dots[1], autoLight.bg, autoLight.dots[1]].map((d) => `<i style="background:${d}"></i>`).join(''))}
         ${COLOURINGS.map((c) => tile(c.id, c.name, c.mode === 'light' ? 'Light' : 'Dark', dots(c))).join('')}
       </div>
       <p class="muted-note look-live">Tap one to see the whole app change.</p>

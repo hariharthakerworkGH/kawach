@@ -65,16 +65,18 @@
     // it is as light or dark as the phone, else Charts on a dark phone and
     // burning flame light on a light one. READY and LIGHT must match
     // js/looks.js.
-    var READY = { tactile: 1, instrument: 1 };
-    var LIGHT = { 'flame-light': 1 };
-    // Instrument unless another style was chosen (the default since 5.27; Tactile was before).
-    var st = a.style === 'charts' ? 'charts' : READY[a.style] ? a.style : 'instrument';
+    var READY = { tactile: 1, instrument: 1, haven: 1 };
+    var LIGHT = { 'flame-light': 1, 'haven-day': 1 };
+    // Haven unless another style was chosen (the default since 5.52; Instrument was before, Tactile before that).
+    var st = a.style === 'charts' ? 'charts' : READY[a.style] ? a.style : 'haven';
     if (st !== 'charts') r.setAttribute('data-style', st);
     var c = a.colour || ({ light: 'flame-light', dark: 'charts' })[a.theme] || 'auto';
     // Peaks and Mindora were retired in 5.41: whoever wore them is on Instrument, following the phone.
     if (c === 'peaks' || c === 'mindora') c = 'auto';
+    // Haven brings its own day and night: another look's own colouring (the default before 5.52) means "follow the phone" here.
+    if (st === 'haven' && (c === 'charts' || c === 'tactile' || c === 'instrument')) c = 'auto';
     var pl = Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
-    if (c === 'auto') c = Boolean(LIGHT[st]) === pl ? st : pl ? 'flame-light' : 'charts';
+    if (c === 'auto') c = st === 'haven' ? (pl ? 'haven-day' : 'haven-night') : Boolean(LIGHT[st]) === pl ? st : pl ? 'flame-light' : 'charts';
     r.setAttribute('data-colour', c);
     r.setAttribute('data-theme', LIGHT[c] ? 'light' : 'dark');
     if (a.text === 'large' || a.text === 'largest') r.setAttribute('data-text', a.text);
@@ -117,6 +119,7 @@
 <link rel="stylesheet" href="./css/looks.css">
 <link rel="stylesheet" href="./css/style-tactile.css">
 <link rel="stylesheet" href="./css/style-instrument.css">
+<link rel="stylesheet" href="./css/style-haven.css">
 <link rel="stylesheet" href="./css/fit.css">
 <link rel="stylesheet" href="./css/compact.css">
 <style>
@@ -362,20 +365,17 @@
   <button type="button" class="nav-btn active" data-view="summary">
     <span class="nav-icon" data-icon="summary"></span><span>Summary</span>
   </button>
-  <button type="button" class="nav-btn" data-view="add">
-    <span class="nav-icon" data-icon="add"></span><span>Add</span>
-  </button>
   <button type="button" class="nav-btn" data-view="accounts">
     <span class="nav-icon" data-icon="accounts"></span><span>Accounts</span>
+  </button>
+  <button type="button" class="nav-btn" data-view="add">
+    <span class="nav-icon" data-icon="add"></span><span>Add</span>
   </button>
   <button type="button" class="nav-btn" data-view="plan">
     <span class="nav-icon" data-icon="plan"></span><span>Plan</span>
   </button>
   <button type="button" class="nav-btn" data-view="transactions">
     <span class="nav-icon" data-icon="history"></span><span>History</span>
-  </button>
-  <button type="button" class="nav-btn" data-view="coach">
-    <span class="nav-icon" data-icon="coach"></span><span>Coach</span>
   </button>
 </nav>
 <script>

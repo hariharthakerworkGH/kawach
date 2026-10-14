@@ -165,7 +165,8 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0, sli
     old.remove();
     next.id = 'view-container';
     next.hidden = false;
-    document.querySelectorAll('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
+    // Coach is reached from Plan, so Plan stays lit while it is open.
+    document.querySelectorAll('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === (name === 'coach' ? 'plan' : name)));
     moveTabMark();
     document.getElementById('view-title').textContent = view.title;
     showSpaceChip();

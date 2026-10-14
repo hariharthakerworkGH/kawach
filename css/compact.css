@@ -215,3 +215,14 @@
 .k .sort-pick { height: var(--k-ctl-md); min-height: var(--k-ctl-md); padding: 0 var(--k-6) 0 var(--k-3); border-radius: var(--k-r-pill); border: 1px solid var(--k-border-subtle); background-color: var(--k-glass-1); color: var(--k-text-2); font: inherit; font-size: 12px; font-weight: 600; width: auto; }
 :root[data-style="instrument"] .k .sort-pick { border-radius: var(--in-r-sm); }
 .k .accounts-actions--top .sort-pick { margin-left: auto; }
+
+/* Coach is a button at the top of Plan since 5.52 (it left the tab bar so Add can sit in the middle). */
+.plan-coach { display: flex; align-items: center; gap: var(--k-3); width: 100%; margin: 0 0 var(--k-3); padding: 8px 12px; border: 0; border-radius: 16px; font: inherit; color: var(--k-text); text-align: left; background: var(--k-surface); box-shadow: 0 0 0 1px var(--k-hairline); cursor: pointer; }
+.plan-coach__ic { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; flex: none; color: var(--k-accent-ink); background: var(--k-accent-text); }
+.plan-coach__ic svg { width: 18px; height: 18px; }
+.plan-coach__t { display: grid; gap: 1px; flex: 1; min-width: 0; }
+.plan-coach__t b { font-size: 15px; font-weight: 650; }
+.plan-coach__t small { font-size: 12.5px; color: var(--k-text-3); }
+.plan-coach__go { display: grid; color: var(--k-text-3); }
+.plan-coach__go svg { width: 16px; height: 16px; }
+.plan-coach:active { transform: scale(0.985); }

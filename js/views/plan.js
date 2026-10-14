@@ -145,7 +145,7 @@ export async function render(container) {
   // NEW (5.14): Tactile and Instrument draw the month and the top their
   // own way (plan-looks.js), from the same rows and figures.
   const style = document.documentElement.dataset.style;
-  const looks = ['tactile', 'instrument'].includes(style);
+  const looks = ['tactile', 'instrument', 'haven'].includes(style);
   const stateOf = (t) => (t.status === 'skipped' ? 'skipped' : t.status === 'paid' ? 'paid' : t.status === 'late' ? 'late' : 'due');
   const thisMonth = inBusiness
     ? ''
@@ -175,6 +175,7 @@ export async function render(container) {
       ? flag(`${monthWord(shortMonth.key)} is ${formatRupees(-shortMonth.free)} short`, `Fixed costs and saving come to ${formatRupees(shortMonth.costs + (figures.keep || 0))} against ${formatRupees(shortMonth.costs + (figures.keep || 0) + shortMonth.free)} coming in.${shortMonth.renewals.length ? ` ${escapeHtml(shortMonth.renewals[0].label)} ${formatRupees(shortMonth.renewals[0].amount)} is due.` : ''}`)
       : '');
   container.innerHTML = `
+    <button type="button" class="plan-coach" id="plan-coach"><span class="plan-coach__ic">${icon('coach')}</span><span class="plan-coach__t"><b>Coach</b><small>Can I afford this?</small></span><span class="plan-coach__go">${icon('forward')}</span></button>
     ${overFlag}
     ${
       inBusiness
@@ -428,6 +429,7 @@ export async function render(container) {
     }
   `;
 
+  container.querySelector('#plan-coach')?.addEventListener('click', () => container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'coach' } })));
   const incomeEl = container.querySelector('#plan-income');
   incomeEl?.addEventListener('change', async () => {
     const raw = parseFloat(incomeEl.value);

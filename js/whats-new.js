@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.52',
+    items: [
+      {
+        icon: 'summary',
+        title: "A new look: Haven",
+        text: "Kawach now opens in Haven, a calm new look in day and night. What is left to spend rises in a shield like water, and it says in words whether you are ahead of pace, behind it or nearly out. Add sits in the middle of the bar, and Coach is now a button at the top of Plan. You can go back to any other look in How it looks.",
+        guide: [{ view: 'summary', target: '.tide', text: "The water is what is left to spend. The dashed line is where an even pace would be today." }],
+      },
+    ],
+  },
+  {
     version: '5.51',
     items: [
       {

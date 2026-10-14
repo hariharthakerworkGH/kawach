@@ -718,3 +718,21 @@ the answer, it is wrong.
 A business's Summary answers a different question (what did the shop make
 this month, and how long would it last) and so carries the runway instead of
 the burn line, but it is built from the same blocks.
+
+## 16. Haven (5.52, the default look)
+
+Haven is the calm inside the shield. Day is porcelain with navy ink; night is deep navy with a lagoon light.
+Its rules, kept everywhere:
+
+- **The tide leads.** What is left to spend is water rising in a shield (`havenTop`); a dashed line is where an
+  even pace would have it today. The water has three moods (calm, watch, low), and a mood is always written in
+  words as well, never colour alone.
+- **One deep surface.** The "vault" holds the main figure; everything else is a quiet sheet with a long, soft
+  shadow. Cards 26px, rows 20px, fields 14px, icon tiles 14px: one family of corners.
+- **Sentence case, one font (Geist), no engraving.** No uppercase labels, no text shadows.
+- **Add is the middle.** The tab bar is a floating glass pill of five tabs with Add raised between Accounts and
+  Plan; Coach is a button at the top of Plan.
+- **Motion is a spring or a short fade.** Things that move in space use the soft or snap spring
+  (`--hv-soft`, `--hv-snap`, from `tools/spring.mjs`); things that only appear fade. The tide's drift and fill
+  stop for reduced motion.
+- **Colours are in `tools/looks.py`** (`haven-day`, `haven-night`), checked by the contrast scan like every other look.

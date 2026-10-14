@@ -255,3 +255,53 @@ export function chartsComing(f) {
     .map((c) => `<div class="ch-coming__row"><span class="ch-coming__ic">${categoryStyle(c.label).icon}</span><span class="ch-coming__t">${escapeHtml(c.label)}<small>${formatDateNice(c.due)}${c.late ? ' · late' : ''}</small></span><b class="${c.late ? 'is-late' : ''}">${formatRupees(c.amount)}</b></div>`)
     .join('')}</div>`;
 }
+
+/* --- Haven: a tide, then Tactile's rows (5.52) ----------------------------- */
+// What is left rises in a shield like water; the dashed line is where an even pace would have it
+// by today. The water has moods (calm, watch, low) and always says so in words, never by colour
+// alone. Exported for a test.
+export function tideMood(x, negative) {
+  if (x.finished) return x.closedUnder ? ['calm', 'Closed under budget'] : ['low', 'Closed over budget'];
+  if (negative || !(x.limit > 0)) return ['low', negative ? 'Over budget' : 'No budget set'];
+  const lvl = Math.max(0, Math.min(1, x.left / x.limit));
+  const pace = 1 - x.gone;
+  if (lvl >= pace - 0.03) return ['calm', 'Ahead of pace'];
+  return lvl > 0.18 ? ['watch', 'Behind pace'] : ['low', 'Almost out'];
+}
+const SHIELD = 'M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z';
+const wave = (cls, dy, fill) => `<path class="wave ${cls}" d="M-20 ${12 + dy} q8 -4 16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 L160 100 L-20 100Z" fill="${fill}"/>`;
+let tideId = 0;
+export function tideSvg(lvl, pace) {
+  const u = ++tideId;
+  const py = (12 + (1 - pace) * 77).toFixed(1);
+  return `<svg viewBox="16 8 68 86" aria-hidden="true"><defs><clipPath id="hvc${u}"><path d="${SHIELD}"/></clipPath><linearGradient id="hvg${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--tide-b)"/><stop offset="1" style="stop-color:var(--tide-a)"/></linearGradient></defs>
+    <path class="sh-line" d="${SHIELD}"/>
+    <g clip-path="url(#hvc${u})"><g class="water" style="--lvl:${lvl.toFixed(3)}">${wave('b', 2.4, 'color-mix(in oklab, var(--tide-b) 55%, transparent)')}${wave('a', 0, `url(#hvg${u})`)}</g>
+    ${pace > 0 && pace < 1 ? `<line class="pace" x1="20" x2="80" y1="${py}" y2="${py}"/>` : ''}</g>
+    <path d="${SHIELD}" fill="none" class="sh-rim"/></svg>`;
+}
+
+export function havenTop(f, status, month) {
+  const x = topFigures(f);
+  const [mood, word] = tideMood(x, f.free < 0);
+  const lvl = x.limit > 0 ? Math.max(0, Math.min(1, x.left / x.limit)) : 0;
+  const pace = x.finished || !(x.limit > 0) ? 0 : 1 - x.gone;
+  const hero = `<div class="tl-hero hv-hero ${f.free < 0 ? 'is-negative' : ''}${x.closedUnder ? ' is-closed-under' : ''}" data-roll-scope data-limit="${x.limit}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
+      <div class="tl-top"><span class="hv-pill">${x.period}</span></div>
+      <div class="hv-main">
+        <div class="hv-fig"><span class="tl-k">Left to spend</span>
+          <div class="tl-big" data-roll-kind="left" data-roll="${x.left}" data-roll-key="${x.rollKey}:left">${formatRupees(x.left)}</div>
+          </div>
+        <div class="tide" data-mood="${mood}" style="--lvl:${lvl.toFixed(3)}" role="img" aria-label="${word}: ${formatRupees(x.left)} left of ${formatRupees(x.limit)}">${tideSvg(lvl, pace)}</div>
+      </div>
+      <div class="tl-stats">
+        <div><span class="tl-k">Spent</span><b data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div>
+        <div><span class="tl-k">Budget</span><b>${formatRupees(x.limit)}</b></div>
+        <div><span class="tl-k">Pace</span><b class="hv-mood" data-mood="${mood}">${word}</b></div>
+      </div>
+      ${x.asideUsed != null ? `<div class="tl-prog tl-prog--aside"><i style="width:${pct(x.asideUsed)}"></i><span><span>Set aside used</span><span data-fillcount>${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}</span></span></div>` : ''}
+      <p class="tl-line ${tone(f)}" data-status>${escapeHtml(status)}</p>
+      ${closedNote(x)}
+    </div>`;
+  return tactileTop(f, status, month, hero);
+}
