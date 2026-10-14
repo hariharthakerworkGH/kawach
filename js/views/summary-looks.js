@@ -146,10 +146,11 @@ const closedNote = (x) => (x.closedUnder ? `<p class="closed-note">Closed <b>${f
 const weekNote = (x) => (x.week.some((d) => d.other > 0) ? '<p class="tl-hatch-note"><i></i>Hatched: spent, but not from your budget.</p>' : '');
 
 /* --- Tactile: a raised instrument, then plain rows ----------------------- */
-export function tactileTop(f, status, month, heroHtml = '') {
+export function tactileTop(f, status, month, heroHtml = '', opts = {}) {
   const x = topFigures(f);
-  const row = (ic, t, s, v, cls = '', id = '') =>
-    `<${id ? `button type="button" id="${id}"` : 'div'} class="tl-item"><span class="tl-ibox">${ic}</span><span class="tl-grow"><span class="tl-t">${t}</span>${s ? `<span class="tl-s">${s}</span>` : ''}</span><span class="tl-v ${cls}">${v}</span>${id ? `<span class="tl-chev">${icon('forward')}</span>` : ''}</${id ? 'button' : 'div'}>`;
+  // `tint` is the colour of the row's tile: Haven draws the tile as a gem of that colour, the other looks as a plain well.
+  const row = (ic, t, s, v, cls = '', id = '', tint = '') =>
+    `<${id ? `button type="button" id="${id}"` : 'div'} class="tl-item"><span class="tl-ibox"${tint ? ` style="--k-tint:${tint}"` : ''}>${ic}</span><span class="tl-grow"><span class="tl-t">${t}</span>${s ? `<span class="tl-s">${s}</span>` : ''}</span><span class="tl-v ${cls}">${v}</span>${id ? `<span class="tl-chev">${icon('forward')}</span>` : ''}</${id ? 'button' : 'div'}>`;
   const hero = `<div class="tl-hero ${f.free < 0 ? 'is-negative' : ''}${x.closedUnder ? ' is-closed-under' : ''}" data-roll-scope data-limit="${x.limit}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
       <div class="tl-top"><span class="tl-k">Left to spend</span><span class="tl-period">${x.period}</span></div>
       <div class="tl-big" data-roll-kind="left" data-roll="${x.left}" data-roll-key="${x.rollKey}:left">${formatRupees(x.left)}</div>
@@ -172,12 +173,12 @@ export function tactileTop(f, status, month, heroHtml = '') {
     ${month || ''}<!--k:month-->
     ${x.week.length && !x.finished ? `<div class="tl-card"><div class="tl-top"><span class="tl-k">This week</span><b class="tl-mid">${formatRupees(x.weekTotal)}</b></div>${weekCols(x, 'tl-cols')}${weekNote(x)}</div>` : ''}
     ${x.finished ? '' : `<div class="tl-list" data-owed-anchor>
-      ${x.cards.length ? `<div class="tl-item tl-item--cards"><span class="tl-ibox">${icon('card')}</span><span class="tl-grow"><span class="tl-t">Owed on cards</span>${x.bills ? `<span class="tl-badge">${bills(x.bills)}</span>` : ''}</span><span class="tl-v">${formatRupees(x.owedCards)}</span>
+      ${x.cards.length ? `<div class="tl-item tl-item--cards"><span class="tl-ibox" style="--k-tint:var(--cat-learning)">${icon('card')}</span><span class="tl-grow"><span class="tl-t">Owed on cards</span>${x.bills ? `<span class="tl-badge">${bills(x.bills)}</span>` : ''}</span><span class="tl-v">${formatRupees(x.owedCards)}</span>
         <div class="tl-cards">${x.cards.map((c) => `<div class="tl-cardrow">${tagHtml(c)}<span class="tl-thin">${cardBar(c)}</span><span class="tl-cardamt">${formatRupees(c.amount)}</span>${cardKey(c)}</div>`).join('')}</div>${cardLegend(x.cards)}</div>` : ''}
-      ${x.kept ? row(categoryIcon('piggy'), 'Kept back', 'set aside, not spent yet', formatRupees(x.kept), '', 'set-aside-stat') : ''}
-      ${x.employer ? row(categoryIcon('income'), 'Owed back', 'by your employer', formatRupees(x.employer), 'tl-ok', 'owed-back-stat') : ''}
+      ${x.kept ? row(categoryIcon('piggy'), 'Kept back', 'set aside, not spent yet', formatRupees(x.kept), '', 'set-aside-stat', 'var(--cat-7)') : ''}
+      ${x.employer ? row(categoryIcon('income'), 'Owed back', 'by your employer', formatRupees(x.employer), 'tl-ok', 'owed-back-stat', 'var(--cat-groceries)') : ''}
     </div>`}
-    ${x.coming.length && !x.finished ? `<div class="tl-label"><span>Coming up</span><span class="tl-still">${formatRupees(x.stillToPay)} still to pay</span></div><div class="tl-list">${x.coming.map((c) => row(categoryStyle(c.label).icon, escapeHtml(c.label), `${formatDateNice(c.due)}${c.late ? ' · late' : ''}`, formatRupees(c.amount), c.late ? 'tl-bad' : '')).join('')}</div>` : ''}`;
+    ${x.coming.length && !x.finished && !opts.noComing ? `<div class="tl-label"><span>Coming up</span><span class="tl-still">${formatRupees(x.stillToPay)} still to pay</span></div><div class="tl-list">${x.coming.map((c) => row(categoryStyle(c.label).icon, escapeHtml(c.label), `${formatDateNice(c.due)}${c.late ? ' · late' : ''}`, formatRupees(c.amount), c.late ? 'tl-bad' : '', '', categoryStyle(c.label).color)).join('')}</div>` : ''}`;
 }
 
 /* --- Instrument: a dial, then Tactile's rows (5.25) ---------------------- */
@@ -256,16 +257,19 @@ export function chartsComing(f) {
     .join('')}</div>`;
 }
 
-/* --- Haven: a tide, then Tactile's rows (5.52) ----------------------------- */
-// What is left rises in a shield like water; the dashed line is where an even pace would have it
-// by today. The water has moods (calm, watch, low) and always says so in words, never by colour
-// alone. Exported for a test.
+/* --- Haven (5.52): the prototype's Summary, with real figures ----------------------------------------------
+ * mockups/7.1-haven is the design; this draws the same blocks in the same order with its own markup (classes are the
+ * prototype's, prefixed hv-, see css/haven-proto.css): the vault with the tide, "How <month> is going" as a line you can
+ * drag across, three shortcuts, "Needs you", "Latest payments" and "Where it went". Everything the prototype does not
+ * show is still on the screen below (the app's own blocks), so nothing is lost. */
+
+// What is left rises in a shield; a mood is always said in words too (never colour alone). Exported for a test.
 export function tideMood(x, negative) {
   if (x.finished) return x.closedUnder ? ['calm', 'Closed under budget'] : ['low', 'Closed over budget'];
   if (negative || !(x.limit > 0)) return ['low', negative ? 'Over budget' : 'No budget set'];
   const lvl = Math.max(0, Math.min(1, x.left / x.limit));
   const pace = 1 - x.gone;
-  if (lvl >= pace - 0.03) return ['calm', 'Ahead of pace'];
+  if (lvl >= pace - 0.03) return ['calm', 'Ahead'];
   return lvl > 0.18 ? ['watch', 'Behind pace'] : ['low', 'Almost out'];
 }
 const SHIELD = 'M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z';
@@ -274,34 +278,84 @@ let tideId = 0;
 export function tideSvg(lvl, pace) {
   const u = ++tideId;
   const py = (12 + (1 - pace) * 77).toFixed(1);
-  return `<svg viewBox="16 8 68 86" aria-hidden="true"><defs><clipPath id="hvc${u}"><path d="${SHIELD}"/></clipPath><linearGradient id="hvg${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--tide-b)"/><stop offset="1" style="stop-color:var(--tide-a)"/></linearGradient></defs>
+  return `<svg viewBox="16 8 68 86" aria-hidden="true"><defs><clipPath id="hvc${u}"><path d="${SHIELD}"/></clipPath><linearGradient id="hvg${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--hv-tide-b)"/><stop offset="1" style="stop-color:var(--hv-tide-a)"/></linearGradient></defs>
     <path class="sh-line" d="${SHIELD}"/>
-    <g clip-path="url(#hvc${u})"><g class="water" style="--lvl:${lvl.toFixed(3)}">${wave('b', 2.4, 'color-mix(in oklab, var(--tide-b) 55%, transparent)')}${wave('a', 0, `url(#hvg${u})`)}</g>
+    <g clip-path="url(#hvc${u})"><g class="water" style="--lvl:${lvl.toFixed(3)}">${wave('b', 2.4, 'color-mix(in oklab, var(--hv-tide-b) 55%, transparent)')}${wave('a', 0, `url(#hvg${u})`)}</g>
     ${pace > 0 && pace < 1 ? `<line class="pace" x1="20" x2="80" y1="${py}" y2="${py}"/>` : ''}</g>
     <path d="${SHIELD}" fill="none" class="sh-rim"/></svg>`;
 }
 
-export function havenTop(f, status, month) {
+// A category's gem is one of six colours, tuned to hold a white glyph (the prototype's palette, day and night).
+const GEM_OF = { 'var(--cat-bills)': 1, 'var(--cat-transport)': 2, 'var(--cat-fun)': 3, 'var(--cat-food)': 4, 'var(--cat-health)': 5, 'var(--cat-groceries)': 6 };
+export function gemNo(label) {
+  const colour = categoryStyle(label).color;
+  if (GEM_OF[colour]) return GEM_OF[colour];
+  let h = 0;
+  for (const ch of String(colour)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return (h % 6) + 1;
+}
+export const gem = (label, svg = categoryStyle(label).icon) => `<span class="hv-gem hv-g${gemNo(label)}"><span class="hv-ic">${svg}</span></span>`;
+export const rupee = (paise) => `<span class="hv-cur">₹</span>${Math.round(Math.abs(paise) / 100).toLocaleString('en-IN')}`;
+const rise = (i, html) => `<div class="hv-rise" style="--i:${i}">${html}</div>`;
+const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// The month as a line you can drag across: spent so far (to today), against an even pace through the whole budget.
+// The same drawing as the prototype's curve(); `data-` carries what the drag reads back.
+export function havenCurve(f, x) {
+  const cum = (f.spendDays || []).map((v) => Math.max(0, v));
+  const n = cum.length;
+  if (n < 2 || !(x.limit > 0)) return '';
+  const W = 320, H = 132, days = Math.max(n, x.monthDays), px = (d) => 14 + ((d - 1) / Math.max(1, days - 1)) * (W - 28);
+  const yMax = x.limit * 0.7, py = (v) => 104 - (Math.min(v, yMax) / yMax) * 92;
+  const pts = cum.map((v, i) => [px(i + 1), py(v)]);
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+  const last = pts[pts.length - 1];
+  const area = `${d} L${last[0].toFixed(1)} 104 L${pts[0][0].toFixed(1)} 104Z`;
+  const dEnd = 1 + (yMax / x.limit) * (days - 1);
+  const pace = `M${px(1).toFixed(1)} ${py(0).toFixed(1)} L${px(dEnd).toFixed(1)} ${py(yMax).toFixed(1)}`;
+  const first = (f.spendByDay && f.spendByDay[0] && f.spendByDay[0].date) || '';
+  const monthName = first ? MONTHS_SHORT[Number(first.slice(5, 7)) - 1] : '';
+  const uid = (tideId += 1);
+  return `<div class="hv-chartwrap" data-w="${W}" data-limit="${x.limit}" data-days="${days}" data-cum="${cum.join(',')}" data-month="${monthName}" data-first="${Number(first.slice(8)) || 1}"><div class="hv-tip" aria-hidden="true"></div><svg class="hv-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Spent so far, against an even pace. Drag across it to read a day."><defs><linearGradient id="hvArea${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="oklch(66% 0.13 214)" stop-opacity=".35"/><stop offset="1" stop-color="oklch(66% 0.13 214)" stop-opacity="0"/></linearGradient><clipPath id="hvcc${uid}"><rect x="0" y="0" width="${W}" height="104"/></clipPath></defs>
+      ${[0.25, 0.5, 0.75].map((g) => `<line class="grid" x1="14" x2="${W - 14}" y1="${(104 - g * 92).toFixed(1)}" y2="${(104 - g * 92).toFixed(1)}"/>`).join('')}
+      <g clip-path="url(#hvcc${uid})"><path class="plan" d="${pace}"/></g>
+      <path class="area" style="fill:url(#hvArea${uid})" d="${area}"/><path class="line" style="--len:900" d="${d}"/>
+      <line x1="${last[0].toFixed(1)}" x2="${last[0].toFixed(1)}" y1="8" y2="104" stroke="var(--hv-hair-strong)" stroke-dasharray="2 4"/>
+      <circle class="dot" cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="5"/>
+      <line class="cur-line" x1="0" x2="0" y1="8" y2="104"/><circle class="cur-dot" cx="0" cy="0" r="5"/><text class="axis" x="14" y="124">1 ${monthName}</text><text class="axis" x="${W / 2}" y="124" text-anchor="middle">${Math.floor(days / 2)}</text><text class="axis" x="${W - 14}" y="124" text-anchor="end">${days}</text></svg></div>`;
+}
+
+export function havenTop(f, status, month, extra = {}) {
   const x = topFigures(f);
   const [mood, word] = tideMood(x, f.free < 0);
   const lvl = x.limit > 0 ? Math.max(0, Math.min(1, x.left / x.limit)) : 0;
   const pace = x.finished || !(x.limit > 0) ? 0 : 1 - x.gone;
-  const hero = `<div class="tl-hero hv-hero ${f.free < 0 ? 'is-negative' : ''}${x.closedUnder ? ' is-closed-under' : ''}" data-roll-scope data-limit="${x.limit}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
-      <div class="tl-top"><span class="hv-pill">${x.period}</span></div>
-      <div class="hv-main">
-        <div class="hv-fig"><span class="tl-k">Left to spend</span>
-          <div class="tl-big" data-roll-kind="left" data-roll="${x.left}" data-roll-key="${x.rollKey}:left">${formatRupees(x.left)}</div>
-          </div>
-        <div class="tide" data-mood="${mood}" style="--lvl:${lvl.toFixed(3)}" role="img" aria-label="${word}: ${formatRupees(x.left)} left of ${formatRupees(x.limit)}">${tideSvg(lvl, pace)}</div>
-      </div>
-      <div class="tl-stats">
-        <div><span class="tl-k">Spent</span><b data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div>
-        <div><span class="tl-k">Budget</span><b>${formatRupees(x.limit)}</b></div>
-        <div><span class="tl-k">Pace</span><b class="hv-mood" data-mood="${mood}">${word}</b></div>
-      </div>
-      ${x.asideUsed != null ? `<div class="tl-prog tl-prog--aside"><i style="width:${pct(x.asideUsed)}"></i><span><span>Set aside used</span><span data-fillcount>${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}</span></span></div>` : ''}
-      <p class="tl-line ${tone(f)}" data-status>${escapeHtml(status)}</p>
+  const mIcon = mood === 'calm' ? icon('tick') : icon('alert');
+  const monthNo = Number(String(f.cycleKey || '').slice(5, 7)) || new Date().getMonth() + 1;
+  const monthName = MONTHS_LONG[monthNo - 1];
+  const sub = !x.finished && x.perDay > 0 && f.level === 'ok' ? `<b class="hv-amt">${rupee(x.perDay)}</b> a day until ${formatDateNice(f.cycleKey)}` : escapeHtml(status);
+  const num = `<span class="hv-fig"><span class="hv-cur">${f.free < 0 ? '−₹' : '₹'}</span><span class="hv-num" data-roll-kind="left" data-roll="${x.left}" data-roll-key="${x.rollKey}:left">${Math.round(Math.abs(x.left) / 100).toLocaleString('en-IN')}</span></span>`;
+  const vault = `<div class="hv-shell"><div class="hv-vault ${f.free < 0 ? 'is-negative' : ''}" data-roll-scope data-limit="${x.limit}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
+      <div class="hv-vault__top"><span class="hv-pill">${monthName}</span><span>${x.finished ? 'Final' : `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`}</span></div>
+      <div class="hv-vault__main"><div><div class="hv-vault__lab">Left to spend</div><div class="hv-vault__fig hv-amt">${num}</div><div class="hv-vault__sub" data-status>${sub}</div></div>
+      <div class="tide" data-mood="${mood}" style="--lvl:${lvl.toFixed(3)}" role="img" aria-label="${word}: ${formatRupees(x.left)} left of ${formatRupees(x.limit)}">${tideSvg(lvl, pace)}</div></div>
+      <div class="hv-vault__stats"><div><span>Spent</span><b class="hv-amt" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div><div><span>Budget</span><b class="hv-amt">${formatRupees(x.limit)}</b></div><div><span>On track</span><b class="hv-mood" data-mood="${mood}"><span class="hv-ic" style="width:16px;height:16px;vertical-align:-3px">${mIcon}</span> ${word}</b></div></div>
       ${closedNote(x)}
-    </div>`;
-  return tactileTop(f, status, month, hero);
+    </div></div>`;
+  const under = x.finished ? null : x.pace - x.spent;
+  const curve = havenCurve(f, x);
+  const curveCard = curve ? `<div class="hv-shell"><div class="hv-core" id="hv-curve-card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:var(--hv-fs-lead);letter-spacing:-.015em">How ${monthName} is going</b>${under === null || !x.limit ? '' : `<span class="hv-muted">${formatRupees(Math.abs(under))} ${under >= 0 ? 'under' : 'over'} pace</span>`}</div>${curve}</div></div>` : '';
+  const chips = x.finished ? '' : `<div class="hv-chips"><button type="button" class="hv-chip" data-hv-go="inbox"><span class="hv-ic">${icon('inbox')}</span>Paste a message</button><button type="button" class="hv-chip" data-hv-go="import"><span class="hv-ic">${icon('upload')}</span>Import a statement</button><button type="button" class="hv-chip" data-hv-go="add"><span class="hv-ic">${icon('cash')}</span>Add a cash spend</button></div>`;
+  const needs = x.finished ? [] : x.coming.slice(0, 2);
+  const need = (c) => `<div class="hv-shell"><button type="button" class="hv-core hv-pressable" data-hv-go="plan" style="text-align:left;border:0;width:100%;display:grid;gap:10px">${gem(c.label)}<div><div class="hv-row__t">${escapeHtml(c.label)}</div><div class="hv-row__m">${c.late ? 'Late · due ' : 'Due '}${formatDateNice(c.due)}</div></div><div class="hv-fig small hv-amt" style="font-size:20px">${rupee(c.amount)}</div></button></div>`;
+  const needsBlock = needs.length ? `<div class="hv-sec"><h2>Needs you</h2><button type="button" class="hv-link" data-hv-go="plan">Open Plan</button></div><div class="hv-pair" style="margin-top:10px">${needs.map(need).join('')}</div>` : '';
+  const latest = (extra.latest || []).slice(0, 4);
+  const payRow = (p) => `<button type="button" class="hv-row" data-hv-go="transactions">${gem(p.category || p.title)}<div><div class="hv-row__t">${escapeHtml(p.title)}</div><div class="hv-row__m">${escapeHtml(p.meta)}</div></div><div class="hv-row__v hv-amt">${p.credit ? '+' : '−'}₹${Math.round(p.amount / 100).toLocaleString('en-IN')}</div></button>`;
+  const latestBlock = latest.length && !x.finished ? `<div class="hv-sec"><h2>Latest payments</h2><button type="button" class="hv-link" data-hv-go="transactions">See all</button></div><div class="hv-shell"><div class="hv-core flush">${latest.map(payRow).join('')}</div></div>` : '';
+  const where = x.spent > 0 && !x.finished ? `<button type="button" class="hv-shell hv-pressable" data-hv-go="recap" style="border:0;text-align:left;width:100%"><span class="hv-core" style="display:flex;align-items:center;gap:12px"><span class="hv-gem hv-g1"><span class="hv-ic">${categoryIcon('chart')}</span></span><span style="flex:1"><b style="display:block;letter-spacing:-.01em">Where it went</b><span class="hv-muted">A breakdown of ${formatRupees(x.spent)} by category</span></span><span class="hv-ic">${icon('forward')}</span></span></button>` : '';
+  const blocks = [vault, curveCard, chips, needsBlock, latestBlock, where].filter(Boolean);
+  // The prototype's blocks first, in its order; then the app's own, which the prototype does not show.
+  const protoHtml = `<div class="hv-screen enter on-screen" data-hv-summary>${blocks.map((b, i) => rise(i + 1, b)).join('')}</div>`;
+  return tactileTop(f, status, '', protoHtml, { noComing: true });
 }

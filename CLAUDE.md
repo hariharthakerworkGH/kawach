@@ -424,13 +424,21 @@ values in `css/style-instrument.css`, which loads after it. So a feature built f
 (Instrument first, since 5.27) arrives in the other for free, and its own file only holds what
 Tactile has no equivalent of (radii, cell bars, the flush tab bar, the dial in
 `summary-looks.js` `instrumentDial`, the chart `monthScale` in `summary.js`).
-**Haven (5.52)** is the default and the fourth look: calm and light by day, deep navy by night
-(`haven-day` / `haven-night`, always paired with the style, and "Follow my phone" picks between them). Its signature is the tide
-(`summary-looks.js` `havenTop`, `tideMood`, `tideSvg`): what is left rises in a shield, with moods
-(calm, watch, low) that are always written in words too. It also shares Tactile's markup (every
-shared selector is `:is([data-style="tactile"], [data-style="instrument"], [data-style="haven"])`) and repaints through `--t-*` in
-`css/style-haven.css` (springs are CSS `linear()` easings from `tools/spring.mjs`). The tab bar is five tabs
-with Add raised in the middle; Coach is a button at the top of Plan, and Plan stays lit while it is open.
+**Haven (5.52, rebuilt from its prototype in 5.53)** is the default and the fourth look: calm and light by day, deep
+navy by night (`haven-day` / `haven-night`, always paired with the style; "Follow my phone" picks between them). **What
+the owner is shown is what ships**: Haven is built from the prototype in `mockups/7.1-haven`, never reinterpreted. Its
+stylesheet is the prototype's own, ported by `tools/haven_port.py` into `css/haven-proto.css` (generated, never edited;
+every class is prefixed `hv-`, every property `--hv-`), and `css/style-haven.css` is only the glue for the app's own
+blocks the prototype does not show. It is not a Tactile repaint. The prototype's screens are drawn with its own markup
+and real figures: Summary (`summary-looks.js` `havenTop`: the vault with the tide and its moods in words, "How <month> is
+going" you can drag across, the three shortcuts, Needs you, Latest payments, Where it went), Plan (`plan-looks.js`
+`havenMonth` and `plan.js` `havenArrange`: still to pay as cards with Mark paid, then Commitments, then Next 3 months),
+Accounts (`haven-ui.js` `havenAccounts`: cards you slide through), History (one net card with the days under it), Coach
+(a vault on top). Add is a sheet that springs up from the raised middle button (`haven-sheet.js`), amount first on its own
+keypad with everything else behind "Details" (`add.js` `havenArrangeAdd`); a guide or the demo uses the Add screen instead.
+The tab bar is five tabs with Add raised in the middle; Coach is a button on Plan, and Plan stays lit while it is open.
+Before shipping any change to Haven, `tools/release/vs.mjs <view> [colour]` takes the app and the prototype at the same
+size, and `measure.mjs` gives the same parts' sizes in both; they must match.
 `plan.js`, `coach.js`, `add.js` and `transactions.js` list it beside the others.
 Its colourings come from `looks.py`; the contrast scan (text of every kind
 against what is behind it) is clean in all three. **Readable text is made by

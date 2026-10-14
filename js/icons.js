@@ -44,6 +44,13 @@ const PATHS = {
   'arrow-down': '<path d="M12 5v14"/><path d="M6 13l6 6 6-6"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
   forward: '<path d="M9 5l7 7-7 7"/>',
+  // Haven (5.52): drawn as the prototype draws them.
+  tick: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  chevdown: '<path d="M6 9l6 6 6-6"/>',
+  sun: '<path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
+  moon: '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>',
+  bell: '<path d="M6 9a6 6 0 1 1 12 0c0 6 2 7 2 7H4s2-1 2-7zM10 20a2 2 0 0 0 4 0"/>',
+  upload: '<path d="M12 16V4M7 9l5-5 5 5M5 20h14"/>',
   store: '<path d="M4 10v10h16V10"/><path d="M3 10l2-6h14l2 6"/><path d="M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M10 20v-5h4v5"/>',
   home: '<path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>',
   cloud: '<path d="M7 18h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.4 9.1 4.5 4.5 0 0 0 7 18z"/>',

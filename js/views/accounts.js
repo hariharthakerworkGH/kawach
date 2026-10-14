@@ -13,6 +13,7 @@ import { ensureBusinessCategories, moneyProfile, activeSpace, accountInSpace } f
 import { detectTransfers } from '../transfers.js';
 import { icon } from '../icons.js';
 import { brandMark } from '../brand.js';
+import { havenAccounts } from '../haven-ui.js';
 import { reminderText, updatePerson, shareReminder } from '../people.js';
 import { allocationRing, tickGauge } from '../charts.js';
 import { appearance, setAppearance } from '../appearance.js';
@@ -179,6 +180,7 @@ export async function render(container) {
     })
   );
 
+  havenAccounts(container);
   // Absent while the empty state is showing, which is the one time it would
   // be saying the same thing twice.
   const addBtn = container.querySelector('#add-account-btn');

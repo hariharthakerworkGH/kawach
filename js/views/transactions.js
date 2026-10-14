@@ -160,7 +160,22 @@ export async function render(container, params = {}) {
   // own card, as their mockups have them, and the day chart gets a card of
   // its own. The elements move with their ids, so filling them in later is
   // unchanged.
-  if (['tactile', 'instrument', 'haven'].includes(document.documentElement.dataset.style)) {
+  if (document.documentElement.dataset.style === 'haven') {
+    // Haven (the prototype's History): one card - the net, the days as little bars under it, In and Out beneath; the
+    // six-month chart, which the prototype does not show, folds away under "Month by month".
+    const net = container.querySelector('#hist-net');
+    net.after(container.querySelector('#hist-days'));
+    container.querySelector('#hist-days').after(container.querySelector('#hist-stats'));
+    const chart = container.querySelector('#hist-hero > svg.chart');
+    if (chart) {
+      const more = document.createElement('details');
+      more.className = 'hv-more';
+      more.innerHTML = '<summary>Month by month</summary>';
+      const legend = container.querySelector('#hist-hero > .river-legend');
+      more.append(chart, ...(legend ? [legend] : []));
+      container.querySelector('#hist-hero').append(more);
+    }
+  } else if (['tactile', 'instrument'].includes(document.documentElement.dataset.style)) {
     container.querySelector('#hist-net').after(container.querySelector('#hist-stats'));
     container.querySelector('#hist-days').classList.add('hist-days-card');
   }

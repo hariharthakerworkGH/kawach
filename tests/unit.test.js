@@ -1995,7 +1995,7 @@ test('A name on screen has one plain sentence behind it', () => {
 test('Haven: the tide has a mood, always said in words, and the figure stays the one everything reads', () => {
   const x = (o) => ({ limit: 3300000, left: 2000000, gone: 0.4, finished: false, closedUnder: false, ...o });
   equal(tideMood(x({}), false)[0], 'calm', 'more left than an even pace leaves is calm');
-  equal(tideMood(x({}), false)[1], 'Ahead of pace', 'and says so');
+  equal(tideMood(x({}), false)[1], 'Ahead', 'and says so');
   equal(tideMood(x({ left: 1200000 }), false)[0], 'watch', 'behind an even pace but not nearly out is watch');
   equal(tideMood(x({ left: 400000 }), false)[0], 'low', 'under a fifth left is low');
   equal(tideMood(x({ left: -50000 }), true)[1], 'Over budget', 'over budget says so');
@@ -2003,8 +2003,8 @@ test('Haven: the tide has a mood, always said in words, and the figure stays the
   ok(tideSvg(0.5, 0.6).includes('class="pace"') && !tideSvg(0.5, 0).includes('class="pace"'), 'the even-pace line only when there is a pace');
   const f = { free: 2425000, limit: 3300000, level: 'ok', cycleKey: '2026-10-31', cycleStart: '2026-10-01', spentThisCycle: 875000, used: 0.26, daysIntoCycle: 14, daysToClose: 18, perDay: 134700, cards: [], tracker: [], spendByDay: [] };
   const html = havenTop(f, 'On track', '');
-  ok(html.includes('data-roll-kind="left"') && html.includes('data-status') && html.includes('class="tide"'), 'the figure keeps its hooks (rolling number, status line) and the tide is drawn');
-  ok(html.includes('Ahead of pace'), 'and the mood is written out, not only coloured');
+  ok(html.includes('data-roll-kind="left"') && html.includes('data-status') && html.includes('class="tide"') && html.includes('hv-vault'), 'the figure keeps its hooks (rolling number, status line), and the vault and the tide are drawn');
+  ok(html.includes('Ahead'), 'and the mood is written out, not only coloured');
 });
 test('Swiping between tabs goes round and round in the order of the tab bar', () => {
   equal(neighbour('summary', 1), 'accounts', 'left from Summary is Accounts');

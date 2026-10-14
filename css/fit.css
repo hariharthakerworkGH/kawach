@@ -152,8 +152,8 @@
 /* A grey pill sits one step lower, so its words clear 4.5 to 1 in every colouring. */
 .pill { background: var(--surface-alt, var(--surface-hi)); }
 /* The small coloured label above a note: mixed with more of the page's ink, so it reads on every colouring. */
-:root:is([data-style="tactile"], [data-style="instrument"], [data-style="haven"]) .k-context--alert .k-context__k,
-:root:is([data-style="tactile"], [data-style="instrument"], [data-style="haven"]) .k-context--attention .k-context__k { color: color-mix(in srgb, var(--t-alarm) 18%, var(--k-text)); }
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context--alert .k-context__k,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context--attention .k-context__k { color: color-mix(in srgb, var(--t-alarm) 18%, var(--k-text)); }
 .k-context__note { color: color-mix(in srgb, var(--k-text-2) 75%, var(--k-text)); }
 /* A purchase and the refund that undid it: marked by the line through it and a fainter icon, not by fading the
    words, which fell to 2.5 to 1. */

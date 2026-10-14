@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.53',
+    items: [
+      {
+        icon: 'summary',
+        title: "Haven, rebuilt exactly as shown",
+        text: "Haven is now built from the design you were shown, not adapted from another look: the same cards in two layers, the tide with its moods in words, the same tab bar, and an Add button that springs up a sheet with a keypad. Summary, Plan, Accounts, History and Coach follow it screen by screen.",
+        guide: [{ view: 'summary', target: '.hv-vault', text: "The water is what is left to spend. The dashed line is where an even pace would be today." }],
+      },
+    ],
+  },
+  {
     version: '5.52',
     items: [
       {

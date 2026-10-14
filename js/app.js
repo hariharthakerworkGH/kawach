@@ -1,6 +1,8 @@
 import { openDB, getAll, put, onLocalChange, forgetCachedReads, damagedRecords, getSetting, setSetting } from './db.js';
 import { wireExplain } from './explain.js';
 import { wireSwipe } from './swipe.js';
+import { havenHeader } from './haven-ui.js';
+import { openAddSheet, closeAddSheet } from './haven-sheet.js';
 import { guardApp } from './lock.js';
 import { isDemo } from './demo-flag.js';
 import { getSyncConfig, getSyncPassphrase, syncNow } from './sync.js';
@@ -115,6 +117,7 @@ window.addEventListener('resize', () => {
 // not added to the trail. scrollY: where to put you on it. slide: 1 or -1
 // when a swipe brought it (js/swipe.js), so it comes in from that side.
 async function showView(name, params = {}, fromHistory = false, scrollY = 0, slide = 0) {
+  closeAddSheet();
   const view = views[name];
   if (!fromHistory && name !== currentView) {
     trail.push({ view: currentView, params: currentParams, scrollY: window.scrollY });
@@ -169,6 +172,7 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0, sli
     document.querySelectorAll('.nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === (name === 'coach' ? 'plan' : name)));
     moveTabMark();
     document.getElementById('view-title').textContent = view.title;
+    havenHeader(name);
     showSpaceChip();
     window.scrollTo(0, scrollY);
   };
@@ -712,8 +716,11 @@ async function init() {
   window.addEventListener('resize', syncNavHeight);
   window.addEventListener('orientationchange', syncNavHeight);
 
+  // Haven: Add springs up as a sheet over the screen you are on, instead of being a screen of its own.
+  // (not while the demo or a guide is walking you through a screen: it points at the Add screen itself)
+  const haven = () => document.documentElement.dataset.style === 'haven' && !document.body.classList.contains('has-demo') && !document.querySelector('.guide-layer');
   document.querySelectorAll('.nav-btn').forEach((btn) => {
-    btn.addEventListener('click', () => showView(btn.dataset.view));
+    btn.addEventListener('click', () => (haven() && btn.dataset.view === 'add' ? openAddSheet() : showView(btn.dataset.view)));
   });
 
   document.getElementById('settings-btn').addEventListener('click', () => showView('settings'));
@@ -722,6 +729,7 @@ async function init() {
 
   document.addEventListener('navigate', (e) => {
     const { view, ...params } = e.detail;
+    if (view === 'add' && haven()) return openAddSheet(params);
     showView(view, params);
   });
 

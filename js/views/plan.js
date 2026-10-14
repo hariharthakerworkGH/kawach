@@ -1,6 +1,7 @@
 import { getAll, put, remove, newId, getSetting, setSetting } from '../db.js';
 import { holdFocus } from '../overlay.js';
-import { planTop, planMonth } from './plan-looks.js';
+import { planTop, planMonth, havenMonth } from './plan-looks.js';
+import { wireHaven } from '../haven-ui.js';
 import { icon } from '../icons.js';
 import { formatRupees, ordinal, formatDateNice, formatMonthYear } from '../format.js';
 import { detectRecurring } from '../recurring.js';
@@ -147,9 +148,14 @@ export async function render(container) {
   const style = document.documentElement.dataset.style;
   const looks = ['tactile', 'instrument', 'haven'].includes(style);
   const stateOf = (t) => (t.status === 'skipped' ? 'skipped' : t.status === 'paid' ? 'paid' : t.status === 'late' ? 'late' : 'due');
+  const isHaven = style === 'haven';
+  // Haven: only a cost you added yourself can be marked paid from its card (the others open what can be done with them).
+  const markable = (id) => fixed.some((f) => f.id === id) && tracker.some((x) => x.id === id && x.status !== 'skipped' && x.status !== 'paid');
   const thisMonth = inBusiness
     ? ''
-    : (looks
+    : (isHaven
+        ? havenMonth(monthRows(tracker, [...fixed, ...loanItems]).map(({ t, day }) => ({ id: t.id, label: t.label, day, amount: t.amount, state: stateOf(t) })), { canMark: markable })
+        : looks
         ? planMonth(style, monthRows(tracker, [...fixed, ...loanItems]).map(({ t, day }) => ({ id: t.id, label: t.label, day, amount: t.amount, state: stateOf(t) })), now)
         : monthStrip(tracker, [...fixed, ...loanItems], now)) + flexBars(tracker);
 
@@ -429,6 +435,7 @@ export async function render(container) {
     }
   `;
 
+  if (isHaven && !inBusiness) havenArrange(container, figures, todayIso, skippedItems);
   container.querySelector('#plan-coach')?.addEventListener('click', () => container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'coach' } })));
   const incomeEl = container.querySelector('#plan-income');
   incomeEl?.addEventListener('change', async () => {
@@ -579,6 +586,19 @@ export async function render(container) {
       redraw(container, () => render(container)).then(() => container.querySelector('#fixed-form')?.scrollIntoView({ block: 'center' }));
     });
   };
+  // Haven's "Mark paid" on a card: the card has already said it worked; this saves it, as the sheet's own button does.
+  if (container._hvPay) container.removeEventListener('hv-pay', container._hvPay);
+  container._hvPay = async (e) => {
+    const t = tracker.find((x) => x.id === e.detail.id);
+    const item = (await getAll('recurring')).find((r) => r.id === e.detail.id);
+    if (!t || !item) return;
+    const set = new Set(item.paidCycles || []);
+    set.add(t.cycleKey);
+    await put('recurring', { ...item, paidCycles: [...set].sort().slice(-12) });
+    showToast(`${item.label} marked paid`);
+    redraw(container, () => render(container));
+  };
+  container.addEventListener('hv-pay', container._hvPay);
   container.querySelectorAll('[data-month-item]').forEach((el) => {
     el.addEventListener('click', () => openMonthItem(el.dataset.monthItem));
     el.addEventListener('keydown', (e) => {
@@ -1025,6 +1045,61 @@ export function comingMonths(figures, today, skipped = []) {
 }
 
 const monthWord = (key) => new Date(`${key}-01T12:00`).toLocaleDateString('en-IN', { month: 'long' });
+
+/* Haven (5.52): Plan in the prototype's order - what is short, what is still to pay, the commitments, the next three
+ * months - and then the rest of what Plan has (the budget, its parts, goals, budgets), which the prototype does not
+ * show. The pieces are the screen's own; they are moved, not rebuilt, so every button keeps working. */
+function havenArrange(container, figures, todayIso, skipped) {
+  const kids = () => [...container.children];
+  const headBefore = (el) => (el && el.previousElementSibling && el.previousElementSibling.classList.contains('section-head') ? el.previousElementSibling : null);
+  const notes = kids().filter((n) => n.classList.contains('plan-flag'));
+  const month = container.querySelector('[data-hv-plan-month]');
+  const monthWrap = container.querySelector('.plan-month');
+  const forecast = container.querySelector('.forecast');
+  const commitHead = kids().find((n) => n.classList.contains('section-head') && /^(Commitments|Fixed costs)$/.test(n.querySelector('h3')?.textContent.trim() || ''));
+  const commitList = commitHead && commitHead.nextElementSibling;
+  const addBtn = commitList && commitList.nextElementSibling && commitList.nextElementSibling.id === 'plan-add-btn' ? commitList.nextElementSibling : null;
+  // the old headings and wrappers that the prototype's blocks replace
+  const oldMonthHead = headBefore(monthWrap);
+  const oldForecastHead = headBefore(forecast);
+  const hvForecast = document.createElement('div');
+  hvForecast.className = 'hv-screen hv-plan-forecast';
+  hvForecast.innerHTML = havenForecast(figures, todayIso, skipped);
+  const ordered = [...notes.map((n) => { n.classList.add('hv-note-wrap'); return n; })];
+  if (month) ordered.push(month);
+  if (commitHead && commitList) ordered.push(commitHead, commitList, ...(addBtn ? [addBtn] : []));
+  if (hvForecast.innerHTML.trim()) ordered.push(hvForecast);
+  if (month && monthWrap) monthWrap.before(month); // keep it inside the page while the wrapper is checked
+  const keepWrap = monthWrap && [...monthWrap.children].some((c) => c !== month);
+  if (!keepWrap) monthWrap?.remove();
+  else monthWrap.classList.add('hv-month-extra');
+  if (!keepWrap) oldMonthHead?.remove();
+  forecast?.remove();
+  oldForecastHead?.remove();
+  container.prepend(...ordered);
+  wireHaven(container);
+}
+
+function havenForecast(figures, today, skipped) {
+  const months = comingMonths(figures, today, skipped);
+  if (!months.length) return '';
+  const ahead = bankAhead({ bankAfter: figures.bankAfterBills, freeNow: figures.free, months, keep: figures.keep || 0 });
+  const word = (key) => new Date(`${key}-01T12:00`).toLocaleDateString('en-IN', { month: 'short' });
+  const long = (key) => new Date(`${key}-01T12:00`).toLocaleDateString('en-IN', { month: 'long' });
+  const income = Math.max(1, ...months.map((m) => m.costs + (figures.keep || 0) + m.free));
+  const cols = months.map((m, i) => `<div><div class="col${m.short ? ' short' : ''}" style="--h:${Math.round(Math.min(100, ((m.costs + (figures.keep || 0)) / Math.max(1, m.costs + (figures.keep || 0) + Math.max(0, m.free))) * 100) * (m.short ? 0.82 : 0.6))};--k:${i}"></div><span class="hv-muted">${word(m.key)}</span></div>`).join('');
+  const shortOnes = months.filter((m) => m.short);
+  const same = shortOnes.length === months.length && months.every((m) => m.free === months[0].free);
+  const line = !shortOnes.length
+    ? `A usual month leaves ${formatRupees(months[0].free)} to spend.`
+    : same
+      ? `Each month is ${formatRupees(-months[0].free)} short.`
+      : `${shortOnes.map((m) => `${long(m.key)} is ${formatRupees(-m.free)} short`).join(', ')}.`;
+  const last = ahead ? ahead.spend[months.length - 1] : null;
+  const refund = figures.refundInBankCheck || 0;
+  const bank = ahead ? ` In your bank by then: ${last < 0 ? `${formatRupees(-last)} short` : formatRupees(last)}${refund > 0 && last < 0 ? `, before the ${formatRupees(refund)} your employer owes you` : ''}.` : '';
+  return `<div class="hv-sec"><h2>Next 3 months</h2></div><div class="hv-shell" style="margin-top:10px"><div class="hv-core"><div class="hv-bars">${cols}</div><p class="hv-muted" style="margin-top:8px">${line}${bank}</p></div></div>`;
+}
 
 export function forecastList(figures, today, skipped = []) {
   const months = comingMonths(figures, today, skipped);

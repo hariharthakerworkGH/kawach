@@ -1,6 +1,8 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
 import { tactileTop, instrumentTop, havenTop, keptBack, chartsComing, chartsCards } from './summary-looks.js';
 import { isDemo } from '../demo-flag.js';
+import { displayName } from './transactions.js';
+import { wireHaven } from '../haven-ui.js';
 import { icon } from '../icons.js';
 import { isFixed, isLiveCommitment, coveredByFixed, commitmentFromSuggestion } from '../commitments.js';
 import { isoLocal, hasDueDate, frequencyOf } from '../frequency.js';
@@ -319,6 +321,25 @@ const addDaysIso = (from, days) => {
   return isoLocal(new Date(y, m - 1, d + days));
 };
 
+// The four latest payments for Haven's Summary: what they were, their category and when.
+function havenLatest(transactions, categories) {
+  const names = new Map(categories.map((c) => [c.id, c.name]));
+  const today = isoLocal(new Date());
+  const yest = isoLocal(new Date(Date.now() - 86400000));
+  const day = (iso) => (iso === today ? 'Today' : iso === yest ? 'Yesterday' : formatDateNice(iso));
+  return transactions
+    .filter((t) => !t.isTransfer && t.amount > 0)
+    .sort((a, b) => (a.date === b.date ? (b.createdAt || 0) - (a.createdAt || 0) : a.date < b.date ? 1 : -1))
+    .slice(0, 4)
+    .map((t) => {
+      const when = new Date(t.createdAt || 0);
+      // A time only for what was typed in on the day it happened; a statement line has a date and no time.
+      const time = t.source === 'manual' && t.createdAt && isoLocal(when) === t.date ? when.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase() : '';
+      const category = names.get(t.categoryId) || 'Uncategorised';
+      return { title: displayName(t.merchant || t.rawDescription), category, meta: `${category} · ${day(t.date)}${time ? `, ${time}` : ''}`, amount: t.amount, credit: t.direction === 'credit' };
+    });
+}
+
 async function renderDashboard(container) {
   if (space !== 'home') return renderBusinessDashboard(container);
   const dashboardEl = container.querySelector('#dashboard');
@@ -359,7 +380,8 @@ async function renderDashboard(container) {
     return;
   }
 
-  const [transactions, fts, install, list] = await Promise.all([getAll('transactions'), computeFreeToSpend(), installCard(), businesses()]);
+  const [transactions, fts, install, list, categoryList] = await Promise.all([getAll('transactions'), computeFreeToSpend(), installCard(), businesses(), getAll('categories')]);
+  const latest = havenLatest(transactions, categoryList);
   // Anyone with business income has tax dates to keep.
   const tax = taxCard(taxDates(isoLocal(new Date()), { business: list.length > 0 || fts.incomeKind === 'business' }));
 
@@ -377,7 +399,7 @@ async function renderDashboard(container) {
     }
     // The figure and its answer; what needs you; the month; then the rest,
     // folded. The parts are marked where the top is drawn.
-    const [answer, afterAnswer = ''] = renderSpendingLimit(fts, { short: true }).split('<!--k:answer-->');
+    const [answer, afterAnswer = ''] = renderSpendingLimit(fts, { short: true, latest }).split('<!--k:answer-->');
     const [month, rest = ''] = afterAnswer.split('<!--k:month-->');
     dashboardEl.innerHTML = [
       setup.payments ? '' : setupStrip(),
@@ -403,7 +425,7 @@ async function renderDashboard(container) {
   } else {
     dashboardEl.innerHTML = [
       monthNav(thisKey, months),
-      renderSpendingLimit(fts),
+      renderSpendingLimit(fts, { latest }),
       renderBankCard(fts),
       renderDueSoon(fts),
       '<div id="attention-section"></div>',
@@ -418,6 +440,7 @@ async function renderDashboard(container) {
 
   wireMonthNav();
   wireCharts(dashboardEl);
+  wireHaven(dashboardEl);
 
   // The set-aside figure opens the list that explains it, rather than being
   // a number with nowhere to go.
@@ -1177,7 +1200,9 @@ function renderCardsHero(f, opts = {}) {
   const lookTop = ['full', 'short'].includes(appearance('summary')) && f.limit != null && LOOK_TOPS[style];
   const drawn = past ? { ...shown, finished: true } : f;
   const top = lookTop
-    ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), monthWaves(drawn))
+    ? style === 'haven'
+      ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), '', { latest: opts.latest })
+      : lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), monthWaves(drawn))
     : spendingHero(shown, short ? 'full' : appearance('summary'), past ? `Final for ${past.name}` : null, short ? shortStatus(f) : null) + `<!--k:answer-->
     ${past ? '' : monthWaves(f)}<!--k:month-->
     ${past ? '' : weekPills(f)}

@@ -3,6 +3,7 @@ import { sortCommitments, sortAccounts, sortCategories, usageCounts } from '../l
 import { holdFocus } from '../overlay.js';
 import { put, getAll, newId, getSetting } from '../db.js';
 import { icon } from '../icons.js';
+import { wireHaven, saveMorph } from '../haven-ui.js';
 import { CASH_ACCOUNT_ID } from '../config.js';
 import { categoryStyle } from '../category-style.js';
 import { showToast } from '../toast.js';
@@ -607,7 +608,7 @@ export async function render(container, params = {}) {
       const work = transaction.isReimbursable ? ' · Left to spend unchanged' : cashSpend ? (cashPlan ? ' · comes off your cash plan' : ' · counted in Left to spend') : '';
       showToast(`Saved ${direction === 'debit' ? '-' : '+'}₹${(amount / 100).toLocaleString('en-IN')}${work}`);
     }
-    savedFeedback(form.querySelector('button[type="submit"]'));
+    savedFeedback(form.querySelector('button[type="submit"]'), params.onSaved);
 
     form.reset();
     repeatOptions.hidden = true;
@@ -662,7 +663,7 @@ export async function render(container, params = {}) {
     transactions.push(transaction);
     if (!people.some((p) => p.id === person.id)) people.push(person);
     showToast(`Saved ${way === 'gave' ? '-' : '+'}₹${(amount / 100).toLocaleString('en-IN')} · ${person.name}`);
-    savedFeedback(form.querySelector('button[type="submit"]'));
+    savedFeedback(form.querySelector('button[type="submit"]'), params.onSaved);
     amountInput.value = '';
     nameInput.value = '';
     container.querySelector('#add-backby').value = '';
@@ -696,8 +697,13 @@ export async function render(container, params = {}) {
 // The Save button says it worked: green, a tick, one soft ring, then back
 // to itself for the next payment. Nothing moves for reduced motion beyond
 // the colour and the tick.
-function savedFeedback(btn) {
+function savedFeedback(btn, after) {
   if (!btn) return;
+  // Haven's Save button says it worked with its own motion (js/haven-ui.js saveMorph).
+  if (btn.querySelector('.lbl')) {
+    saveMorph(btn, after, 120);
+    return;
+  }
   btn.classList.remove('is-saved');
   void btn.offsetWidth;
   btn.classList.add('is-saved');
@@ -779,7 +785,8 @@ function byRecentUse(categories, transactions) {
  * keeps the order it was built in. */
 function arrangeAdd(container) {
   const style = document.documentElement.dataset.style;
-  if (!['tactile', 'instrument', 'haven'].includes(style)) return;
+  if (style === 'haven') return havenArrangeAdd(container);
+  if (!['tactile', 'instrument'].includes(style)) return;
   const form = container.querySelector('#add-form');
   const hero = form.querySelector('.amount-hero');
   const toggle = hero.querySelector('.direction-toggle');
@@ -818,4 +825,80 @@ function arrangeAdd(container) {
   person.classList.add('add-card', 'add-card--person');
   card.after(person);
   // The paste-a-message banner stays where it was built: first on the page.
+}
+
+/* Haven (5.52): Add as the prototype draws it (mockups/7.1-haven, "Add a payment"): the direction, the amount big, the
+ * categories used lately, a keypad of its own so the phone's keyboard never covers the form, and one line - "Details" -
+ * that opens everything else (merchant, account, date, category list, repeats, work costs). The same elements move, so
+ * every id, value and listener is the form's own. A hardware keyboard still types in the amount. */
+function havenArrangeAdd(container) {
+  const form = container.querySelector('#add-form');
+  const hero = form.querySelector('.amount-hero');
+  const toggle = hero.querySelector('.direction-toggle');
+  slidingPill(toggle);
+  const input = container.querySelector('#add-amount');
+  input.type = 'text';
+  input.setAttribute('inputmode', 'none');
+  input.setAttribute('autocomplete', 'off');
+  input.classList.add('val');
+  const wrap = input.closest('.amount-input-wrap');
+  wrap.classList.add('hv-amountbig');
+  wrap.querySelector('.amount-prefix').classList.add('hv-cur');
+  const quick = container.querySelector('.k-quick[aria-label="Recent categories"]');
+  quick.classList.add('hv-chips');
+  quick.querySelectorAll('.k-quick__chip').forEach((c) => c.classList.add('hv-chip'));
+  const pad = document.createElement('div');
+  pad.className = 'hv-keypad no-swipe';
+  pad.setAttribute('role', 'group');
+  pad.setAttribute('aria-label', 'Amount keypad');
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'];
+  pad.innerHTML = keys.map((k) => `<button type="button" class="hv-key${k === '.' || k === 'back' ? ' alt' : ''}" data-key="${k}" aria-label="${k === 'back' ? 'Delete the last digit' : k === '.' ? 'Point' : k}">${k === 'back' ? '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>' : k}</button>`).join('');
+  pad.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-key]');
+    if (!b) return;
+    let v = input.value;
+    const k = b.dataset.key;
+    if (k === 'back') v = v.slice(0, -1);
+    else if (k === '.') v = v.includes('.') ? v : `${v || '0'}.`;
+    else if (!(v.includes('.') && v.split('.')[1].length >= 2) && v.replace('.', '').length < 9) v = v === '0' ? k : v + k;
+    input.value = v;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  // Everything else on the form goes behind "Details", in the order it was built.
+  const person = container.querySelector('#add-person');
+  const submit = form.querySelector('button[type="submit"]');
+  const rest = [...form.children].filter((n) => n !== hero && n !== person && n !== submit && n !== toggle);
+  const fold = document.createElement('div');
+  fold.className = 'hv-fold';
+  fold.id = 'hv-details';
+  const inner = document.createElement('div');
+  const stack = document.createElement('div');
+  stack.className = 'hv-stack';
+  stack.style.padding = '2px 0 4px';
+  // The merchant first, then account and date side by side (what is checked on every payment), then the rest.
+  const field = (id) => container.querySelector(`#${id}`).closest('.k-field, .field, .k-switch-row');
+  const pair = document.createElement('div');
+  pair.className = 'add-pair';
+  const desc = field('add-desc'), acct = field('add-account'), date = field('add-date');
+  pair.append(acct, date);
+  stack.append(desc, pair, ...rest.filter((n) => n !== desc && n !== acct && n !== date && !n.contains(acct) && !n.contains(date)));
+  inner.append(stack);
+  fold.append(inner);
+  const det = document.createElement('button');
+  det.type = 'button';
+  det.className = 'hv-detailsbtn';
+  det.setAttribute('data-hv-fold', '');
+  det.setAttribute('aria-expanded', 'false');
+  det.innerHTML = `<span>Details: merchant, account, date</span><span class="hv-chev"><span class="hv-ic">${icon('chevdown')}</span></span>`;
+  // The Save button as the prototype draws it: the label and a small circle with a tick that turns while it saves.
+  submit.className = 'hv-btn full';
+  submit.innerHTML = `<span class="lbl"><span class="go">Save</span></span><span class="nest"><span class="hv-ic">${icon('tick')}</span></span>`;
+  hero.replaceWith(toggle, wrap.closest('.amount-field') || wrap, quick, pad);
+  form.insertBefore(det, submit);
+  det.after(fold);
+  // A field in the folded part that cannot be left empty opens it, so the message is never out of sight.
+  form.addEventListener('invalid', () => { det.setAttribute('aria-expanded', 'true'); fold.classList.add('open'); }, true);
+  form.classList.add('hv-addform');
+  form.classList.add('hv-stack');
+  wireHaven(container);
 }

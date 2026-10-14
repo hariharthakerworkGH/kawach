@@ -1,251 +1,420 @@
-/* The Haven style (5.52): a calm look of its own, in day and night.
+/* The Haven style (5.52): the default look, in day and night.
  *
- * Switched on by data-style="haven" on <html> (js/looks.js) and the default since 5.52. Kawach means
- * shield; Haven is the calm inside it. The signature is the TIDE (summary-looks.js havenTop): what is left
- * rises in a shield like water, so the number you came for is also a feeling, and it is always said in words
- * as well. Everything else stays quiet so the tide can lead: pale porcelain surfaces (deep ink-navy in the
- * night), one deep navy "vault" for the main figure, rounded squircle tiles for icons, fields pressed into
- * the page as wells, pill buttons, and a floating glass tab bar with Add raised in the middle.
+ * css/haven-proto.css is the prototype's own stylesheet (mockups/7.1-haven), ported unchanged in value by
+ * tools/haven_port.py: the tokens, the shell and core, the vault and tide, rows and gems, chips, buttons, the month
+ * picker, the sheet, the keypad. The screens Haven draws itself use those classes (hv-shell, hv-row ...).
  *
- * It shares Tactile's markup and rules (css/style-tactile.css writes its selectors for all three looks) and
- * repaints them through the --t-* values below, as Instrument does. What this file adds is only what
- * Tactile has no equivalent of: the tide, the vault, the radii, the floating bar and the motion.
- * Colours come from the colouring (haven-day or haven-night, css/looks.css, made by tools/looks.py).
- * Motion is springs written as CSS linear() easings (made by tools/spring.mjs), and every loop stops
- * for reduced motion.
+ * This file is only the glue the prototype does not need, because the prototype has no other screens:
+ *  1. the page (sky, grain), the header and the floating tab bar, with the prototype's values;
+ *  2. the app's OWN blocks that the prototype does not show (the rest of Summary, Settings, import, goals ...) given
+ *     the same look: two-layer cards, gems, wells, pills. Every value here is a prototype token.
+ * It is a layer over Charts' plain base, not over Tactile: none of Tactile's engraved rules apply to Haven.
  */
 
-:root[data-style="haven"] {
-  --hv-soft: linear(0, 0.016 2.5%, 0.0575 5.0%, 0.1162 7.5%, 0.1854 10.0%, 0.2602 12.5%, 0.3367 15.0%, 0.4122 17.5%, 0.4846 20.0%, 0.5525 22.5%, 0.6152 25.0%, 0.6722 27.5%, 0.7234 30.0%, 0.7688 32.5%, 0.8086 35.0%, 0.8431 37.5%, 0.8729 40.0%, 0.8983 42.5%, 0.9197 45.0%, 0.9376 47.5%, 0.9524 50.0%, 0.9646 52.5%, 0.9745 55.0%, 0.9824 57.5%, 0.9886 60.0%, 0.9935 62.5%, 0.9972 65.0%, 1 67.5%, 1.0019 70.0%, 1.0033 72.5%, 1.0042 75.0%, 1.0048 77.5%, 1.005 80.0%, 1.005 82.5%, 1.0049 85.0%, 1.0046 87.5%, 1.0043 90.0%, 1.0039 92.5%, 1.0035 95.0%, 1.0032 97.5%, 1);
-  --hv-snap: linear(0, 0.016 2.5%, 0.0583 5.0%, 0.1191 7.5%, 0.1922 10.0%, 0.2723 12.5%, 0.3552 15.0%, 0.4378 17.5%, 0.5176 20.0%, 0.5928 22.5%, 0.6623 25.0%, 0.7252 27.5%, 0.7813 30.0%, 0.8305 32.5%, 0.873 35.0%, 0.9091 37.5%, 0.9392 40.0%, 0.9639 42.5%, 0.9837 45.0%, 0.9992 47.5%, 1.011 50.0%, 1.0195 52.5%, 1.0254 55.0%, 1.0291 57.5%, 1.031 60.0%, 1.0315 62.5%, 1.0309 65.0%, 1.0296 67.5%, 1.0276 70.0%, 1.0253 72.5%, 1.0227 75.0%, 1.0201 77.5%, 1.0175 80.0%, 1.015 82.5%, 1.0126 85.0%, 1.0105 87.5%, 1.0085 90.0%, 1.0068 92.5%, 1.0052 95.0%, 1.0039 97.5%, 1);
-  --hv-tide-ms: 1340ms;
-  --k-track-caption: 0;
-  --hv-r: 26px;
-  --hv-r-sm: 20px;
-  --hv-r-field: 14px;
-  --hv-ink: #111f43;
-  --tide-a: #2f6fd6;
-  --tide-b: #3fb7d6;
-  --hv-gem-a: #1d6fd0;
-  --hv-gem-b: #0e9aa6;
-  --hv-vault: radial-gradient(120% 90% at 85% 0%, rgb(74 128 224 / 0.55), transparent 60%), linear-gradient(165deg, #243f86, #11234f 55%, #0a1535);
-  --hv-bar: rgb(255 255 255 / 0.82);
-  --hv-lift: 0 1px 2px rgb(17 31 67 / 0.06), 0 20px 36px -26px rgb(17 31 67 / 0.22);
-  --hv-lift-hero: 0 2px 4px rgb(17 31 67 / 0.14), 0 34px 54px -26px rgb(17 31 67 / 0.6);
-  /* The Tactile values, made calm: a clean sheet, a pressed field, a hairline. */
-  --t-raise: var(--k-surface);
-  --t-shadow: 0 0 0 1px var(--k-hairline), var(--hv-lift);
-  --t-well: color-mix(in srgb, var(--k-bg) 80%, var(--k-text) 7%);
-  --t-well-shadow: inset 0 0 0 1px var(--k-hairline);
-  --t-metal: var(--k-border-emphasis);
-  --t-knob: #fff;
-}
-:root[data-style="haven"][data-theme="dark"] {
-  --tide-a: #2f6fd6;
-  --tide-b: #3dcbdc;
-  --hv-gem-a: #2f67d5;
-  --hv-gem-b: #1ba79f;
-  --hv-vault: radial-gradient(120% 90% at 85% 0%, rgb(61 143 235 / 0.5), transparent 62%), linear-gradient(165deg, #1f4f9c, #153d80 55%, #0b1f4a);
-  --hv-bar: rgb(22 33 60 / 0.78);
-  --hv-lift: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 30px 50px -26px rgb(0 0 0 / 0.85);
-  --hv-lift-hero: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 34px 54px -26px rgb(0 0 0 / 0.9);
-  --t-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07), var(--hv-lift);
-  --t-well: color-mix(in srgb, var(--k-bg) 82%, black);
-  --t-well-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07);
-}
-/* Light sky behind the top of every screen, so the cards float on something. */
-:root[data-style="haven"] body { background: linear-gradient(180deg, color-mix(in srgb, var(--k-bg) 78%, #cfe1f7) 0, var(--k-bg) 340px) no-repeat, var(--k-bg); }
-:root[data-style="haven"][data-theme="dark"] body { background: linear-gradient(180deg, #12214a 0, var(--k-bg) 340px) no-repeat, var(--k-bg); }
-
-/* Corners: one family. Cards 26, rows 20, fields 14, tiles 14. */
-:root[data-style="haven"] .k .totals-card,
-:root[data-style="haven"] .k .breakdown-list,
-:root[data-style="haven"] .k .cat-list,
-:root[data-style="haven"] .k .empty-state,
-:root[data-style="haven"] .k .hero,
-:root[data-style="haven"] .k-pane,
-:root[data-style="haven"] .k-insight,
-:root[data-style="haven"] .k-context,
-:root[data-style="haven"] .k-coach .coach-q,
-:root[data-style="haven"] .k .hist-day-card,
-:root[data-style="haven"] .tl-hero,
-:root[data-style="haven"] .tl-card,
-:root[data-style="haven"] .pl-top--tactile,
-:root[data-style="haven"] .pl-month--tactile,
-:root[data-style="haven"] .pl-seg,
-:root[data-style="haven"] .k .add-card,
-:root[data-style="haven"] .k .account-block,
-:root[data-style="haven"] .k .hist-days-card,
-:root[data-style="haven"] .k .setup-card,
-:root[data-style="haven"] .k .sum-needs,
-:root[data-style="haven"] .k .sum-more,
-:root[data-style="haven"] .k .setup-strip,
-:root[data-style="haven"] .k .sum-calm,
-:root[data-style="haven"] .k .owed-list,
-:root[data-style="haven"] .k .hist-salary,
-:root[data-style="haven"] .k .chart-readout,
-:root[data-style="haven"] .explain-pop { border-radius: var(--hv-r); }
-:root[data-style="haven"] .tl-item,
-:root[data-style="haven"] .k .hist-day-card .hist-row,
-:root[data-style="haven"] .k .people-sums > div { border-radius: var(--hv-r-sm); }
-:root[data-style="haven"] .tl-stats > div { border-radius: 16px; }
-:root[data-style="haven"] .k-input,
-:root[data-style="haven"] .k-select,
-:root[data-style="haven"] .k .k-picker,
-:root[data-style="haven"] .k .hist-search,
-:root[data-style="haven"] input[type="text"],
-:root[data-style="haven"] input[type="number"],
-:root[data-style="haven"] input[type="password"],
-:root[data-style="haven"] input[type="search"],
-:root[data-style="haven"] select { border-radius: var(--hv-r-field); }
-
+/* ---------------------------------------------------------------- the page */
+:root[data-style="haven"] body { background: var(--hv-paper); color: var(--hv-ink); font-family: var(--hv-font); }
+:root[data-style="haven"] body::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 340px; z-index: -1; pointer-events: none; background: linear-gradient(180deg, var(--hv-sky) 0, var(--hv-paper) 100%); }
+:root[data-style="haven"] body::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-events: none; opacity: var(--hv-grain-op); mix-blend-mode: var(--hv-grain-blend); background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
 /* Sentence case everywhere: labels read as words, not as engraving. */
 :root[data-style="haven"] *,
 :root[data-style="haven"] *::before,
 :root[data-style="haven"] *::after { text-transform: none !important; text-shadow: none !important; }
-:root[data-style="haven"] .tl-k,
-:root[data-style="haven"] .tl-label,
-:root[data-style="haven"] #view-container h3,
-:root[data-style="haven"] .k .add-card .hero-label,
-:root[data-style="haven"] .k .hist-days-card::before,
-:root[data-style="haven"] .k .hist-day-head,
-:root[data-style="haven"] .k .sum-needs__head,
-:root[data-style="haven"] .k .owed-list__head { letter-spacing: 0; }
-
-/* Cards: a clean sheet with a long, soft shadow. No engraving. */
-:root[data-style="haven"] .tl-card,
-:root[data-style="haven"] .tl-item { box-shadow: var(--t-shadow); }
-:root[data-style="haven"] .tl-big { text-shadow: none; font-weight: 700; letter-spacing: -0.04em; }
-:root[data-style="haven"] #view-title { text-shadow: none; font-weight: 750; letter-spacing: -0.025em; }
-:root[data-style="haven"] .tl-k,
-:root[data-style="haven"] .tl-label { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600; }
-:root[data-style="haven"] .tl-stats .tl-k { font-size: 12px; }
-
-/* The icon tiles: a little gem, a gradient squircle with a white glyph. */
-:root[data-style="haven"] .tl-ibox,
-:root[data-style="haven"] .k .need-row__ic {
-  border: 0;
-  border-radius: 14px;
-  color: #fff;
-  background: linear-gradient(145deg, var(--hv-gem-a), var(--hv-gem-b));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 8px 14px -8px var(--hv-gem-a);
-}
-
-/* ---- The vault: the one deep surface, holding the tide ---- */
-:root[data-style="haven"] .hv-hero {
-  position: relative;
-  overflow: hidden;
-  padding: var(--k-5) var(--k-4) var(--k-4);
-  color: #fff;
-  background: var(--hv-vault);
-  background-color: #11234f; /* what a contrast check (and a slow gradient) sees behind the white text */
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), inset 0 0 0 1px rgb(255 255 255 / 0.07), var(--hv-lift-hero);
-}
-:root[data-style="haven"] .hv-hero .tl-k { color: rgb(255 255 255 / 0.82); }
-:root[data-style="haven"] .hv-hero .tl-big { margin-top: 6px; font-size: clamp(34px, 11.6vw, 52px); color: #fff; }
-:root[data-style="haven"] .hv-hero.is-negative .tl-big { color: #ffb4ad; }
-:root[data-style="haven"] .hv-hero .tl-line { color: rgb(255 255 255 / 0.86); }
-:root[data-style="haven"] .hv-hero .tl-line.caution { color: #ffd98a; }
-:root[data-style="haven"] .hv-hero .tl-line.bad { color: #ffb4ad; }
-:root[data-style="haven"] .hv-hero .closed-note { color: rgb(255 255 255 / 0.86); }
-:root[data-style="haven"] .hv-pill { display: inline-flex; padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: #fff; background: rgb(255 255 255 / 0.14); font-variant-numeric: tabular-nums; }
-:root[data-style="haven"] .hv-main { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; margin-top: 14px; }
-:root[data-style="haven"] .hv-sub { margin: 8px 0 0; font-size: 13px; color: rgb(255 255 255 / 0.82); }
-:root[data-style="haven"] .hv-sub b { color: #fff; font-weight: 650; }
-:root[data-style="haven"] .hv-hero .tl-stats { margin-top: 18px; gap: 0; padding-top: 14px; border-top: 1px solid rgb(255 255 255 / 0.14); }
-:root[data-style="haven"] .hv-hero .tl-stats > div { padding: 0 10px; border-radius: 0; background: none; box-shadow: none; }
-:root[data-style="haven"] .hv-hero .tl-stats > div:first-child { padding-left: 0; }
-:root[data-style="haven"] .hv-hero .tl-stats > div + div { border-left: 1px solid rgb(255 255 255 / 0.14); }
-:root[data-style="haven"] .hv-hero .tl-stats b { font-size: 16px; font-weight: 650; letter-spacing: -0.015em; color: #fff; }
-:root[data-style="haven"] .hv-hero .tl-stats .hv-mood { font-size: 13.5px; line-height: 1.2; }
-:root[data-style="haven"] .hv-hero .tl-prog { background: rgb(255 255 255 / 0.12); box-shadow: none; }
-:root[data-style="haven"] .hv-hero .tl-prog i { background: linear-gradient(90deg, var(--tide-a), var(--tide-b)); box-shadow: none; }
-:root[data-style="haven"] .hv-hero .tl-prog > span { color: #fff; text-shadow: none; }
-
-/* ---- The tide: water in a shield ---- */
-:root[data-style="haven"] .tide { position: relative; width: 100px; height: 126px; }
-:root[data-style="haven"] .tide svg { width: 100%; height: 100%; overflow: visible; display: block; }
-:root[data-style="haven"] .tide .sh-line { fill: rgb(255 255 255 / 0.06); stroke: rgb(255 255 255 / 0.55); stroke-width: 1.4; }
-:root[data-style="haven"] .tide .sh-rim { stroke: rgb(255 255 255 / 0.7); stroke-width: 1.4; }
-:root[data-style="haven"] .tide .water { transform: translateY(calc((1 - var(--lvl, 0)) * 77px)); animation: hv-fill var(--hv-tide-ms) var(--hv-soft) both; }
-:root[data-style="haven"] .tide .wave { animation: hv-drift 7s linear infinite; }
-:root[data-style="haven"] .tide .wave.b { animation-duration: 11s; animation-direction: reverse; opacity: 0.55; }
-:root[data-style="haven"] .tide .pace { stroke: rgb(255 255 255 / 0.85); stroke-width: 1; stroke-dasharray: 2 3; }
-:root[data-style="haven"] .tide stop { transition: stop-color 600ms cubic-bezier(0.22, 1, 0.36, 1); }
-:root[data-style="haven"][data-theme="dark"] .tide svg { filter: drop-shadow(0 0 16px rgb(61 203 220 / 0.35)); }
-:root[data-style="haven"] .tide[data-mood="watch"] { --tide-a: #c97b12; --tide-b: #f0b84a; }
-:root[data-style="haven"] .tide[data-mood="low"] { --tide-a: #d0453a; --tide-b: #ef7b6a; }
-@keyframes hv-fill { from { transform: translateY(77px); } }
-@keyframes hv-drift { to { transform: translateX(-32px); } }
-
-/* ---- Fields: wells; the main action: a pill ---- */
-:root[data-style="haven"] .k-btn--primary {
-  border-radius: 999px;
-  color: var(--k-accent-ink);
-  background: var(--k-accent-text);
-  border: 0;
-  box-shadow: 0 10px 18px -10px color-mix(in srgb, var(--k-accent-text) 70%, transparent);
-  text-shadow: none;
-}
-:root[data-style="haven"][data-theme="dark"] .k-btn--primary { background: #1161bb; color: #fff; }
-
-/* ---- The tab bar: a floating glass pill; Add is raised in the middle ---- */
-:root[data-style="haven"] #tabs.bottom-nav {
-  margin: 0 12px 12px;
-  padding: 6px;
-  border-radius: 999px;
-  border-top: 0;
-  background: var(--hv-bar);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  backdrop-filter: blur(18px) saturate(1.4);
-  box-shadow: 0 0 0 1px var(--k-hairline), 0 18px 34px -16px rgb(17 31 67 / 0.45);
-}
-:root[data-style="haven"][data-theme="dark"] #tabs.bottom-nav { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 0 0 1px rgb(255 255 255 / 0.06), 0 18px 34px -12px rgb(0 0 0 / 0.8); }
-:root[data-style="haven"] #tabs .nav-btn { border-radius: 999px; font-weight: 600; letter-spacing: 0; text-transform: none; }
-:root[data-style="haven"] #tabs .nav-btn.active { color: var(--k-accent-text); background: color-mix(in srgb, var(--k-accent-text) 9%, transparent); box-shadow: none; border-radius: 999px; }
-:root[data-style="haven"][data-theme="dark"] #tabs .nav-btn.active { color: #8fe3ee; background: rgb(255 255 255 / 0.09); }
-:root[data-style="haven"] #tabs .nav-btn.active .nav-icon { color: inherit; }
 :root[data-style="haven"] body { padding-bottom: calc(var(--nav-height, 84px) + var(--space-lg) + 14px); }
+:root[data-style="haven"] .k { padding-inline: 16px; }
+:root[data-style="haven"] .k > *,
+:root[data-style="haven"] .k #dashboard > *,
+:root[data-style="haven"] .k #summary-content > * { margin-top: 0; margin-bottom: 16px; }
+/* the prototype's own screen: a grid of blocks 16px apart */
+:root[data-style="haven"] .hv-screen { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hv-s4); align-content: start; margin-bottom: 16px; padding: 0; }
+:root[data-style="haven"] .hv-screen > * { min-width: 0; }
+:root[data-style="haven"] .hv-covered .hv-amt { filter: blur(9px); opacity: 0.55; user-select: none; }
+:root[data-style="haven"] .hv-vault.is-negative .hv-num,
+:root[data-style="haven"] .hv-vault.is-negative .hv-cur { color: #ffb4ad; }
+:root[data-style="haven"] .hv-num { display: inline-block; }
 
-/* ---- Motion: things that move in space use the spring; things that only appear, a short fade ---- */
+/* ------------------------------------------------------------- the header (.hdr in the prototype) */
+:root[data-style="haven"] .app-header { display: flex; align-items: center; gap: var(--hv-s2); padding: 22px 20px 6px; background: none; border: 0; box-shadow: none; }
+:root[data-style="haven"] .app-header::after { display: none; }
+:root[data-style="haven"] .hv-hdr__who { margin-right: auto; display: grid; line-height: 1.12; }
+:root[data-style="haven"] .hv-hdr__hi { font-size: var(--hv-fs-label); color: var(--hv-ink-2); }
+:root[data-style="haven"] #view-title { font-size: 24px; font-weight: 650; letter-spacing: -0.025em; color: var(--hv-ink); margin: 0; transform: none; }
+:root[data-style="haven"] .hv-hdr-extra { display: contents; }
+:root[data-style="haven"] .hv-round .icon { width: 22px; height: 22px; stroke-width: 1.5; }
+:root[data-style="haven"] #settings-btn.hv-round { width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 0; background: var(--hv-shell); box-shadow: 0 0 0 1px var(--hv-hair), inset 0 1px 0 var(--hv-hl); color: var(--hv-ink); }
+:root[data-style="haven"] .hv-pillbtn .icon { width: 18px; height: 18px; }
+:root[data-style="haven"] .hv-round[aria-pressed="true"] { background: var(--hv-primary); color: var(--hv-on-primary); }
+:root[data-style="haven"] .hv-round .hv-badge { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--hv-bad); color: var(--hv-on-navy); font: 650 11px/18px var(--hv-font); text-align: center; box-shadow: 0 0 0 2px var(--hv-paper); font-style: normal; }
+:root[data-style="haven"] .hv-ic .icon,
+:root[data-style="haven"] .hv-gem .icon,
+:root[data-style="haven"] .hv-chip .icon { width: 100%; height: 100%; stroke-width: 1.5; }
+:root[data-style="haven"] .hv-row > svg,
+:root[data-style="haven"] .hv-gem svg { width: 21px; height: 21px; }
+
+/* ---------------------------------------- the app's own blocks: two layers, as the prototype's cards */
+:root[data-style="haven"] .k .totals-card,
+:root[data-style="haven"] .k .tl-card,
+:root[data-style="haven"] .k .tl-list,
+:root[data-style="haven"] .k .k-pane,
+:root[data-style="haven"] .k .add-card,
+:root[data-style="haven"] .k .account-group,
+:root[data-style="haven"] .k .hist-day-card,
+:root[data-style="haven"] .k .hist-days-card,
+:root[data-style="haven"] .k .setup-card,
+:root[data-style="haven"] .k .sum-needs,
+:root[data-style="haven"] .k .sum-more,
+:root[data-style="haven"] .k .owed-list,
+:root[data-style="haven"] .k .hero,
+:root[data-style="haven"] .k .empty-state,
+:root[data-style="haven"] .k .pl-top,
+:root[data-style="haven"] .k .coach-q,
+:root[data-style="haven"] .k .look-card {
+  background: linear-gradient(180deg, var(--hv-core), var(--hv-core-2));
+  border: 0;
+  border-radius: var(--hv-r-core);
+  box-shadow: inset 0 1px 0 var(--hv-hl), var(--hv-lift), 0 0 0 6px var(--hv-shell), 0 0 0 7px var(--hv-hair);
+  margin-inline: 7px;
+}
+:root[data-style="haven"] .k .totals-card .totals-card { box-shadow: none; background: none; margin-inline: 0; }
+:root[data-style="haven"] .k .totals-card.plan-month { background: none; box-shadow: none; padding: 0; margin-inline: 0; }
+
+:root[data-style="haven"] .k .section-head { margin: 8px 6px 0; }
+:root[data-style="haven"] #view-container h3,
+:root[data-style="haven"] .k .section-head h3 { font-size: var(--hv-fs-title); font-weight: 650; letter-spacing: -0.02em; color: var(--hv-ink); }
+:root[data-style="haven"] .tl-list { display: block; padding: 4px 16px; }
+:root[data-style="haven"] .tl-item { background: none; box-shadow: none; border-radius: 0; padding: 12px 0; }
+:root[data-style="haven"] .tl-item + .tl-item { border-top: 1px solid var(--hv-hair); }
+:root[data-style="haven"] .tl-label { margin: 8px 6px 0; padding: 0; border: 0; font-size: var(--hv-fs-title); font-weight: 650; letter-spacing: -0.02em; color: var(--hv-ink); }
+:root[data-style="haven"] .tl-label .tl-still { font-size: var(--hv-fs-label); font-weight: 600; color: var(--hv-ink-2); letter-spacing: 0; }
+:root[data-style="haven"] .tl-card { padding: 16px; }
+:root[data-style="haven"] .tl-k { font-size: var(--hv-fs-label); font-weight: 500; letter-spacing: 0; color: var(--hv-ink-2); }
+:root[data-style="haven"] .tl-mid { font-size: 20px; font-weight: 650; color: var(--hv-ink); }
+:root[data-style="haven"] .tl-t { font-weight: 600; letter-spacing: -0.01em; color: var(--hv-ink); }
+:root[data-style="haven"] .tl-s { font-size: var(--hv-fs-label); color: var(--hv-ink-2); }
+:root[data-style="haven"] .tl-v { font-weight: 600; color: var(--hv-ink); }
+:root[data-style="haven"] .tl-v.tl-bad { color: var(--hv-bad); }
+:root[data-style="haven"] .tl-v.tl-ok { color: var(--hv-good); }
+:root[data-style="haven"] .tl-badge { color: var(--hv-warn); background: var(--hv-warn-tile); border: 0; }
+:root[data-style="haven"] .tl-line { color: var(--hv-ink-2); }
+:root[data-style="haven"] .tl-cols i { border-radius: 3px 3px 1px 1px; background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair); }
+:root[data-style="haven"] .tl-cols i.lit { background: linear-gradient(180deg, var(--hv-tide-b), var(--hv-tide-a)); box-shadow: none; }
+:root[data-style="haven"] .tl-thin { background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair); }
+:root[data-style="haven"] .tl-thin i,
+:root[data-style="haven"] .tl-prog i { background: linear-gradient(90deg, var(--hv-tide-a), var(--hv-tide-b)); box-shadow: none; }
+:root[data-style="haven"] .tl-prog { background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair); }
+:root[data-style="haven"] .tl-prog > span { color: var(--hv-ink); }
+
+/* gems for the app's own icon tiles: the prototype's gem, in the category's colour */
+:root[data-style="haven"] .k-icon,
+:root[data-style="haven"] .tl-ibox,
+:root[data-style="haven"] .k .need-row__ic,
+:root[data-style="haven"] .k .add-row > .add-row-ic,
+:root[data-style="haven"] .k .k-context__mark {
+  width: 42px; height: 42px; border: 0; border-radius: var(--hv-r-tile); color: var(--hv-on-navy);
+  --hv-gem: color-mix(in oklab, var(--k-tint, var(--hv-gem-1)) 100%, #0b1530 var(--hv-gem-dark, 0%));
+  background: linear-gradient(150deg, color-mix(in oklab, var(--hv-gem) 78%, white), var(--hv-gem));
+  box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.35), 0 8px 14px -8px var(--hv-gem);
+}
+:root[data-style="haven"][data-theme="dark"] { --hv-gem-dark: 38%; }
+:root[data-style="haven"] .k .account-row .k-brand { border-radius: var(--hv-r-tile); }
+
+/* notices: tinted, flat (the prototype's .note) */
+:root[data-style="haven"] .k .k-context,
+:root[data-style="haven"] .k .warn-card,
+:root[data-style="haven"] .k .attention-row { margin-inline: 0; border: 0; border-radius: var(--hv-r-core); background: var(--hv-warn-tile); box-shadow: none; }
+:root[data-style="haven"] .k .k-context--alert { background: var(--hv-bad-tile); }
+:root[data-style="haven"] .k .k-context__k { color: var(--hv-ink); font-weight: 650; font-size: var(--hv-fs-body); }
+:root[data-style="haven"] .k .k-context__note { color: var(--hv-ink-2); }
+:root[data-style="haven"] .k .k-context--alert .k-context__mark { --k-tint: var(--hv-bad); }
+:root[data-style="haven"] .k .k-context--attention .k-context__mark { --k-tint: var(--hv-warn); }
+:root[data-style="haven"] .k .k-context__mark { width: 36px; height: 36px; }
+
+/* the month picker: the prototype's .month */
+:root[data-style="haven"] .k .hist-month { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 0; height: 44px; padding: 0; border-radius: var(--hv-r-pill); background: var(--hv-shell); box-shadow: 0 0 0 1px var(--hv-hair), inset 0 1px 0 var(--hv-hl); text-align: center; font-weight: 600; }
+:root[data-style="haven"] .k .hist-month .hist-step { width: 44px; height: 44px; border: 0; background: none; box-shadow: none; color: var(--hv-ink-2); border-radius: 0; }
+:root[data-style="haven"] .k .hist-month .hist-month-name { padding: 0; background: none; box-shadow: none; font-size: var(--hv-fs-body); font-weight: 600; color: var(--hv-ink); }
+
+/* fields are wells; buttons are pills (the prototype's .input, .btn, .chip, .seg, .switch) */
+:root[data-style="haven"] .k-input,
+:root[data-style="haven"] .k-select,
+:root[data-style="haven"] .k .k-picker,
+:root[data-style="haven"] .k .hist-search,
+:root[data-style="haven"] .k select.hist-chip,
+:root[data-style="haven"] input[type="text"],
+:root[data-style="haven"] input[type="number"],
+:root[data-style="haven"] input[type="password"],
+:root[data-style="haven"] input[type="search"],
+:root[data-style="haven"] select {
+  background: var(--hv-well); border: 0; border-radius: var(--hv-r-field); color: var(--hv-ink);
+  box-shadow: inset 0 0 0 1px var(--hv-hair), inset 0 1px 2px oklch(32% 0.08 265 / 0.05);
+}
+:root[data-style="haven"] .k-input:focus-visible,
+:root[data-style="haven"] .k-select:focus-visible,
+:root[data-style="haven"] input:focus-visible { box-shadow: 0 0 0 2px var(--hv-core), 0 0 0 4px var(--hv-link); }
+:root[data-style="haven"] .segmented,
+:root[data-style="haven"] .k-seg { padding: 3px; border-radius: var(--hv-r-pill); background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair); }
+:root[data-style="haven"] .k .seg-btn,
+:root[data-style="haven"] .k-seg__btn { border-radius: var(--hv-r-pill); color: var(--hv-ink-2); font-weight: 600; background: none; box-shadow: none; }
+:root[data-style="haven"] .k .seg-btn.active,
+:root[data-style="haven"] .k-seg__btn[aria-selected="true"] { background: var(--hv-thumb); color: var(--hv-ink); box-shadow: 0 1px 2px var(--hv-sh-3), 0 0 0 1px var(--hv-hair); }
+:root[data-style="haven"] .k-btn--primary,
+:root[data-style="haven"] .btn-primary,
+:root[data-style="haven"] .k .add-form .k-btn--primary {
+  border: 0; border-radius: var(--hv-r-pill); background: var(--hv-primary); color: var(--hv-on-primary); font-weight: 600;
+  box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.2), 0 14px 22px -14px var(--hv-sh-4);
+}
+:root[data-style="haven"] .btn-secondary,
+:root[data-style="haven"] .k .btn-secondary { border: 0; border-radius: var(--hv-r-pill); background: var(--hv-core); color: var(--hv-ink); font-weight: 600; box-shadow: 0 0 0 1px var(--hv-hair-strong); }
+:root[data-style="haven"] .k .k-quick__chip { border: 0; background: var(--hv-well); box-shadow: 0 0 0 1px var(--hv-hair); color: var(--hv-ink-2); font-weight: 550; }
+:root[data-style="haven"] .k .k-quick__chip.on { background: var(--hv-primary); color: var(--hv-on-primary); box-shadow: none; }
+:root[data-style="haven"] .k-toggle { background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair-strong); }
+:root[data-style="haven"] .k-toggle::after { background: var(--hv-core); box-shadow: 0 1px 3px var(--hv-sh-2); }
+:root[data-style="haven"] .k-toggle[aria-checked="true"] { background: var(--hv-primary); }
+:root[data-style="haven"] .k .k-add-sms { margin-inline: 7px; border-radius: var(--hv-r-core); }
+:root[data-style="haven"] .k .amount-hero { margin-inline: 7px; background: linear-gradient(180deg, var(--hv-core), var(--hv-core-2)); color: var(--hv-ink); box-shadow: inset 0 1px 0 var(--hv-hl), var(--hv-lift), 0 0 0 6px var(--hv-shell), 0 0 0 7px var(--hv-hair); }
+:root[data-style="haven"] .k .amount-hero .hero-label,
+:root[data-style="haven"] .k .amount-hero .amount-prefix,
+:root[data-style="haven"] .k .amount-hero .amount-input { color: var(--hv-ink); }
+
+/* the month's chart (the app's own, on the screens that still draw it) in the prototype's water colours */
+:root[data-style="haven"] .waves__fill.waves--spent { fill: color-mix(in oklab, var(--hv-tide-b) 24%, transparent); }
+:root[data-style="haven"] .waves__line.waves--spent { stroke: var(--hv-line-ink); stroke-width: 2.4; }
+:root[data-style="haven"] .waves__line.waves--pace { stroke: var(--hv-ink-3); stroke-width: 1.4; stroke-dasharray: 3 4; }
+:root[data-style="haven"] .waves__bar { fill: var(--hv-well); }
+:root[data-style="haven"] .waves__bar.is-top { fill: var(--hv-tide-a); }
+:root[data-style="haven"] .waves__dot { fill: var(--hv-core); stroke: var(--hv-line-ink); stroke-width: 2.4; }
+:root[data-style="haven"] .chart-readout { background: var(--hv-well); box-shadow: none; border-radius: var(--hv-r-field); }
+
+/* Plan's budget bar and the month's steps, in the prototype's parts */
+:root[data-style="haven"] .pl-seg { height: 20px; padding: 4px; gap: 3px; border-radius: 10px; background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair); }
+:root[data-style="haven"] .pl-seg i { border-radius: 6px; }
+:root[data-style="haven"] .pl-top--tactile .is-must { background: var(--hv-primary); }
+:root[data-style="haven"] .pl-top--tactile .is-flex { background: var(--hv-warn); }
+:root[data-style="haven"] .pl-top--tactile .is-free { background: linear-gradient(90deg, var(--hv-tide-a), var(--hv-tide-b)); }
+:root[data-style="haven"] .pl-top--tactile .is-saved { background: var(--hv-good); }
+:root[data-style="haven"] .k .plan-flex__track { background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair); }
+:root[data-style="haven"] .k .plan-flex__track i { background: linear-gradient(90deg, var(--hv-tide-a), var(--hv-tide-b)); box-shadow: none; }
+:root[data-style="haven"] .pl-month--tactile,
+:root[data-style="haven"] .plan-month .pl-month--tactile { background: none; box-shadow: none; padding: 0; }
+:root[data-style="haven"] .pl-steps { display: flex; gap: var(--hv-s2); overflow-x: auto; margin: 0 calc(var(--hv-s4) * -1); padding: 2px var(--hv-s4); scrollbar-width: none; }
+:root[data-style="haven"] .pl-steps::-webkit-scrollbar { display: none; }
+:root[data-style="haven"] .pl-step { flex: none; width: 172px; display: grid; gap: 6px; padding: var(--hv-s3); border: 0; border-radius: 22px; background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair); text-align: left; color: var(--hv-ink); }
+:root[data-style="haven"] .pl-step.is-late { background: var(--hv-bad-tile); box-shadow: none; }
+:root[data-style="haven"] .pl-step::after { display: none; }
+:root[data-style="haven"] .pl-step b { display: grid; place-items: center; width: 42px; height: 42px; border-radius: var(--hv-r-tile); color: var(--hv-on-navy); background: linear-gradient(150deg, color-mix(in oklab, var(--hv-gem-1) 78%, white), var(--hv-gem-1)); box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.35), 0 8px 14px -8px var(--hv-gem-1); }
+:root[data-style="haven"] .pl-step.is-late b { background: linear-gradient(150deg, color-mix(in oklab, var(--hv-gem-4) 78%, white), var(--hv-gem-4)); box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.35), 0 8px 14px -8px var(--hv-gem-4); }
+:root[data-style="haven"] .pl-step.is-paid b { background: linear-gradient(150deg, color-mix(in oklab, var(--hv-gem-6) 78%, white), var(--hv-gem-6)); box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.35), 0 8px 14px -8px var(--hv-gem-6); }
+:root[data-style="haven"] .pl-step small { display: grid; gap: 2px; font-size: var(--hv-fs-label); color: var(--hv-ink-2); }
+:root[data-style="haven"] .pl-step small strong { font-size: var(--hv-fs-body); font-weight: 650; color: var(--hv-ink); }
+:root[data-style="haven"] .pl-step small span { font-size: 22px; font-weight: 600; letter-spacing: -0.035em; color: var(--hv-ink); }
+:root[data-style="haven"] .pl-today, :root[data-style="haven"] .pl-hint, :root[data-style="haven"] .pl-clear, :root[data-style="haven"] .pl-done summary { text-align: left; color: var(--hv-ink-2); }
+
+/* one shell per group: the accounts inside a group and the payments inside a day are rows, not cards */
+:root[data-style="haven"] .k .account-block { background: none; box-shadow: none; border-radius: 0; margin-inline: 0; }
+:root[data-style="haven"] .k .account-block + .account-block { border-top: 1px solid var(--hv-hair); }
+:root[data-style="haven"] .k .account-group { padding: 4px 16px; }
+:root[data-style="haven"] .k .hist-day-card { padding: 2px 14px; }
+:root[data-style="haven"] .k .hist-day-card .hist-row { padding-inline: 0; }
+:root[data-style="haven"] .k .hist-day-head { font-size: var(--hv-fs-lead); font-weight: 650; letter-spacing: -0.015em; color: var(--hv-ink); margin: 8px 6px; }
+
+/* ------------------------------------------- the tab bar: the prototype's .bar, .tab, .blob and .fab
+ * A frosted glass pill, 68px high, 14px in from each side and from the bottom; four tabs and the raised Add in the
+ * middle column; the lit tab is one pill (the blob) that glides to the tab you chose. */
+html:root[data-style="haven"] #tabs.bottom-nav {
+  left: 14px; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); height: 68px; margin: 0; padding: 0 4px;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) 70px repeat(2, minmax(0, 1fr)); align-items: center;
+  border: 0; border-radius: 34px; overflow: visible;
+  background: var(--hv-bar-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  backdrop-filter: blur(20px) saturate(1.5);
+  box-shadow: 0 0 0 1px var(--hv-hair), inset 0 1px 0 var(--hv-hl), 0 26px 40px -20px var(--hv-sh-2);
+}
+html:root[data-style="haven"] #tabs .nav-btn {
+  position: relative; z-index: 1; display: grid; justify-items: center; align-content: center; gap: 2px; min-width: 0; margin: 0; padding: 8px 0 7px;
+  border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--hv-ink-3);
+  font-size: 11px; font-weight: 550; letter-spacing: -0.01em; transition: color var(--hv-d-base) var(--hv-ease-settle);
+}
+html:root[data-style="haven"] #tabs .nav-btn::before { content: ""; position: absolute; inset: -6px -2px; }
+html:root[data-style="haven"] #tabs .nav-btn > span:not(.nav-icon) { font-size: 11px; letter-spacing: -0.01em; }
+html:root[data-style="haven"] #tabs .nav-btn.active { color: var(--hv-tab-on); background: none; box-shadow: none; }
+html:root[data-style="haven"] #tabs .nav-btn .nav-icon { width: 22px; height: 22px; display: grid; place-items: center; filter: none; color: inherit; transition: transform var(--hv-t-snap) var(--hv-spring-snap); }
+html:root[data-style="haven"] #tabs .nav-btn .nav-icon svg { width: 100%; height: 100%; stroke-width: 1.5; }
+html:root[data-style="haven"] #tabs .nav-btn.active .nav-icon { transform: translateY(-1px) scale(1.08); filter: none; }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"] { z-index: 2; padding: 0; justify-self: center; align-content: start; }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"] > span:not(.nav-icon) { position: absolute; opacity: 0; pointer-events: none; white-space: nowrap; }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"] .nav-icon {
+  width: 58px; height: 58px; margin-top: -30px; border-radius: 50%; background: var(--hv-fab); color: var(--hv-on-fab);
+  box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.25), 0 0 0 6px var(--hv-paper), 0 0 0 7px var(--hv-hair), 0 18px 26px -10px var(--hv-sh-4);
+  transition: transform var(--hv-d-base) var(--hv-spring-snap);
+}
+html:root[data-style="haven"][data-theme="dark"] #tabs .nav-btn[data-view="add"] .nav-icon { box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.5), 0 0 0 6px var(--hv-paper), 0 0 0 7px var(--hv-hair), 0 0 28px oklch(77% 0.12 208 / 0.45), 0 18px 26px -10px oklch(0% 0 0 / 0.8); }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"] .nav-icon svg { width: 28px; height: 28px; }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"].active .nav-icon { transform: none; }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"]:active .nav-icon { transform: scale(0.92); }
+html:root[data-style="haven"] #tabs .nav-ind {
+  display: block; position: absolute; z-index: 0; left: 0; top: 7px; width: var(--bw, 0); height: 54px; border-radius: 27px;
+  transform: translateX(var(--bx, 0)); background: var(--hv-blob); box-shadow: inset 0 0 0 1px var(--hv-hair); pointer-events: none;
+}
+html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform var(--hv-t-snap) var(--hv-spring-snap), width var(--hv-t-snap) var(--hv-spring-snap), opacity 160ms ease; }
+html:root[data-style="haven"] #tabs:has(.nav-btn[data-view="add"].active) .nav-ind { opacity: 0; }
+@media (max-width: 359px) {
+  html:root[data-style="haven"] #tabs.bottom-nav { left: 8px; right: 8px; }
+  html:root[data-style="haven"] #tabs .nav-btn,
+  html:root[data-style="haven"] #tabs .nav-btn > span:not(.nav-icon) { font-size: 10px; letter-spacing: -0.02em; }
+}
 @media (prefers-reduced-motion: reduce) {
-  :root[data-style="haven"] .tide .wave { animation: none; }
-  :root[data-style="haven"] .tide .water { animation: none; }
+  :root[data-style="haven"] .hv-rise, :root[data-style="haven"] .hv-chart *, :root[data-style="haven"] .hv-screen * { animation-duration: 1ms !important; animation-delay: 0s !important; transition-duration: 1ms !important; }
+  html:root[data-style="haven"] #tabs .nav-ind.is-ready, html:root[data-style="haven"] #tabs .nav-btn { transition: none; }
 }
 
-/* Add is the middle of the bar, raised: the thing you do most, within the thumb's reach. */
-:root[data-style="haven"] #tabs.bottom-nav { overflow: visible; }
-:root[data-style="haven"] #tabs .nav-btn[data-view="add"] { flex: 0 0 68px; position: relative; background: none; box-shadow: none; }
-:root[data-style="haven"] #tabs .nav-btn[data-view="add"] .nav-icon {
-  display: grid; place-items: center; width: 54px; height: 54px; margin-top: -26px; border-radius: 50%;
-  color: #fff;
-  background: radial-gradient(circle at 30% 25%, #2a4a94, #11234f 70%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 0 0 6px var(--k-bg), 0 0 0 7px var(--k-hairline), 0 14px 22px -8px rgb(17 35 79 / 0.6);
-  transition: transform 400ms var(--hv-snap);
-}
-:root[data-style="haven"][data-theme="dark"] #tabs .nav-btn[data-view="add"] .nav-icon {
-  color: #07203a;
-  background: radial-gradient(circle at 30% 25%, #b4eef5, #38c9dc 70%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 0 0 6px var(--k-bg), 0 0 0 7px rgb(255 255 255 / 0.08), 0 0 26px rgb(56 201 220 / 0.45), 0 16px 24px -10px rgb(0 0 0 / 0.8);
-}
-:root[data-style="haven"] #tabs .nav-btn[data-view="add"].active { background: none; }
-:root[data-style="haven"] #tabs .nav-btn[data-view="add"] .nav-icon svg { width: 24px; height: 24px; }
-:root[data-style="haven"] #tabs .nav-btn[data-view="add"]:active .nav-icon { transform: scale(0.92); }
-:root[data-style="haven"] #tabs .nav-btn[data-view="add"] > span:not(.nav-icon) { margin-top: 2px; }
+/* the prototype's page resets, for its own blocks only (it sets them on the whole page; the app has its own) */
+:root[data-style="haven"] :is(.hv-screen, .hv-chips, .hv-sheet) { font-size: var(--hv-fs-body); line-height: 1.4; font-variant-numeric: tabular-nums; }
+:root[data-style="haven"] :is(.hv-screen, .hv-sheet), :root[data-style="haven"] :is(.hv-screen, .hv-sheet) * { box-sizing: border-box; }
+:where(:root[data-style="haven"]) :where(.hv-screen, .hv-sheet) button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+:root[data-style="haven"] :is(.hv-screen, .hv-sheet) :is(h1, h2, h3, p) { margin: 0; font-style: normal; }
+/* A phone's scrollbar floats over the page and takes no room; the page should not keep a strip free for one. */
+:root[data-style="haven"] { scrollbar-gutter: auto; }
 
-/* The lit tab is one pill that glides to the tab you chose, with a little overshoot (the spring), instead of a pill that
- * vanishes from one tab and appears on the next. app.js moveTabMark places it; it hides while Add (a raised button) is lit. */
-:root[data-style="haven"] #tabs .nav-ind { display: block; position: absolute; left: 0; top: 0; z-index: 0; width: var(--bw, 0); height: var(--bh, 0); transform: translate(var(--bx, 0), var(--by, 0)); border-radius: 999px; background: color-mix(in srgb, var(--k-accent-text) 9%, transparent); pointer-events: none; }
-:root[data-style="haven"][data-theme="dark"] #tabs .nav-ind { background: rgb(255 255 255 / 0.09); }
-:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 500ms var(--hv-snap), width 500ms var(--hv-snap), height 500ms var(--hv-snap), opacity 160ms ease; }
-:root[data-style="haven"] #tabs:has(.nav-btn[data-view="add"].active) .nav-ind { opacity: 0; }
-:root[data-style="haven"] #tabs .nav-btn { position: relative; z-index: 1; transition: color 280ms var(--k-ease); }
-:root[data-style="haven"] #tabs .nav-btn.active,
-:root[data-style="haven"][data-theme="dark"] #tabs .nav-btn.active { background: none; }
-@media (prefers-reduced-motion: reduce) { :root[data-style="haven"] #tabs .nav-ind.is-ready, :root[data-style="haven"] #tabs .nav-btn { transition: none; } }
+/* Plan, in the prototype's order (js/views/plan.js havenArrange) */
+:root[data-style="haven"] .plan-coach { display: none; }
+:root[data-style="haven"] .hv-step { position: relative; }
+:root[data-style="haven"] .hv-step__open { all: unset; box-sizing: border-box; display: grid; gap: 6px; cursor: pointer; }
+:root[data-style="haven"] .hv-step__name { display: grid; }
+:root[data-style="haven"] .hv-step__name b { font-size: var(--hv-fs-body); font-weight: 650; }
+:root[data-style="haven"] .hv-chev-row { all: unset; box-sizing: border-box; display: flex; width: 100%; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; box-shadow: inset 0 1px 0 var(--hv-hair); color: var(--hv-ink-2); font-size: var(--hv-fs-label); cursor: pointer; }
+:root[data-style="haven"] .hv-chev-row .hv-ic { width: 20px; height: 20px; }
+:root[data-style="haven"] .hv-fold .hv-row { padding-inline: 0; }
+:root[data-style="haven"] .hv-btn .hv-nest .hv-ic { width: 16px; height: 16px; }
+:root[data-style="haven"] .k .hv-note-wrap { margin-inline: 0; }
+:root[data-style="haven"] .k .k-context__mark { background: none; box-shadow: none; width: auto; height: auto; --hv-gem: currentColor; color: var(--hv-warn); }
+:root[data-style="haven"] .k .k-context--alert .k-context__mark { color: var(--hv-bad); }
 
-/* A narrow phone: a smaller tide, so the figure keeps its room. */
-@media (max-width: 360px) {
-  :root[data-style="haven"] .tide { width: 74px; height: 93px; }
-  :root[data-style="haven"] .hv-main { gap: 8px; }
+/* the sort control: the prototype's .sortpill; the commitments list reads as the prototype's rows */
+:root[data-style="haven"] .sort-pick, :root[data-style="haven"] #plan-sort, :root[data-style="haven"] select.sort-pick {
+  appearance: none; -webkit-appearance: none; height: 32px; padding: 0 28px 0 12px; border: 0; border-radius: var(--hv-r-pill); background-color: var(--hv-shell); box-shadow: 0 0 0 1px var(--hv-hair);
+  font-size: var(--hv-fs-label); font-weight: 600; color: var(--hv-ink-2);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2354648a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat; background-position: right 8px center;
 }
+:root[data-style="haven"] .plan-row__amount, :root[data-style="haven"] .plan-row__amount.out { color: var(--hv-ink); font-weight: 600; }
+:root[data-style="haven"] .plan-row__remove { color: var(--hv-ink-3); }
+:root[data-style="haven"] .k .k-row__title { font-weight: 600; letter-spacing: -0.01em; color: var(--hv-ink); }
+:root[data-style="haven"] .k .k-row__meta { font-size: var(--hv-fs-label); color: var(--hv-ink-2); }
+:root[data-style="haven"] .k .k-row__value { font-weight: 600; color: var(--hv-ink); }
+:root[data-style="haven"] .k .k-row + .k-row { box-shadow: inset 0 1px 0 var(--hv-hair); border-top: 0; }
+
+/* Accounts (js/haven-ui.js havenAccounts): the cards, the dots, the order control, the list */
+:root[data-style="haven"] .hv-accounts-deck { margin: 0 -16px 8px; }
+:root[data-style="haven"] .hv-accounts-deck .hv-cards { margin: 0; }
+:root[data-style="haven"] .hv-sec:has(> #accounts-sort) { margin-bottom: 8px; }
+:root[data-style="haven"] .k > .hv-sec { padding: 6px 6px 0; margin-bottom: 8px; }
+:root[data-style="haven"] .account-group-label { font-size: var(--hv-fs-label); font-weight: 600; color: var(--hv-ink-2); margin: 8px 6px 6px; letter-spacing: 0; }
+:root[data-style="haven"] .k .account-row { gap: var(--hv-s3); }
+:root[data-style="haven"] .k .account-balance { font-weight: 600; color: var(--hv-ink); }
+:root[data-style="haven"] .k .account-balance.out { color: var(--hv-ink); }
+:root[data-style="haven"] .k > .hv-chips { margin-bottom: 16px; }
+:root[data-style="haven"] .hv-chips button.hv-chip { font: inherit; font-size: var(--hv-fs-label); font-weight: 550; color: var(--hv-ink-2); cursor: pointer; }
+
+/* History: the net on one card with the days as little bars under it (the prototype's net card) */
+:root[data-style="haven"] #hist-hero { padding: var(--hv-s4); }
+:root[data-style="haven"] #hist-hero .hero-label { font-size: var(--hv-fs-label); font-weight: 400; color: var(--hv-ink-2); letter-spacing: 0; }
+:root[data-style="haven"] #hist-hero .hero-amount { margin: 2px 0 10px; font-size: var(--hv-fs-figure); font-weight: 600; letter-spacing: -0.035em; color: var(--hv-ink); text-shadow: none; }
+:root[data-style="haven"] #hist-hero .hero-amount.negative { color: var(--hv-bad); }
+:root[data-style="haven"] #hist-days.hist-days-card, :root[data-style="haven"] #hist-hero #hist-days { background: none; box-shadow: none; padding: 0; margin: 0; border-radius: 0; }
+:root[data-style="haven"] #hist-hero .hist-days__title { display: none; }
+:root[data-style="haven"] #hist-hero .hist-days__bars { display: flex; align-items: end; gap: 3px; height: 54px; padding: 0; background: none; box-shadow: none; }
+:root[data-style="haven"] #hist-hero .hist-days__col { flex: 1; min-width: 0; }
+:root[data-style="haven"] #hist-hero .hist-days__bar { background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair); border-radius: 3px 3px 1px 1px; opacity: 1; }
+:root[data-style="haven"] #hist-hero .hist-days__bar.is-top { background: linear-gradient(180deg, var(--hv-tide-b), var(--hv-tide-a)); box-shadow: none; }
+:root[data-style="haven"] #hist-hero .hist-days__ticks, :root[data-style="haven"] #hist-hero .hist-days__read { color: var(--hv-ink-3); font-size: var(--hv-fs-micro); }
+:root[data-style="haven"] #hist-hero .hero-under { display: flex; gap: var(--hv-s4); margin: 10px 0 0; padding: 0; background: none; box-shadow: none; }
+:root[data-style="haven"] #hist-hero .stat { display: flex; gap: 6px; padding: 0; border: 0; }
+:root[data-style="haven"] #hist-hero .stat-k { font-size: var(--hv-fs-label); color: var(--hv-ink-2); }
+:root[data-style="haven"] #hist-hero .stat-v { font-size: var(--hv-fs-label); font-weight: 600; color: var(--hv-ink); }
+:root[data-style="haven"] #hist-hero .hero-status { color: var(--hv-ink-3); font-size: var(--hv-fs-micro); margin: 6px 0 0; }
+:root[data-style="haven"] .hv-more { margin-top: 12px; padding-top: 10px; box-shadow: inset 0 1px 0 var(--hv-hair); }
+:root[data-style="haven"] .hv-more > summary { cursor: pointer; color: var(--hv-ink-2); font-size: var(--hv-fs-label); list-style: none; }
+:root[data-style="haven"] .hist-top { gap: var(--hv-s3); }
+:root[data-style="haven"] .hist-search { height: 38px; border-radius: var(--hv-r-pill); }
+:root[data-style="haven"] .hist-chip { border-radius: var(--hv-r-pill); }
+
+/* Add as a sheet (js/haven-sheet.js): over the page, springing up from the Add button */
+:root[data-style="haven"] .hv-scrim { position: fixed; z-index: 60; }
+:root[data-style="haven"] .hv-sheet { position: fixed; z-index: 65; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); max-height: calc(100dvh - 60px); }
+:root[data-style="haven"] #hv-add-body { display: contents; }
+:root[data-style="haven"] #hv-add-body.k, :root[data-style="haven"] .hv-sheet .k { padding: 0; display: contents; }
+:root[data-style="haven"] .hv-sheet .hv-addform { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hv-s3); margin: 0; }
+:root[data-style="haven"] .hv-sheet .hv-addform > * { min-width: 0; margin: 0; }
+:root[data-style="haven"] .hv-sheet .hv-core .k-add-sms { display: none; }
+:root[data-style="haven"] body.sheet-open #tabs .nav-btn[data-view="add"] .nav-icon svg { transform: rotate(135deg); }
+:root[data-style="haven"] #tabs .nav-btn[data-view="add"] .nav-icon svg { transition: transform var(--hv-t-snap) var(--hv-spring-snap); }
+/* the amount: the prototype's .amountbig, on the form's own amount field */
+:root[data-style="haven"] .hv-addform .amount-field .hero-label { display: none; }
+:root[data-style="haven"] .hv-addform .amount-field { display: block; }
+:root[data-style="haven"] .hv-addform .hv-amountbig .val { all: unset; box-sizing: content-box; field-sizing: content; min-width: 1ch; max-width: 70%; font-size: 54px; font-weight: 600; letter-spacing: -0.045em; line-height: 1; color: var(--hv-ink); caret-color: var(--hv-link); }
+:root[data-style="haven"] .hv-addform .hv-amountbig { padding: 0; }
+:root[data-style="haven"] .hv-addform .hv-amountbig .hv-cur { color: var(--hv-ink-2); }
+:root[data-style="haven"] .hv-addform .hv-amountbig::after { display: none; }
+:root[data-style="haven"] .hv-addform .hv-chips { margin-inline: calc(var(--hv-s4) * -1); padding-inline: var(--hv-s4); }
+:root[data-style="haven"] .hv-addform > .direction-toggle { margin: 0; }
+:root[data-style="haven"] .hv-addform .hv-btn.full { width: 100%; }
+:root[data-style="haven"] .hv-detailsbtn .hv-chev .hv-ic { width: 20px; height: 20px; }
+
+/* chips and keys of the form's own, drawn as the prototype's */
+:root[data-style="haven"] .hv-chips { flex-wrap: nowrap; }
+:root[data-style="haven"] .hv-chip { display: inline-flex; align-items: center; flex: none; white-space: nowrap; }
+:root[data-style="haven"] .hv-chip > svg { width: 16px; height: 16px; flex: none; }
+:root[data-style="haven"] .hv-chip > span:not(.hv-ic) { display: inline; }
+:root[data-style="haven"] .hv-key svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+:root[data-style="haven"] .k .has-pill .seg-pill { background: var(--hv-thumb); box-shadow: 0 1px 2px var(--hv-sh-3), 0 0 0 1px var(--hv-hair); border: 0; }
+:root[data-style="haven"] .k-seg.has-pill, :root[data-style="haven"] .k .direction-toggle { height: auto; }
+:root[data-style="haven"] .hv-btn .nest .hv-ic { width: 16px; height: 16px; }
+:root[data-style="haven"] .hv-btn .nest svg { stroke-width: 2; }
+html:root[data-style="haven"] .hv-chip svg, html:root[data-style="haven"] .hv-chip .icon { width: 16px !important; height: 16px !important; flex: none; }
+
+/* Coach: the prototype's vault on top, then the questions as one list */
+:root[data-style="haven"] .hv-back { margin-right: 6px; }
+:root[data-style="haven"] .k-coach .tl-hero.ct-top {
+  margin-inline: 7px; padding: var(--hv-s5) var(--hv-s4) var(--hv-s4); border-radius: var(--hv-r-core); color: var(--hv-on-navy); background: var(--hv-vault); background-color: #11234f;
+  box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.2), inset 0 0 0 1px oklch(100% 0 0 / 0.07), var(--hv-lift-hero), 0 0 0 6px var(--hv-shell), 0 0 0 7px var(--hv-hair);
+}
+:root[data-style="haven"] .ct-top .tl-k { color: var(--hv-on-navy-2); font-size: var(--hv-fs-label); font-weight: 400; }
+:root[data-style="haven"] .ct-top .tl-period { color: var(--hv-on-navy-2); }
+:root[data-style="haven"] .ct-top .tl-big { color: var(--hv-on-navy); font-size: var(--hv-fs-hero); font-weight: 600; letter-spacing: -0.035em; margin-top: 14px; }
+:root[data-style="haven"] .ct-top .tl-stats { margin-top: var(--hv-s4); padding-top: var(--hv-s3); gap: 0; border-top: 1px solid var(--hv-on-navy-3); }
+:root[data-style="haven"] .ct-top .tl-stats > div { padding: 0 var(--hv-s2); background: none; box-shadow: none; border-radius: 0; }
+:root[data-style="haven"] .ct-top .tl-stats > div:first-child { padding-left: 0; }
+:root[data-style="haven"] .ct-top .tl-stats > div + div { border-left: 1px solid var(--hv-on-navy-3); }
+:root[data-style="haven"] .ct-top .tl-stats .tl-k { font-size: var(--hv-fs-micro); }
+:root[data-style="haven"] .ct-top .tl-stats b { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; color: var(--hv-on-navy); }
+:root[data-style="haven"] .ct-top .tl-prog { background: oklch(100% 0 0 / 0.12); box-shadow: none; }
+:root[data-style="haven"] .ct-top .tl-prog > span { color: var(--hv-on-navy); }
+:root[data-style="haven"] .coach-hub { display: none; }
+:root[data-style="haven"] .coach-hub__note { text-align: left; color: var(--hv-ink-3); font-size: var(--hv-fs-micro); margin: -4px 6px 8px; }
+:root[data-style="haven"] .coach-questions { margin-inline: 7px; overflow: clip; border-radius: var(--hv-r-core); background: linear-gradient(180deg, var(--hv-core), var(--hv-core-2)); box-shadow: inset 0 1px 0 var(--hv-hl), var(--hv-lift), 0 0 0 6px var(--hv-shell), 0 0 0 7px var(--hv-hair); }
+:root[data-style="haven"] .coach-questions .coach-q { margin: 0; border-radius: 0; box-shadow: none; background: none; }
+:root[data-style="haven"] .coach-questions .coach-q + .coach-q { box-shadow: inset 0 1px 0 var(--hv-hair); }
+
+/* a wrong amount: the well shakes and rings in red, and says so under the figure (the prototype's .amountbig.error) */
+:root[data-style="haven"] .hv-addform .hv-amountbig { flex-wrap: wrap; height: auto; min-height: 78px; align-content: center; }
+:root[data-style="haven"] .hv-addform .hv-amountbig:has(.is-invalid) { box-shadow: 0 0 0 2px var(--hv-core), 0 0 0 4px var(--hv-bad); }
+:root[data-style="haven"] .hv-addform .hv-amountbig:has(.is-shaking) { animation: hv-shake 340ms var(--hv-ease-out); }
+:root[data-style="haven"] .hv-addform .hv-amountbig .field-error { flex-basis: 100%; margin: -2px 0 8px; text-align: center; color: var(--hv-bad); font-size: var(--hv-fs-label); }
+:root[data-style="haven"] .hv-addform .hv-amountbig .val.is-invalid { border: 0 !important; }
+
+/* reach: a small link or the raised Add still has a 44px target (the audit measures it) */
+:root[data-style="haven"] .hv-link { position: relative; }
+:root[data-style="haven"] .hv-link::before { content: ""; position: absolute; left: -10px; right: -10px; top: 50%; height: 44px; transform: translateY(-50%); inset-inline: -10px; inset-block: auto; }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"] { align-self: start; margin-top: 20px; min-height: 48px; }
+:root[data-style="haven"] .hv-round, :root[data-style="haven"] .hv-pillbtn { flex: none; }
+@media (max-width: 359px) { :root[data-style="haven"] .app-header { padding-inline: 14px; gap: 6px; } }
+
+:root[data-style="haven"] .hv-vault { background-color: #11234f; }
+
+/* merchant, account and date: one height, the prototype's field height */
+html:root[data-style="haven"] .hv-addform #add-desc,
+html:root[data-style="haven"] .hv-addform .add-pair .k-picker,
+html:root[data-style="haven"] .hv-addform #add-date { box-sizing: border-box; height: var(--hv-c-field); min-height: var(--hv-c-field); }
+
+/* a field is as wide as its card, never wider, however large the text is set */
+:root[data-style="haven"] .k .field, :root[data-style="haven"] .k .k-field { min-width: 0; }
+:root[data-style="haven"] .k .field input, :root[data-style="haven"] .k .field select, :root[data-style="haven"] .k .k-field input { width: 100%; min-width: 0; box-sizing: border-box; }
