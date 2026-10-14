@@ -24,19 +24,6 @@
 @keyframes hv-edge { 50% { opacity: 0.25; } }
 @keyframes hv-lowpulse { 50% { opacity: 0.5; } }
 
-/* ---- the Add button: a faint ring breathes until something is added today (alive) ---- */
-:root[data-style="haven"] #tabs .nav-btn[data-view="add"] .nav-icon { position: relative; }
-@media (prefers-reduced-motion: no-preference) {
-  :root[data-style="haven"][data-motion="alive"]:not([data-added-today]) #tabs .nav-btn[data-view="add"]:not(.active) .nav-icon::after {
-    content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--hv-glow); opacity: 0; pointer-events: none;
-    animation: hv-fab 3s ease-in-out infinite;
-  }
-}
-@keyframes hv-fab { 0%, 100% { opacity: 0; transform: scale(0.96); } 50% { opacity: 0.35; transform: scale(1.22); } }
-
-/* ---- the tab pill: the stretch is drawn by script, so the stylesheet's own glide steps aside ---- */
-html:root[data-style="haven"]:not([data-motion="still"]) #tabs .nav-ind.is-ready { transition: opacity 160ms ease; }
-
 /* ---- icons catch the light, one at a time (alive) ---- */
 :root[data-style="haven"] .hv-gem { overflow: hidden; }
 :root[data-style="haven"] .hv-gem.shine::after {

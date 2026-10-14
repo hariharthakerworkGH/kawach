@@ -626,7 +626,7 @@ function onPtr(e) {
 }
 
 /* ---- tilt: the water leans and sloshes as the phone tilts (alive) --------------------------------------------- */
-const MAX_TILT = 45;
+const MAX_TILT = 30;
 let angle = 0;
 let vel = 0;
 let target = 0;
@@ -644,9 +644,20 @@ function kick() {
   requestAnimationFrame(tiltStep);
 }
 function onOrient(e) {
-  if (!alive() || e.gamma == null) return;
-  // Phone rolled right (gamma > 0): the water stays level, which is a turn to the left on the screen.
-  target = clamp(-e.gamma * 1.7, -MAX_TILT, MAX_TILT);
+  if (!alive() || e.beta == null || e.gamma == null) return;
+  // Which way "up" points on the screen, from the phone's angles. Only turning the phone like a steering wheel moves it;
+  // tipping it forward or back, or turning the screen towards you, leaves it where it was (gamma alone swings wildly
+  // when the phone is upright, which is why the water used to answer to the wrong movement).
+  const b = (e.beta * Math.PI) / 180;
+  const g = (e.gamma * Math.PI) / 180;
+  const ux = -Math.cos(b) * Math.sin(g);
+  const uy = Math.sin(b);
+  let deg = (Math.atan2(-ux, uy) * 180) / Math.PI;
+  if (Math.abs(deg) < 2) deg = 0;
+  // Lying flat or upside down: no lean at all (it fades out rather than jumping).
+  const fade = uy > 0.2 ? clamp((Math.hypot(ux, uy) - 0.35) / 0.4, 0, 1) : 0;
+  // The water stays level, which is a turn the other way on the screen.
+  target = clamp(-deg * fade, -MAX_TILT, MAX_TILT);
   kick();
 }
 let lastX = null;
@@ -657,7 +668,7 @@ function onMotion(e) {
   if (lastX != null) {
     const d = Math.abs(x - lastX);
     // A shake slops the water about (alive only)...
-    if (alive() && d > 6) { vel += clamp((x - lastX) * -0.9, -9, 9); kick(); }
+    if (alive() && d > 6) { vel += clamp((x - lastX) * -0.5, -5, 5); kick(); }
     // ...and three gentle jolts within a second offer to undo the last payment.
     if (d > 9) {
       const now = Date.now();
@@ -730,11 +741,8 @@ export function initMotion() {
   // A payment was just saved: remember it for the Summary that opens (the coin), note the day (the Add button stops nudging), tap.
   addEventListener('hv-saved', () => {
     sessionStorage.setItem('kawach-drop', String(Date.now()));
-    store.set('kawach-added', today());
-    root.setAttribute('data-added-today', '');
-    buzz(10);
+      buzz(10);
   });
-  if (store.get('kawach-added') === today()) root.setAttribute('data-added-today', '');
 
   paintSky();
   setInterval(paintSky, 5 * 60 * 1000);

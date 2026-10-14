@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.59',
+    items: [
+      {
+        icon: 'check',
+        title: "Calmer shield",
+        text: "The Add button no longer glows. The water in the shield now leans only when you turn the phone left or right, not when you tip it forward or back, and less far.",
+      },
+    ],
+  },
+  {
     version: '5.58',
     items: [
       {
