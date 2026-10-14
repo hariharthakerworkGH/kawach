@@ -21,9 +21,11 @@ import { forecast, costInMonth } from '../js/forecast.js';
 import { flexReport } from '../js/flex-report.js';
 import { flexCard } from '../js/views/recap.js';
 import { makeRecord, checkPin, waitFor, mustLock, makeKeyText, normaliseKey, formatKey, makeKeyRecord, checkKey } from '../js/lock.js';
-import { comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts } from '../js/views/summary-looks.js';
+import { comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts, longestAhead, monthStory, weekRecap, skyFor } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
 import { festivalOn } from '../js/haven-motion.js';
+import { rupeeWords } from '../js/haven-life.js';
+import { shortRupees } from '../js/format.js';
 import { termFor } from '../js/explain.js';
 import { peopleStanding, personSpendEffects, lateBack, reminderText } from '../js/people.js';
 import { nextRenewal, renewalAfter, renewalsAhead } from '../js/calendar.js';
@@ -2039,6 +2041,31 @@ test('Haven lab 2: days ahead of pace, what today kept, yesterday, and the festi
   equal(festivalOn('2027-03-22'), 'Holi', 'Holi 2027');
   equal(festivalOn('2027-01-01'), 'New Year', 'New Year');
   equal(festivalOn('2026-10-15'), null, 'an ordinary day');
+});
+test('Haven lab 3: the amount in words, short lakhs, the month told back, the week and the sky', () => {
+  equal(rupeeWords(0), '', 'nothing, nothing said');
+  equal(rupeeWords(450), 'Four hundred and fifty', 'hundreds');
+  equal(rupeeWords(45000), 'Forty five thousand', 'thousands');
+  equal(rupeeWords(450000), 'Four lakh fifty thousand', 'lakhs, not hundreds of thousands');
+  equal(rupeeWords(12500000), 'One crore twenty five lakh', 'crores');
+  equal(rupeeWords(100001), 'One lakh and one', 'a small remainder after a big part');
+  equal(shortRupees(rupees(24250)), '\u20b924,250', 'under a lakh the whole figure');
+  equal(shortRupees(rupees(124300)), '\u20b91.24 L', 'a lakh and a quarter reads short');
+  equal(shortRupees(rupees(500000)), '\u20b95 L', 'a round lakh drops its zeros');
+  equal(shortRupees(rupees(34000000)), '\u20b93.4 Cr', 'crores');
+  // A 10-day month on a 100 budget (10 a day).
+  const f = (spendDays, extra = {}) => ({ limit: rupees(100), spendDays: spendDays.map(rupees), spendByDay: spendDays.map((t, i) => ({ date: `2026-10-${String(i + 1).padStart(2, '0')}`, amount: rupees(t - (spendDays[i - 1] || 0)) })), daysIntoCycle: spendDays.length, daysToClose: 11 - spendDays.length, spentThisCycle: rupees(spendDays[spendDays.length - 1] || 0), finished: false, ...extra });
+  equal(longestAhead(f([5, 25, 28, 30, 31, 55, 60])), 5, 'the longest run of days at or under pace, not only the last');
+  const cards = monthStory(f([5, 12, 18, 25, 30, 35, 40, 45, 52, 60], { finished: true, daysToClose: 1 }), rupees(100), 'October');
+  equal(cards[0][1], `You kept ${'\u20b9'}40`, 'the first card says what was kept');
+  ok(cards.length >= 3 && cards.length <= 5, 'three to five cards');
+  equal(cards[cards.length - 1][0], 'The new month', 'and the last says the new budget');
+  equal(monthStory({ limit: 0, spendByDay: [] }, 0, 'X').length, 0, 'no budget, no story');
+  const w = weekRecap(f([5, 12, 18, 25, 30, 35, 40, 45]));
+  ok(w && w.days.length === 7 && w.total === rupees(45 - 5) && w.big.amount === rupees(7), 'a week: its seven days, its total and its biggest');
+  equal(skyFor('calm', 0.9, 0.5), 'clear', 'well ahead is clear');
+  equal(skyFor('calm', 0.5, 0.5), 'clouds', 'level is clouds');
+  equal(skyFor('watch', 0.4, 0.6), 'rain', 'behind is a light rain');
 });
 test('Swiping between tabs goes round and round in the order of the tab bar', () => {
   equal(neighbour('summary', 1), 'accounts', 'left from Summary is Accounts');

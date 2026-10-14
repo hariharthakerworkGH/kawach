@@ -1,5 +1,5 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
-import { instrumentTop, havenTop, keptBack, chartsComing, chartsCards, tideSvg } from './summary-looks.js';
+import { instrumentTop, havenTop, keptBack, chartsComing, chartsCards, tideSvg, monthStory } from './summary-looks.js';
 import { isDemo } from '../demo-flag.js';
 import { displayName } from './transactions.js';
 import { wireHaven } from '../haven-ui.js';
@@ -327,8 +327,9 @@ const addDaysIso = (from, days) => {
 };
 
 // The four latest payments for Haven's Summary: what they were, their category and when.
-function havenLatest(transactions, categories) {
+function havenLatest(transactions, categories, accounts = []) {
   const names = new Map(categories.map((c) => [c.id, c.name]));
+  const accountName = new Map(accounts.map((a) => [a.id, a.label || a.name]));
   const today = isoLocal(new Date());
   const yest = isoLocal(new Date(Date.now() - 86400000));
   const day = (iso) => (iso === today ? 'Today' : iso === yest ? 'Yesterday' : formatDateNice(iso));
@@ -341,7 +342,7 @@ function havenLatest(transactions, categories) {
       // A time only for what was typed in on the day it happened; a statement line has a date and no time.
       const time = t.source === 'manual' && t.createdAt && isoLocal(when) === t.date ? when.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase() : '';
       const category = names.get(t.categoryId) || 'Uncategorised';
-      return { title: displayName(t.merchant || t.rawDescription), category, meta: `${category} · ${day(t.date)}${time ? `, ${time}` : ''}`, amount: t.amount, credit: t.direction === 'credit' };
+      return { title: displayName(t.merchant || t.rawDescription), category, account: accountName.get(t.accountId) || '', meta: `${category} · ${day(t.date)}${time ? `, ${time}` : ''}`, amount: t.amount, credit: t.direction === 'credit' };
     });
 }
 
@@ -367,10 +368,36 @@ async function havenMore(fts, transactions, months, thisKey) {
     if (hit && hit.id !== seen) out.salary = { id: hit.id, amount: hit.amount };
     // Last month, by the same days: the running total, for the faint line on the chart.
     const prev = months[months.indexOf(thisKey) - 1];
+    let was = null;
     if (prev) {
-      const was = await computeFreeToSpend(endOfMonthNoon(prev));
+      was = await computeFreeToSpend(endOfMonthNoon(prev));
       fts.ghost = (was.spendDays || []).slice();
     }
+    out.cap = Number(await getSetting('dailyCap', 0)) || 0;
+    // The month has just turned (the first time this one is drawn): the last one told back in a few cards, and the badges it earned.
+    const ls = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+    const fresh = Boolean(ls('kawach-cycle') && fts.cycleKey && ls('kawach-cycle') !== fts.cycleKey);
+    const earned = (() => { try { return JSON.parse(ls('kawach-badges')) || []; } catch { return []; } })();
+    const BADGES = { 'first-under': 'The first month closed under budget', 'three-under': 'Three months in a row under budget' };
+    if (fresh && was && was.limit > 0) {
+      const name = MONTH_NAMES[Number(prev.slice(5, 7)) - 1];
+      if (ls('kawach-story') !== prev) {
+        out.story = monthStory(was, fts.limit, name);
+        out.storyKey = prev;
+      }
+      const under = (w) => w && w.limit > 0 && (w.spentThisCycle || 0) <= w.limit;
+      const fresh_ids = [];
+      if (under(was) && !earned.some((b) => b.id === 'first-under')) fresh_ids.push('first-under');
+      const p2 = months[months.indexOf(thisKey) - 2];
+      const p3 = months[months.indexOf(thisKey) - 3];
+      if (under(was) && p2 && p3 && !earned.some((b) => b.id === 'three-under')) {
+        const [w2, w3] = await Promise.all([computeFreeToSpend(endOfMonthNoon(p2)), computeFreeToSpend(endOfMonthNoon(p3))]);
+        if (under(w2) && under(w3)) fresh_ids.push('three-under');
+      }
+      for (const id of fresh_ids) earned.push({ id, key: prev, isNew: true });
+      if (fresh_ids.length) { try { localStorage.setItem('kawach-badges', JSON.stringify(earned.map((b) => ({ id: b.id, key: b.key })))); } catch { /* it simply forgets */ } }
+    }
+    out.badges = earned.slice(-3).map((b) => ({ id: b.id, label: BADGES[b.id] || 'A milestone', isNew: Boolean(b.isNew) }));
   } catch {
     /* these are extras: the screen is complete without them */
   }
@@ -417,8 +444,8 @@ async function renderDashboard(container) {
     return;
   }
 
-  const [transactions, fts, install, list, categoryList] = await Promise.all([getAll('transactions'), computeFreeToSpend(), installCard(), businesses(), getAll('categories')]);
-  const latest = havenLatest(transactions, categoryList);
+  const [transactions, fts, install, list, categoryList, accountList] = await Promise.all([getAll('transactions'), computeFreeToSpend(), installCard(), businesses(), getAll('categories'), getAll('accounts')]);
+  const latest = havenLatest(transactions, categoryList, accountList);
   const more = document.documentElement.dataset.style === 'haven' ? await havenMore(fts, transactions, months, thisKey) : null;
   // Anyone with business income has tax dates to keep.
   const tax = taxCard(taxDates(isoLocal(new Date()), { business: list.length > 0 || fts.incomeKind === 'business' }));
@@ -451,6 +478,7 @@ async function renderDashboard(container) {
       `<details class="sum-more" id="sum-more">
         <summary><span class="sum-more__t">More about this month</span><span class="sum-more__s">This week, your cards, what is coming up, where it went</span></summary>
         <div class="sum-more__body">
+          ${haven ? '<div id="hv-cal" class="hv-cal-host"></div>' : ''}
           ${rest}
           ${renderBankCard(fts)}
           ${fold('Commitments', fts.tracker ? `${fts.tracker.length}` : '', commitments, false, 'commitments-fold')}

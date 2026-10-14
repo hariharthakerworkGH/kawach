@@ -18,7 +18,7 @@
  * topFigures().
  */
 
-import { formatRupees, formatDateNice } from '../format.js';
+import { formatRupees, formatDateNice, shortRupees } from '../format.js';
 import { escapeHtml } from '../ui.js';
 import { icon } from '../icons.js';
 import { categoryStyle } from '../category-style.js';
@@ -334,7 +334,63 @@ export function yesterdayFacts(f) {
   return { spent: by[i].amount || 0, under: Math.round((f.limit * (i + 1)) / D) - (tot[i] || 0) };
 }
 
+const BADGE = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 2l8 3v7c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V5z" fill="#ffd36a" stroke="#c98a13" stroke-width="1.4"/><path d="M8 12.5l3 3 5-6" fill="none" stroke="#7a4a05" stroke-width="2" stroke-linecap="round"/></svg>';
 const SHIELD_MINI = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 2.5V12c0 4.2-3 7.2-7 9-4-1.8-7-4.8-7-9V5.5z"/></svg>';
+
+/* Lab 3 (5.60): the month told back, and the facts the motion needs. Pure, so they can be tested. */
+// The longest run of days, in a finished or running month, at or under an even pace.
+export function longestAhead(f) {
+  const tot = f.spendDays || [];
+  const D = monthLen(f);
+  if (!(f.limit > 0) || !(D > 0)) return 0;
+  let best = 0;
+  let run = 0;
+  tot.forEach((v, i) => {
+    run = v <= (f.limit * (i + 1)) / D ? run + 1 : 0;
+    best = Math.max(best, run);
+  });
+  return best;
+}
+// "October closed": up to five short cards about a month that has ended. `next` is what the new month's budget is.
+export function monthStory(was, next, name) {
+  const by = was.spendByDay || [];
+  if (!(was.limit > 0) || !by.length) return [];
+  const spent = was.spentThisCycle || 0;
+  const cards = [];
+  cards.push(spent <= was.limit ? [`${name} closed`, `You kept ${formatRupees(was.limit - spent)}`, 'under your budget'] : [`${name} closed`, `${formatRupees(spent - was.limit)} over`, 'your budget, this once']);
+  const spendDays = by.filter((d) => (d.amount || 0) > 0);
+  if (spendDays.length) {
+    const big = spendDays.reduce((a, d) => (d.amount > a.amount ? d : a));
+    cards.push(['Biggest day', formatRupees(big.amount), `the ${ordinalOf(big.date)}`]);
+    if (spendDays.length > 2) {
+      const small = spendDays.reduce((a, d) => (d.amount < a.amount ? d : a));
+      cards.push(['Quietest day with a payment', formatRupees(small.amount), `the ${ordinalOf(small.date)}`]);
+    }
+  }
+  const run = longestAhead(was);
+  if (run >= 3) cards.push(['Your best stretch', `${run} days`, 'in a row at or under an even pace']);
+  if (next > 0) cards.push(['The new month', formatRupees(next), 'is your budget, again']);
+  return cards.slice(0, 5);
+}
+const ordinalOf = (iso) => {
+  const n = Number(String(iso).slice(8, 10));
+  const t = n % 100;
+  return `${n}${t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[n % 10] || 'th'}`;
+};
+// What a week told in one card: its total, how that stood against an even pace, its seven days and its biggest.
+export function weekRecap(f) {
+  const by = (f.spendByDay || []).slice(-7);
+  const D = monthLen(f);
+  if (f.finished || by.length < 3 || !(f.limit > 0) || !(D > 0)) return null;
+  const total = by.reduce((s, d) => s + (d.amount || 0), 0);
+  const big = by.reduce((a, d) => ((d.amount || 0) > (a.amount || 0) ? d : a), by[0]);
+  return { total, under: Math.round((f.limit * by.length) / D) - total, days: by.map((d) => d.amount || 0), big: { date: big.date, amount: big.amount || 0 }, from: by[0].date, to: by[by.length - 1].date };
+}
+// The sky: clear when well ahead, soft clouds when level, light rain when behind.
+export function skyFor(mood, lvl, pace) {
+  if (mood === 'watch' || mood === 'low') return 'rain';
+  return pace > 0 && lvl >= pace + 0.15 ? 'clear' : 'clouds';
+}
 
 export function havenTop(f, status, month, extra = {}) {
   const x = topFigures(f);
@@ -354,14 +410,23 @@ export function havenTop(f, status, month, extra = {}) {
   const soon2 = x.finished ? 0 : x.coming.filter((c) => c.late || c.due <= soon2Iso).length;
   const yest = yesterdayFacts(f);
   const salary = extra.more && extra.more.salary;
-  const vaultData = ` data-cycle="${escapeHtml(String(f.cycleKey || ''))}" data-soon2="${soon2}"${streak >= 3 ? ` data-streak="${streak}"` : ''}${kept > 0 ? ` data-eve="Today you kept ${escapeHtml(formatRupees(kept))}"` : ''}${salary ? ` data-salary="${escapeHtml(String(salary.id))}|${escapeHtml(formatRupees(salary.amount))}"` : ''}`;
+  const more = extra.more || {};
+  const week = weekRecap(f);
+  const life = x.finished || !(f.limit > 0) ? '' : ` data-life='${escapeHtml(JSON.stringify({ limit: f.limit, free: f.free, days: (f.spendByDay || []).map((d) => [d.date.slice(5), d.amount || 0]), cum: f.spendDays || [], D: monthLen(f), cap: more.cap || 0, perDay: x.perDay > 0 && f.free >= 0 ? x.perDay : 0, daysLeft: x.daysLeft }))}'`;
+  const recap = week ? ` data-recap='${escapeHtml(JSON.stringify(week))}'` : '';
+  const story = more.story && more.story.length ? ` data-story='${escapeHtml(JSON.stringify({ key: more.storyKey, cards: more.story }))}'` : '';
+  const badges = (more.badges || []).map((b) => `<span class="hv-badge${b.isNew ? ' is-new' : ''}" role="img" aria-label="${escapeHtml(b.label)}" title="${escapeHtml(b.label)}">${BADGE}</span>`).join('');
+  const asleep = !x.finished && x.spent === 0 && (f.spendDays || []).every((v) => !v);
+  const sky = `${asleep ? ' data-sleeping' : ''} data-weather="${skyFor(mood, lvl, pace)}"`;
+  const vaultData = `${life}${recap}${story}${sky} data-cycle="${escapeHtml(String(f.cycleKey || ''))}" data-soon2="${soon2}"${streak >= 3 ? ` data-streak="${streak}"` : ''}${kept > 0 ? ` data-eve="Today you kept ${escapeHtml(formatRupees(kept))}"` : ''}${salary ? ` data-salary="${escapeHtml(String(salary.id))}|${escapeHtml(formatRupees(salary.amount))}"` : ''}`;
   const streakChip = streak >= 3 && !x.finished ? `<span class="hv-streak" title="Days in a row at or under an even pace">${SHIELD_MINI}${streak} days ahead</span>` : '';
   const peek = yest ? `<div class="hv-peek" aria-hidden="true"><span>Yesterday you spent <b>${escapeHtml(formatRupees(yest.spent))}</b></span><span>${yest.under >= 0 ? `${escapeHtml(formatRupees(yest.under))} under pace` : `${escapeHtml(formatRupees(-yest.under))} over pace`}</span></div>` : '';
   const vault = `<div class="hv-shell"><div class="hv-vault ${f.free < 0 ? 'is-negative' : ''}"${vaultData} data-roll-scope data-limit="${x.limit}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
-      <div class="hv-vault__top"><span class="hv-pill">${monthName}</span>${streakChip}<span>${x.finished ? 'Final' : `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`}</span></div>
-      <div class="hv-vault__main"><div><div class="hv-vault__lab">Left to spend</div><div class="hv-vault__fig hv-amt">${num}</div><div class="hv-vault__sub" data-status>${sub}</div><div class="hv-vault__eve" data-eve-line aria-live="polite"></div></div>
+      <div class="hv-vault__top"><span class="hv-pill">${monthName}</span>${streakChip}${badges}<span>${x.finished ? 'Final' : `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`}</span></div>
+      <div class="hv-vault__main"><div><div class="hv-vault__lab">Left to spend</div><div class="hv-vault__fig hv-amt">${num}</div><div class="hv-vault__sub" data-status>${sub}</div>${more.cap ? `<div class="hv-vault__cap" data-cap>Your own limit: <b>${escapeHtml(formatRupees(more.cap))}</b> a day</div>` : ''}${asleep ? '<div class="hv-vault__sleep">A quiet month so far.</div>' : ''}<div class="hv-vault__eve" data-eve-line aria-live="polite"></div></div>
       <div class="tide" data-mood="${mood}"${x.finished && x.closedUnder ? ` data-closed="${escapeHtml(String(f.cycleKey || ''))}"` : ''} style="--lvl:${lvl.toFixed(3)}" role="img" aria-label="${word}: ${formatRupees(x.left)} left of ${formatRupees(x.limit)}">${tideSvg(lvl, pace)}</div></div>
-      <div class="hv-vault__stats"><div><span>Spent</span><b class="hv-amt" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div><div><span>Budget</span><b class="hv-amt">${formatRupees(x.limit)}</b></div><div><span>On track</span><b class="hv-mood" data-mood="${mood}"><span class="hv-ic" style="width:16px;height:16px;vertical-align:-3px">${mIcon}</span> ${word}</b></div></div>
+      ${x.finished || !(f.limit > 0) ? '' : '<div class="hv-rewind" data-rewind aria-label="Drag to see the month on an earlier day" role="slider" aria-valuemin="1" aria-valuemax="1" tabindex="0"><i class="hv-rewind__line"></i><i class="hv-rewind__h"></i><span class="hv-rewind__t" aria-live="polite"></span></div>'}
+      <div class="hv-vault__stats"><div><span>Spent</span><b class="hv-amt" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div><div><span>Budget</span><b class="hv-amt">${shortRupees(x.limit)}</b></div><div><span>On track</span><b class="hv-mood" data-mood="${mood}"><span class="hv-ic" style="width:16px;height:16px;vertical-align:-3px">${mIcon}</span> ${word}</b></div></div>
       ${closedNote(x)}
     </div></div>`;
 
@@ -386,7 +451,8 @@ export function havenTop(f, status, month, extra = {}) {
     : '';
 
   const latest = (extra.latest || []).slice(0, 3);
-  const payRow = (p) => `<button type="button" class="hv-row" data-hv-go="transactions">${gem(p.category || p.title)}<div><div class="hv-row__t">${escapeHtml(p.title)}</div><div class="hv-row__m">${escapeHtml(p.meta)}</div></div><div class="hv-row__v hv-amt">${p.credit ? '+' : '−'}₹${Math.round(p.amount / 100).toLocaleString('en-IN')}</div></button>`;
+  // A row opens in place into its details (js/haven-life.js); "See in History" is the way on.
+  const payRow = (p) => `<div class="hv-lp"><button type="button" class="hv-row" data-morph aria-expanded="false">${gem(p.category || p.title)}<div><div class="hv-row__t">${escapeHtml(p.title)}</div><div class="hv-row__m">${escapeHtml(p.meta)}</div></div><div class="hv-row__v hv-amt">${p.credit ? '+' : '−'}₹${Math.round(p.amount / 100).toLocaleString('en-IN')}</div></button><div class="hv-lp__d"><div class="hv-lp__in"><span>${p.credit ? 'Paid into' : 'Paid from'} <b>${escapeHtml(p.account || 'an account')}</b></span><span>${escapeHtml(p.category)}</span><button type="button" class="hv-pillbtn" data-open-hist="${escapeHtml(p.title)}">See in History</button></div></div></div>`;
   const latestBlock = latest.length && !x.finished
     ? `<div class="hv-sec"><h2>Latest payments</h2><button type="button" class="hv-link" data-hv-go="transactions">See all</button></div><div class="hv-shell"><div class="hv-core flush">${latest.map(payRow).join('')}${x.spent > 0 ? `<button type="button" class="hv-row hv-row--link" data-hv-go="recap"><span class="hv-row__t">Where it went</span><span class="hv-muted">by category</span><span class="hv-ic">${icon('forward')}</span></button>` : ''}</div></div>`
     : '';

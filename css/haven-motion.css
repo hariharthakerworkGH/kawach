@@ -179,3 +179,81 @@
 :root[data-style="haven"] .setup-card__top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 :root[data-style="haven"] .hv-setup__tide { width: 52px; height: 64px; flex: none; position: relative; }
 :root[data-style="haven"] .setup-card .setup-progress { display: none; }
+
+/* ================================================================== lab 3 (5.60): js/haven-life.js */
+/* ---- rewind the month: a thin strip under the shield's figure ---- */
+:root[data-style="haven"] .hv-rewind { position: relative; height: 34px; margin-top: 10px; touch-action: none; cursor: ew-resize; }
+:root[data-style="haven"] .hv-rewind__line { position: absolute; left: 0; right: 0; top: 15px; height: 3px; border-radius: 2px; background: var(--hv-on-navy-3); }
+:root[data-style="haven"] .hv-rewind__h { position: absolute; top: 8px; left: 100%; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: var(--hv-on-navy); box-shadow: 0 0 0 4px oklch(100% 0 0 / 0.16); }
+:root[data-style="haven"] .hv-rewind__t { position: absolute; left: 0; top: 0; font-size: var(--hv-fs-micro, 11px); color: var(--hv-on-navy-2); pointer-events: none; }
+:root[data-style="haven"] .hv-rewind:focus-visible { outline: 2px solid var(--hv-on-navy); outline-offset: 2px; border-radius: 8px; }
+.hv-trail { position: absolute; left: -6px; right: -6px; height: 0; border-top: 1.5px dashed oklch(100% 0 0 / 0.55); opacity: 0; transition: opacity 250ms; pointer-events: none; z-index: 2; }
+.hv-trail.on { opacity: 1; }
+/* ---- a limit kept by hand, and the one being tried ---- */
+:root[data-style="haven"] .hv-vault__cap { margin-top: 3px; font-size: var(--hv-fs-label, 13px); color: var(--hv-on-navy-2); }
+:root[data-style="haven"] .hv-vault__cap b { color: var(--hv-on-navy); font-weight: 600; cursor: pointer; text-decoration: underline dotted; }
+:root[data-style="haven"] .hv-keepcap { margin-top: 8px; height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: oklch(100% 0 0 / 0.2); color: var(--hv-on-navy); font: inherit; font-size: 13px; font-weight: 650; }
+:root[data-style="haven"] .hv-keepcap[hidden] { display: none; }
+:root[data-style="haven"] .hv-vault .tide { cursor: ns-resize; }
+/* ---- a quiet month: the shield sleeps ---- */
+:root[data-style="haven"] .hv-vault__sleep { margin-top: 4px; font-size: var(--hv-fs-label, 13px); color: var(--hv-on-navy-2); }
+.hv-z { position: absolute; left: 58%; top: 26%; z-index: 3; font: 700 14px var(--hv-font, inherit); color: var(--hv-on-navy, #fff); opacity: 0; pointer-events: none; }
+.hv-sleep { position: relative; width: 52px; height: 64px; margin: 0 auto 8px; }
+/* ---- small badges ---- */
+:root[data-style="haven"] .hv-badge { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: oklch(100% 0 0 / 0.14); overflow: hidden; position: relative; }
+:root[data-style="haven"] .hv-badge.is-new::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.7) 50%, transparent 70%); transform: translateX(-120%); animation: hv-sheen 900ms ease-out 500ms forwards; }
+/* ---- the Sunday card ---- */
+.hv-recap { position: fixed; left: 14px; right: 14px; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 36; max-width: 480px; margin: 0 auto; padding: 14px 16px; border-radius: 24px; background: linear-gradient(180deg, var(--hv-core), var(--hv-core-2)); box-shadow: 0 0 0 1px var(--hv-hair), var(--hv-lift); display: grid; gap: 8px; color: var(--hv-ink); }
+.hv-recap__h { display: flex; justify-content: space-between; align-items: baseline; }
+.hv-recap__h b { font-size: 15px; }
+.hv-recap__h span { font-size: 12px; color: var(--hv-ink-3); }
+.hv-recap__fig { font-size: 26px; font-weight: 650; letter-spacing: -0.03em; }
+.hv-recap__fig small { font-size: 13px; font-weight: 500; color: var(--hv-ink-2); letter-spacing: 0; }
+.hv-recap__bars { display: flex; gap: 5px; align-items: flex-end; height: 44px; }
+.hv-recap__bars i { flex: 1; border-radius: 5px; background: var(--hv-tide-b); transform-origin: bottom; }
+.hv-recap__bars i.big { background: var(--hv-warn); }
+.hv-recap__f { font-size: 13px; color: var(--hv-ink-2); }
+/* ---- the month told in cards ---- */
+.hv-story { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; background: oklch(18% 0.06 266 / 0.55); backdrop-filter: blur(6px); }
+.hv-story__card { width: min(280px, 80vw); min-height: 180px; border-radius: 28px; padding: 22px; display: grid; align-content: center; gap: 6px; background: var(--hv-vault); background-color: #11234f; color: #fff; box-shadow: var(--hv-lift-hero); position: relative; }
+.hv-story__a { font-size: 13px; color: var(--hv-on-navy-2); }
+.hv-story__b { font-size: 32px; font-weight: 650; letter-spacing: -0.03em; line-height: 1.05; }
+.hv-story__d { font-size: 14px; color: var(--hv-on-navy-2); }
+.hv-story__dots { position: absolute; left: 0; right: 0; bottom: 18%; display: flex; gap: 5px; justify-content: center; }
+.hv-story__dots i { width: 6px; height: 6px; border-radius: 3px; background: oklch(100% 0 0 / 0.4); transition: width 300ms var(--hv-spring-snap); }
+.hv-story__dots i.on { width: 18px; background: #fff; }
+/* ---- the month as a patch of colour ---- */
+.hv-cal__w, .hv-cal__g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.hv-cal__w span { text-align: center; font-size: 11px; color: var(--hv-ink-3); }
+.hv-cal__g { margin-top: 6px; }
+.hv-cal__g i.blank { height: 38px; }
+.hv-cal__d { display: grid; place-items: center; height: 38px; border: 0; border-radius: 10px; font-size: 11px; color: var(--hv-ink-2); background: color-mix(in oklab, var(--hv-tide-b) calc(15% + var(--k, 0) * 80%), var(--hv-well)); box-shadow: inset 0 0 0 1px var(--hv-hair); transition: transform 360ms var(--hv-spring-snap), box-shadow 300ms; }
+.hv-cal__d.lift { transform: translateY(-5px) scale(1.12); box-shadow: 0 10px 18px -6px var(--hv-sh-3), inset 0 0 0 1px var(--hv-hair-strong); position: relative; z-index: 2; }
+.hv-cal__t { margin-top: 8px; min-height: 18px; font-size: 13px; color: var(--hv-ink-2); text-align: center; }
+/* ---- a payment row that opens into itself ---- */
+:root[data-style="haven"] .hv-lp + .hv-lp { box-shadow: inset 0 1px 0 var(--hv-hair); }
+:root[data-style="haven"] .hv-lp > .hv-row { width: 100%; box-shadow: none; }
+.hv-lp__d { height: 0; overflow: hidden; }
+.hv-lp__in { padding: 0 16px 14px 74px; display: grid; gap: 6px; font-size: 13px; color: var(--hv-ink-2); justify-items: start; }
+.hv-lp__in b { color: var(--hv-ink); font-weight: 600; }
+.hv-lp__in .hv-pillbtn { margin-top: 2px; }
+/* ---- a category near its limit: a thin ring goes out from its icon now and then ---- */
+.hv-ringout { position: absolute; inset: -2px; border-radius: inherit; border: 2px solid var(--hv-warn); pointer-events: none; }
+:root[data-style="haven"] .hv-bill[data-near] .hv-gem { overflow: visible; }
+/* ---- the sky's weather, behind the page ---- */
+.hv-weather { position: fixed; left: 0; right: 0; top: 0; height: 300px; z-index: -1; pointer-events: none; overflow: hidden; }
+.hv-cloud { position: absolute; left: 0; border-radius: 30px; background: rgba(255, 255, 255, calc(0.8 * var(--hv-wx, 0.55))); filter: blur(6px); }
+.hv-weather--rain .hv-cloud { background: rgba(255, 255, 255, calc(0.5 * var(--hv-wx, 0.55) * 1.4)); }
+:root[data-theme="dark"] .hv-cloud { background: rgba(190, 210, 255, calc(0.18 * var(--hv-wx, 0.55) * 1.6)); }
+.hv-sun { position: absolute; right: 36px; top: 22px; width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle, #fff6c4, #ffd36a 60%, rgba(255, 200, 80, 0)); opacity: 0.55; }
+.hv-drop { position: absolute; top: 40px; width: 1.5px; height: 12px; border-radius: 1px; background: rgba(60, 90, 150, calc(0.55 * var(--hv-wx, 0.55) * 1.2)); }
+:root[data-theme="dark"] .hv-drop { background: rgba(160, 190, 255, calc(0.5 * var(--hv-wx, 0.55))); }
+/* ---- the Add keypad ---- */
+:root[data-style="haven"] .hv-words { min-height: 20px; margin-top: 6px; text-align: center; font-size: var(--hv-fs-label, 13px); color: var(--hv-ink-2); }
+:root[data-style="haven"] .hv-words.warn { color: var(--hv-warn); }
+:root[data-style="haven"] .hv-amountbig .val, :root[data-style="haven"] .hv-addform .hv-amountbig .val { font-size: calc(54px * var(--fit, 1)); }
+.hist-guess { color: var(--hv-ink-2); margin-left: 6px; }
+.hist-guess b { color: var(--hv-link); font-weight: 600; }
+:root[data-style="haven"] .hist-row[data-swipe="ready"] { background: color-mix(in oklab, var(--hv-good) 22%, transparent); }
+:root[data-style="haven"] .hist-row[data-swipe="pulling"] { background: color-mix(in oklab, var(--hv-good) 10%, transparent); }
+.hv-fly { position: fixed; z-index: 60; font: 650 20px var(--hv-font, inherit); color: var(--hv-ink); pointer-events: none; }

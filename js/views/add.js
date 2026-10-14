@@ -4,6 +4,7 @@ import { holdFocus } from '../overlay.js';
 import { put, getAll, newId, getSetting } from '../db.js';
 import { icon } from '../icons.js';
 import { wireHaven, saveMorph } from '../haven-ui.js';
+import { keypadLife } from '../haven-life.js';
 import { CASH_ACCOUNT_ID } from '../config.js';
 import { categoryStyle } from '../category-style.js';
 import { showToast } from '../toast.js';
@@ -865,6 +866,7 @@ function havenArrangeAdd(container) {
     input.value = v;
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
+  keypadLife(pad, input, wrap);
   // Two steps, as a person thinks of it: first how much (and which way), then what it was. Step one is the amount and the
   // keypad and nothing else; "Next" takes the amount over to step two, where the rest of the form is.
   const person = container.querySelector('#add-person');

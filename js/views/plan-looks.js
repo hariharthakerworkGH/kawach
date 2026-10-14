@@ -123,7 +123,7 @@ export function havenCommitments(tracker, { order = new Map(), dayOf = () => nul
     const over = t.left < 0;
     const extra = note(t.id);
     const text = (over ? `${money(t.left)} over` : t.left > 0 ? `${money(t.left)} left` : 'Used up') + (extra ? ` · ${extra}` : '');
-    return `<div class="hv-bill hv-bill--aside" data-kind="aside" data-step="${escapeHtml(t.id)}">
+    return `<div class="hv-bill hv-bill--aside" data-kind="aside" data-step="${escapeHtml(t.id)}"${t.left > 0 && used >= 0.9 ? ' data-near' : ''}>
       <button type="button" class="hv-bill__open" data-month-item="${escapeHtml(t.id)}" aria-label="${escapeHtml(`${t.label}, ${money(t.amount)} set aside, ${text}. Tap for more.`)}">${gem(t.label)}<span class="hv-bill__name"><b>${escapeHtml(t.label)}</b><span class="hv-row__m${over ? ' hv-st-late' : ''}">${text}</span></span><span class="hv-bill__amt hv-amt">${money(t.amount)}</span></button><span class="hv-paycheck-gap"></span>
       <div class="hv-usedline${t.left <= 0 ? ' full' : ''}" aria-hidden="true"><i style="width:${(used * 100).toFixed(0)}%"></i></div></div>`;
   };

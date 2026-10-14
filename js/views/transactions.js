@@ -4,6 +4,7 @@ import { countsFor, nextMonthKey, salaryLike } from '../spending-month.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { personNamed } from '../people.js';
 import { learnFromAssignment, fitsDirection, isIncomeCategory } from '../merchant-rules.js';
+import { filingSwipe } from '../haven-life.js';
 import { formatCurrency, formatRupees, formatMonthYear, formatDateNice } from '../format.js';
 import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
@@ -579,6 +580,8 @@ function renderList(container) {
   const bar = container.querySelector('#bulk-bar');
   bar.hidden = selected.size === 0;
   container.querySelector('#bulk-count').textContent = `${selected.size} selected`;
+  // Haven: a payment that needs a category comes with a guess, and a swipe right accepts it.
+  filingSwipe(container, { find: (id) => cache.transactions.find((x) => x.id === id), needs: needsCategory, nameOf: catName, apply: (t, categoryId, rowEl) => setCategory(t, categoryId, container, rowEl) });
 }
 
 // Day by day, each day's payments in one card under its date and total.

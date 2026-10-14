@@ -51,3 +51,14 @@ export function ordinal(n) {
   const v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
+
+/* An amount as people say it in India: from a lakh up it reads short (₹1.24 L, ₹3.4 Cr); below that, the whole figure.
+ * Whole rupees only. The full figure is always one tap away where this is used (data-full). */
+export function shortRupees(paise) {
+  const n = Math.round(Math.abs(paise) / 100);
+  const sign = paise < 0 ? '−' : '';
+  const trim = (x) => x.toFixed(2).replace(/\.?0+$/, '');
+  if (n >= 10000000) return `${sign}₹${trim(n / 10000000)} Cr`;
+  if (n >= 100000) return `${sign}₹${trim(n / 100000)} L`;
+  return formatRupees(paise);
+}

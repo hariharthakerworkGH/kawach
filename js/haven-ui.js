@@ -6,6 +6,7 @@ import { icon } from './icons.js';
 import { pendingAlerts } from './alert-inbox.js';
 import { categoryIcon } from './category-icons.js';
 import { afterDraw, paidOut, buzz } from './haven-motion.js';
+import { lifeDraw } from './haven-life.js';
 
 const inr = (paise) => Math.round(Math.abs(paise) / 100).toLocaleString('en-IN');
 const isHaven = () => document.documentElement.dataset.style === 'haven';
@@ -19,6 +20,7 @@ export function wireHaven(root) {
     el.addEventListener('click', () => el.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: el.dataset.hvGo } })));
   });
   root.querySelectorAll('.hv-chartwrap').forEach(scrub);
+  lifeDraw(root);
   afterDraw(root);
   // the little bars grow in when they arrive
   requestAnimationFrame(() => requestAnimationFrame(() => root.querySelectorAll('.hv-meter').forEach((m) => m.classList.add('go'))));

@@ -12,16 +12,16 @@ const root = document.documentElement;
 const quiet = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 const isHaven = () => root.dataset.style === 'haven';
 export const level = () => (!isHaven() || quiet.matches ? 'still' : appearance('motion'));
-const live = () => level() !== 'still';
-const alive = () => level() === 'alive';
+export const live = () => level() !== 'still';
+export const alive = () => level() === 'alive';
 const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
-const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+export const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 const SOFT = 'cubic-bezier(.22,1,.36,1)';
-const store = {
+export const store = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
   set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private window: it simply forgets */ } },
 };
@@ -291,7 +291,7 @@ function countFigure(vault, from, ms) {
   requestAnimationFrame(step);
 }
 
-function sparks(host, n, ms, colour, top = 55) {
+export function sparks(host, n, ms, colour, top = 55) {
   for (let i = 0; i < n; i++) {
     const s = document.createElement('i');
     s.className = 'hv-spark';

@@ -1,0 +1,505 @@
+/* Haven's life, second part (5.60): what the owner chose in motion lab 3. Looking back (rewind the month, the Sunday card,
+ * the month as a patch of colour, the month told in cards, small badges), doing things more easily (the amount in words,
+ * keys that feel good, a limit to try by dragging the water, a payment that stamps in, a category that trembles) and the
+ * world around the shield (the sky's weather, a row that opens into itself, a shield that sleeps when there is nothing yet).
+ * The pieces of data come on the Summary's own markup (data-life, data-recap, data-story, data-weather, ...), drawn in
+ * js/views/summary-looks.js; nothing here reads the database except the daily limit it saves.
+ * Same three levels as js/haven-motion.js (alive, calm, still); a phone set to reduce motion is always still. */
+import { live, alive, sparks, store, clamp } from './haven-motion.js';
+import { setSetting } from './db.js';
+import { matchCategoryForDescription } from './merchant-rules.js';
+import { tideSvg } from './views/summary-looks.js';
+
+const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
+const SOFT = 'cubic-bezier(.22,1,.36,1)';
+const rs = (paise) => `₹${Math.round(Math.abs(paise) / 100).toLocaleString('en-IN')}`;
+const parse = (s) => { try { return JSON.parse(s); } catch { return null; } };
+const surfaceOf = (lvl) => 12 + (1 - lvl) * 77;
+const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const dayName = (iso) => DAYS[new Date(`${iso}T12:00`).getDay()];
+const niceDate = (iso) => `${Number(iso.slice(8, 10))} ${MONTH[Number(iso.slice(5, 7)) - 1]}`;
+
+/* The amount in words, the Indian way: "Four lakh fifty thousand". Exported for a test. */
+export function rupeeWords(n) {
+  if (!(n > 0)) return '';
+  const a = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+  const t = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+  const two = (x) => (x < 20 ? a[x] : t[Math.floor(x / 10)] + (x % 10 ? ` ${a[x % 10]}` : ''));
+  const cr = Math.floor(n / 10000000);
+  const lk = Math.floor((n % 10000000) / 100000);
+  const th = Math.floor((n % 100000) / 1000);
+  const hu = Math.floor((n % 1000) / 100);
+  const re = n % 100;
+  const parts = [];
+  if (cr) parts.push(`${two(cr)} crore`);
+  if (lk) parts.push(`${two(lk)} lakh`);
+  if (th) parts.push(`${two(th)} thousand`);
+  if (hu) parts.push(`${a[hu]} hundred`);
+  if (re) parts.push(`${hu || th || lk || cr ? 'and ' : ''}${two(re)}`);
+  const s = parts.join(' ');
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/* ---- the vault's own level and figure, set from outside ------------------------------------------------------ */
+function setLevel(vault, lvl, ms) {
+  const tide = vault.querySelector('.tide');
+  const water = tide?.querySelector('.water');
+  if (!water) return;
+  water.style.transition = ms ? `transform ${ms}ms var(--hv-spring-soft)` : 'none';
+  water.style.setProperty('--lvl', clamp(lvl, 0, 1).toFixed(3));
+  const t = tide.querySelector('.tilt');
+  if (t) t.dataset.sy = surfaceOf(clamp(lvl, 0, 1)).toFixed(1);
+}
+const figNode = (vault) => vault.querySelector('.hv-vault__fig .hv-num');
+
+/* ---- rewind the month ---------------------------------------------------------------------------------------- */
+function rewind(vault) {
+  const strip = vault.querySelector('[data-rewind]');
+  const L = parse(vault.dataset.life);
+  if (!strip || !L || L.cum.length < 2 || strip.dataset.wired) { if (strip && (!L || L.cum.length < 2)) strip.remove(); return; }
+  strip.dataset.wired = '1';
+  const n = L.cum.length;
+  const handle = strip.querySelector('.hv-rewind__h');
+  const label = strip.querySelector('.hv-rewind__t');
+  const fig = figNode(vault);
+  const original = fig ? fig.textContent : '';
+  const today = L.limit > 0 ? clamp(L.free / L.limit, 0, 1) : 0;
+  const HINT = 'Drag to look back';
+  label.textContent = HINT;
+  const left = (i) => L.free + (L.cum[n - 1] - L.cum[i]);
+  strip.setAttribute('aria-valuemax', String(n));
+  strip.setAttribute('aria-valuenow', String(n));
+  let timer = 0;
+  let down = false;
+  const trail = document.createElement('i');
+  trail.className = 'hv-trail';
+  vault.querySelector('.tide')?.append(trail);
+  const show = (i, ms) => {
+    const lv = L.limit > 0 ? left(i) / L.limit : 0;
+    setLevel(vault, lv, ms);
+    if (fig) fig.textContent = Math.round(Math.abs(left(i)) / 100).toLocaleString('en-IN');
+    handle.style.transition = ms > 60 ? `left ${ms}ms var(--hv-spring-soft)` : 'none';
+    handle.style.left = `${(i / (n - 1)) * 100}%`;
+    label.textContent = i === n - 1 ? HINT : `${niceDate(`2000-${L.days[i][0]}`)} · ${rs(left(i))} left`;
+    strip.setAttribute('aria-valuenow', String(i + 1));
+    const tideEl = vault.querySelector('.tide');
+    if (tideEl) {
+      trail.style.top = `${((surfaceOf(clamp(today, 0, 1)) - 8) / 86) * tideEl.clientHeight}px`;
+      trail.classList.toggle('on', i !== n - 1);
+    }
+  };
+  const at = (e) => {
+    const r = strip.getBoundingClientRect();
+    const f = clamp((e.clientX - r.left) / r.width, 0, 1);
+    show(Math.round(f * (n - 1)), 160);
+  };
+  const back = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { show(n - 1, 900); setTimeout(() => { if (fig) fig.textContent = original; setLevel(vault, today, 0); vault.querySelector('.tide .water').style.transition = ''; }, 950); }, 500);
+  };
+  strip.addEventListener('pointerdown', (e) => { down = true; clearTimeout(timer); try { strip.setPointerCapture(e.pointerId); } catch { /* a pointer that is gone */ } at(e); });
+  strip.addEventListener('pointermove', (e) => down && at(e));
+  for (const t of ['pointerup', 'pointercancel']) strip.addEventListener(t, () => { if (down) { down = false; back(); } });
+  strip.addEventListener('keydown', (e) => {
+    const cur = Number(strip.getAttribute('aria-valuenow')) - 1;
+    const to = { ArrowLeft: cur - 1, ArrowRight: cur + 1, Home: 0, End: n - 1 }[e.key];
+    if (to === undefined) return;
+    e.preventDefault();
+    show(clamp(to, 0, n - 1), 160);
+    if (to >= n - 1) back();
+  });
+}
+
+/* ---- a limit to try, by dragging the water -------------------------------------------------------------------- */
+function whatIf(vault) {
+  const tide = vault.querySelector('.tide');
+  const L = parse(vault.dataset.life);
+  const status = vault.querySelector('[data-status]');
+  if (!tide || !L || !(L.perDay > 0) || tide.dataset.wired) return;
+  tide.dataset.wired = '1';
+  tide.style.touchAction = 'none';
+  const base = L.perDay;
+  const lvl0 = Number(tide.style.getPropertyValue('--lvl')) || 0.5;
+  const original = status.innerHTML;
+  const STEP = 10000; // ₹100
+  let y0 = null;
+  let timer = 0;
+  let cur = base;
+  let keep = vault.querySelector('.hv-keepcap');
+  const days = Math.max(1, L.daysLeft || 1);
+  const draw = (val) => {
+    cur = val;
+    setLevel(vault, clamp(lvl0 * (val / base), 0.05, 0.95), 40);
+    status.innerHTML = val === base ? original : `<b>${rs(val)}</b> a day instead of ${rs(base)} · ${val < base ? `${rs((base - val) * days)} kept by the end of the month` : `${rs((val - base) * days)} more in all`}`;
+    if (!keep) {
+      keep = document.createElement('button');
+      keep.type = 'button';
+      keep.className = 'hv-keepcap';
+      keep.textContent = 'Keep this limit';
+      status.after(keep);
+      keep.addEventListener('click', async () => {
+        await setSetting('dailyCap', cur);
+        keep.remove();
+        keep = null;
+        sparks(vault.querySelector('.tide'), 4, 900);
+        window.dispatchEvent(new Event('hv-refresh'));
+      });
+    }
+    keep.hidden = val === base;
+  };
+  tide.addEventListener('pointerdown', (e) => { y0 = e.clientY; clearTimeout(timer); try { tide.setPointerCapture(e.pointerId); } catch { /* none */ } });
+  tide.addEventListener('pointermove', (e) => {
+    if (y0 == null) return;
+    const d = (y0 - e.clientY) / 130;
+    if (Math.abs(d) < 0.04) return;
+    draw(Math.max(STEP, Math.round((base * (1 + d * 1.2)) / STEP) * STEP));
+  });
+  const up = () => {
+    if (y0 == null) return;
+    y0 = null;
+    if (cur !== base) timer = setTimeout(() => { draw(base); setLevel(vault, lvl0, 700); if (keep) keep.hidden = true; }, 900);
+  };
+  tide.addEventListener('pointerup', up);
+  tide.addEventListener('pointercancel', up);
+  // A limit kept earlier can be let go of.
+  vault.querySelector('[data-cap]')?.addEventListener('click', async (e) => {
+    if (!e.target.closest('b')) return;
+    await setSetting('dailyCap', 0);
+    window.dispatchEvent(new Event('hv-refresh'));
+  });
+}
+
+/* ---- the Sunday card ---------------------------------------------------------------------------------------- */
+function sundayCard(vault) {
+  const w = parse(vault.dataset.recap);
+  const now = new Date();
+  const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+  if (!w || now.getDay() !== 0 || now.getHours() < 18 || store.get('kawach-recap') === dayKey || !live()) return;
+  store.set('kawach-recap', dayKey);
+  const card = document.createElement('div');
+  card.className = 'hv-recap';
+  card.setAttribute('role', 'status');
+  const max = Math.max(1, ...w.days);
+  const big = w.days.indexOf(Math.max(...w.days));
+  card.innerHTML = `<div class="hv-recap__h"><b>Your week</b><span>${niceDate(w.from)} to ${niceDate(w.to)}</span></div>
+    <div class="hv-recap__fig">${rs(w.total)} <small>spent, ${rs(w.under)} ${w.under >= 0 ? 'under' : 'over'} an even pace</small></div>
+    <div class="hv-recap__bars">${w.days.map((d, i) => `<i class="${i === big ? 'big' : ''}" style="height:${Math.max(6, (d / max) * 100)}%"></i>`).join('')}</div>
+    <div class="hv-recap__f">Biggest day: ${dayName(w.big.date)}, ${rs(w.big.amount)}</div>`;
+  document.body.append(card);
+  const hide = () => {
+    clearTimeout(timer);
+    card.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateY(20px)' }], { duration: 300, fill: 'forwards' }).onfinish = () => card.remove();
+  };
+  const timer = setTimeout(hide, 15000);
+  card.addEventListener('click', hide);
+  card.animate([{ opacity: 0, transform: 'translateY(70px)' }, { opacity: 1, transform: 'none' }], { duration: 650, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' });
+  $$('.hv-recap__bars i', card).forEach((b, i) => b.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 600, delay: 300 + i * 70, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'backwards' }));
+}
+
+/* ---- the month told in cards ----------------------------------------------------------------------------------- */
+function story(vault) {
+  const s = parse(vault.dataset.story);
+  if (!s || !s.cards.length || store.get('kawach-story') === s.key || !live()) return;
+  store.set('kawach-story', s.key);
+  const wrap = document.createElement('div');
+  wrap.className = 'hv-story';
+  wrap.setAttribute('role', 'dialog');
+  wrap.setAttribute('aria-label', 'The month, told back');
+  wrap.innerHTML = '<div class="hv-story__card" tabindex="0"><div class="hv-story__a"></div><div class="hv-story__b"></div><div class="hv-story__d"></div></div><div class="hv-story__dots"></div>';
+  document.body.append(wrap);
+  const card = wrap.querySelector('.hv-story__card');
+  const dots = wrap.querySelector('.hv-story__dots');
+  let i = 0;
+  let timer = 0;
+  const close = () => { clearTimeout(timer); wrap.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' }).onfinish = () => wrap.remove(); };
+  const show = (first) => {
+    const [a, b, d] = s.cards[i];
+    card.querySelector('.hv-story__a').textContent = a;
+    card.querySelector('.hv-story__b').textContent = b;
+    card.querySelector('.hv-story__d').textContent = d;
+    dots.innerHTML = s.cards.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('');
+    if (!first) card.animate([{ opacity: 0, transform: 'translateX(40px)' }, { opacity: 1, transform: 'none' }], { duration: 450, easing: 'cubic-bezier(.16,1,.3,1)' });
+    if (i === 0) sparks(card, 7, 1200);
+    clearTimeout(timer);
+    timer = setTimeout(next, 2000);
+  };
+  const next = () => { if (i >= s.cards.length - 1) { close(); return; } i += 1; show(false); };
+  wrap.addEventListener('click', (e) => { if (e.target === wrap) close(); else next(); });
+  wrap.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
+  show(true);
+}
+
+/* ---- the month as a patch of colour ------------------------------------------------------------------------------ */
+function calendar(scope, vault) {
+  const host = scope.querySelector('#hv-cal');
+  const L = vault && parse(vault.dataset.life);
+  if (!host || !L || L.days.length < 3 || host.dataset.done) return;
+  host.dataset.done = '1';
+  const now = new Date();
+  const year = (mmdd) => (Number(mmdd.slice(0, 2)) > now.getMonth() + 2 ? now.getFullYear() - 1 : now.getFullYear());
+  const dates = L.days.map(([md, amt]) => ({ iso: `${year(md)}-${md}`, amt }));
+  const first = new Date(`${dates[0].iso}T12:00`);
+  const lead = (first.getDay() + 6) % 7;
+  const max = Math.max(1, ...dates.map((d) => d.amt));
+  const cells = [...Array(lead).fill('<i class="blank"></i>'), ...dates.map((d, i) => `<span class="hv-cal__d" role="img" data-i="${i}" style="--k:${(d.amt / max).toFixed(2)}" aria-label="${niceDate(d.iso)}, ${d.amt ? rs(d.amt) : 'nothing'} spent">${Number(d.iso.slice(8))}</span>`)];
+  host.innerHTML = `<div class="hv-sec"><h2>The month, day by day</h2></div><div class="hv-shell"><div class="hv-core"><div class="hv-cal"><div class="hv-cal__w">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((x) => `<span>${x}</span>`).join('')}</div><div class="hv-cal__g">${cells.join('')}</div><div class="hv-cal__t" aria-live="polite">Press a day</div></div></div></div>`;
+  const tip = host.querySelector('.hv-cal__t');
+  const grid = host.querySelector('.hv-cal__g');
+  const on = (b) => { b.classList.add('lift'); tip.textContent = `${dayName(dates[Number(b.dataset.i)].iso)} ${niceDate(dates[Number(b.dataset.i)].iso)} · ${dates[Number(b.dataset.i)].amt ? rs(dates[Number(b.dataset.i)].amt) : 'nothing spent'}`; };
+  const off = (b) => b.classList.remove('lift');
+  grid.addEventListener('pointerdown', (e) => { const b = e.target.closest('.hv-cal__d'); if (b) on(b); });
+  grid.addEventListener('pointerover', (e) => { const b = e.target.closest('.hv-cal__d'); if (b && e.buttons) on(b); });
+  for (const t of ['pointerup', 'pointercancel']) grid.addEventListener(t, () => $$('.lift', grid).forEach(off));
+  grid.addEventListener('pointerout', (e) => { const b = e.target.closest('.hv-cal__d'); if (b) off(b); });
+  // The squares ripple in the first time the fold is opened.
+  const fold = host.closest('details');
+  const play = () => { if (!live()) return; $$('.hv-cal__d', grid).forEach((b, i) => b.animate([{ opacity: 0, transform: 'scale(.4)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 420, delay: ((i + lead) % 7) * 40 + Math.floor((i + lead) / 7) * 60, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'backwards' })); };
+  if (fold && !fold.open) fold.addEventListener('toggle', () => fold.open && play(), { once: true });
+  else play();
+}
+
+/* ---- a payment that has just been saved stamps into the list -------------------------------------------------------- */
+function stamp(scope) {
+  let fresh = false;
+  try { fresh = Number(sessionStorage.getItem('kawach-drop') || 0) > Date.now() - 8000; } catch { fresh = false; }
+  if (!fresh || !live()) return;
+  const rows = $$('.hv-lp', scope);
+  if (!rows.length) return;
+  const first = rows[0];
+  first.animate([{ transform: 'translateY(-30px) scale(1.06)', opacity: 0 }, { transform: 'translateY(2px) scale(.99)', opacity: 1, offset: 0.55 }, { transform: 'none' }], { duration: 560, delay: 500, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'backwards' });
+  rows.slice(1).forEach((r) => r.animate([{ transform: 'translateY(-2px)' }, { transform: 'translateY(2px)', offset: 0.5 }, { transform: 'none' }], { duration: 520, delay: 620 }));
+  first.querySelector('.hv-gem')?.animate([{ transform: 'scale(1.5)' }, { transform: 'scale(.9)', offset: 0.6 }, { transform: 'scale(1)' }], { duration: 560, delay: 640, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'backwards' });
+  first.animate([{ background: 'color-mix(in oklab, var(--hv-glow) 28%, var(--hv-core))' }, { background: 'transparent' }], { duration: 1600, delay: 600, fill: 'backwards' });
+}
+
+/* ---- a row opens into its details ---------------------------------------------------------------------------------- */
+function morph(scope) {
+  scope.querySelectorAll('.hv-lp').forEach((lp) => {
+    if (lp.dataset.wired) return;
+    lp.dataset.wired = '1';
+    const row = lp.querySelector('[data-morph]');
+    const d = lp.querySelector('.hv-lp__d');
+    row.addEventListener('click', () => {
+      const open = row.getAttribute('aria-expanded') !== 'true';
+      row.setAttribute('aria-expanded', String(open));
+      const to = open ? d.firstElementChild.scrollHeight : 0;
+      if (!live()) { d.style.height = `${to}px`; return; }
+      d.animate([{ height: `${open ? 0 : d.offsetHeight}px` }, { height: `${to}px` }], { duration: 520, easing: 'cubic-bezier(.34,1.3,.64,1)', fill: 'forwards' }).onfinish = () => { d.style.height = `${to}px`; };
+      lp.querySelector('.hv-gem')?.animate([{ transform: 'scale(1)' }, { transform: `scale(${open ? 1.12 : 1})` }], { duration: 520, fill: 'forwards', easing: 'cubic-bezier(.34,1.3,.64,1)' });
+    });
+    lp.querySelector('[data-open-hist]')?.addEventListener('click', (e) => {
+      lp.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'transactions', search: e.currentTarget.dataset.openHist } }));
+    });
+  });
+}
+
+/* ---- the sky has weather (alive) ------------------------------------------------------------------------------------ */
+let wx = null;
+let wxKind = '';
+let rain = 0;
+function weather(vault) {
+  if (!vault || !alive()) { wx?.remove(); wx = null; wxKind = ''; clearInterval(rain); return; }
+  const kind = vault.dataset.weather || 'clouds';
+  if (wx && wxKind === kind && wx.isConnected) return;
+  clearInterval(rain);
+  wx?.remove();
+  wxKind = kind;
+  wx = document.createElement('div');
+  wx.className = `hv-weather hv-weather--${kind}`;
+  wx.setAttribute('aria-hidden', 'true');
+  document.body.append(wx);
+  if (kind === 'clear') wx.insertAdjacentHTML('beforeend', '<i class="hv-sun"></i>');
+  const clouds = kind === 'clear' ? 1 : kind === 'clouds' ? 3 : 4;
+  for (let i = 0; i < clouds; i++) {
+    const c = document.createElement('i');
+    c.className = 'hv-cloud';
+    c.style.cssText = `top:${16 + i * 22}px;width:${90 + i * 24}px;height:${26 + i * 6}px`;
+    wx.append(c);
+    c.animate([{ transform: 'translateX(-120px)' }, { transform: `translateX(${innerWidth + 120}px)` }], { duration: 50000 + i * 14000, iterations: Infinity, delay: -i * 17000, easing: 'linear' });
+  }
+  if (kind === 'rain') {
+    rain = setInterval(() => {
+      if (!wx || !wx.isConnected || document.hidden) return;
+      for (let j = 0; j < 2; j++) {
+        const d = document.createElement('i');
+        d.className = 'hv-drop';
+        d.style.left = `${Math.random() * 100}%`;
+        wx.append(d);
+        d.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(260px)', opacity: 0.15 }], { duration: 1000 + Math.random() * 400, easing: 'linear' }).onfinish = () => d.remove();
+      }
+    }, 160);
+  }
+}
+
+/* ---- a category near its limit trembles (alive) ---------------------------------------------------------------------- */
+let tremor = 0;
+function trembleLoop() {
+  if (tremor) return;
+  tremor = setInterval(() => {
+    if (!alive() || document.hidden) return;
+    $$('.hv-bill[data-near] .hv-gem').forEach((g) => {
+      const k = 0.45;
+      g.animate([{ transform: 'rotate(0)' }, { transform: `rotate(${-9 * k}deg) translateX(${-2 * k}px)` }, { transform: `rotate(${8 * k}deg) translateX(${2 * k}px)` }, { transform: `rotate(${-5 * k}deg)` }, { transform: `rotate(${3 * k}deg)` }, { transform: 'rotate(0)' }], { duration: 640, easing: 'ease-out' });
+      const ring = document.createElement('i');
+      ring.className = 'hv-ringout';
+      g.append(ring);
+      ring.animate([{ transform: 'scale(1)', opacity: 0.9 }, { transform: 'scale(1.35)', opacity: 0 }], { duration: 900 }).onfinish = () => ring.remove();
+    });
+  }, 20000);
+}
+
+/* ---- a shield that sleeps when there is nothing yet ------------------------------------------------------------------- */
+let zzz = 0;
+function sleeping(vault) {
+  clearInterval(zzz);
+  const tide = vault?.querySelector('.tide');
+  if (!tide) return;
+  const asleep = vault.hasAttribute('data-sleeping');
+  if (!asleep) {
+    if (store.get('kawach-slept') === '1') {
+      store.set('kawach-slept', '0');
+      if (live()) tide.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.18) rotate(-4deg)', offset: 0.4 }, { transform: 'scale(.97) rotate(2deg)', offset: 0.7 }, { transform: 'none' }], { duration: 700, delay: 400, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+    }
+    return;
+  }
+  store.set('kawach-slept', '1');
+  if (!alive()) return;
+  zzz = setInterval(() => {
+    if (!tide.isConnected || document.hidden) { clearInterval(zzz); return; }
+    const z = document.createElement('i');
+    z.className = 'hv-z';
+    z.textContent = 'z';
+    tide.append(z);
+    z.animate([{ transform: 'translate(0,0) scale(.6)', opacity: 0 }, { opacity: 1, offset: 0.3 }, { transform: 'translate(26px,-34px) scale(1.2)', opacity: 0 }], { duration: 2400 }).onfinish = () => z.remove();
+  }, 1100);
+}
+
+/* ---- the Add keypad: the amount in words, and keys that feel good ------------------------------------------------------- */
+export function keypadLife(pad, input, wrap) {
+  const words = document.createElement('div');
+  words.className = 'hv-words';
+  words.setAttribute('aria-live', 'polite');
+  wrap.after(words);
+  let last = '';
+  const draw = () => {
+    const v = parseFloat(input.value);
+    const n = Math.floor(v) || 0;
+    const base = rupeeWords(n);
+    const paise = Math.round((v - n) * 100);
+    const text = base ? `${base} rupees${paise ? ` and ${rupeeWords(paise).toLowerCase()} paise` : ''}${n >= 1000000 ? ' · is that right?' : ''}` : '';
+    words.classList.toggle('warn', n >= 1000000);
+    if (text !== last) { words.textContent = text; if (live() && text) words.animate([{ opacity: 0.2 }, { opacity: 1 }], 220); last = text; }
+    // A long amount shrinks to fit its place.
+    const len = input.value.length;
+    wrap.style.setProperty('--fit', String(clamp(1 - Math.max(0, len - 6) * 0.07, 0.62, 1)));
+  };
+  input.addEventListener('input', draw);
+  draw();
+  const down = (b) => {
+    if (!live()) return;
+    b.style.transition = 'transform 90ms ease-out';
+    b.style.transform = 'scale(.89)';
+    navigator.vibrate?.(2);
+  };
+  const release = (b) => { b.style.transition = 'transform 420ms var(--hv-spring-snap)'; b.style.transform = ''; };
+  pad.addEventListener('pointerdown', (e) => { const b = e.target.closest('.hv-key'); if (b) down(b); });
+  for (const t of ['pointerup', 'pointerleave', 'pointercancel']) pad.addEventListener(t, (e) => { const b = e.target.closest?.('.hv-key'); if (b) release(b); });
+  pad.addEventListener('click', (e) => {
+    const b = e.target.closest('.hv-key');
+    if (!b || !live() || b.dataset.key === 'back' || b.dataset.key === '.') return;
+    const r = b.getBoundingClientRect();
+    const r2 = input.getBoundingClientRect();
+    const d = document.createElement('i');
+    d.className = 'hv-fly';
+    d.textContent = b.dataset.key;
+    d.style.left = `${r.left + r.width / 2}px`;
+    d.style.top = `${r.top + 6}px`;
+    document.body.append(d);
+    d.animate([{ transform: 'translate(-50%,0)', opacity: 1 }, { transform: `translate(${r2.left + r2.width / 2 - r.left - r.width / 2}px,${r2.top - r.top}px) scale(1.5)`, opacity: 0 }], { duration: 420, easing: 'cubic-bezier(.5,0,.9,.6)' }).onfinish = () => d.remove();
+  });
+}
+
+/* ---- History: a payment that needs a category comes with a guess; swipe right to accept it --------------------------------- */
+const guessed = new Map();
+export function filingSwipe(container, { find, needs, nameOf, apply }) {
+  if (document.documentElement.dataset.style !== 'haven') return;
+  container.querySelectorAll('.hist-row:not(.open)').forEach(async (rowEl) => {
+    const t = find(rowEl.dataset.id);
+    if (!t || !needs(t) || t.personId || rowEl.dataset.filing) return;
+    rowEl.dataset.filing = '1';
+    const key = `${t.direction}|${t.rawDescription}`;
+    if (!guessed.has(key)) guessed.set(key, matchCategoryForDescription(t.rawDescription, t.direction).catch(() => null));
+    const categoryId = await guessed.get(key);
+    const name = categoryId && nameOf(categoryId);
+    if (!name || !rowEl.isConnected) return;
+    const sub = rowEl.querySelector('.hist-sub');
+    if (sub) sub.insertAdjacentHTML('beforeend', ` <span class="hist-guess">Looks like <b>${name.replace(/[<>&]/g, '')}</b></span>`);
+    const line = rowEl.querySelector('.hist-line');
+    // A swipe along this row is for filing, not for moving to the next tab (js/swipe.js).
+    line.classList.add('no-swipe');
+    let x0 = null;
+    let y0 = 0;
+    let dx = 0;
+    let on = false;
+    line.style.touchAction = 'pan-y';
+    line.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse') return; x0 = e.clientX; y0 = e.clientY; dx = 0; on = false; });
+    line.addEventListener('pointermove', (e) => {
+      if (x0 == null) return;
+      const mx = e.clientX - x0;
+      if (!on) {
+        if (Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(e.clientY - y0) * 1.5) { on = true; line.style.transition = 'none'; try { line.setPointerCapture(e.pointerId); } catch { /* none */ } } else return;
+      }
+      dx = Math.max(0, mx);
+      line.style.transform = `translateX(${dx * 0.9}px)`;
+      rowEl.dataset.swipe = dx > 70 ? 'ready' : 'pulling';
+    });
+    const end = () => {
+      if (x0 == null) return;
+      const go = on && dx > 70;
+      x0 = null;
+      line.style.transition = 'transform 560ms var(--hv-spring-snap)';
+      line.style.transform = '';
+      delete rowEl.dataset.swipe;
+      if (on) line.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); }, { capture: true, once: true });
+      on = false;
+      if (!go) return;
+      navigator.vibrate?.(10);
+      if (live()) sparks(rowEl, 3, 700, '#fff', 20);
+      setTimeout(() => apply(t, categoryId, rowEl), live() ? 420 : 0);
+    };
+    line.addEventListener('pointerup', end);
+    line.addEventListener('pointercancel', end);
+  });
+}
+
+/* ---- the lot, for a screen that has just been drawn ---------------------------------------------------------------------- */
+export function lifeDraw(scope) {
+  if (document.documentElement.dataset.style !== 'haven') return;
+  const vault = scope.querySelector?.('[data-hv-summary] .hv-vault') || scope.querySelector?.('.hv-vault');
+  if (vault) {
+    rewind(vault);
+    whatIf(vault);
+    calendar(scope, vault);
+    setTimeout(() => { sundayCard(vault); story(vault); }, 2200);
+    if (vault.querySelector('.hv-badge.is-new') && live()) {
+      const b = vault.querySelector('.hv-badge.is-new');
+      b.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 700, easing: SOFT });
+    }
+    sleeping(vault);
+  }
+  weather(vault);
+  stamp(scope);
+  morph(scope);
+  trembleLoop();
+  // generic empty places rest a sleeping shield
+  scope.querySelectorAll?.('.empty-state:not([data-slept])').forEach((el) => {
+    el.dataset.slept = '1';
+    const t = document.createElement('div');
+    t.className = 'tide hv-sleep';
+    t.dataset.mood = 'calm';
+    t.style.setProperty('--lvl', '0.15');
+    t.innerHTML = tideSvg(0.15, 0);
+    el.prepend(t);
+  });
+}

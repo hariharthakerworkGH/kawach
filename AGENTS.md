@@ -443,6 +443,7 @@ Tactile and Charts retired in 5.57 (two looks are left, Haven and Instrument; wh
 a toast: `retireOldLooks`). Their stylesheets stayed because Instrument and Haven are built on them: `css/style-tactile.css` is
 now Instrument's base, `tactileTop` and `.pl-top--tactile` are the Summary and Plan markup both share, and Charts is the base
 every screen sits on, not a choice.
+Haven's second layer of life (5.60) is `js/haven-life.js`: the Summary carries its data on `data-life`, `data-recap`, `data-story`, `data-weather` (summary-looks.js `havenTop`), and `havenMore` in summary.js adds goals, a salary just landed, last month's line, the story and the badges.
 Haven's motion (5.56) is `js/haven-motion.js` + `css/haven-motion.css`, chosen in Settings (Alive, Calm, Still) and always off for a
 phone set to reduce motion; see design.md section 16. A save from the Add sheet fires `hv-saved` (the coin, the Add ring) and
 `hv-refresh` (app.js draws the screen underneath again).
