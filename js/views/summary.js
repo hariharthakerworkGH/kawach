@@ -1,5 +1,5 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
-import { tactileTop, instrumentTop, havenTop, keptBack, chartsComing, chartsCards } from './summary-looks.js';
+import { instrumentTop, havenTop, keptBack, chartsComing, chartsCards } from './summary-looks.js';
 import { isDemo } from '../demo-flag.js';
 import { displayName } from './transactions.js';
 import { wireHaven } from '../haven-ui.js';
@@ -1178,7 +1178,7 @@ function incomeLine(f) {
 
 const monthShort = (month) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(month.slice(5, 7)) - 1];
 
-const LOOK_TOPS = { tactile: tactileTop, instrument: instrumentTop, haven: havenTop };
+const LOOK_TOPS = { instrument: instrumentTop, haven: havenTop };
 
 function renderCardsHero(f, opts = {}) {
   const past = opts.past || null;

@@ -34,7 +34,7 @@ export function planTop(style, f) {
     .map((p) => `<i class="is-${p.id}" style="flex:${p.amount}"></i>`)
     .join('')}</div>`;
   const amount = `<span class="${f.budget != null && f.budget < 0 ? 'is-negative' : ''}">${f.budget != null ? formatRupees(f.budget) : '-'}</span>`;
-  if (style === 'tactile' || style === 'instrument' || style === 'haven') {
+  if (style === 'instrument' || style === 'haven') {
     return `<section class="pl-top pl-top--tactile">
         <div class="tl-top"><span class="tl-k">Budget each month</span><span class="tl-period">comes in ${formatRupees(f.income)}</span></div>
         <div class="tl-big">${amount}</div>

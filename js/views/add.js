@@ -778,16 +778,15 @@ function byRecentUse(categories, transactions) {
   return [...categories].sort((a, b) => (counts.get(b.id) || 0) - (counts.get(a.id) || 0));
 }
 
-/* NEW (5.12): Tactile and Instrument group the form as their mockups do
+/* NEW (5.12): Instrument (and Tactile, until 5.57) group the form as their mockups do
  * (mockups/5.0): the direction first, the amount and the merchant together on
  * one card, the category, then account, date and repeats as rows, and the
  * bank SMS last. The same elements move - ids, values and listeners go with
- * them - so what the form asks and does is the same in every style. Charts
- * keeps the order it was built in. */
+ * them - so what the form asks and does is the same in every style. */
 function arrangeAdd(container) {
   const style = document.documentElement.dataset.style;
   if (style === 'haven') return havenArrangeAdd(container);
-  if (!['tactile', 'instrument'].includes(style)) return;
+  if (style !== 'instrument') return;
   const form = container.querySelector('#add-form');
   const hero = form.querySelector('.amount-hero');
   const toggle = hero.querySelector('.direction-toggle');

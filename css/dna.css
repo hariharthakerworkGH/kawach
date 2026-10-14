@@ -3652,10 +3652,6 @@ html { overscroll-behavior-y: contain; }
 .k .pill-col i.pill-other { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--k-text) 34%, transparent) 0 2px, transparent 2px 4px); box-shadow: none; min-height: 3px; border-radius: 3px; }
 .k .pill-col i.pill-other.is-cut { clip-path: polygon(0 4px, 25% 0, 50% 4px, 75% 0, 100% 4px, 100% 100%, 0 100%); }
 /* Tactile: the week strip's hatched part and its key, as on Instrument. */
-:root[data-style="tactile"] .k .tl-cols i.tl-other { display: block; width: 100%; max-width: 26px; border-radius: 3px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--k-text) 34%, transparent) 0 2px, transparent 2px 4px); box-shadow: none; min-height: 3px; }
-:root[data-style="tactile"] .k .tl-cols i.tl-other.is-cut { clip-path: polygon(0 4px, 25% 0, 50% 4px, 75% 0, 100% 4px, 100% 100%, 0 100%); }
-:root[data-style="tactile"] .k .tl-hatch-note { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0 0; font-size: var(--k-caption); line-height: 1.4; color: var(--k-text-2); }
-:root[data-style="tactile"] .k .tl-hatch-note i { flex: none; width: 12px; height: 8px; margin-top: 4px; border-radius: 2px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--k-text) 34%, transparent) 0 2px, transparent 2px 4px); }
 
 /* ======================================================================
    Motion on every look (5.38): what Instrument had since 5.36 and 5.37, now the same on all.

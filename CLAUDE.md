@@ -439,6 +439,10 @@ keypad with everything else behind "Details" (`add.js` `havenArrangeAdd`); a gui
 The tab bar is five tabs with Add raised in the middle; Coach is a button on Plan, and Plan stays lit while it is open.
 Before shipping any change to Haven, `tools/release/vs.mjs <view> [colour]` takes the app and the prototype at the same
 size, and `measure.mjs` gives the same parts' sizes in both; they must match.
+Tactile and Charts retired in 5.57 (two looks are left, Haven and Instrument; whoever wore the others lands on Haven once, told by
+a toast: `retireOldLooks`). Their stylesheets stayed because Instrument and Haven are built on them: `css/style-tactile.css` is
+now Instrument's base, `tactileTop` and `.pl-top--tactile` are the Summary and Plan markup both share, and Charts is the base
+every screen sits on, not a choice.
 Haven's motion (5.56) is `js/haven-motion.js` + `css/haven-motion.css`, chosen in Settings (Alive, Calm, Still) and always off for a
 phone set to reduce motion; see design.md section 16. A save from the Add sheet fires `hv-saved` (the coin, the Add ring) and
 `hv-refresh` (app.js draws the screen underneath again).

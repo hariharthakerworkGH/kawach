@@ -437,9 +437,9 @@ test('colourings: follow the phone, carry over an old light or dark choice', () 
   equal(colouringFor('auto', true).id, 'flame-light', 'a light phone gets burning flame light');
   equal(colouringFor('atelier', true).id, 'atelier', 'a chosen colouring is kept whatever the phone');
   equal(colouringFor('no-such', false).id, 'charts', 'an unknown one falls back');
-  equal(colouringFor('auto', false, 'tactile').id, 'tactile', 'in Tactile, a dark phone gets Tactile copper');
-  equal(colouringFor('auto', true, 'tactile').id, 'flame-light', 'and a light phone burning flame light');
-  equal(styleFor('tactile'), 'tactile', 'Tactile is ready');
+  equal(styleFor('tactile'), 'haven', 'Tactile retired in 5.57: it is Haven now');
+  equal(styleFor('charts'), 'haven', 'and so is Charts');
+  ok(!COLOURINGS.some((c) => c.id === 'tactile'), 'Tactile copper is gone');
   equal(styleFor('mindora'), 'haven', 'a style that was retired (Mindora, Peaks) is Haven now (5.52)');
   equal(styleFor('peaks'), 'haven', 'Peaks too');
   equal(styleFor('haven'), 'haven', 'Haven is ready');
@@ -1829,7 +1829,7 @@ test('a month that closed under budget says so on every look, and an over one sa
   }
 });
 
-test('Peaks and Mindora were retired: a saved choice of either becomes Instrument, following the phone, once', () => {
+test('Peaks, Mindora, Tactile and Charts were retired: a saved choice of any becomes Haven, following the phone, once', () => {
   const store = {};
   globalThis.__ls = store;
   const real = globalThis.localStorage;
@@ -1840,8 +1840,13 @@ test('Peaks and Mindora were retired: a saved choice of either becomes Instrumen
     ok(retireOldLooks(), 'a Peaks wearer is moved');
     equal(JSON.parse(store['kawach-appearance']), { text: 'large' }, 'the style and colour are dropped, the rest is kept');
     ok(!retireOldLooks(), 'and it is only ever done once');
-    store['kawach-appearance'] = JSON.stringify({ style: 'tactile', colour: 'mindora' });
-    ok(retireOldLooks() && JSON.parse(store['kawach-appearance']).style === 'tactile', 'a retired colouring under a style that stays: only the colouring goes');
+    store['kawach-appearance'] = JSON.stringify({ style: 'instrument', colour: 'mindora' });
+    ok(retireOldLooks() && JSON.parse(store['kawach-appearance']).style === 'instrument', 'a retired colouring under a style that stays: only the colouring goes');
+    store['kawach-appearance'] = JSON.stringify({ style: 'tactile', colour: 'tactile', motion: 'calm' });
+    ok(retireOldLooks(), 'a Tactile wearer is moved');
+    equal(JSON.parse(store['kawach-appearance']), { motion: 'calm' }, 'the style and colour go, the rest stays');
+    store['kawach-appearance'] = JSON.stringify({ style: 'charts' });
+    ok(retireOldLooks() && !('style' in JSON.parse(store['kawach-appearance'])), 'and a Charts wearer');
     store['kawach-appearance'] = JSON.stringify({ style: 'instrument', colour: 'instrument-ice' });
     ok(!retireOldLooks(), 'anyone else is left alone');
   } finally {

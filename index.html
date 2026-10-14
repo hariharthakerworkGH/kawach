@@ -65,14 +65,15 @@
     // it is as light or dark as the phone, else Charts on a dark phone and
     // burning flame light on a light one. READY and LIGHT must match
     // js/looks.js.
-    var READY = { tactile: 1, instrument: 1, haven: 1 };
+    var READY = { instrument: 1, haven: 1 };
     var LIGHT = { 'flame-light': 1, 'haven-day': 1 };
     // Haven unless another style was chosen (the default since 5.52; Instrument was before, Tactile before that).
-    var st = a.style === 'charts' ? 'charts' : READY[a.style] ? a.style : 'haven';
-    if (st !== 'charts') r.setAttribute('data-style', st);
+    // Tactile and Charts retired in 5.57: they, and anything unknown, are Haven.
+    var st = READY[a.style] ? a.style : 'haven';
+    r.setAttribute('data-style', st);
     var c = a.colour || ({ light: 'flame-light', dark: 'charts' })[a.theme] || 'auto';
     // Peaks and Mindora were retired in 5.41: whoever wore them is on Instrument, following the phone.
-    if (c === 'peaks' || c === 'mindora') c = 'auto';
+    if (c === 'peaks' || c === 'mindora' || c === 'tactile') c = 'auto';
     // Haven brings its own day and night: another look's own colouring (the default before 5.52) means "follow the phone" here.
     if (st === 'haven' && (c === 'charts' || c === 'tactile' || c === 'instrument')) c = 'auto';
     var pl = Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);

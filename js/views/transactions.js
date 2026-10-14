@@ -175,7 +175,7 @@ export async function render(container, params = {}) {
       more.append(chart, ...(legend ? [legend] : []));
       container.querySelector('#hist-hero').append(more);
     }
-  } else if (['tactile', 'instrument'].includes(document.documentElement.dataset.style)) {
+  } else if (document.documentElement.dataset.style === 'instrument') {
     container.querySelector('#hist-net').after(container.querySelector('#hist-stats'));
     container.querySelector('#hist-days').classList.add('hist-days-card');
   }

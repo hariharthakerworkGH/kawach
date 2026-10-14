@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.57',
+    items: [
+      {
+        icon: 'check',
+        title: "Tactile and Charts retire",
+        text: "Tactile and Charts are gone. Haven and Instrument are the two looks left. If you wore one of the others, you are on Haven now; change it any time in Settings, How it looks.",
+      },
+    ],
+  },
+  {
     version: '5.56',
     items: [
       {

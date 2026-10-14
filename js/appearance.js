@@ -17,15 +17,18 @@ import { isDemo } from './demo-flag.js';
 // The demo copies your look when it starts and keeps its own from then on (js/demo.js).
 const KEY = isDemo() ? 'kawach-demo-appearance' : 'kawach-appearance';
 
-/* Peaks and Mindora were retired in 5.41. Whoever had chosen one (as the style or as the colouring) is
- * moved to Instrument, following the phone, once, and told. True when something was changed. */
+/* Peaks and Mindora were retired in 5.41 and Tactile and Charts in 5.57. Whoever had chosen one (as the style or as the
+ * colouring) is moved off it once, to Haven following the phone, and told. True when something was changed. */
 export function retireOldLooks() {
   try {
     const stored = JSON.parse(localStorage.getItem(KEY)) || {};
-    const gone = (v) => v === 'peaks' || v === 'mindora';
-    if (!gone(stored.style) && !gone(stored.colour)) return false;
-    if (gone(stored.style)) delete stored.style;
-    if (gone(stored.colour)) delete stored.colour;
+    const old = (v) => v === 'peaks' || v === 'mindora';
+    const newer = (v) => v === 'tactile' || v === 'charts';
+    const styleGone = old(stored.style) || newer(stored.style);
+    const colourGone = old(stored.colour) || stored.colour === 'tactile';
+    if (!styleGone && !colourGone) return false;
+    if (styleGone) delete stored.style;
+    if (colourGone) delete stored.colour;
     localStorage.setItem(KEY, JSON.stringify(stored));
     return true;
   } catch {

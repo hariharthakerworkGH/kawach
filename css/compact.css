@@ -156,7 +156,6 @@
 /* A card inside a card is a second frame round the same figures: the figures keep a hairline, not a box. */
 :root[data-style] .k .tl-hero .tl-list,
 :root[data-style] .k .hero .tl-list { border: 0; background: none; box-shadow: none; padding: 0; }
-:root[data-style="tactile"] .k .tl-big,
 :root[data-style="instrument"] .k .tl-big { font-size: 40px; margin-top: 6px; }
 
 .k .account-actions-inline { justify-content: flex-start; }

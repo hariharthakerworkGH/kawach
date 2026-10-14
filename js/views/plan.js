@@ -147,7 +147,7 @@ export async function render(container) {
   // NEW (5.14): Tactile and Instrument draw the month and the top their
   // own way (plan-looks.js), from the same rows and figures.
   const style = document.documentElement.dataset.style;
-  const looks = ['tactile', 'instrument', 'haven'].includes(style);
+  const looks = ['instrument', 'haven'].includes(style);
   const stateOf = (t) => (t.status === 'skipped' ? 'skipped' : t.status === 'paid' ? 'paid' : t.status === 'late' ? 'late' : 'due');
   const isHaven = style === 'haven';
   // Haven: only a cost you added yourself can be marked paid from its card (the others open what can be done with them).
