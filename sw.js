@@ -5,7 +5,7 @@
 // counter, not the version people see). The app compares
 // the two at runtime to tell the user when they are looking at a stale copy,
 // so they must move together.
-const CACHE_NAME = 'expense-tracker-v229';
+const CACHE_NAME = 'expense-tracker-v230';
 
 const APP_SHELL = [
   './',
@@ -161,6 +161,21 @@ const APP_SHELL = [
  */
 const SHELL_PATHS = new Set(APP_SHELL.map((p) => new URL(p, self.location).pathname));
 
+async function fetchWhole(url) {
+  let last;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetch(new Request(url, { cache: 'reload' }));
+      if (response.ok) return response;
+      last = new Error(`${url} ${response.status}`);
+    } catch (err) {
+      last = err;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+  }
+  throw last;
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -168,7 +183,9 @@ self.addEventListener('install', (event) => {
       // browser's own HTTP cache can answer - GitHub Pages lets it keep files
       // for 10 minutes - and a new version would be installed holding copies
       // of the previous version's files: "Version 22" running version-21 code.
-      .then((cache) => cache.addAll(APP_SHELL.map((url) => new Request(url, { cache: 'reload' })))
+      // Each file is tried up to three times before the install gives up: one dropped connection or one 503 from the host
+      // (it happens) used to fail the whole update, and the phone then stayed on the old version without a word.
+      .then((cache) => Promise.all(APP_SHELL.map(async (url) => cache.put(url, await fetchWhole(url))))
         // caches.open() above named this cache before a single file arrived,
         // and the name is what the app reads to say a new version is ready.
         // A download that fails half way through therefore left an empty
