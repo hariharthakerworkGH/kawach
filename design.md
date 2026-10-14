@@ -733,3 +733,12 @@ compare with tools/release/vs.mjs before shipping.
   phone's keyboard never covers the form.
 - **Motion is a spring or a short fade** (`linear()` easings from tools/spring.mjs); every loop stops for reduced motion.
 - **Colours** are in tools/looks.py (haven-day, haven-night) and the prototype's tokens, checked by the contrast scan.
+- **Alive (5.56).** What the owner chose in the motion lab (mockups/7.4-motion-lab) lives in `css/haven-motion.css` and
+  `js/haven-motion.js`, nothing more: the tide breathes (1px, 6.5s, its pace set by the mood) and its edge glows; the Add
+  ring nudges until something is added today; icons catch the light every 3s; the sky follows the hour; it dozes after 30s;
+  cards sink 6% with a ripple; holding a row lifts it; a bill swipes right to Paid and left to Skip (75px, elastic 60%);
+  a saved payment drops a coin into the shield; Paid fades the row and slides the box bar; a month closed under budget
+  glows once; "Almost out" pulses; the tab pill stretches; the vault folds into a slim bar after 160px; pull-down is a
+  rising tide; the undo toast counts down in a ring; the water leans as the phone tilts (up to 28 degrees; Android reads
+  it at once, iPhone asks once from a tap). Settings -> How it looks -> Motion: Alive (all), Calm (only what answers a
+  touch), Still (none); the phone's reduce-motion always wins. Haven only; the other looks keep their own.

@@ -209,7 +209,7 @@ function card(name, spec) {
                ${preview}
              </div>`
           : `<p class="muted-note look-live">${
-              name === 'colour' || name === 'text' || name === 'density'
+              name === 'colour' || name === 'text' || name === 'density' || name === 'motion'
                 ? 'Tap one to see the whole app change. Tap another to put it back.'
                 : spec.where
                   ? `Open ${spec.where} to see it.`
@@ -220,7 +220,9 @@ function card(name, spec) {
 }
 
 function draw(container) {
+  // Motion is Haven's own (the other looks keep the motion they have).
   container.querySelector('#look-cards').innerHTML = Object.entries(CHOICES)
+    .filter(([name]) => name !== 'motion' || appearance('style') === 'haven')
     .map(([name, spec]) => card(name, spec))
     .join('');
 }

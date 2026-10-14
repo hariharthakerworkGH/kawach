@@ -2006,6 +2006,16 @@ test('Haven: the tide has a mood, always said in words, and the figure stays the
   ok(html.includes('data-roll-kind="left"') && html.includes('data-status') && html.includes('class="tide"') && html.includes('hv-vault'), 'the figure keeps its hooks (rolling number, status line), and the vault and the tide are drawn');
   ok(html.includes('Ahead'), 'and the mood is written out, not only coloured');
 });
+test('Haven motion: alive by default, three levels, and the tide carries the hooks the motion needs', () => {
+  equal(appearance('motion'), 'alive', 'Haven is alive until someone says otherwise (5.56)');
+  equal(CHOICES.motion.options.map((o) => o.value).join(','), 'alive,calm,still', 'three levels: alive, calm, still');
+  ok(setAppearance('motion', 'calm') && appearance('motion') === 'calm', 'calm can be chosen');
+  ok(!setAppearance('motion', 'wild') && appearance('motion') === 'calm', 'a level that does not exist is refused');
+  setAppearance('motion', 'alive');
+  const svg = tideSvg(0.5, 0.6);
+  ok(svg.includes('class="swell"') && svg.includes('class="tilt"') && svg.includes('class="sh-glow"'), 'the water has a swell to breathe, a group to tilt and an edge to glow');
+  ok(/data-sy="\d/.test(svg), 'and the tilt knows where the surface is');
+});
 test('Swiping between tabs goes round and round in the order of the tab bar', () => {
   equal(neighbour('summary', 1), 'accounts', 'left from Summary is Accounts');
   equal(neighbour('accounts', 1), 'add', 'Add is in the middle');

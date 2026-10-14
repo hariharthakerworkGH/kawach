@@ -2,6 +2,7 @@ import { getAll, put, remove, newId, getSetting, setSetting } from '../db.js';
 import { holdFocus } from '../overlay.js';
 import { planTop, planMonth, havenCommitments } from './plan-looks.js';
 import { wireHaven } from '../haven-ui.js';
+import { paidOut } from '../haven-motion.js';
 import { icon } from '../icons.js';
 import { formatRupees, ordinal, formatDateNice, formatMonthYear } from '../format.js';
 import { detectRecurring } from '../recurring.js';
@@ -608,6 +609,8 @@ export async function render(container) {
     const t = tracker.find((x) => x.id === e.detail.id);
     const item = (await getAll('recurring')).find((r) => r.id === e.detail.id);
     if (!t || !item) return;
+    // The row fades and the bar above slides across first (js/haven-motion.js); a tap on the tick has started it already.
+    await paidOut(container, e.detail.id);
     const set = new Set(item.paidCycles || []);
     set.add(t.cycleKey);
     await put('recurring', { ...item, paidCycles: [...set].sort().slice(-12) });
@@ -615,6 +618,24 @@ export async function render(container) {
     redraw(container, () => render(container));
   };
   container.addEventListener('hv-pay', container._hvPay);
+  // A swipe to the left: skip it this month, with five seconds to take it back (the toast counts them down in a ring).
+  if (container._hvSkip) container.removeEventListener('hv-skip', container._hvSkip);
+  container._hvSkip = async (e) => {
+    const t = tracker.find((x) => x.id === e.detail.id);
+    const item = (await getAll('recurring')).find((r) => r.id === e.detail.id);
+    if (!t || !item) return;
+    const change = async (on) => {
+      const fresh = (await getAll('recurring')).find((r) => r.id === item.id) || item;
+      const set = new Set(fresh.skippedCycles || []);
+      if (on) set.add(t.cycleKey);
+      else set.delete(t.cycleKey);
+      await put('recurring', { ...fresh, skippedCycles: [...set].sort().slice(-12) });
+      redraw(container, () => render(container));
+    };
+    await change(true);
+    showToast(`${item.label} skipped this month`, { ms: 5000, action: { label: 'Undo', run: () => change(false) } });
+  };
+  container.addEventListener('hv-skip', container._hvSkip);
   container.querySelectorAll('[data-month-item]').forEach((el) => {
     el.addEventListener('click', () => openMonthItem(el.dataset.monthItem));
     el.addEventListener('keydown', (e) => {

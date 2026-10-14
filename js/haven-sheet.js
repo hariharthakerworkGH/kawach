@@ -61,7 +61,8 @@ export async function openAddSheet(params = {}) {
     el.addEventListener('pointercancel', end);
   }
   const add = await import('./views/add.js');
-  await add.render(body, { ...params, onSaved: close });
+  // A save puts the sheet away and tells the screen underneath to draw itself again, so the figure it shows is the new one.
+  await add.render(body, { ...params, onSaved: () => { window.dispatchEvent(new Event('hv-refresh')); close(); } });
   // the keyboard stays down: the amount is typed on the keypad (the form's own focus() on the amount is harmless, it has no keyboard)
   requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.add('sheet-open')));
   release = holdFocus(sheet, { initial: sheet.querySelector('#hv-close') });

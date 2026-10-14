@@ -5,6 +5,7 @@ import { appearance, setAppearance, applyTheme } from './appearance.js';
 import { icon } from './icons.js';
 import { pendingAlerts } from './alert-inbox.js';
 import { categoryIcon } from './category-icons.js';
+import { afterDraw, paidOut, buzz } from './haven-motion.js';
 
 const inr = (paise) => Math.round(Math.abs(paise) / 100).toLocaleString('en-IN');
 const isHaven = () => document.documentElement.dataset.style === 'haven';
@@ -18,6 +19,7 @@ export function wireHaven(root) {
     el.addEventListener('click', () => el.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: el.dataset.hvGo } })));
   });
   root.querySelectorAll('.hv-chartwrap').forEach(scrub);
+  afterDraw(root);
   // the little bars grow in when they arrive
   requestAnimationFrame(() => requestAnimationFrame(() => root.querySelectorAll('.hv-meter').forEach((m) => m.classList.add('go'))));
   // "Paid or skipped (n)": opens and closes the fold under it.
@@ -48,6 +50,7 @@ export function wireHaven(root) {
     if (b.dataset.hvWired) return;
     b.dataset.hvWired = '1';
     b.addEventListener('click', () => {
+      paidOut(b.closest('.hv-clist')?.parentElement || document, b.dataset.payStep);
       saveMorph(b, () => {
         setTimeout(() => b.dispatchEvent(new CustomEvent('hv-pay', { bubbles: true, detail: { id: b.dataset.payStep } })), reduced() ? 20 : 640);
       }, 420);
@@ -66,6 +69,7 @@ export function saveMorph(btn, after, hold = 560) {
   if (!nest.querySelector(".spin")) nest.insertAdjacentHTML('afterbegin', '<i class="spin"></i>');
   nest.querySelector('svg')?.classList.add('tick');
   btn.classList.add('saving');
+  buzz(10);
   setTimeout(() => { btn.classList.remove('saving'); btn.classList.add('saved'); }, reduced() ? 10 : hold);
   setTimeout(() => { if (after) after(); setTimeout(() => btn.classList.remove('saved'), 900); }, reduced() ? 20 : hold + 640);
 }

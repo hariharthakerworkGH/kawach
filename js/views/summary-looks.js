@@ -274,14 +274,14 @@ export function tideMood(x, negative) {
   return lvl > 0.18 ? ['watch', 'Behind pace'] : ['low', 'Almost out'];
 }
 const SHIELD = 'M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z';
-const wave = (cls, dy, fill) => `<path class="wave ${cls}" d="M-20 ${12 + dy} q8 -4 16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 L160 100 L-20 100Z" fill="${fill}"/>`;
+const wave = (cls, dy, fill) => `<path class="wave ${cls}" d="M-20 ${12 + dy} q8 -4 16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 L160 220 L-20 220Z" fill="${fill}"/>`;
 let tideId = 0;
 export function tideSvg(lvl, pace) {
   const u = ++tideId;
   const py = (12 + (1 - pace) * 77).toFixed(1);
   return `<svg viewBox="16 8 68 86" aria-hidden="true"><defs><clipPath id="hvc${u}"><path d="${SHIELD}"/></clipPath><linearGradient id="hvg${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--hv-tide-b)"/><stop offset="1" style="stop-color:var(--hv-tide-a)"/></linearGradient></defs>
-    <path class="sh-line" d="${SHIELD}"/>
-    <g clip-path="url(#hvc${u})"><g class="water" style="--lvl:${lvl.toFixed(3)}">${wave('b', 2.4, 'color-mix(in oklab, var(--hv-tide-b) 55%, transparent)')}${wave('a', 0, `url(#hvg${u})`)}</g>
+    <path class="sh-glow" d="${SHIELD}"/><path class="sh-line" d="${SHIELD}"/>
+    <g clip-path="url(#hvc${u})"><g class="tilt" data-sy="${(12 + (1 - lvl) * 77).toFixed(1)}"><g class="water" style="--lvl:${lvl.toFixed(3)}"><g class="swell">${wave('b', 2.4, 'color-mix(in oklab, var(--hv-tide-b) 55%, transparent)')}${wave('a', 0, `url(#hvg${u})`)}</g></g></g>
     ${pace > 0 && pace < 1 ? `<line class="pace" x1="20" x2="80" y1="${py}" y2="${py}"/>` : ''}</g>
     <path d="${SHIELD}" fill="none" class="sh-rim"/></svg>`;
 }
@@ -315,7 +315,7 @@ export function havenTop(f, status, month, extra = {}) {
   const vault = `<div class="hv-shell"><div class="hv-vault ${f.free < 0 ? 'is-negative' : ''}" data-roll-scope data-limit="${x.limit}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
       <div class="hv-vault__top"><span class="hv-pill">${monthName}</span><span>${x.finished ? 'Final' : `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`}</span></div>
       <div class="hv-vault__main"><div><div class="hv-vault__lab">Left to spend</div><div class="hv-vault__fig hv-amt">${num}</div><div class="hv-vault__sub" data-status>${sub}</div></div>
-      <div class="tide" data-mood="${mood}" style="--lvl:${lvl.toFixed(3)}" role="img" aria-label="${word}: ${formatRupees(x.left)} left of ${formatRupees(x.limit)}">${tideSvg(lvl, pace)}</div></div>
+      <div class="tide" data-mood="${mood}"${x.finished && x.closedUnder ? ` data-closed="${escapeHtml(String(f.cycleKey || ''))}"` : ''} style="--lvl:${lvl.toFixed(3)}" role="img" aria-label="${word}: ${formatRupees(x.left)} left of ${formatRupees(x.limit)}">${tideSvg(lvl, pace)}</div></div>
       <div class="hv-vault__stats"><div><span>Spent</span><b class="hv-amt" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div><div><span>Budget</span><b class="hv-amt">${formatRupees(x.limit)}</b></div><div><span>On track</span><b class="hv-mood" data-mood="${mood}"><span class="hv-ic" style="width:16px;height:16px;vertical-align:-3px">${mIcon}</span> ${word}</b></div></div>
       ${closedNote(x)}
     </div></div>`;

@@ -698,6 +698,7 @@ export async function render(container, params = {}) {
 // to itself for the next payment. Nothing moves for reduced motion beyond
 // the colour and the tick.
 function savedFeedback(btn, after) {
+  window.dispatchEvent(new Event('hv-saved'));
   if (!btn) return;
   // Haven's Save button says it worked with its own motion (js/haven-ui.js saveMorph).
   if (btn.querySelector('.lbl')) {

@@ -78,6 +78,18 @@ export const CHOICES = {
       { value: 'compact', label: 'Compact', note: 'Tighter gaps, so more fits on the screen at once. Buttons stay the same size to tap.' },
     ],
   },
+  // 5.56: how alive Haven feels (js/haven-motion.js). The phone's own "reduce motion" always wins over this.
+  motion: {
+    label: 'Motion',
+    question: 'How alive should Haven feel?',
+    fallback: 'alive',
+    where: '',
+    options: [
+      { value: 'alive', label: 'Alive', note: 'The water breathes, icons catch the light, the sky follows the hour, the shield leans as you tilt the phone.' },
+      { value: 'calm', label: 'Calm', note: 'Only what answers a touch: presses, saves, the figure counting. Nothing moves on its own.' },
+      { value: 'still', label: 'Still', note: 'No animation at all.' },
+    ],
+  },
   // NEW (5.18): the short version is where a new person starts - the
   // answer, what needs them, the month, and the rest behind one tap. Anyone
   // who already had data when it arrived keeps the full one (app.js).
@@ -227,7 +239,8 @@ export function setAppearance(name, value) {
     return false;
   }
   if (name === 'colour' || name === 'style') applyTheme();
-  if (name === 'text' || name === 'density') applyDisplay();
+  if (name === 'text' || name === 'density' || name === 'motion') applyDisplay();
+  if (name === 'motion') window.dispatchEvent(new Event('hv-motion'));
   return true;
 }
 
@@ -255,6 +268,7 @@ export function applyDisplay() {
   const root = document.documentElement;
   const text = appearance('text');
   const density = appearance('density');
+  root.setAttribute('data-motion', appearance('motion'));
   if (text === 'normal') root.removeAttribute('data-text');
   else root.setAttribute('data-text', text);
   if (density === 'comfortable') root.removeAttribute('data-density');

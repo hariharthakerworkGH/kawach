@@ -32,6 +32,7 @@ export function wirePullRefresh({ canPull, refresh }) {
     if (s && !reduced()) s.style.transform = dy ? `translateY(${dy}px)` : '';
     if (ind) {
       const p = Math.min(1, dy / (LINE * 0.5));
+      document.dispatchEvent(new CustomEvent('ptr', { detail: { p: dy / resist(LINE), state: 'pull' } }));
       ind.style.opacity = String(Math.min(1, p));
       ind.style.transform = `translate(-50%, ${dy * 0.5}px)`;
       const arrows = ind.querySelector('.ptr__arrows');
@@ -84,6 +85,7 @@ export function wirePullRefresh({ canPull, refresh }) {
     startY = 0;
     const s = screen();
     const settle = (ms = 280) => {
+      document.dispatchEvent(new CustomEvent('ptr', { detail: { p: 0, state: 'end' } }));
       if (s && !reduced()) {
         s.style.transition = `transform ${ms}ms ${OUT}`;
         s.style.transform = '';
@@ -99,6 +101,7 @@ export function wirePullRefresh({ canPull, refresh }) {
     if (!reached) return settle();
     busy = true;
     ind.classList.add('is-busy');
+    document.dispatchEvent(new CustomEvent('ptr', { detail: { p: 1, state: 'busy' } }));
     ind.style.transition = '';
     if (s && !reduced()) {
       s.style.transition = `transform 200ms ${OUT}`;

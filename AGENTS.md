@@ -439,6 +439,9 @@ keypad with everything else behind "Details" (`add.js` `havenArrangeAdd`); a gui
 The tab bar is five tabs with Add raised in the middle; Coach is a button on Plan, and Plan stays lit while it is open.
 Before shipping any change to Haven, `tools/release/vs.mjs <view> [colour]` takes the app and the prototype at the same
 size, and `measure.mjs` gives the same parts' sizes in both; they must match.
+Haven's motion (5.56) is `js/haven-motion.js` + `css/haven-motion.css`, chosen in Settings (Alive, Calm, Still) and always off for a
+phone set to reduce motion; see design.md section 16. A save from the Add sheet fires `hv-saved` (the coin, the Add ring) and
+`hv-refresh` (app.js draws the screen underneath again).
 `plan.js`, `coach.js`, `add.js` and `transactions.js` list it beside the others.
 Its colourings come from `looks.py`; the contrast scan (text of every kind
 against what is behind it) is clean in all three. **Readable text is made by

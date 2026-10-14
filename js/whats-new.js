@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.56',
+    items: [
+      {
+        icon: 'sparkle',
+        title: "Haven comes alive",
+        text: "The water in the shield breathes, icons catch the light, the sky follows the hour and the shield leans as you tilt your phone. Cards sink under your finger, a bill swipes right to Paid or left to Skip, and a saved payment drops into the shield. The tab pill stretches, pull down is a rising tide. Settings, How it looks, Motion: Alive, Calm or Still.",
+        guide: [{ view: 'plan', target: '.hv-clist', text: "Swipe a bill right to mark it paid, left to skip it this month." }],
+      },
+    ],
+  },
+  {
     version: '5.55',
     items: [
       {

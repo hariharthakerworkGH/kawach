@@ -1,0 +1,131 @@
+/* Haven's life (5.56): the motion the owner chose in the motion lab (mockups/7.4-motion-lab), nothing else.
+ * Three levels on <html data-motion>: "alive" is all of it, "calm" is only what answers a touch (nothing moves on
+ * its own), "still" is none. The phone's own reduce-motion setting wins over all three (the ambient rules below sit
+ * inside prefers-reduced-motion: no-preference, and js/haven-motion.js treats it as "still").
+ * Only transforms and opacity move, so none of it costs a repaint of the page. Haven only: the other looks are untouched. */
+
+/* ---- the sky follows the hour: js/haven-motion.js sets --hv-sky-live ---- */
+:root[data-style="haven"][data-sky-live] body::before { background: linear-gradient(180deg, var(--hv-sky-live) 0, var(--hv-paper) 100%); }
+
+/* ---- the tide: it breathes, its edge glows, the mood sets the pace (alive) ---- */
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-style="haven"][data-motion="alive"] .tide { --hv-pace: 1; }
+  :root[data-style="haven"][data-motion="alive"] .tide[data-mood="watch"] { --hv-pace: 0.8; }
+  :root[data-style="haven"][data-motion="alive"] .tide[data-mood="low"] { --hv-pace: 0.6; }
+  :root[data-style="haven"][data-motion="alive"] .tide .swell { animation: hv-breath calc(6.5s * var(--hv-pace, 1) * var(--hv-doze, 1)) ease-in-out infinite; }
+  :root[data-style="haven"][data-motion="alive"] .tide .wave { animation-duration: calc(7s * var(--hv-doze, 1)); }
+  :root[data-style="haven"][data-motion="alive"] .tide .wave.b { animation-duration: calc(11s * var(--hv-doze, 1)); }
+  :root[data-style="haven"][data-motion="alive"] .tide .sh-glow { animation: hv-edge calc(6.5s * var(--hv-pace, 1) * var(--hv-doze, 1)) ease-in-out infinite; }
+  /* "Almost out": the edge pulses softly, red and never a flash. */
+  :root[data-style="haven"][data-motion="alive"] .tide[data-mood="low"] .sh-glow { stroke: oklch(66% 0.2 27); animation: hv-lowpulse 2.5s ease-in-out infinite; }
+}
+:root[data-style="haven"] .tide .sh-glow { fill: none; stroke: var(--hv-tide-b); stroke-width: 5; stroke-linejoin: round; opacity: 0; }
+@keyframes hv-breath { 50% { transform: translateY(0.7px); } }
+@keyframes hv-edge { 50% { opacity: 0.25; } }
+@keyframes hv-lowpulse { 50% { opacity: 0.5; } }
+
+/* ---- the Add button: a faint ring breathes until something is added today (alive) ---- */
+:root[data-style="haven"] #tabs .nav-btn[data-view="add"] .nav-icon { position: relative; }
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-style="haven"][data-motion="alive"]:not([data-added-today]) #tabs .nav-btn[data-view="add"]:not(.active) .nav-icon::after {
+    content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--hv-glow); opacity: 0; pointer-events: none;
+    animation: hv-fab 3s ease-in-out infinite;
+  }
+}
+@keyframes hv-fab { 0%, 100% { opacity: 0; transform: scale(0.96); } 50% { opacity: 0.35; transform: scale(1.22); } }
+
+/* ---- the tab pill: the stretch is drawn by script, so the stylesheet's own glide steps aside ---- */
+html:root[data-style="haven"]:not([data-motion="still"]) #tabs .nav-ind.is-ready { transition: opacity 160ms ease; }
+
+/* ---- icons catch the light, one at a time (alive) ---- */
+:root[data-style="haven"] .hv-gem { overflow: hidden; }
+:root[data-style="haven"] .hv-gem.shine::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; transform: translateX(-120%);
+  background: linear-gradient(110deg, transparent 30%, oklch(100% 0 0 / calc(0.8 * var(--s, 0.3))) 50%, transparent 70%);
+  animation: hv-sheen 900ms ease-out forwards;
+}
+@keyframes hv-sheen { to { transform: translateX(120%); } }
+
+/* ---- it dozes when left alone: dimmer, slower, and a small stretch when touched (alive) ---- */
+.hv-doze { position: fixed; inset: 0; z-index: 38; pointer-events: none; background: oklch(0% 0 0); opacity: 0; transition: opacity 800ms ease; }
+:root[data-style="haven"][data-motion="alive"][data-dozing] { --hv-doze: 2; }
+:root[data-style="haven"][data-motion="alive"][data-dozing] .hv-doze { opacity: 0.14; }
+:root[data-style="haven"] .hv-vault.hv-wake { animation: hv-wake 520ms var(--hv-spring-soft, ease-out); }
+@keyframes hv-wake { 40% { transform: scale(1.035); } }
+
+/* ---- pressing: a card sinks 6% and springs back; a ripple spreads from the touch (alive and calm) ---- */
+:root[data-style="haven"]:not([data-motion="still"]) :is(.hv-chip, button.hv-row, .hv-row[data-hv-go], .hv-bill__open, .hv-cardbtn, button.hv-note, .hv-sum__keys button) {
+  position: relative; overflow: clip; transition: transform 500ms var(--hv-spring-snap), background var(--hv-d-fast) var(--hv-ease-out);
+}
+:root[data-style="haven"]:not([data-motion="still"]) .hv-down { transform: scale(0.94); transition: transform 120ms ease-out; }
+.hv-rip { position: absolute; width: 10px; height: 10px; margin: -5px; border-radius: 50%; background: var(--hv-link, currentColor); opacity: 0.28; pointer-events: none; animation: hv-ripple 700ms ease-out forwards; }
+@keyframes hv-ripple { to { transform: scale(34); opacity: 0; } }
+
+/* ---- holding a row lifts it off the page (alive and calm) ---- */
+:root[data-style="haven"] .hv-lifts { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+:root[data-style="haven"]:not([data-motion="still"]) .hv-lifted {
+  transform: translateY(-5px) scale(1.025) !important; border-radius: 22px; position: relative; z-index: 3; background: var(--hv-core, inherit);
+  box-shadow: 0 20px 40px -8px oklch(22% 0.08 266 / 0.5), 0 0 0 1px var(--hv-hair) !important; transition: transform 420ms var(--hv-spring-snap), box-shadow 300ms !important;
+}
+:root[data-style="haven"] :is(.hv-core, .hv-clist, .hv-shell):has(.hv-lifted, .hv-swiping) { overflow: visible; }
+
+/* ---- swiping a bill: right marks it paid, left skips it; it stretches like elastic ---- */
+:root[data-style="haven"] .hv-bill[data-kind="topay"] { touch-action: pan-y; }
+:root[data-style="haven"] .hv-swbg { position: absolute; left: 0; right: 0; z-index: 0; display: flex; align-items: center; padding: 0 22px; font-weight: 650; font-size: var(--hv-fs-label, 13px); color: #fff; pointer-events: none; }
+:root[data-style="haven"] .hv-swbg.pay { background: var(--hv-good); justify-content: flex-start; }
+:root[data-style="haven"] .hv-swbg.skip { background: var(--hv-warn); justify-content: flex-end; }
+:root[data-style="haven"] .hv-bill.hv-swiping { position: relative; z-index: 1; background: var(--hv-core, inherit); }
+:root[data-style="haven"] .hv-clist { position: relative; }
+
+/* ---- marking paid: the row fades away, the bar above slides across ---- */
+:root[data-style="haven"] .hv-bill.hv-fading { opacity: 0; transition: opacity 700ms var(--hv-ease-settle); pointer-events: none; }
+:root[data-style="haven"]:not([data-motion="still"]) .hv-sum__bar i { transition: flex-grow 700ms var(--hv-spring-soft, ease), opacity var(--hv-d-base) var(--hv-ease-settle); }
+
+/* ---- a payment lands in the shield; a month closed under budget glows once ---- */
+.hv-coin {
+  position: absolute; left: 50%; top: 0; z-index: 3; width: 22px; height: 22px; margin-left: -11px; border-radius: 50%; pointer-events: none;
+  display: grid; place-items: center; font: 700 12px var(--hv-font, inherit); color: #7a4a05;
+  background: radial-gradient(circle at 35% 30%, #ffe9a8, #e0a21b); box-shadow: 0 0 0 2px #b9780f inset;
+}
+.hv-ring { position: absolute; left: 50%; z-index: 3; width: 14px; height: 14px; margin: -7px; border-radius: 50%; border: 2px solid oklch(100% 0 0 / 0.75); pointer-events: none; }
+.hv-spark { position: absolute; z-index: 3; width: 5px; height: 5px; border-radius: 50%; background: #bff3ff; pointer-events: none; }
+:root[data-style="haven"] .hv-vault.hv-glowing { animation: hv-closed 2400ms ease-in-out; }
+@keyframes hv-closed { 50% { box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.2), 0 0 28px 4px oklch(85% 0.12 205 / 0.55); } }
+
+/* ---- the figure follows you: a slim bar once the vault has scrolled away ---- */
+.hv-mini {
+  position: fixed; left: 14px; right: 14px; z-index: 31; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  height: 52px; padding: 0 18px; border-radius: 999px; background: var(--hv-core, #fff); box-shadow: 0 0 0 1px var(--hv-hair), 0 14px 26px -14px var(--hv-sh-4, rgb(0 0 0 / 0.4));
+  opacity: 0; transform: translateY(-14px) scale(0.96); pointer-events: none; transition: opacity 260ms ease, transform 420ms var(--hv-spring-snap);
+}
+.hv-mini.on { opacity: 1; transform: none; pointer-events: auto; }
+.hv-mini span { font-size: var(--hv-fs-label, 13px); color: var(--hv-ink-3); }
+.hv-mini b { font-size: 22px; font-weight: 650; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--hv-ink); }
+.hv-mini i { position: absolute; left: 18px; right: 18px; bottom: 6px; height: 3px; border-radius: 2px; background: var(--hv-well); overflow: hidden; }
+.hv-mini i::after { content: ""; position: absolute; inset: 0; transform-origin: left; transform: scaleX(var(--p, 0)); background: linear-gradient(90deg, var(--hv-tide-a), var(--hv-tide-b)); border-radius: 2px; }
+
+/* ---- pull to refresh: a rising tide instead of the spinner ---- */
+:root[data-style="haven"]:not([data-motion="still"]) .ptr { display: none; }
+.hv-ptr { position: fixed; left: 0; right: 0; bottom: 0; z-index: 29; height: 0; overflow: hidden; pointer-events: none; }
+.hv-ptr svg { position: absolute; left: 0; bottom: 0; width: 100%; height: 100%; }
+.hv-ptr path { fill: color-mix(in oklab, var(--hv-tide-b, #4cc) 40%, transparent); }
+
+/* ---- the undo toast counts down in a ring ---- */
+@property --a { syntax: "<angle>"; inherits: false; initial-value: 360deg; }
+:root[data-style="haven"]:not([data-motion="still"]) .toast--action .toast__bar {
+  position: static; display: inline-block; vertical-align: middle; width: 22px; height: 22px; margin-left: 10px; border-radius: 50%; transform: none;
+  background: conic-gradient(currentColor var(--a), color-mix(in oklab, currentColor 25%, transparent) 0);
+  -webkit-mask: radial-gradient(circle 8px at center, transparent 97%, #000 100%); mask: radial-gradient(circle 8px at center, transparent 97%, #000 100%);
+  animation-name: hv-ring; animation-timing-function: linear; animation-fill-mode: forwards;
+}
+@keyframes hv-ring { from { --a: 360deg; } to { --a: 0deg; } }
+
+/* ---- loading placeholders pulse once a second; screens arrive in a cascade ---- */
+:root[data-style="haven"]:not([data-motion="still"]) .view-skeleton .sk { background-image: none; animation: hv-skpulse 1s ease-in-out infinite; }
+@keyframes hv-skpulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+:root[data-style="haven"]:not([data-motion="still"]) .hv-screen.enter .hv-rise { animation: hv-rise2 400ms var(--hv-ease-out) calc(var(--i, 0) * 90ms) both; }
+@keyframes hv-rise2 { from { opacity: 0; transform: translateY(20px) scale(0.985); filter: blur(4px); } to { opacity: 1; transform: none; filter: blur(0); } }
+
+/* "Still", or a phone set to reduce motion: the effects that are drawn by script are not drawn. */
+@media (prefers-reduced-motion: reduce) { .hv-rip, .hv-coin, .hv-ring, .hv-spark, .hv-ptr { display: none; } }
+:root[data-style="haven"][data-motion="still"] :is(.hv-rip, .hv-coin, .hv-ring, .hv-spark, .hv-ptr, .hv-doze) { display: none; }

@@ -2,6 +2,7 @@ import { openDB, getAll, put, onLocalChange, forgetCachedReads, damagedRecords, 
 import { wireExplain } from './explain.js';
 import { wireSwipe } from './swipe.js';
 import { havenHeader } from './haven-ui.js';
+import { initMotion, stretchMark } from './haven-motion.js';
 import { openAddSheet, closeAddSheet } from './haven-sheet.js';
 import { guardApp } from './lock.js';
 import { isDemo } from './demo-flag.js';
@@ -97,6 +98,7 @@ function moveTabMark() {
     mark.setAttribute('aria-hidden', 'true');
     nav.append(mark);
   }
+  const before = mark.classList.contains('is-ready') ? { x: parseFloat(mark.style.getPropertyValue('--bx')), w: parseFloat(mark.style.getPropertyValue('--bw')) } : null;
   mark.style.setProperty('--x', `${active.offsetLeft + active.offsetWidth * 0.22}px`);
   mark.style.setProperty('--w', `${active.offsetWidth * 0.56}px`);
   // The whole of the lit tab, for the looks whose mark is a pill behind it rather than a line above it.
@@ -104,6 +106,8 @@ function moveTabMark() {
   mark.style.setProperty('--by', `${active.offsetTop}px`);
   mark.style.setProperty('--bw', `${active.offsetWidth}px`);
   mark.style.setProperty('--bh', `${active.offsetHeight}px`);
+  // Haven: the pill stretches towards the new tab like a drop of water (js/haven-motion.js).
+  if (before && document.documentElement.dataset.style === 'haven') stretchMark(mark, before, { x: active.offsetLeft, w: active.offsetWidth });
   requestAnimationFrame(() => mark.classList.add('is-ready'));
 }
 window.addEventListener('resize', () => {
@@ -630,6 +634,7 @@ async function init() {
   const retired = retireOldLooks();
   applyTheme();
   applyDisplay();
+  initMotion();
 
   // The tab bar's and header's icons, before anything is drawn below them.
   fillIcons();
@@ -724,6 +729,10 @@ async function init() {
   });
 
   document.getElementById('settings-btn').addEventListener('click', () => showView('settings'));
+  // The Add sheet saved something: the screen under it is drawn again, as it was, with the new figures.
+  window.addEventListener('hv-refresh', () => {
+    if (['summary', 'accounts', 'plan', 'transactions'].includes(currentView)) showView(currentView, currentParams, true, window.scrollY);
+  });
   wireSwipe({ current: () => currentView, go: (name, dir) => showView(name, {}, false, 0, dir) });
   wireExplain();
 
