@@ -23,6 +23,7 @@ import { escapeHtml } from '../ui.js';
 import { icon } from '../icons.js';
 import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
+import { isoLocal } from '../frequency.js';
 
 /* What is left of the money set aside that Kawach can follow: the same rows
  * free-to-spend.js uses when it works out what is safe to keep spending. */
@@ -171,7 +172,7 @@ export function tactileTop(f, status, month, heroHtml = '', opts = {}) {
     </div>`;
   return `${heroHtml || hero}<!--k:answer-->
     ${month || ''}<!--k:month-->
-    ${x.week.length && !x.finished ? `<div class="tl-card"><div class="tl-top"><span class="tl-k">This week</span><b class="tl-mid">${formatRupees(x.weekTotal)}</b></div>${weekCols(x, 'tl-cols')}${weekNote(x)}</div>` : ''}
+    ${x.week.length && !x.finished && !opts.noWeek ? `<div class="tl-card"><div class="tl-top"><span class="tl-k">This week</span><b class="tl-mid">${formatRupees(x.weekTotal)}</b></div>${weekCols(x, 'tl-cols')}${weekNote(x)}</div>` : ''}
     ${x.finished ? '' : `<div class="tl-list" data-owed-anchor>
       ${x.cards.length ? `<div class="tl-item tl-item--cards"><span class="tl-ibox" style="--k-tint:var(--cat-learning)">${icon('card')}</span><span class="tl-grow"><span class="tl-t">Owed on cards</span>${x.bills ? `<span class="tl-badge">${bills(x.bills)}</span>` : ''}</span><span class="tl-v">${formatRupees(x.owedCards)}</span>
         <div class="tl-cards">${x.cards.map((c) => `<div class="tl-cardrow">${tagHtml(c)}<span class="tl-thin">${cardBar(c)}</span><span class="tl-cardamt">${formatRupees(c.amount)}</span>${cardKey(c)}</div>`).join('')}</div>${cardLegend(x.cards)}</div>` : ''}
@@ -300,32 +301,6 @@ const rise = (i, html) => `<div class="hv-rise" style="--i:${i}">${html}</div>`;
 const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// The month as a line you can drag across: spent so far (to today), against an even pace through the whole budget.
-// The same drawing as the prototype's curve(); `data-` carries what the drag reads back.
-export function havenCurve(f, x) {
-  const cum = (f.spendDays || []).map((v) => Math.max(0, v));
-  const n = cum.length;
-  if (n < 2 || !(x.limit > 0)) return '';
-  const W = 320, H = 132, days = Math.max(n, x.monthDays), px = (d) => 14 + ((d - 1) / Math.max(1, days - 1)) * (W - 28);
-  const yMax = x.limit * 0.7, py = (v) => 104 - (Math.min(v, yMax) / yMax) * 92;
-  const pts = cum.map((v, i) => [px(i + 1), py(v)]);
-  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
-  const last = pts[pts.length - 1];
-  const area = `${d} L${last[0].toFixed(1)} 104 L${pts[0][0].toFixed(1)} 104Z`;
-  const dEnd = 1 + (yMax / x.limit) * (days - 1);
-  const pace = `M${px(1).toFixed(1)} ${py(0).toFixed(1)} L${px(dEnd).toFixed(1)} ${py(yMax).toFixed(1)}`;
-  const first = (f.spendByDay && f.spendByDay[0] && f.spendByDay[0].date) || '';
-  const monthName = first ? MONTHS_SHORT[Number(first.slice(5, 7)) - 1] : '';
-  const uid = (tideId += 1);
-  return `<div class="hv-chartwrap" data-w="${W}" data-limit="${x.limit}" data-days="${days}" data-cum="${cum.join(',')}" data-month="${monthName}" data-first="${Number(first.slice(8)) || 1}"><div class="hv-tip" aria-hidden="true"></div><svg class="hv-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Spent so far, against an even pace. Drag across it to read a day."><defs><linearGradient id="hvArea${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="oklch(66% 0.13 214)" stop-opacity=".35"/><stop offset="1" stop-color="oklch(66% 0.13 214)" stop-opacity="0"/></linearGradient><clipPath id="hvcc${uid}"><rect x="0" y="0" width="${W}" height="104"/></clipPath></defs>
-      ${[0.25, 0.5, 0.75].map((g) => `<line class="grid" x1="14" x2="${W - 14}" y1="${(104 - g * 92).toFixed(1)}" y2="${(104 - g * 92).toFixed(1)}"/>`).join('')}
-      <g clip-path="url(#hvcc${uid})"><path class="plan" d="${pace}"/></g>
-      <path class="area" style="fill:url(#hvArea${uid})" d="${area}"/><path class="line" style="--len:900" d="${d}"/>
-      <line x1="${last[0].toFixed(1)}" x2="${last[0].toFixed(1)}" y1="8" y2="104" stroke="var(--hv-hair-strong)" stroke-dasharray="2 4"/>
-      <circle class="dot" cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="5"/>
-      <line class="cur-line" x1="0" x2="0" y1="8" y2="104"/><circle class="cur-dot" cx="0" cy="0" r="5"/><text class="axis" x="14" y="124">1 ${monthName}</text><text class="axis" x="${W / 2}" y="124" text-anchor="middle">${Math.floor(days / 2)}</text><text class="axis" x="${W - 14}" y="124" text-anchor="end">${days}</text></svg></div>`;
-}
-
 export function havenTop(f, status, month, extra = {}) {
   const x = topFigures(f);
   const [mood, word] = tideMood(x, f.free < 0);
@@ -334,7 +309,8 @@ export function havenTop(f, status, month, extra = {}) {
   const mIcon = mood === 'calm' ? icon('tick') : icon('alert');
   const monthNo = Number(String(f.cycleKey || '').slice(5, 7)) || new Date().getMonth() + 1;
   const monthName = MONTHS_LONG[monthNo - 1];
-  const sub = !x.finished && x.perDay > 0 && f.level === 'ok' ? `<b class="hv-amt">${rupee(x.perDay)}</b> a day until ${formatDateNice(f.cycleKey)}` : escapeHtml(status);
+  // One line under the figure: what a day can take. (Anything else the status says is on the screen where it belongs.)
+  const sub = !x.finished && x.perDay > 0 && f.free >= 0 ? `<b class="hv-amt">${rupee(x.perDay)}</b> a day until ${formatDateNice(f.cycleKey)}` : escapeHtml(status);
   const num = `<span class="hv-fig"><span class="hv-cur">${f.free < 0 ? '−₹' : '₹'}</span><span class="hv-num" data-roll-kind="left" data-roll="${x.left}" data-roll-key="${x.rollKey}:left">${Math.round(Math.abs(x.left) / 100).toLocaleString('en-IN')}</span></span>`;
   const vault = `<div class="hv-shell"><div class="hv-vault ${f.free < 0 ? 'is-negative' : ''}" data-roll-scope data-limit="${x.limit}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
       <div class="hv-vault__top"><span class="hv-pill">${monthName}</span><span>${x.finished ? 'Final' : `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`}</span></div>
@@ -343,19 +319,33 @@ export function havenTop(f, status, month, extra = {}) {
       <div class="hv-vault__stats"><div><span>Spent</span><b class="hv-amt" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div><div><span>Budget</span><b class="hv-amt">${formatRupees(x.limit)}</b></div><div><span>On track</span><b class="hv-mood" data-mood="${mood}"><span class="hv-ic" style="width:16px;height:16px;vertical-align:-3px">${mIcon}</span> ${word}</b></div></div>
       ${closedNote(x)}
     </div></div>`;
-  const under = x.finished ? null : x.pace - x.spent;
-  const curve = havenCurve(f, x);
-  const curveCard = curve ? `<div class="hv-shell"><div class="hv-core" id="hv-curve-card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:var(--hv-fs-lead);letter-spacing:-.015em">How ${monthName} is going</b>${under === null || !x.limit ? '' : `<span class="hv-muted">${formatRupees(Math.abs(under))} ${under >= 0 ? 'under' : 'over'} pace</span>`}</div>${curve}</div></div>` : '';
-  const chips = x.finished ? '' : `<div class="hv-chips"><button type="button" class="hv-chip" data-hv-go="inbox"><span class="hv-ic">${icon('inbox')}</span>Paste a message</button><button type="button" class="hv-chip" data-hv-go="import"><span class="hv-ic">${icon('upload')}</span>Import a statement</button><button type="button" class="hv-chip" data-hv-go="add"><span class="hv-ic">${icon('cash')}</span>Add a cash spend</button></div>`;
-  const needs = x.finished ? [] : x.coming.slice(0, 2);
-  const need = (c) => `<div class="hv-shell"><button type="button" class="hv-core hv-pressable" data-hv-go="plan" style="text-align:left;border:0;width:100%;display:grid;gap:10px">${gem(c.label)}<div><div class="hv-row__t">${escapeHtml(c.label)}</div><div class="hv-row__m">${c.late ? 'Late · due ' : 'Due '}${formatDateNice(c.due)}</div></div><div class="hv-fig small hv-amt" style="font-size:20px">${rupee(c.amount)}</div></button></div>`;
-  const needsBlock = needs.length ? `<div class="hv-sec"><h2>Needs you</h2><button type="button" class="hv-link" data-hv-go="plan">Open Plan</button></div><div class="hv-pair" style="margin-top:10px">${needs.map(need).join('')}</div>` : '';
-  const latest = (extra.latest || []).slice(0, 4);
+
+  // The month: the app's own chart (bars for each day, what was spent outside the budget hatched, the line against the
+  // budget's pace, the three figures under it), drawn in summary.js and given a Haven card here.
+  const chart = extra.chart || '';
+
+  // Said once, and only when it matters: the bank will not cover the card bills and fixed costs before money comes in.
+  const short = f.bankAfterBills != null && f.bankAfterBills < 0 && !x.finished;
+  const bank = short
+    ? `<button type="button" class="hv-note bad hv-notice" data-hv-go="accounts"><span class="hv-ic">${icon('alert')}</span><div><b>Your bank is ${formatRupees(-f.bankAfterBills)} short</b><span class="hv-muted">for card bills and fixed costs before money comes in</span></div></button>`
+    : '';
+
+  // Three ways in, in one row (a bank message, a statement, a cash spend).
+  const chips = x.finished ? '' : `<div class="hv-addrow"><button type="button" class="hv-chip" data-hv-go="inbox"><span class="hv-ic">${icon('inbox')}</span>Paste SMS</button><button type="button" class="hv-chip" data-hv-go="import"><span class="hv-ic">${icon('upload')}</span>Import</button><button type="button" class="hv-chip" data-hv-go="add"><span class="hv-ic">${icon('cash')}</span>Cash spend</button></div>`;
+
+  // Due soon: one line, only when something is late or due this week (so a payment is not missed), tap for Plan.
+  const soonEnd = isoLocal(new Date(Date.now() + 7 * 86400000));
+  const soon = x.finished ? [] : x.coming.filter((c) => c.late || c.due <= soonEnd);
+  const dueRow = soon.length
+    ? `<div class="hv-shell"><button type="button" class="hv-core flush hv-row hv-due" data-hv-go="plan">${gem(soon[0].label)}<div><div class="hv-row__t">${soon.length === 1 ? escapeHtml(soon[0].label) : `${soon.length} payments due`}</div><div class="hv-row__m">${soon.length === 1 ? `${soon[0].late ? 'Late · was due' : 'Due'} ${formatDateNice(soon[0].due)}` : escapeHtml(soon.slice(0, 2).map((c) => c.label).join(', ')) + (soon.length > 2 ? ` and ${soon.length - 2} more` : '')}${soon.some((c) => c.late) && soon.length > 1 ? ' · one is late' : ''}</div></div><div class="hv-row__v hv-amt">${formatRupees(soon.reduce((s, c) => s + c.amount, 0))}</div></button></div>`
+    : '';
+
+  const latest = (extra.latest || []).slice(0, 3);
   const payRow = (p) => `<button type="button" class="hv-row" data-hv-go="transactions">${gem(p.category || p.title)}<div><div class="hv-row__t">${escapeHtml(p.title)}</div><div class="hv-row__m">${escapeHtml(p.meta)}</div></div><div class="hv-row__v hv-amt">${p.credit ? '+' : '−'}₹${Math.round(p.amount / 100).toLocaleString('en-IN')}</div></button>`;
-  const latestBlock = latest.length && !x.finished ? `<div class="hv-sec"><h2>Latest payments</h2><button type="button" class="hv-link" data-hv-go="transactions">See all</button></div><div class="hv-shell"><div class="hv-core flush">${latest.map(payRow).join('')}</div></div>` : '';
-  const where = x.spent > 0 && !x.finished ? `<button type="button" class="hv-shell hv-pressable" data-hv-go="recap" style="border:0;text-align:left;width:100%"><span class="hv-core" style="display:flex;align-items:center;gap:12px"><span class="hv-gem hv-g1"><span class="hv-ic">${categoryIcon('chart')}</span></span><span style="flex:1"><b style="display:block;letter-spacing:-.01em">Where it went</b><span class="hv-muted">A breakdown of ${formatRupees(x.spent)} by category</span></span><span class="hv-ic">${icon('forward')}</span></span></button>` : '';
-  const blocks = [vault, curveCard, chips, needsBlock, latestBlock, where].filter(Boolean);
-  // The prototype's blocks first, in its order; then the app's own, which the prototype does not show.
+  const latestBlock = latest.length && !x.finished
+    ? `<div class="hv-sec"><h2>Latest payments</h2><button type="button" class="hv-link" data-hv-go="transactions">See all</button></div><div class="hv-shell"><div class="hv-core flush">${latest.map(payRow).join('')}${x.spent > 0 ? `<button type="button" class="hv-row hv-row--link" data-hv-go="recap"><span class="hv-row__t">Where it went</span><span class="hv-muted">by category</span><span class="hv-ic">${icon('forward')}</span></button>` : ''}</div></div>`
+    : '';
+  const blocks = [vault, chart, bank, chips, dueRow, latestBlock].filter(Boolean);
   const protoHtml = `<div class="hv-screen enter on-screen" data-hv-summary>${blocks.map((b, i) => rise(i + 1, b)).join('')}</div>`;
-  return tactileTop(f, status, '', protoHtml, { noComing: true });
+  return tactileTop(f, status, '', protoHtml, { noComing: true, noWeek: true });
 }

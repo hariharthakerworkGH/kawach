@@ -18,6 +18,8 @@ export function wireHaven(root) {
     el.addEventListener('click', () => el.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: el.dataset.hvGo } })));
   });
   root.querySelectorAll('.hv-chartwrap').forEach(scrub);
+  // the little bars grow in when they arrive
+  requestAnimationFrame(() => requestAnimationFrame(() => root.querySelectorAll('.hv-meter').forEach((m) => m.classList.add('go'))));
   // "Paid or skipped (n)": opens and closes the fold under it.
   root.querySelectorAll('[data-hv-fold]').forEach((b) => {
     if (b.dataset.hvWired) return;
@@ -33,7 +35,7 @@ export function wireHaven(root) {
     if (b.dataset.hvWired) return;
     b.dataset.hvWired = '1';
     b.addEventListener('click', () => {
-      const card = b.closest('.hv-step');
+      const card = b.closest('.hv-step, .hv-bill');
       saveMorph(b, () => {
         card?.classList.add('gone');
         setTimeout(() => b.dispatchEvent(new CustomEvent('hv-pay', { bubbles: true, detail: { id: b.dataset.payStep } })), reduced() ? 20 : 640);
@@ -48,7 +50,7 @@ const reduced = () => window.matchMedia && window.matchMedia('(prefers-reduced-m
 export function saveMorph(btn, after, hold = 560) {
   if (btn.classList.contains('saving') || btn.classList.contains('saved')) return;
   const lbl = btn.querySelector('.lbl');
-  if (!lbl.querySelector('.done')) lbl.insertAdjacentHTML('beforeend', '<span class="done">Saved</span>');
+  if (lbl && !lbl.querySelector('.done')) lbl.insertAdjacentHTML('beforeend', '<span class="done">Saved</span>');
   const nest = btn.querySelector('.nest');
   if (!nest.querySelector(".spin")) nest.insertAdjacentHTML('afterbegin', '<i class="spin"></i>');
   nest.querySelector('svg')?.classList.add('tick');
@@ -89,6 +91,9 @@ function scrub(wrap) {
 /* The header, as the prototype draws it: Summary says good morning/afternoon/evening above its name and carries
  * three round buttons (cover the amounts, day or night, bank messages); Plan carries the Coach button; every other
  * screen is its title and the round settings button. */
+// The eye is remembered: someone who hides their amounts in public wants them hidden next time too.
+try { if (localStorage.getItem('kawach-covered')) document.documentElement.classList.add('hv-covered'); } catch { /* private window */ }
+
 export function havenHeader(view) {
   const header = document.querySelector('.app-header');
   if (!header) return;
@@ -119,7 +124,7 @@ export function havenHeader(view) {
   const round = (label, inner, extra = '') => `<button type="button" class="hv-round" aria-label="${label}"${extra}>${inner}</button>`;
   if (view === 'summary') {
     const night = document.documentElement.dataset.theme === 'dark';
-    holder.innerHTML = round('Cover the amounts', icon('eye'), ` data-hv-act="cover" aria-pressed="${document.documentElement.classList.contains('hv-covered')}"`)
+    holder.innerHTML = round('Hide the amounts', icon('eye'), ` data-hv-act="cover" aria-pressed="${document.documentElement.classList.contains('hv-covered')}"`)
       + round('Switch between day and night', icon(night ? 'sun' : 'moon'), ' data-hv-act="theme"')
       + round('Bank messages', `${icon('bell')}<i class="hv-badge" hidden></i>`, ' data-hv-act="bell"');
   } else if (view === 'plan') {
@@ -142,7 +147,12 @@ export function havenHeader(view) {
     const b = e.target.closest('[data-hv-act]');
     if (!b) return;
     const act = b.dataset.hvAct;
-    if (act === 'cover') { b.setAttribute('aria-pressed', String(document.documentElement.classList.toggle('hv-covered'))); }
+    if (act === 'cover') {
+      const on = document.documentElement.classList.toggle('hv-covered');
+      b.setAttribute('aria-pressed', String(on));
+      b.setAttribute('aria-label', on ? 'Show the amounts' : 'Hide the amounts');
+      try { localStorage.setItem('kawach-covered', on ? '1' : ''); } catch { /* private window */ }
+    }
     else if (act === 'theme') {
       setAppearance('colour', document.documentElement.dataset.theme === 'dark' ? 'haven-day' : 'haven-night');
       applyTheme();
@@ -169,12 +179,17 @@ export function havenAccounts(container) {
     const mark = r.querySelector('.k-brand');
     if (mark) mark.outerHTML = `<span class="hv-gem hv-g${g}"><span class="hv-ic">${ic === 'piggy' || ic === 'loan' ? categoryIcon(ic) : icon(ic)}</span></span>`;
   }
+  // Each card is the account in hand: its figure, and what you do with it (see its payments, add a spend). Tapping the card
+  // opens that account's payments in History; the list below is where an account is managed.
   const cardOf = (r, i) => {
     const title = r.querySelector('.k-row__title')?.textContent.trim() || '';
     const meta = r.querySelector('.k-row__meta')?.textContent.trim() || '';
     const bal = r.querySelector('.account-balance')?.textContent.trim() || '';
-    const [, ic] = GEM_OF_TYPE[typeOf(r)] || [1, 'accounts'];
-    return `<div class="hv-card card--${(i % 3) + 1}"><div class="hv-card__top"><span>${escapeText(title)}</span><span class="hv-ic">${ic === 'piggy' || ic === 'loan' ? categoryIcon(ic) : icon(ic)}</span></div><div><div class="hv-card__fig hv-fig hv-amt">${escapeText(bal)}</div><div class="hv-card__sub">${escapeText(meta)}</div></div><div class="hv-card__num"></div></div>`;
+    const id = r.dataset.id || r.closest('.account-block')?.querySelector('[data-id]')?.dataset.id || '';
+    const type = typeOf(r);
+    const [, ic] = GEM_OF_TYPE[type] || [1, 'accounts'];
+    const spend = ['bank', 'card', 'cash', 'savings'].includes(type);
+    return `<div class="hv-card card--${(i % 3) + 1}" data-account="${escapeText(id)}" role="group" aria-label="${escapeText(title)}"><div class="hv-card__top"><span>${escapeText(title)}</span><span class="hv-ic">${ic === 'piggy' || ic === 'loan' ? categoryIcon(ic) : icon(ic)}</span></div><div><div class="hv-card__fig hv-fig hv-amt">${escapeText(bal)}</div><div class="hv-card__sub">${escapeText(meta)}</div></div><div class="hv-card__acts"><button type="button" class="hv-cardbtn" data-card-act="payments">Payments</button>${spend ? '<button type="button" class="hv-cardbtn" data-card-act="spend">Add a spend</button>' : ''}</div></div>`;
   };
   const withBalance = rows.filter((r) => r.querySelector('.account-balance')?.textContent.trim());
   if (!withBalance.length) return;
@@ -195,6 +210,13 @@ export function havenAccounts(container) {
   container.querySelector('.accounts-actions')?.remove();
   const groups = [...container.querySelectorAll('.account-group-sec')];
   container.prepend(deck, sec, ...groups, chips);
+  deck.addEventListener('click', (e) => {
+    const card = e.target.closest('.hv-card');
+    if (!card) return;
+    const act = e.target.closest('[data-card-act]')?.dataset.cardAct;
+    const view = act === 'spend' ? 'add' : 'transactions';
+    card.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view, accountId: card.dataset.account || undefined } }));
+  });
   const cards = deck.querySelector('.hv-cards'), dots = [...deck.querySelectorAll('.hv-dots i')];
   const upd = () => {
     const c = cards.getBoundingClientRect(), mid = c.left + c.width / 2;

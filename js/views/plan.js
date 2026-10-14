@@ -1084,21 +1084,24 @@ function havenForecast(figures, today, skipped) {
   const months = comingMonths(figures, today, skipped);
   if (!months.length) return '';
   const ahead = bankAhead({ bankAfter: figures.bankAfterBills, freeNow: figures.free, months, keep: figures.keep || 0 });
-  const word = (key) => new Date(`${key}-01T12:00`).toLocaleDateString('en-IN', { month: 'short' });
   const long = (key) => new Date(`${key}-01T12:00`).toLocaleDateString('en-IN', { month: 'long' });
-  const income = Math.max(1, ...months.map((m) => m.costs + (figures.keep || 0) + m.free));
-  const cols = months.map((m, i) => `<div><div class="col${m.short ? ' short' : ''}" style="--h:${Math.round(Math.min(100, ((m.costs + (figures.keep || 0)) / Math.max(1, m.costs + (figures.keep || 0) + Math.max(0, m.free))) * 100) * (m.short ? 0.82 : 0.6))};--k:${i}"></div><span class="hv-muted">${word(m.key)}</span></div>`).join('');
-  const shortOnes = months.filter((m) => m.short);
-  const same = shortOnes.length === months.length && months.every((m) => m.free === months[0].free);
-  const line = !shortOnes.length
-    ? `A usual month leaves ${formatRupees(months[0].free)} to spend.`
-    : same
-      ? `Each month is ${formatRupees(-months[0].free)} short.`
-      : `${shortOnes.map((m) => `${long(m.key)} is ${formatRupees(-m.free)} short`).join(', ')}.`;
+  const keep = figures.keep || 0;
+  // One calm row a month: what is left after fixed costs and saving (or how much more they are than what comes in), and a
+  // little bar for how much of what comes in they take. No alarm: it is arithmetic, and what to do about it is Plan's own.
+  const row = (m) => {
+    const income = m.costs + keep + m.free;
+    const used = income > 0 ? Math.min(1, (m.costs + keep) / income) : 1;
+    const what = m.renewals.length ? `${escapeHtml(m.renewals[0].label)} ${formatRupees(m.renewals[0].amount)} due${m.renewals.length > 1 ? ` and ${m.renewals.length - 1} more` : ''}` : 'a usual month';
+    return `<div class="hv-row hv-row--month" style="padding-bottom:20px"><div class="hv-row__t">${long(m.key)}</div><div class="hv-row__m">${what}</div><div class="hv-row__v hv-amt${m.short ? ' is-over' : ''}">${m.short ? `${formatRupees(-m.free)} over` : `${formatRupees(m.free)} free`}</div><div class="hv-meter${m.short ? ' over' : ''}" style="position:absolute;left:16px;right:16px;bottom:9px;--p:${used.toFixed(3)}"><i></i></div></div>`;
+  };
   const last = ahead ? ahead.spend[months.length - 1] : null;
   const refund = figures.refundInBankCheck || 0;
-  const bank = ahead ? ` In your bank by then: ${last < 0 ? `${formatRupees(-last)} short` : formatRupees(last)}${refund > 0 && last < 0 ? `, before the ${formatRupees(refund)} your employer owes you` : ''}.` : '';
-  return `<div class="hv-sec"><h2>Next 3 months</h2></div><div class="hv-shell" style="margin-top:10px"><div class="hv-core"><div class="hv-bars">${cols}</div><p class="hv-muted" style="margin-top:8px">${line}${bank}</p></div></div>`;
+  const over = months.filter((m) => m.short);
+  const why = over.length
+    ? `<p class="hv-muted hv-monthnote">${over.length === months.length ? 'Each of these months' : `${over.map((m) => long(m.key)).join(' and ')}`}: fixed costs and saving come to more than comes in. Saving less, or trimming a flexible cost, closes it.</p>`
+    : '';
+  const bank = ahead && last < 0 ? `<p class="hv-muted hv-monthnote">Your bank by then, if you spend what is free: ${formatRupees(-last)} short${refund > 0 ? `, before the ${formatRupees(refund)} your employer owes you` : ''}.</p>` : '';
+  return `<div class="hv-sec"><h2>Coming months</h2></div><div class="hv-shell" style="margin-top:10px"><div class="hv-core flush">${months.map(row).join('')}${why || bank ? `<div class="hv-notes">${why}${bank}</div>` : ''}</div></div>`;
 }
 
 export function forecastList(figures, today, skipped = []) {

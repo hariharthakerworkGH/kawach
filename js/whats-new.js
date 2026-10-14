@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.54',
+    items: [
+      {
+        icon: 'summary',
+        title: "Haven: only what is useful",
+        text: "Summary now shows the month's full chart (each day's bar, what was spent outside the budget hatched, the three figures), one line when the bank will fall short, the three ways to add in one row, and only what is due this week. Plan lists each bill as one line with a tick. Coming months reads as plain arithmetic. Account cards open that account's payments and add a spend. Add is two steps: the amount, then what it was. The eye hides every amount, and remembers.",
+        guide: [{ view: 'summary', target: '.hv-addrow', text: "Paste a bank message, import a statement, or add a cash spend: three ways in, one row." }],
+      },
+    ],
+  },
+  {
     version: '5.53',
     items: [
       {

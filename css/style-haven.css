@@ -418,3 +418,106 @@ html:root[data-style="haven"] .hv-addform #add-date { box-sizing: border-box; he
 /* a field is as wide as its card, never wider, however large the text is set */
 :root[data-style="haven"] .k .field, :root[data-style="haven"] .k .k-field { min-width: 0; }
 :root[data-style="haven"] .k .field input, :root[data-style="haven"] .k .field select, :root[data-style="haven"] .k .k-field input { width: 100%; min-width: 0; box-sizing: border-box; }
+
+/* ======================= 5.54: what is on Summary has to earn its place ======================= */
+/* the month's chart: a title and one number, the drawing, three figures; no paragraph under the title */
+:root[data-style="haven"] .waves-card { padding: var(--hv-s4); }
+:root[data-style="haven"] .waves-card .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--hv-s3); margin-bottom: 4px; }
+:root[data-style="haven"] .waves-card .chart-head b { font-size: var(--hv-fs-lead); font-weight: 650; letter-spacing: -0.015em; color: var(--hv-ink); }
+:root[data-style="haven"] .waves-card .chart-head small { display: none; }
+:root[data-style="haven"] .waves-card .waves, :root[data-style="haven"] .waves-card svg.waves { margin-top: 4px; }
+:root[data-style="haven"] .waves__bar { fill: color-mix(in oklab, var(--hv-tide-a) 26%, transparent); }
+:root[data-style="haven"] .waves__bar.is-top { fill: var(--hv-tide-a); }
+:root[data-style="haven"] .waves__line.waves--spent { stroke: var(--hv-line-ink); }
+:root[data-style="haven"] .waves__hatch { stroke: var(--hv-warn); }
+:root[data-style="haven"] .waves__tick { fill: var(--hv-ink-3); }
+:root[data-style="haven"] .waves-card .chart-readout { margin: 6px 0 0; padding: 0; background: none; border-radius: 0; font-size: var(--hv-fs-micro); color: var(--hv-ink-2); line-height: 1.35; }
+:root[data-style="haven"] .waves-card .waves__key { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hv-s2); padding: var(--hv-s3) 0 0; margin-top: var(--hv-s3); box-shadow: inset 0 1px 0 var(--hv-hair); font-size: var(--hv-fs-micro); }
+:root[data-style="haven"] .waves-card .waves__k, :root[data-style="haven"] .waves-card button.waves__k { display: grid; grid-template-columns: none; gap: 2px; align-items: start; min-width: 0; padding: 0; text-align: left; }
+:root[data-style="haven"] .waves-card .waves__k::before { display: none; }
+:root[data-style="haven"] .waves-card .waves__k b { font-size: var(--hv-fs-body); font-weight: 650; color: var(--hv-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root[data-style="haven"] .waves-card .waves__lab { color: var(--hv-ink-2); }
+:root[data-style="haven"] .waves-card .waves__note { margin: 8px 0 0; font-size: var(--hv-fs-micro); color: var(--hv-ink-3); }
+/* the three ways to add, in one row */
+:root[data-style="haven"] .hv-addrow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hv-s2); }
+:root[data-style="haven"] .hv-addrow .hv-chip { justify-content: center; gap: 6px; height: 36px; padding: 0 8px; font-size: var(--hv-fs-label); }
+/* the bank notice: one calm line, only when it matters */
+:root[data-style="haven"] .hv-notice { all: unset; box-sizing: border-box; display: grid; grid-template-columns: auto 1fr; gap: var(--hv-s3); align-items: center; padding: var(--hv-s3) var(--hv-s4); border-radius: var(--hv-r-core); cursor: pointer; width: 100%; }
+:root[data-style="haven"] .hv-notice.bad { background: var(--hv-bad-tile); }
+:root[data-style="haven"] .hv-notice b { display: block; font-weight: 650; color: var(--hv-ink); }
+:root[data-style="haven"] .hv-notice .hv-ic { color: var(--hv-bad); }
+:root[data-style="haven"] .hv-due { text-align: left; border: 0; width: 100%; }
+:root[data-style="haven"] .hv-row--link { grid-template-columns: auto 1fr auto; min-height: 44px; color: var(--hv-link); }
+:root[data-style="haven"] .hv-row--link .hv-row__t { font-weight: 600; color: var(--hv-link); }
+:root[data-style="haven"] .hv-row--link .hv-ic { width: 18px; height: 18px; color: var(--hv-ink-3); }
+/* the eye covers every amount on the screen (one tap, remembered) */
+:root[data-style="haven"].hv-covered :is(.hv-amt, .hv-num, .hv-cur, .hv-row__v, .hv-card__fig, .tl-big, .tl-v, .tl-mid, .tl-cardamt, .stat-v, .hero-amount, .totals-row > span:last-child, .k-row__value, .account-balance, .plan-row__amount, .summary-row__v, .bank-amount, .waves__k b, .hv-step .hv-fig, .tl-stats b, .hv-muted b, .chart-readout, .hist-day-total, .txn-amount, .hist-amount) { filter: blur(9px); opacity: 0.55; user-select: none; }
+:root[data-style="haven"] .waves-card .chart-head { padding: 0; margin: 0 0 6px; flex-wrap: wrap; row-gap: 2px; }
+:root[data-style="haven"] .waves-card .chart-head b { min-width: 0; }
+:root[data-style="haven"] .waves__fill.waves--pace { fill: none; }
+:root[data-style="haven"] .waves__fill.waves--spent { fill: color-mix(in oklab, var(--hv-tide-b) 22%, transparent); }
+:root[data-style="haven"] .waves-card .waves__k b { white-space: normal; font-size: 14px; line-height: 1.25; }
+:root[data-style="haven"] .waves-card svg { width: 100%; height: auto; }
+
+/* Accounts: the cards are the account in hand, with what you do with it */
+:root[data-style="haven"] .hv-card { cursor: pointer; }
+:root[data-style="haven"] .hv-card__acts { display: flex; gap: var(--hv-s2); }
+:root[data-style="haven"] .hv-cardbtn { height: 30px; padding: 0 14px; border: 0; border-radius: var(--hv-r-pill); background: oklch(100% 0 0 / 0.16); color: var(--hv-on-navy); font: inherit; font-size: var(--hv-fs-label); font-weight: 600; cursor: pointer; }
+:root[data-style="haven"] .hv-cardbtn:active { background: oklch(100% 0 0 / 0.28); }
+:root[data-style="haven"] .hv-due.hv-core { padding: var(--hv-s2) var(--hv-s4); }
+:root[data-style="haven"] .hv-due.hv-core { box-shadow: inset 0 1px 0 var(--hv-hl), var(--hv-lift); }
+
+/* Plan: each bill is a line, with a tick to say it is paid */
+:root[data-style="haven"] .hv-bills { display: grid; }
+:root[data-style="haven"] .hv-bill { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--hv-s2); padding: var(--hv-s2) var(--hv-s3) var(--hv-s2) var(--hv-s4); min-height: 60px; transition: opacity var(--hv-d-base) var(--hv-ease-settle), transform var(--hv-d-slow) var(--hv-ease-settle), max-height var(--hv-d-slow) var(--hv-ease-settle); max-height: 120px; overflow: clip; }
+:root[data-style="haven"] .hv-bill + .hv-bill { box-shadow: inset 0 1px 0 var(--hv-hair); }
+:root[data-style="haven"] .hv-bill.late .hv-bill__amt { color: var(--hv-bad); }
+:root[data-style="haven"] .hv-bill.gone { opacity: 0; transform: translateX(24px); max-height: 0; padding-block: 0; }
+:root[data-style="haven"] .hv-bill__open { all: unset; box-sizing: border-box; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--hv-s3); min-width: 0; cursor: pointer; }
+:root[data-style="haven"] .hv-bill__open .hv-gem { width: 38px; height: 38px; border-radius: 13px; }
+:root[data-style="haven"] .hv-bill__name { display: grid; min-width: 0; }
+:root[data-style="haven"] .hv-bill__name b { font-weight: 600; letter-spacing: -0.01em; }
+:root[data-style="haven"] .hv-bill__amt { font-weight: 600; font-variant-numeric: tabular-nums; }
+:root[data-style="haven"] .hv-paycheck, :root[data-style="haven"] .hv-paycheck-gap { width: 36px; height: 36px; }
+:root[data-style="haven"] .hv-paycheck { position: relative; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair-strong); color: var(--hv-ink-2); cursor: pointer; transition: background var(--hv-d-base) var(--hv-ease-settle), color var(--hv-d-base) var(--hv-ease-settle), transform var(--hv-d-fast) var(--hv-ease-out); }
+:root[data-style="haven"] .hv-paycheck::before { content: ""; position: absolute; inset: -4px; }
+:root[data-style="haven"] .hv-paycheck:active { transform: scale(0.9); }
+:root[data-style="haven"] .hv-paycheck .nest { position: relative; display: grid; place-items: center; width: 100%; height: 100%; border-radius: 50%; }
+:root[data-style="haven"] .hv-paycheck .hv-ic { width: 18px; height: 18px; }
+:root[data-style="haven"] .hv-paycheck.saved { background: var(--hv-good); color: var(--hv-on-navy); box-shadow: none; }
+:root[data-style="haven"] .hv-paycheck .spin { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--hv-hair-strong); border-top-color: var(--hv-link); opacity: 0; }
+:root[data-style="haven"] .hv-paycheck.saving .spin { opacity: 1; animation: hv-rot 520ms linear infinite; }
+/* Coming months */
+:root[data-style="haven"] .hv-row--month { grid-template-columns: 1fr auto; row-gap: 0; align-items: baseline; }
+:root[data-style="haven"] .hv-row--month .hv-row__m { grid-column: 1; }
+:root[data-style="haven"] .hv-row--month .hv-row__v { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+:root[data-style="haven"] .hv-row__v.is-over { color: var(--hv-warn); }
+:root[data-style="haven"] .hv-meter.over i { background: var(--hv-warn); }
+:root[data-style="haven"] .hv-notes { padding: var(--hv-s3) var(--hv-s4); box-shadow: inset 0 1px 0 var(--hv-hair); display: grid; gap: 6px; }
+:root[data-style="haven"] .hv-monthnote { line-height: 1.4; }
+
+/* Add, in two steps: the amount, then what it was */
+:root[data-style="haven"] .hv-addstep { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hv-s3); }
+:root[data-style="haven"] .hv-addstep[hidden] { display: none; }
+:root[data-style="haven"] .hv-stepin { animation: hv-stepin var(--hv-d-slow) var(--hv-ease-out) both; }
+@keyframes hv-stepin { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: none; } }
+:root[data-style="haven"] .hv-addback { display: flex; align-items: center; gap: var(--hv-s3); }
+:root[data-style="haven"] .hv-addback .hv-round { width: 36px; height: 36px; flex: none; }
+:root[data-style="haven"] .hv-addback .hv-ic { width: 18px; height: 18px; }
+:root[data-style="haven"] .hv-addback__sum { display: grid; line-height: 1.1; }
+:root[data-style="haven"] .hv-addback__sum b { font-size: 26px; font-weight: 600; letter-spacing: -0.035em; color: var(--hv-ink); }
+:root[data-style="haven"] .hv-addstep .hv-chips { margin-inline: 0; padding-inline: 0; }
+:root[data-style="haven"] .hv-addstep .k-field .k-label { font-size: var(--hv-fs-label); font-weight: 550; color: var(--hv-ink-2); }
+@media (prefers-reduced-motion: reduce) { :root[data-style="haven"] .hv-stepin { animation-duration: 1ms; } }
+
+/* rhythm: a heading, then its card, with room for the control beside the heading */
+:root[data-style="haven"] .k .section-head { margin: 10px 6px 14px; align-items: center; }
+:root[data-style="haven"] .k .section-head h3 { margin: 0; }
+:root[data-style="haven"] .k .k-row { min-height: 56px; padding-block: 8px; }
+:root[data-style="haven"] .k .plan-row-wrap .k-row { min-height: 60px; }
+
+:root[data-style="haven"] .waves-card { overflow: visible; min-width: 0; }
+
+/* reach: small buttons still have a 44px target */
+:root[data-style="haven"] .hv-cardbtn, :root[data-style="haven"] .hv-bill__open { position: relative; }
+:root[data-style="haven"] .hv-cardbtn::before, :root[data-style="haven"] .hv-bill__open::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--k-tap, 44px); transform: translateY(-50%); }

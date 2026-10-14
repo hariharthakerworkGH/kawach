@@ -844,6 +844,7 @@ function havenArrangeAdd(container) {
   const wrap = input.closest('.amount-input-wrap');
   wrap.classList.add('hv-amountbig');
   wrap.querySelector('.amount-prefix').classList.add('hv-cur');
+  // The categories used lately stay with the category (step two): a tap each.
   const quick = container.querySelector('.k-quick[aria-label="Recent categories"]');
   quick.classList.add('hv-chips');
   quick.querySelectorAll('.k-quick__chip').forEach((c) => c.classList.add('hv-chip'));
@@ -864,41 +865,79 @@ function havenArrangeAdd(container) {
     input.value = v;
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
-  // Everything else on the form goes behind "Details", in the order it was built.
+  // Two steps, as a person thinks of it: first how much (and which way), then what it was. Step one is the amount and the
+  // keypad and nothing else; "Next" takes the amount over to step two, where the rest of the form is.
   const person = container.querySelector('#add-person');
   const submit = form.querySelector('button[type="submit"]');
-  const rest = [...form.children].filter((n) => n !== hero && n !== person && n !== submit && n !== toggle);
+  const field = (id) => container.querySelector(`#${id}`).closest('.k-field, .field, .k-switch-row');
+  const catField = container.querySelector('#add-cat-open').closest('.k-field');
+  const desc = field('add-desc'), acct = field('add-account'), date = field('add-date');
+  const pair = document.createElement('div');
+  pair.className = 'add-pair';
+  pair.append(acct, date);
+  const rest = [...form.children].filter((n) => ![hero, person, submit, toggle].includes(n) && ![desc, acct, date, catField].some((f) => n === f || n.contains(f)));
+  // what is left (repeats, work costs, the commitment it pays) sits behind one line, in the order it was built
   const fold = document.createElement('div');
   fold.className = 'hv-fold';
   fold.id = 'hv-details';
   const inner = document.createElement('div');
-  const stack = document.createElement('div');
-  stack.className = 'hv-stack';
-  stack.style.padding = '2px 0 4px';
-  // The merchant first, then account and date side by side (what is checked on every payment), then the rest.
-  const field = (id) => container.querySelector(`#${id}`).closest('.k-field, .field, .k-switch-row');
-  const pair = document.createElement('div');
-  pair.className = 'add-pair';
-  const desc = field('add-desc'), acct = field('add-account'), date = field('add-date');
-  pair.append(acct, date);
-  stack.append(desc, pair, ...rest.filter((n) => n !== desc && n !== acct && n !== date && !n.contains(acct) && !n.contains(date)));
-  inner.append(stack);
+  const more = document.createElement('div');
+  more.className = 'hv-stack';
+  more.style.padding = '2px 0 4px';
+  more.append(...rest);
+  inner.append(more);
   fold.append(inner);
   const det = document.createElement('button');
   det.type = 'button';
   det.className = 'hv-detailsbtn';
   det.setAttribute('data-hv-fold', '');
   det.setAttribute('aria-expanded', 'false');
-  det.innerHTML = `<span>Details: merchant, account, date</span><span class="hv-chev"><span class="hv-ic">${icon('chevdown')}</span></span>`;
-  // The Save button as the prototype draws it: the label and a small circle with a tick that turns while it saves.
+  det.innerHTML = `<span>More: repeats, work cost</span><span class="hv-chev"><span class="hv-ic">${icon('chevdown')}</span></span>`;
+  // The buttons as the prototype draws them: a label and a small circle with a tick that turns while it works.
+  const nestOf = (name) => `<span class="lbl"><span class="go">${name}</span></span><span class="nest"><span class="hv-ic">${icon('tick')}</span></span>`;
   submit.className = 'hv-btn full';
-  submit.innerHTML = `<span class="lbl"><span class="go">Save</span></span><span class="nest"><span class="hv-ic">${icon('tick')}</span></span>`;
-  hero.replaceWith(toggle, wrap.closest('.amount-field') || wrap, quick, pad);
-  form.insertBefore(det, submit);
-  det.after(fold);
+  submit.innerHTML = nestOf('Save');
+  const next = document.createElement('button');
+  next.type = 'button';
+  next.className = 'hv-btn full';
+  next.id = 'hv-next';
+  next.innerHTML = `<span class="lbl"><span class="go">Next</span></span><span class="nest"><span class="hv-ic">${icon('forward')}</span></span>`;
+  const back = document.createElement('div');
+  back.className = 'hv-addback';
+  back.innerHTML = `<button type="button" class="hv-round" id="hv-back" aria-label="Back to the amount"><span class="hv-ic">${icon('back')}</span></button><div class="hv-addback__sum"><b id="hv-sum-amt">₹0</b><span id="hv-sum-way" class="hv-muted">Spent</span></div>`;
+  const one = document.createElement('div');
+  one.className = 'hv-addstep hv-stack';
+  one.dataset.step = '1';
+  one.append(toggle, wrap.closest('.amount-field') || wrap, pad, next);
+  const two = document.createElement('div');
+  two.className = 'hv-addstep hv-stack';
+  two.dataset.step = '2';
+  two.hidden = true;
+  two.append(back, ...(person ? [person] : []), desc, catField, pair, det, fold, submit);
+  hero.replaceWith(one);
+  form.append(two);
+  const show = (n) => {
+    const to = n === 1 ? one : two;
+    (n === 1 ? two : one).hidden = true;
+    to.hidden = false;
+    to.classList.remove('hv-stepin');
+    void to.offsetWidth;
+    to.classList.add('hv-stepin');
+    form.dataset.hvStep = String(n);
+  };
+  const way = () => (container.querySelector('.dir-btn.active')?.textContent.trim() || 'Spent');
+  next.addEventListener('click', () => {
+    const v = parseFloat(input.value);
+    if (!(v > 0)) { invalidField(input, 'Enter an amount'); return; }
+    container.querySelector('#hv-sum-amt').textContent = `₹${v.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+    container.querySelector('#hv-sum-way').textContent = way();
+    show(2);
+  });
+  back.querySelector('#hv-back').addEventListener('click', () => show(1));
   // A field in the folded part that cannot be left empty opens it, so the message is never out of sight.
   form.addEventListener('invalid', () => { det.setAttribute('aria-expanded', 'true'); fold.classList.add('open'); }, true);
   form.classList.add('hv-addform');
   form.classList.add('hv-stack');
+  form.dataset.hvStep = '1';
   wireHaven(container);
 }

@@ -84,15 +84,17 @@ export function havenMonth(rows, { canMark = () => false } = {}) {
   const open = rows.filter((r) => r.state === 'due' || r.state === 'late');
   const finished = rows.filter((r) => r.state === 'paid' || r.state === 'skipped').sort((a, b) => String(a.label).localeCompare(String(b.label), undefined, { sensitivity: 'base' }));
   const gem = (label) => `<span class="hv-gem hv-g${gemNo(label)}"><span class="hv-ic">${categoryStyle(label).icon}</span></span>`;
-  const money = (p) => `<span class="hv-cur">₹</span>${Math.round(p / 100).toLocaleString('en-IN')}`;
+  const money = (p) => `₹${Math.round(p / 100).toLocaleString('en-IN')}`;
   const said = (r) => `${r.label}, ${formatRupees(r.amount)} on the ${ordinal(r.day)}: ${r.state === 'late' ? 'late' : 'still to pay'}. Tap for more.`;
-  const step = (r) => `<div class="hv-step${r.state === 'late' ? ' late' : ''}" data-step="${escapeHtml(r.id)}">
-      <button type="button" class="hv-step__open" data-month-item="${escapeHtml(r.id)}" aria-label="${escapeHtml(said(r))}">${gem(r.label)}<span class="hv-step__name"><b>${escapeHtml(r.label)}</b><span class="hv-row__m">${ordinal(r.day)} · ${r.state === 'late' ? 'Late' : 'Due'}</span></span><span class="hv-fig small hv-amt" style="font-size:22px">${money(r.amount)}</span></button>
-      ${canMark(r.id) ? `<button type="button" class="hv-btn small" data-pay-step="${escapeHtml(r.id)}"><span class="lbl"><span class="go">Mark paid</span></span><span class="nest"><span class="hv-ic">${icon('tick')}</span></span></button>` : ''}
+  // One line each: what, when, how much, and a tick to say it is paid (only for a cost you added yourself; the rest
+  // open what can be done with them).
+  const step = (r) => `<div class="hv-bill${r.state === 'late' ? ' late' : ''}" data-step="${escapeHtml(r.id)}">
+      <button type="button" class="hv-bill__open" data-month-item="${escapeHtml(r.id)}" aria-label="${escapeHtml(said(r))}">${gem(r.label)}<span class="hv-bill__name"><b>${escapeHtml(r.label)}</b><span class="hv-row__m">${ordinal(r.day)} · ${r.state === 'late' ? 'Late' : 'Due'}</span></span><span class="hv-bill__amt hv-amt">${money(r.amount)}</span></button>
+      ${canMark(r.id) ? `<button type="button" class="hv-paycheck" data-pay-step="${escapeHtml(r.id)}" aria-label="Mark ${escapeHtml(r.label)} paid" title="Mark paid"><span class="nest"><span class="hv-ic">${icon('tick')}</span></span></button>` : '<span class="hv-paycheck-gap"></span>'}
     </div>`;
-  const done = (r) => `<button type="button" class="hv-row" data-month-item="${escapeHtml(r.id)}">${gem(r.label)}<div><div class="hv-row__t">${escapeHtml(r.label)}</div><div class="hv-row__m">${r.state === 'skipped' ? 'Skipped this month' : `Paid · ${ordinal(r.day)}`}</div></div><div class="hv-row__v hv-amt">₹${Math.round(r.amount / 100).toLocaleString('en-IN')}</div></button>`;
-  const head = `<div class="hv-sec"><h2>Still to pay this month</h2><span class="hv-muted" id="hv-left-count">${open.length} left</span></div>`;
-  const body = `<div class="hv-shell"><div class="hv-core"><div class="hv-steps no-swipe" id="hv-steps">${open.length ? open.map(step).join('') : '<p class="hv-muted" style="padding:6px 2px 2px">Everything is paid for this month.</p>'}</div>${
+  const done = (r) => `<button type="button" class="hv-row" data-month-item="${escapeHtml(r.id)}">${gem(r.label)}<div><div class="hv-row__t">${escapeHtml(r.label)}</div><div class="hv-row__m">${r.state === 'skipped' ? 'Skipped this month' : `Paid · ${ordinal(r.day)}`}</div></div><div class="hv-row__v hv-amt">${money(r.amount)}</div></button>`;
+  const head = `<div class="hv-sec"><h2>Still to pay this month</h2><span class="hv-muted" id="hv-left-count">${open.length ? `${open.length} left` : 'all paid'}</span></div>`;
+  const body = `<div class="hv-shell"><div class="hv-core flush"><div class="hv-bills no-swipe" id="hv-steps">${open.length ? open.map(step).join('') : '<p class="hv-muted" style="padding:14px 16px">Everything is paid for this month.</p>'}</div>${
     finished.length
       ? `<button type="button" class="hv-chev-row" data-hv-fold aria-expanded="false"><span>Paid or skipped (${finished.length})</span><span class="hv-chev"><span class="hv-ic">${icon('chevdown')}</span></span></button><div class="hv-fold"><div>${finished.map(done).join('')}</div></div>`
       : ''

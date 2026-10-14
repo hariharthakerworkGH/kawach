@@ -104,7 +104,8 @@ export async function render(container) {
   container.classList.add('k');
   // NEW (5.18): the short version (the default for someone new) - the answer,
   // what needs you, the month, and everything else behind one tap.
-  const short = space === 'home' && !viewMonth && shortMode();
+  // Haven lays Summary out the short way always: the answer, then one fold for the rest.
+  const short = space === 'home' && !viewMonth && (shortMode() || document.documentElement.dataset.style === 'haven');
   container.classList.toggle('sum-short', short);
   if (short) currentRange = 'this-month';
   container.innerHTML = `
@@ -389,7 +390,9 @@ async function renderDashboard(container) {
   // month is spoken for, what have I actually got, what needs me - and only
   // then the detail (design.md section 15).
   const commitments = renderCommitmentTracker(fts);
-  if (shortMode()) {
+  // Haven always lays Summary out the short way: the answer first, then a fold for the rest (nothing is shown that has no use).
+  const haven = document.documentElement.dataset.style === 'haven';
+  if (shortMode() || haven) {
     const setup = { income: Boolean(fts.monthlyIncome && fts.salary.setUp), commitments: !fts.noCommitments, payments: transactions.length > 0 };
     if (!setup.income || !setup.commitments) {
       dashboardEl.innerHTML = setupCard(setup) + install;
@@ -399,7 +402,7 @@ async function renderDashboard(container) {
     }
     // The figure and its answer; what needs you; the month; then the rest,
     // folded. The parts are marked where the top is drawn.
-    const [answer, afterAnswer = ''] = renderSpendingLimit(fts, { short: true, latest }).split('<!--k:answer-->');
+    const [answer, afterAnswer = ''] = renderSpendingLimit(fts, { short: !haven, latest }).split('<!--k:answer-->');
     const [month, rest = ''] = afterAnswer.split('<!--k:month-->');
     dashboardEl.innerHTML = [
       setup.payments ? '' : setupStrip(),
@@ -885,8 +888,17 @@ export function monthScale(f) {
 
 /* The words every month chart shares (5.23): what it is, what to tap, and the
  * line that says what the day under your finger was. */
-const chartHead = (f) =>
-  `<div class="chart-head"><b>${f.finished ? 'How the month went' : 'How this month is going'}</b><small>Each bar is a day. The line adds them up, against your budget. Drag across to read a day.</small></div>`;
+// Haven's chart title says the one thing the chart is for: how far ahead of an even pace the month is.
+const MONTH_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+function havenChartHead(f) {
+  const n = (f.spendDays || []).length;
+  const days = Math.max(n, (f.daysIntoCycle || n) + (f.daysToClose || 1) - 1);
+  const ahead = f.finished || !(f.limit > 0) || !n ? null : Math.round((f.limit * (f.daysIntoCycle || n)) / days) - (f.spendDays[n - 1] || 0);
+  const name = MONTH_LONG[Number(String(f.cycleKey || '').slice(5, 7)) - 1] || 'this month';
+  return `<div class="chart-head"><b>${f.finished ? `How ${name} went` : `How ${name} is going`}</b>${ahead === null ? '' : `<span class="hv-muted hv-amt">${formatRupees(Math.abs(ahead))} ${ahead >= 0 ? 'under' : 'over'} pace</span>`}</div>`;
+}
+const chartHead = (f) => (document.documentElement.dataset.style === 'haven' ? havenChartHead(f) :
+  `<div class="chart-head"><b>${f.finished ? 'How the month went' : 'How this month is going'}</b><small>Each bar is a day. The line adds them up, against your budget. Drag across to read a day.</small></div>`);
 const chartData = (days, x0, x1, w, f) => `data-chart-days='${JSON.stringify(days)}' data-x0="${x0}" data-x1="${x1}" data-w="${w}" ${f.finished ? 'data-finished="1"' : ''}`;
 const dayWord = (iso) => (iso === isoLocal(new Date()) ? 'Today' : new Date(`${iso}T12:00`).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }));
 export const chartReadout = (d, label, finished = false) =>
@@ -1201,7 +1213,7 @@ function renderCardsHero(f, opts = {}) {
   const drawn = past ? { ...shown, finished: true } : f;
   const top = lookTop
     ? style === 'haven'
-      ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), '', { latest: opts.latest })
+      ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), '', { latest: opts.latest, chart: monthWaves(drawn) })
       : lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), monthWaves(drawn))
     : spendingHero(shown, short ? 'full' : appearance('summary'), past ? `Final for ${past.name}` : null, short ? shortStatus(f) : null) + `<!--k:answer-->
     ${past ? '' : monthWaves(f)}<!--k:month-->
