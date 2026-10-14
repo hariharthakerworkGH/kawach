@@ -21,8 +21,9 @@ import { forecast, costInMonth } from '../js/forecast.js';
 import { flexReport } from '../js/flex-report.js';
 import { flexCard } from '../js/views/recap.js';
 import { makeRecord, checkPin, waitFor, mustLock, makeKeyText, normaliseKey, formatKey, makeKeyRecord, checkKey } from '../js/lock.js';
-import { comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, havenTop, tideMood, tideSvg, chartsCards } from '../js/views/summary-looks.js';
+import { comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
+import { festivalOn } from '../js/haven-motion.js';
 import { termFor } from '../js/explain.js';
 import { peopleStanding, personSpendEffects, lateBack, reminderText } from '../js/people.js';
 import { nextRenewal, renewalAfter, renewalsAhead } from '../js/calendar.js';
@@ -2020,6 +2021,24 @@ test('Haven motion: alive by default, three levels, and the tide carries the hoo
   const svg = tideSvg(0.5, 0.6);
   ok(svg.includes('class="swell"') && svg.includes('class="tilt"') && svg.includes('class="sh-glow"'), 'the water has a swell to breathe, a group to tilt and an edge to glow');
   ok(/data-sy="\d/.test(svg), 'and the tilt knows where the surface is');
+});
+test('Haven lab 2: days ahead of pace, what today kept, yesterday, and the festival days', () => {
+  // A 10-day month on a 100 budget: the even pace is 10 a day.
+  const f = (spendDays, extra = {}) => ({ limit: rupees(100), spendDays: spendDays.map(rupees), spendByDay: spendDays.map((t, i) => ({ date: `2026-10-${String(i + 1).padStart(2, '0')}`, amount: rupees(t - (spendDays[i - 1] || 0)) })), daysIntoCycle: spendDays.length, daysToClose: 11 - spendDays.length, finished: false, ...extra });
+  equal(aheadStreak(f([5, 12, 18, 25])), 4, 'every day at or under 10 a day: four days ahead');
+  equal(aheadStreak(f([5, 25, 28, 30])), 2, 'a day over the pace ends the run; only the days since it count');
+  equal(aheadStreak(f([30, 31, 32])), 0, 'behind from the start: no run');
+  equal(aheadStreak(f([5, 12], { finished: true })), 0, 'a finished month has no run');
+  equal(keptToday(f([5, 12, 18, 25]), '2026-10-04'), rupees(3), 'a day that spent 7 of its 10 kept 3');
+  equal(keptToday(f([5, 12, 18, 35]), '2026-10-04'), 0, 'a day that overspent kept nothing');
+  equal(keptToday(f([5, 12, 18, 25]), '2026-10-09'), rupees(10), 'a day with nothing spent yet kept all of it');
+  const y = yesterdayFacts(f([5, 12, 18, 25]));
+  ok(y && y.spent === rupees(6) && y.under === rupees(30 - 18), 'yesterday: what was spent, and how far under an even pace it left the month');
+  equal(yesterdayFacts(f([5])), null, 'on the first day there is no yesterday');
+  equal(festivalOn('2026-11-08'), 'Diwali', 'Diwali 2026');
+  equal(festivalOn('2027-03-22'), 'Holi', 'Holi 2027');
+  equal(festivalOn('2027-01-01'), 'New Year', 'New Year');
+  equal(festivalOn('2026-10-15'), null, 'an ordinary day');
 });
 test('Swiping between tabs goes round and round in the order of the tab bar', () => {
   equal(neighbour('summary', 1), 'accounts', 'left from Summary is Accounts');

@@ -271,32 +271,312 @@ function closedGlow(tide) {
   }
 }
 
+/* ---- small facts the Summary carries on its vault (summary-looks.js havenTop) ---------------------------------------- */
+
+/* A number that counts from one value to another (what the figure does when the month starts over). */
+function countFigure(vault, from, ms) {
+  const el = vault.querySelector('[data-roll-kind="left"]');
+  if (!el) return;
+  const node = [...el.childNodes].find((n) => n.nodeType === 3 && /\d/.test(n.nodeValue)) || el;
+  const final = node === el ? el.textContent : node.nodeValue;
+  const to = Math.round((Number(el.dataset.roll) || 0) / 100);
+  const t0 = performance.now();
+  const write = (t) => (node === el ? (el.textContent = t) : (node.nodeValue = t));
+  const step = (now) => {
+    const p = Math.min(1, (now - t0) / ms);
+    const e = 1 - Math.pow(1 - p, 3);
+    write(p >= 1 ? final : Math.round(from + (Math.abs(to) - from) * e).toLocaleString('en-IN'));
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function sparks(host, n, ms, colour, top = 55) {
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('i');
+    s.className = 'hv-spark';
+    if (colour) s.style.background = colour;
+    s.style.left = `${20 + Math.random() * 60}%`;
+    s.style.top = `${top + Math.random() * 25}%`;
+    host.append(s);
+    s.animate([{ transform: 'translateY(0) scale(.4)', opacity: 0 }, { opacity: 1, offset: 0.3 }, { transform: `translateY(-${30 + Math.random() * 50}px) translateX(${Math.random() * 40 - 20}px) scale(1)`, opacity: 0 }], { duration: ms, delay: i * 70, easing: 'ease-out' }).onfinish = () => s.remove();
+  }
+}
+
+/* The Plan tab's dot: something is due within two days (or late). It pulses; the icon wiggles once as it arrives. */
+export function setDueDot(n) {
+  const tab = document.querySelector('#tabs .nav-btn[data-view="plan"]');
+  if (!tab) return;
+  let dot = tab.querySelector('.hv-dot');
+  if (!n || !isHaven()) { dot?.remove(); return; }
+  if (dot) return;
+  dot = document.createElement('i');
+  dot.className = 'hv-dot';
+  dot.setAttribute('aria-hidden', 'true');
+  tab.append(dot);
+  if (live()) {
+    dot.animate([{ transform: 'scale(0)' }, { transform: 'scale(1.4)' }, { transform: 'scale(1)' }], { duration: 450, easing: 'ease-out' });
+    tab.querySelector('.nav-icon svg')?.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-14deg)' }, { transform: 'rotate(11deg)' }, { transform: 'rotate(-6deg)' }, { transform: 'rotate(0)' }], { duration: 700 });
+  }
+}
+
+/* After eight in the evening, one quiet line under the figure: what today kept. */
+function eveLine(vault) {
+  const line = vault?.querySelector('[data-eve-line]');
+  const text = vault?.dataset.eve;
+  if (!line || !text) return;
+  if (new Date().getHours() >= 20) {
+    if (line.textContent === text) return;
+    line.textContent = text;
+    if (live()) line.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 700, easing: 'cubic-bezier(.16,1,.3,1)' });
+  } else line.textContent = '';
+}
+
+/* A line that says something for a moment (hidden / shown) and then gives the place back. */
+function flash(vault, text) {
+  const line = vault?.querySelector('[data-eve-line]');
+  if (!line) return;
+  line.textContent = text;
+  line.animate?.([{ opacity: 0 }, { opacity: 1, offset: 0.15 }, { opacity: 1, offset: 0.8 }, { opacity: 0 }], { duration: 1400 });
+  setTimeout(() => {
+    line.textContent = '';
+    eveLine(vault);
+  }, 1400);
+}
+
+/* ---- festivals: a small touch on the day itself, once ------------------------------------------------------------ */
+const DIWALI = ['2026-11-08', '2027-10-29', '2028-10-17', '2029-11-05', '2030-10-26'];
+const HOLI = ['2027-03-22', '2028-03-11', '2029-03-01', '2030-03-20'];
+export function festivalOn(iso) {
+  if (DIWALI.includes(iso)) return 'Diwali';
+  if (HOLI.includes(iso)) return 'Holi';
+  if (iso.slice(5) === '01-01') return 'New Year';
+  return null;
+}
+function festival(vault) {
+  const day = today();
+  const which = festivalOn(day);
+  if (!which || appearance('festivals') !== 'on' || store.get('kawach-fest') === day) return;
+  store.set('kawach-fest', day);
+  const host = document.createElement('div');
+  host.style.cssText = 'position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit';
+  vault.append(host);
+  setTimeout(() => host.remove(), 6000);
+  if (which === 'Diwali') {
+    for (const [x, y] of [[8, 22], [90, 22], [14, 78], [86, 78]]) {
+      const d = document.createElement('i');
+      d.style.cssText = `position:absolute;left:${x}%;top:${y}%;width:16px;height:22px;margin:-8px;border-radius:50% 50% 45% 45%/70% 70% 30% 30%;background:radial-gradient(circle at 50% 70%,#fff6c4,#ffb030 55%,rgba(255,120,30,0));opacity:0`;
+      host.append(d);
+      d.animate([{ opacity: 0, transform: 'scale(.2)' }, { opacity: 0.5, transform: 'scale(1)', offset: 0.15 }, { opacity: 0.3, transform: 'scale(.92)', offset: 0.35 }, { opacity: 0.5, transform: 'scale(1.05)', offset: 0.55 }, { opacity: 0.35, offset: 0.8 }, { opacity: 0, transform: 'scale(.4)' }], { duration: 4200 });
+    }
+  } else if (which === 'Holi') {
+    ['#ff4f9a', '#ffd23f', '#3ec7ff', '#7be07b', '#b06bff', '#ff4f9a', '#ffd23f', '#3ec7ff'].forEach((c, i) => {
+      const d = document.createElement('i');
+      d.style.cssText = `position:absolute;left:${10 + Math.random() * 80}%;top:${10 + Math.random() * 70}%;width:46px;height:46px;margin:-23px;border-radius:50%;background:radial-gradient(circle,${c},transparent 70%);opacity:0`;
+      host.append(d);
+      d.animate([{ opacity: 0, transform: 'scale(.2)' }, { opacity: 0.35, transform: 'scale(1.3)', offset: 0.25 }, { opacity: 0, transform: 'scale(1.8)' }], { duration: 1800, delay: i * 120 });
+    });
+  } else sparks(host, 20, 2000, '#ffe7a8', 20);
+}
+
+/* A salary has just landed: the water climbs, warm for a moment, and a chip says what came. */
+function salaryRise(vault, tide) {
+  const [id, text] = (vault.dataset.salary || '').split('|');
+  if (!id) return;
+  store.set('kawach-salary-seen', id);
+  vault.animate([{ boxShadow: '0 0 0 0 rgba(255,190,90,0)' }, { boxShadow: '0 0 37px 6px rgba(255,196,96,.6)', offset: 0.45 }, { boxShadow: '0 0 0 0 rgba(255,190,90,0)' }], { duration: 1800 });
+  const chip = document.createElement('div');
+  chip.className = 'hv-chip-up';
+  chip.textContent = `+${text} salary`;
+  vault.append(chip);
+  chip.animate([{ opacity: 0, transform: 'translate(-50%,16px) scale(.9)' }, { opacity: 1, transform: 'translate(-50%,-6px) scale(1)', offset: 0.25 }, { opacity: 1, transform: 'translate(-50%,-26px)', offset: 0.8 }, { opacity: 0, transform: 'translate(-50%,-34px)' }], { duration: 2600, easing: 'ease-out' }).onfinish = () => chip.remove();
+  sparks(tide, 6, 1700, '#ffe7a8');
+}
+
+/* The streak chip pops when it grows; a week ahead sparkles once. */
+function streakChip(vault) {
+  const n = Number(vault.dataset.streak) || 0;
+  const chip = vault.querySelector('.hv-streak');
+  if (!chip) { store.set('kawach-streak', '0'); return; }
+  if (Number(store.get('kawach-streak')) !== n && live()) chip.animate([{ transform: 'scale(0)' }, { transform: 'scale(1.25)' }, { transform: 'scale(1)' }], { duration: 480, easing: 'ease-out' });
+  store.set('kawach-streak', String(n));
+  if (n >= 7 && store.get('kawach-streak7') !== vault.dataset.cycle) {
+    store.set('kawach-streak7', vault.dataset.cycle);
+    if (live()) sparks(vault, 12, 1300, '#ffe7a8', 20);
+  }
+}
+
+/* Setting up fills the shield (the setup card draws one); when the last step is done, a little sparkle, once. */
+function setupSparkle(scope, vault) {
+  if (scope.querySelector('.setup-card')) { store.set('kawach-setup-seen', '1'); return; }
+  if (vault && store.get('kawach-setup-seen') === '1' && store.get('kawach-setup-done') !== '1') {
+    store.set('kawach-setup-done', '1');
+    if (live()) sparks(vault.querySelector('.tide') || vault, 10, 1500);
+  }
+}
+
 /* Called each time a Haven screen has been drawn (wireHaven). */
 export function afterDraw(scope) {
   if (!isHaven()) return;
   const tide = scope.querySelector?.('.tide');
+  const vault = scope.querySelector?.('.hv-vault');
   tilts = $$('.tide .tilt');
-  if (tide && live()) {
+  // Yesterday's strip waits above the whole screen (not above the vault), so it sits in the gap a pull opens.
+  const strip = scope.querySelector?.('.hv-peek');
+  const page = scope.closest?.('.view-container') || document.getElementById('view-container');
+  if (page) page.querySelectorAll(':scope > .hv-peek').forEach((old) => old.remove());
+  if (strip && page) page.prepend(strip);
+  if (tide && vault && live()) {
     const water = tide.querySelector('.water');
     const to = Number(tide.style.getPropertyValue('--lvl')) || 0;
     let prev = null;
     try { prev = JSON.parse(store.get(TIDE_KEY)); } catch { prev = null; }
     const dropped = Number(sessionStorage.getItem('kawach-drop') || 0) > Date.now() - 8000;
-    const from = prev ? prev.lvl : 0;
+    // A new month: the old water is gone and the new month rises from below.
+    const cyc = vault.dataset.cycle || '';
+    const lastCyc = store.get('kawach-cycle');
+    const fresh = Boolean(lastCyc && cyc && lastCyc !== cyc);
+    if (cyc) store.set('kawach-cycle', cyc);
+    const from = fresh ? 0 : prev ? prev.lvl : 0;
     if (water && Math.abs(from - to) > 0.002) {
       // Starts where the water was last seen, then moves on (the stylesheet's spring does the moving).
       water.style.transition = 'none';
       water.style.setProperty('--lvl', from.toFixed(3));
       void water.getBoundingClientRect();
-      water.style.transition = '';
+      water.style.transition = fresh ? 'transform 1800ms var(--hv-spring-soft)' : '';
+      if (fresh) countFigure(vault, 0, 1800);
       if (dropped) dropIn(tide, to, from);
       else requestAnimationFrame(() => requestAnimationFrame(() => settle(tide, to)));
     } else if (dropped && water) dropIn(tide, to, to);
     sessionStorage.removeItem('kawach-drop');
-    store.set(TIDE_KEY, JSON.stringify({ key: tide.closest('.hv-vault')?.dataset.levelKey || '', lvl: to }));
+    store.set(TIDE_KEY, JSON.stringify({ key: vault.dataset.levelKey || '', lvl: to }));
     closedGlow(tide);
+    if (vault.dataset.salary) salaryRise(vault, tide);
+    streakChip(vault);
+    festival(vault);
   }
+  if (vault) {
+    eveLine(vault);
+    setDueDot(Number(vault.dataset.soon2) || 0);
+  }
+  setupSparkle(scope, vault);
+  // Goals: each small shield fills from empty as the screen arrives.
+  if (live()) {
+    $$('.hv-goal__tide .water, .hv-setup__tide .water', scope).forEach((w) => {
+      const to = w.style.getPropertyValue('--lvl');
+      w.style.transition = 'none';
+      w.style.setProperty('--lvl', '0');
+      void w.getBoundingClientRect();
+      w.style.transition = 'transform 1200ms var(--hv-spring-soft)';
+      requestAnimationFrame(() => requestAnimationFrame(() => w.style.setProperty('--lvl', to)));
+    });
+  }
+  // The chart: last month's faint line shows only while it is pressed.
+  $$('.waves-card', scope).forEach((card) => {
+    if (card.dataset.ghost) return;
+    card.dataset.ghost = '1';
+    const svg = card.querySelector('svg');
+    const on = () => card.classList.add('hv-ghost-on');
+    const off = () => card.classList.remove('hv-ghost-on');
+    svg?.addEventListener('pointerdown', on);
+    for (const t of ['pointerup', 'pointercancel', 'pointerleave']) svg?.addEventListener(t, off);
+  });
   watchVault();
+}
+
+/* The chart's day changes under a finger: a tiny tick and the day's bar bounces up. */
+export function scrubTick(card, i) {
+  if (!live()) return;
+  navigator.vibrate?.(3);
+  const bar = card.querySelector(`.waves__bar[data-bar="${i}"]`);
+  if (!bar?.animate) return;
+  bar.style.transformBox = 'fill-box';
+  bar.style.transformOrigin = 'bottom';
+  bar.animate([{ transform: 'scaleY(1)' }, { transform: 'scaleY(1.13)', offset: 0.4 }, { transform: 'scaleY(1)' }], { duration: 360, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+}
+
+/* A short pull from the top shows yesterday for two seconds (the strip sits above the screen; js/pull-refresh.js holds the screen down). */
+let peekTimer = 0;
+const setPeek = (p) => {
+  const el = document.querySelector('.hv-peek');
+  if (!el) return;
+  el.style.setProperty('--peek', String(clamp(p, 0, 1)));
+  el.classList.toggle('on', p > 0);
+};
+export function peekHold(done) {
+  if (!live() || !document.querySelector('.hv-peek')) return false;
+  clearTimeout(peekTimer);
+  setPeek(1);
+  peekTimer = setTimeout(() => {
+    peekTimer = 0;
+    setPeek(0);
+    done();
+  }, 2000);
+  return true;
+}
+
+/* Double-tap the big figure: it blurs (and again to bring it back). */
+let lastTap = 0;
+function onFigureTap(e) {
+  const fig = e.target.closest?.('.hv-vault__fig');
+  if (!fig) return;
+  const now = performance.now();
+  if (now - lastTap < 320) {
+    const hidden = root.toggleAttribute('data-hide-fig');
+    try { sessionStorage.setItem('kawach-hide-fig', hidden ? '1' : ''); } catch { /* it simply forgets */ }
+    flash(fig.closest('.hv-vault'), hidden ? 'Hidden' : 'Shown');
+    lastTap = 0;
+  } else lastTap = now;
+}
+
+/* Shake the phone (three gentle jolts) and it offers to take back the last payment you typed in. */
+let asking = false;
+async function offerUndo() {
+  if (asking || document.body.classList.contains('sheet-open')) return;
+  const { getAll, remove, put } = await import('./db.js');
+  const last = (await getAll('transactions')).filter((t) => t.source === 'manual' && t.createdAt && Date.now() - t.createdAt < 3600000).sort((a, b) => b.createdAt - a.createdAt)[0];
+  if (!last) return;
+  asking = true;
+  navigator.vibrate?.([10, 30, 10]);
+  const name = String(last.merchant || last.rawDescription || 'payment');
+  const box = document.createElement('div');
+  box.className = 'hv-ask';
+  box.setAttribute('role', 'alertdialog');
+  const label = document.createElement('span');
+  label.textContent = `Undo ${name}?`;
+  box.append(label);
+  for (const [key, text] of [['y', 'Yes'], ['n', 'No']]) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset[key] = '';
+    b.textContent = text;
+    box.append(b);
+  }
+  document.body.append(box);
+  requestAnimationFrame(() => box.classList.add('on'));
+  const close = () => {
+    box.classList.remove('on');
+    setTimeout(() => { box.remove(); asking = false; }, 400);
+  };
+  box.querySelector('[data-n]').addEventListener('click', close);
+  setTimeout(() => box.isConnected && close(), 8000);
+  box.querySelector('[data-y]').addEventListener('click', async () => {
+    close();
+    await remove('transactions', last.id);
+    const { showToast } = await import('./toast.js');
+    window.dispatchEvent(new Event('hv-refresh'));
+    showToast(`${name} undone`, {
+      ms: 5000,
+      action: {
+        label: 'Put it back',
+        run: async () => {
+          await remove('deletions', `transactions:${last.id}`, { tombstone: false });
+          await put('transactions', last);
+          window.dispatchEvent(new Event('hv-refresh'));
+        },
+      },
+    });
+  });
 }
 
 /* ---- the slim bar under the header once the vault has scrolled away ----------------------------------------- */
@@ -338,6 +618,7 @@ function onPtr(e) {
     tideWave.innerHTML = '<svg viewBox="0 0 100 40" preserveAspectRatio="none"><path d="M0 12 q12.5 -9 25 0 t25 0 t25 0 t25 0 V40 H0Z"/></svg>';
     document.body.append(tideWave);
   }
+  setPeek(state === 'pull' ? p : state === 'busy' ? 1 : peekTimer ? 1 : 0);
   const vh = innerHeight / 100;
   if (state === 'pull') { tideWave.style.transition = 'none'; tideWave.style.height = `${clamp(p, 0, 1) * 14 * vh}px`; }
   else if (state === 'busy') { tideWave.style.transition = `height 700ms ${SOFT}`; tideWave.style.height = `${22 * vh}px`; }
@@ -345,7 +626,7 @@ function onPtr(e) {
 }
 
 /* ---- tilt: the water leans and sloshes as the phone tilts (alive) --------------------------------------------- */
-const MAX_TILT = 28;
+const MAX_TILT = 45;
 let angle = 0;
 let vel = 0;
 let target = 0;
@@ -365,15 +646,25 @@ function kick() {
 function onOrient(e) {
   if (!alive() || e.gamma == null) return;
   // Phone rolled right (gamma > 0): the water stays level, which is a turn to the left on the screen.
-  target = clamp(-e.gamma * 1.3, -MAX_TILT, MAX_TILT);
+  target = clamp(-e.gamma * 1.7, -MAX_TILT, MAX_TILT);
   kick();
 }
 let lastX = null;
+let jolts = [];
 function onMotion(e) {
   const x = e.accelerationIncludingGravity?.x;
-  if (!alive() || x == null) return;
-  // A shake slops the water about.
-  if (lastX != null && Math.abs(x - lastX) > 6) { vel += clamp((x - lastX) * -0.9, -9, 9); kick(); }
+  if (x == null) return;
+  if (lastX != null) {
+    const d = Math.abs(x - lastX);
+    // A shake slops the water about (alive only)...
+    if (alive() && d > 6) { vel += clamp((x - lastX) * -0.9, -9, 9); kick(); }
+    // ...and three gentle jolts within a second offer to undo the last payment.
+    if (d > 9) {
+      const now = Date.now();
+      jolts = jolts.filter((t) => now - t < 1000).concat(now);
+      if (jolts.length >= 3) { jolts = []; offerUndo(); }
+    }
+  }
   lastX = x;
 }
 let orientOn = false;
@@ -392,10 +683,22 @@ function askTilt() {
   if (store.get('kawach-tilt') === 'no') return;
   const first = () => {
     removeEventListener('pointerdown', first, true);
-    if (!alive()) return;
+    if (!live()) return;
     D.requestPermission().then((r) => { store.set('kawach-tilt', r === 'granted' ? 'yes' : 'no'); if (r === 'granted') listenTilt(); }).catch(() => {});
   };
   addEventListener('pointerdown', first, true);
+}
+
+/* Little bubbles rise in the water now and then (alive; one each beat, never when the screen is hidden or dozing). */
+function bubble() {
+  if (!alive() || document.hidden || root.hasAttribute('data-dozing')) return;
+  const tide = document.querySelector('[data-hv-summary] .hv-vault .tide');
+  if (!tide || (Number(tide.style.getPropertyValue('--lvl')) || 0) < 0.2) return;
+  const b = document.createElement('i');
+  b.className = 'hv-bub';
+  b.style.left = `${30 + Math.random() * 40}%`;
+  tide.append(b);
+  b.animate([{ transform: 'translateY(0)', opacity: 0.8 }, { transform: `translateY(-${20 + Math.random() * 30}px)`, opacity: 0 }], { duration: 1400 }).onfinish = () => b.remove();
 }
 
 /* ---- start ---------------------------------------------------------------------------------------------------- */
@@ -414,6 +717,10 @@ export function initMotion() {
   document.addEventListener('contextmenu', (e) => { if (lifted || e.target.closest?.('.hv-lifts')) e.preventDefault(); });
   document.addEventListener('scroll', () => { clearTimeout(liftTimer); onScroll(); }, { passive: true });
   document.addEventListener('ptr', onPtr);
+  document.addEventListener('pointerup', onFigureTap, { passive: true });
+  try { if (sessionStorage.getItem('kawach-hide-fig')) root.setAttribute('data-hide-fig', ''); } catch { /* none */ }
+  setInterval(() => eveLine(document.querySelector('.hv-vault')), 60000);
+  setInterval(bubble, 450);
 
   // Anything touched wakes it and starts the thirty seconds again.
   for (const t of ['pointerdown', 'keydown', 'wheel', 'touchstart']) addEventListener(t, awake, { passive: true });

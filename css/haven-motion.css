@@ -129,3 +129,66 @@ html:root[data-style="haven"]:not([data-motion="still"]) #tabs .nav-ind.is-ready
 /* "Still", or a phone set to reduce motion: the effects that are drawn by script are not drawn. */
 @media (prefers-reduced-motion: reduce) { .hv-rip, .hv-coin, .hv-ring, .hv-spark, .hv-ptr { display: none; } }
 :root[data-style="haven"][data-motion="still"] :is(.hv-rip, .hv-coin, .hv-ring, .hv-spark, .hv-ptr, .hv-doze) { display: none; }
+
+
+/* ================================================================== lab 2 (5.58) */
+/* ---- what fills the shield (Settings -> Motion's neighbour); low money still turns warm ---- */
+:root[data-style="haven"][data-liquid="chai"] .tide[data-mood="calm"] { --hv-tide-a: oklch(46% 0.09 55); --hv-tide-b: oklch(68% 0.11 70); }
+:root[data-style="haven"][data-liquid="gold"] .tide[data-mood="calm"] { --hv-tide-a: oklch(58% 0.13 80); --hv-tide-b: oklch(84% 0.14 95); }
+:root[data-style="haven"][data-liquid="sunset"] .tide[data-mood="calm"] { --hv-tide-a: oklch(56% 0.2 20); --hv-tide-b: oklch(78% 0.15 55); }
+:root[data-style="haven"][data-liquid="mint"] .tide[data-mood="calm"] { --hv-tide-a: oklch(52% 0.12 170); --hv-tide-b: oklch(80% 0.13 165); }
+.hv-bub { position: absolute; bottom: 24%; width: 4px; height: 4px; border-radius: 50%; background: oklch(100% 0 0 / 0.6); pointer-events: none; }
+
+/* ---- days ahead of pace: a small chip in the vault's top row ---- */
+:root[data-style="haven"] .hv-vault__top { gap: 8px; flex-wrap: wrap; }
+:root[data-style="haven"] .hv-streak { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px 0 7px; border-radius: 999px; background: oklch(100% 0 0 / 0.14); font-size: 12px; font-weight: 650; color: var(--hv-on-navy); margin-inline-end: auto; }
+:root[data-style="haven"] .hv-vault__top > .hv-pill + .hv-streak { margin-inline-start: 0; }
+/* ---- the evening note and the "Hidden" word share one quiet line under the figure ---- */
+:root[data-style="haven"] .hv-vault__eve { min-height: 16px; margin-top: 4px; font-size: var(--hv-fs-label, 13px); color: var(--hv-on-navy-2); }
+:root[data-style="haven"] .hv-vault__eve:empty { min-height: 0; margin: 0; }
+/* ---- double-tap the figure: it blurs ---- */
+:root[data-style="haven"][data-hide-fig] .hv-vault__fig .hv-fig { filter: blur(14px); opacity: 0.85; }
+:root[data-style="haven"] .hv-vault__fig .hv-fig { transition: filter 360ms var(--hv-ease-settle), opacity 360ms var(--hv-ease-settle); }
+
+/* ---- pull down: yesterday waits in the gap above the screen ---- */
+:root[data-style="haven"] #view-container { position: relative; }
+:root[data-style="haven"] .hv-peek {
+  position: absolute; left: 0; right: 0; top: -34px; height: 28px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px;
+  font-size: var(--hv-fs-label, 13px); color: var(--hv-ink-2); opacity: var(--peek, 0); pointer-events: none; visibility: hidden; transition: opacity 200ms ease, visibility 0s linear 200ms;
+}
+:root[data-style="haven"] .hv-peek.on { visibility: visible; transition-delay: 0s; }
+:root[data-style="haven"] .hv-peek b { color: var(--hv-ink); font-weight: 650; }
+:root[data-style="haven"][data-motion="still"] .hv-peek { display: none; }
+
+/* ---- a bill is near: a dot on the Plan tab ---- */
+:root[data-style="haven"] #tabs .nav-btn[data-view="plan"] { position: relative; }
+.hv-dot { position: absolute; top: 9px; right: calc(50% - 20px); width: 9px; height: 9px; border-radius: 50%; background: var(--hv-bad, #e0574f); box-shadow: 0 0 0 2px var(--hv-bar-bg, #fff); pointer-events: none; }
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-style="haven"]:not([data-motion="still"]) .hv-dot { animation: hv-dotpulse 1.5s ease-out infinite; }
+}
+@keyframes hv-dotpulse { 0% { box-shadow: 0 0 0 2px var(--hv-bar-bg, #fff), 0 0 0 0 oklch(66% 0.2 27 / 0.7); } 100% { box-shadow: 0 0 0 2px var(--hv-bar-bg, #fff), 0 0 0 9px oklch(66% 0.2 27 / 0); } }
+
+/* ---- a salary landed ---- */
+.hv-chip-up { position: absolute; left: 50%; top: 78%; z-index: 4; padding: 5px 12px; border-radius: 999px; background: var(--hv-good); color: #fff; font-size: 12px; font-weight: 650; white-space: nowrap; pointer-events: none; }
+
+/* ---- shake: "Undo it?" ---- */
+.hv-ask { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 70px); z-index: 60; transform: translate(-50%, -30px); opacity: 0; display: flex; gap: 10px; align-items: center; padding: 10px 12px 10px 16px; border-radius: 18px; background: var(--hv-toast-bg, #1d2a55); color: #fff; font-size: 13px; font-weight: 600; max-width: calc(100vw - 24px); transition: transform 460ms var(--hv-spring-snap), opacity 260ms; }
+.hv-ask.on { transform: translate(-50%, 0); opacity: 1; }
+.hv-ask span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hv-ask button { height: 32px; min-width: 44px; padding: 0 12px; border: 0; border-radius: 999px; background: oklch(100% 0 0 / 0.2); color: #fff; font: inherit; font-weight: 650; }
+
+/* ---- goals: a small shield beside each ---- */
+:root[data-style="haven"] .hv-goal { width: 100%; text-align: left; grid-template-columns: auto 1fr; }
+:root[data-style="haven"] .hv-goal .tide.hv-goal__tide { width: 44px; height: 54px; flex: none; }
+:root[data-style="haven"] .hv-goal__when { color: var(--hv-link); }
+
+/* ---- the chart: last month, faint, while pressed ---- */
+.waves__ghost { fill: none; stroke: var(--hv-ink-3, #889); stroke-width: 2.2; stroke-dasharray: 3 5; stroke-linecap: round; opacity: 0; transition: opacity 500ms; pointer-events: none; }
+.waves__ghost-t { font-size: 10px; fill: var(--hv-ink-3, #889); opacity: 0; transition: opacity 500ms; pointer-events: none; }
+.hv-ghost-on .waves__ghost { opacity: 0.8; }
+.hv-ghost-on .waves__ghost-t { opacity: 1; }
+
+/* ---- the setup card: the shield fills as the steps are done ---- */
+:root[data-style="haven"] .setup-card__top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+:root[data-style="haven"] .hv-setup__tide { width: 52px; height: 64px; flex: none; position: relative; }
+:root[data-style="haven"] .setup-card .setup-progress { display: none; }

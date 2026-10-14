@@ -1,13 +1,15 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
-import { instrumentTop, havenTop, keptBack, chartsComing, chartsCards } from './summary-looks.js';
+import { instrumentTop, havenTop, keptBack, chartsComing, chartsCards, tideSvg } from './summary-looks.js';
 import { isDemo } from '../demo-flag.js';
 import { displayName } from './transactions.js';
 import { wireHaven } from '../haven-ui.js';
+import { scrubTick } from '../haven-motion.js';
 import { icon } from '../icons.js';
 import { isFixed, isLiveCommitment, coveredByFixed, commitmentFromSuggestion } from '../commitments.js';
 import { isoLocal, hasDueDate, frequencyOf } from '../frequency.js';
-import { formatCurrency, formatDateNice, formatRupees } from '../format.js';
-import { cardBillDue } from '../account-metrics.js';
+import { formatCurrency, formatDateNice, formatRupees, formatMonthYear } from '../format.js';
+import { cardBillDue, bankBalance } from '../account-metrics.js';
+import { getGoals, goalProgress } from '../goals.js';
 import { computeFreeToSpend } from '../free-to-spend.js';
 import { burnLine, runwayBar, radialMeter, allocationRing } from '../charts.js';
 import { detectRecurring, nextDueDate } from '../recurring.js';
@@ -169,8 +171,10 @@ function setupCard(s) {
   const next = !s.income ? 1 : !s.commitments ? 2 : 3;
   const step = (n, ok, title, sub, go, label) =>
     `<li class="setup-step ${ok ? 'is-done' : n === next ? 'is-next' : 'is-later'}"><span class="setup-step__n">${ok ? icon('check') : n}</span><span class="setup-step__body"><b>${title}</b><small>${sub}</small></span><button type="button" class="k-btn ${!ok && n === next ? 'k-btn--primary' : 'k-btn--secondary'}" data-go="${go}">${ok ? 'Change' : label}</button></li>`;
+  // Haven: the shield fills as each step is done (the bar under it is for the other looks).
+  const shield = document.documentElement.dataset.style === 'haven' ? `<div class="tide hv-setup__tide" data-mood="calm" style="--lvl:${(done / 3).toFixed(3)}" role="img" aria-label="${done} of 3 steps done">${tideSvg(done / 3, 0)}</div>` : '';
   return `<section class="setup-card">
-      <div><h2>Set up Kawach</h2><p class="setup-card__sub">Three steps, about five minutes. Then this screen shows what you can spend each day.</p></div>
+      <div class="setup-card__top"><div><h2>Set up Kawach</h2><p class="setup-card__sub">Three steps, about five minutes. Then this screen shows what you can spend each day.</p></div>${shield}</div>
       <div class="setup-progress" role="progressbar" aria-label="Set up" aria-valuemin="0" aria-valuemax="3" aria-valuenow="${done}"><i style="width:${Math.max(4, Math.round((done / 3) * 100))}%"></i></div>
       <ol class="setup-steps">
         ${step(1, s.income, 'What comes in', 'Salary, pension, business or what the house needs', 'plan', 'Add')}
@@ -341,6 +345,38 @@ function havenLatest(transactions, categories) {
     });
 }
 
+/* What Haven's Summary shows beyond the month itself (5.58): the goals, a salary that has just landed, and last month's
+ * line for the chart to hold up beside this month's. Each is left out when there is nothing to say. */
+async function havenMore(fts, transactions, months, thisKey) {
+  const out = { goals: [], salary: null };
+  try {
+    const accounts = await getAll('accounts');
+    const today = isoLocal(new Date());
+    out.goals = (await getGoals()).map((g) => {
+      const saved = (g.accountIds || []).reduce((sum, id) => sum + (bankBalance(accounts.find((a) => a.id === id) || {}, transactions) || 0), 0);
+      const p = goalProgress(g, saved, today);
+      return { label: g.name, saved, target: g.target, monthly: p.monthly, done: p.done, byName: formatMonthYear(`${g.by}-01`) };
+    });
+    // A salary is money in to a bank account of at least half the usual, in the last three days, not yet celebrated.
+    const income = fts.monthlyIncome || 0;
+    const since = isoLocal(new Date(Date.now() - 3 * 86400000));
+    const seen = (() => { try { return localStorage.getItem('kawach-salary-seen'); } catch { return null; } })();
+    const hit = income > 0 && transactions
+      .filter((t) => t.direction === 'credit' && !t.isTransfer && !t.personId && !t.isSettlement && t.date >= since && t.amount >= income / 2 && (accounts.find((a) => a.id === t.accountId) || {}).type === 'bank')
+      .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+    if (hit && hit.id !== seen) out.salary = { id: hit.id, amount: hit.amount };
+    // Last month, by the same days: the running total, for the faint line on the chart.
+    const prev = months[months.indexOf(thisKey) - 1];
+    if (prev) {
+      const was = await computeFreeToSpend(endOfMonthNoon(prev));
+      fts.ghost = (was.spendDays || []).slice();
+    }
+  } catch {
+    /* these are extras: the screen is complete without them */
+  }
+  return out;
+}
+
 async function renderDashboard(container) {
   if (space !== 'home') return renderBusinessDashboard(container);
   const dashboardEl = container.querySelector('#dashboard');
@@ -383,6 +419,7 @@ async function renderDashboard(container) {
 
   const [transactions, fts, install, list, categoryList] = await Promise.all([getAll('transactions'), computeFreeToSpend(), installCard(), businesses(), getAll('categories')]);
   const latest = havenLatest(transactions, categoryList);
+  const more = document.documentElement.dataset.style === 'haven' ? await havenMore(fts, transactions, months, thisKey) : null;
   // Anyone with business income has tax dates to keep.
   const tax = taxCard(taxDates(isoLocal(new Date()), { business: list.length > 0 || fts.incomeKind === 'business' }));
 
@@ -398,11 +435,12 @@ async function renderDashboard(container) {
       dashboardEl.innerHTML = setupCard(setup) + install;
       wireSetup(dashboardEl, container);
       wireInstallCard(dashboardEl, () => redraw(container, () => renderDashboard(container)));
+      wireHaven(dashboardEl);
       return;
     }
     // The figure and its answer; what needs you; the month; then the rest,
     // folded. The parts are marked where the top is drawn.
-    const [answer, afterAnswer = ''] = renderSpendingLimit(fts, { short: !haven, latest }).split('<!--k:answer-->');
+    const [answer, afterAnswer = ''] = renderSpendingLimit(fts, { short: !haven, latest, more }).split('<!--k:answer-->');
     const [month, rest = ''] = afterAnswer.split('<!--k:month-->');
     dashboardEl.innerHTML = [
       setup.payments ? '' : setupStrip(),
@@ -776,6 +814,7 @@ export function monthWaves(f) {
       <svg class="waves no-swipe" viewBox="0 0 ${W} ${H}" role="img" aria-label="${f.finished ? 'The month' : 'This month so far'}: ${formatRupees(totals[n - 1])} spent against ${formatRupees(Math.round(pace[n - 1]))} of budget so far. Most in one day: ${formatRupees(daily[bigDay])} on ${formatDateNice(f.spendByDay[bigDay].date)}.">
         <defs><pattern id="${hatchId}" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line class="waves__hatch" x1="0" y1="0" x2="0" y2="4"/></pattern></defs>
         ${bars}${stacks}
+        ${ghostLine(f, n, x, y, smooth)}
         ${layer(pace, y, 'waves--pace')}
         ${layer(totals, y, 'waves--spent')}
         <line class="waves__guide" data-guide x1="${x(last).toFixed(1)}" x2="${x(last).toFixed(1)}" y1="8" y2="${base}"/>
@@ -790,6 +829,15 @@ export function monthWaves(f) {
       </div>
       ${waveOther ? `<p class="waves__note"><i></i>Hatched: spent, but not from your budget (set-aside costs, work costs owed back).${waveCut ? ' A zigzag top: a bigger day, cut short.' : ''}</p>` : ''}
     </div>`;
+}
+
+// Last month, by the same days, as a faint dashed line that appears while the chart is pressed (5.58).
+function ghostLine(f, n, x, y, smooth) {
+  if (typeof document === 'undefined' || document.documentElement.dataset.style !== 'haven') return '';
+  const g = (f.ghost || []).slice(0, n);
+  if (g.length < 3 || !g.some((v) => v > 0)) return '';
+  const pts = g.map((v, i) => [x(i), y(v)]);
+  return `<path class="waves__ghost" d="${smooth(pts)}"/><text class="waves__ghost-t" x="${(x(g.length - 1) - 4).toFixed(1)}" y="${Math.max(14, y(g[g.length - 1]) - 8).toFixed(1)}" text-anchor="end">Last month</text>`;
 }
 
 // One day's stack on a bar: a block from `from` up to `to`, its top flat or, for a day too big to fit, a zigzag.
@@ -947,6 +995,7 @@ function wireCharts(root) {
     const dy = Number(dot.getAttribute('cy'));
     const ring = card.querySelector('.waves__ring');
     const show = (i, quiet = false) => {
+      if (i !== at && !quiet) scrubTick(card, i);
       at = i;
       const d = days[i];
       guide.style.transform = `translateX(${d[4] - gx}px)`;
@@ -1213,7 +1262,7 @@ function renderCardsHero(f, opts = {}) {
   const drawn = past ? { ...shown, finished: true } : f;
   const top = lookTop
     ? style === 'haven'
-      ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), '', { latest: opts.latest, chart: monthWaves(drawn) })
+      ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), '', { latest: opts.latest, more: opts.more, chart: monthWaves(drawn) })
       : lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), monthWaves(drawn))
     : spendingHero(shown, short ? 'full' : appearance('summary'), past ? `Final for ${past.name}` : null, short ? shortStatus(f) : null) + `<!--k:answer-->
     ${past ? '' : monthWaves(f)}<!--k:month-->

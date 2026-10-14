@@ -93,6 +93,31 @@ export const CHOICES = {
       { value: 'still', label: 'Still', note: 'No animation at all.' },
     ],
   },
+  // 5.58: what fills the shield. Haven's tide; low money still turns warm whatever it is.
+  liquid: {
+    label: 'What fills the shield',
+    question: 'What should the shield hold?',
+    fallback: 'water',
+    where: 'Summary',
+    options: [
+      { value: 'water', label: 'Water', note: 'Blue, the way Haven began.' },
+      { value: 'chai', label: 'Chai', note: 'Warm brown.' },
+      { value: 'gold', label: 'Gold', note: 'A rich yellow.' },
+      { value: 'sunset', label: 'Sunset', note: 'Red into orange.' },
+      { value: 'mint', label: 'Mint', note: 'Cool green.' },
+    ],
+  },
+  // 5.58: a little seasonal touch on the day itself. Optional.
+  festivals: {
+    label: 'Festival touches',
+    question: 'Should the shield celebrate Diwali, Holi and New Year?',
+    fallback: 'on',
+    where: 'Summary',
+    options: [
+      { value: 'on', label: 'Yes', note: 'A small touch on the day itself, once.' },
+      { value: 'off', label: 'No', note: 'Nothing seasonal.' },
+    ],
+  },
   // NEW (5.18): the short version is where a new person starts - the
   // answer, what needs them, the month, and the rest behind one tap. Anyone
   // who already had data when it arrived keeps the full one (app.js).
@@ -242,7 +267,7 @@ export function setAppearance(name, value) {
     return false;
   }
   if (name === 'colour' || name === 'style') applyTheme();
-  if (name === 'text' || name === 'density' || name === 'motion') applyDisplay();
+  if (name === 'text' || name === 'density' || name === 'motion' || name === 'liquid') applyDisplay();
   if (name === 'motion') window.dispatchEvent(new Event('hv-motion'));
   return true;
 }
@@ -272,6 +297,7 @@ export function applyDisplay() {
   const text = appearance('text');
   const density = appearance('density');
   root.setAttribute('data-motion', appearance('motion'));
+  root.setAttribute('data-liquid', appearance('liquid'));
   if (text === 'normal') root.removeAttribute('data-text');
   else root.setAttribute('data-text', text);
   if (density === 'comfortable') root.removeAttribute('data-density');

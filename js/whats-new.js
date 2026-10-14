@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.58',
+    items: [
+      {
+        icon: 'sparkle',
+        title: "Haven learns your days",
+        text: "A new month refills the shield; a salary lifts the water; after 8 pm a line says what today kept; the Plan tab gets a dot when a bill is near; a chip counts days ahead of pace; goals get a small shield; Diwali, Holi and New Year get a touch. Pull the screen down to see yesterday, double-tap the figure to hide it, shake to undo the last payment. Press the chart to see last month's line. Choose what fills the shield in Settings, How it looks. Tilt leans further.",
+        guide: [{ view: 'summary', target: '.hv-vault__fig', text: "Double-tap this figure to hide it. Pull the screen down to peek at yesterday." }],
+      },
+    ],
+  },
+  {
     version: '5.57',
     items: [
       {

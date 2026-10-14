@@ -2,7 +2,7 @@ import { getAll, put, remove, newId, getSetting, setSetting } from '../db.js';
 import { holdFocus } from '../overlay.js';
 import { planTop, planMonth, havenCommitments } from './plan-looks.js';
 import { wireHaven } from '../haven-ui.js';
-import { paidOut } from '../haven-motion.js';
+import { paidOut, setDueDot } from '../haven-motion.js';
 import { icon } from '../icons.js';
 import { formatRupees, ordinal, formatDateNice, formatMonthYear } from '../format.js';
 import { detectRecurring } from '../recurring.js';
@@ -1125,6 +1125,9 @@ function havenArrange(container, figures, todayIso, skipped) {
   oldForecastHead?.remove();
   container.prepend(...ordered);
   wireHaven(container);
+  // The Plan tab carries a dot while something is late or due within two days.
+  const in2 = isoLocal(new Date(Date.now() + 2 * 86400000));
+  setDueDot(((figures && figures.tracker) || []).filter((t) => !t.setAside && !t.skipped && (t.status === 'late' || ((t.status === 'due' || t.status === 'part') && t.due && t.due <= in2))).length);
 }
 
 function havenForecast(figures, today, skipped) {

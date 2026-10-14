@@ -4,6 +4,7 @@
  * simply settles back. It only starts from the very top of a screen, with a mostly vertical pull, and
  * never over a sheet, a question or the lock. `refresh` does the work and resolves when it is done. */
 import { icon } from './icons.js';
+import { peekHold } from './haven-motion.js';
 
 const LINE = 64; // px of finger travel that counts
 const MAX = 96;
@@ -98,7 +99,15 @@ export function wirePullRefresh({ canPull, refresh }) {
         setTimeout(() => ind && ind.classList.remove('is-busy', 'is-done'), ms + 40);
       }
     };
-    if (!reached) return settle();
+    // Haven: a short pull from the top shows yesterday for two seconds before the screen settles back.
+    if (!reached) {
+      if (dyNow >= 12 && s && peekHold(() => settle())) {
+        s.style.transition = `transform 400ms ${OUT}`;
+        s.style.transform = 'translateY(30px)';
+        return;
+      }
+      return settle();
+    }
     busy = true;
     ind.classList.add('is-busy');
     document.dispatchEvent(new CustomEvent('ptr', { detail: { p: 1, state: 'busy' } }));
