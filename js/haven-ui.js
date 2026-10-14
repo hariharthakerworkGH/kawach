@@ -30,14 +30,25 @@ export function wireHaven(root) {
       b.nextElementSibling?.classList.toggle('open', open);
     });
   });
+  // The month's box: tap a figure and the list shows only those rows (tap it again for all).
+  root.querySelectorAll('.hv-sum').forEach((box) => {
+    if (box.dataset.hvWired) return;
+    box.dataset.hvWired = '1';
+    const scope = box.closest('.k, #view-container') || document;
+    box.querySelectorAll('[data-f]').forEach((k) => k.addEventListener('click', () => {
+      const f = box.dataset.filter === k.dataset.f ? '' : k.dataset.f;
+      box.dataset.filter = f;
+      box.querySelectorAll('[data-f]').forEach((x) => x.classList.toggle('on', x.dataset.f === f));
+      scope.querySelectorAll('.hv-clist [data-kind]').forEach((row) => { row.hidden = Boolean(f) && row.dataset.kind !== f; });
+      scope.querySelectorAll('.hv-clist [data-g]').forEach((label) => { label.hidden = Boolean(f) && (label.dataset.g === 'bills' ? f === 'aside' : f !== 'aside'); });
+    }));
+  });
   // "Mark paid" on a card: the button says it worked, the card leaves, then the screen is told (it saves and redraws).
   root.querySelectorAll('[data-pay-step]').forEach((b) => {
     if (b.dataset.hvWired) return;
     b.dataset.hvWired = '1';
     b.addEventListener('click', () => {
-      const card = b.closest('.hv-step, .hv-bill');
       saveMorph(b, () => {
-        card?.classList.add('gone');
         setTimeout(() => b.dispatchEvent(new CustomEvent('hv-pay', { bubbles: true, detail: { id: b.dataset.payStep } })), reduced() ? 20 : 640);
       }, 420);
     });

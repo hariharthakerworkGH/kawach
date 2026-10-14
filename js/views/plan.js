@@ -1,6 +1,6 @@
 import { getAll, put, remove, newId, getSetting, setSetting } from '../db.js';
 import { holdFocus } from '../overlay.js';
-import { planTop, planMonth, havenMonth } from './plan-looks.js';
+import { planTop, planMonth, havenCommitments } from './plan-looks.js';
 import { wireHaven } from '../haven-ui.js';
 import { icon } from '../icons.js';
 import { formatRupees, ordinal, formatDateNice, formatMonthYear } from '../format.js';
@@ -151,13 +151,27 @@ export async function render(container) {
   const isHaven = style === 'haven';
   // Haven: only a cost you added yourself can be marked paid from its card (the others open what can be done with them).
   const markable = (id) => fixed.some((f) => f.id === id) && tracker.some((x) => x.id === id && x.status !== 'skipped' && x.status !== 'paid');
+  // Haven (home): the month's box and the one list of commitments (plan-looks.js havenCommitments) replace this month's
+  // strip, the bars under it, and the separate Commitments list.
+  const allItems = [...fixed, ...loanItems];
+  const merged = isHaven && !inBusiness
+    ? havenCommitments(tracker, {
+        order: new Map(allItems.map((f, i) => [f.id, i])),
+        dayOf: (id) => allItems.find((f) => f.id === id)?.dayOfMonth || null,
+        markable,
+        // Under the cash rule the ATM plan stays set aside, and cash you write down draws it down (js/cash.js).
+        note: (id) => (cashRuleOn && isAtmPlan(allItems.find((f) => f.id === id) || {}) ? 'cash you write down comes off it' : ''),
+        editingId,
+        form: (id) => fixedForm(laneCategories, laneAccounts, fixed.find((f) => f.id === id)),
+      })
+    : null;
   const thisMonth = inBusiness
     ? ''
-    : (isHaven
-        ? havenMonth(monthRows(tracker, [...fixed, ...loanItems]).map(({ t, day }) => ({ id: t.id, label: t.label, day, amount: t.amount, state: stateOf(t) })), { canMark: markable })
-        : looks
-        ? planMonth(style, monthRows(tracker, [...fixed, ...loanItems]).map(({ t, day }) => ({ id: t.id, label: t.label, day, amount: t.amount, state: stateOf(t) })), now)
-        : monthStrip(tracker, [...fixed, ...loanItems], now)) + flexBars(tracker);
+    : merged
+      ? merged.box
+      : (looks
+          ? planMonth(style, monthRows(tracker, allItems).map(({ t, day }) => ({ id: t.id, label: t.label, day, amount: t.amount, state: stateOf(t) })), now)
+          : monthStrip(tracker, allItems, now)) + flexBars(tracker);
 
   // `k-plan` scopes the rules for classes this screen shares with Summary,
   // so styling a commitment row here cannot reach across and restyle one
@@ -318,7 +332,9 @@ export async function render(container) {
           : '')
     )}
     ${
-      fixed.length
+      merged && !reordering && (fixed.length || loanItems.length)
+        ? merged.list
+        : fixed.length
         ? `<div class="totals-card ${reordering ? 'reordering' : ''}">${fixed
             .map((f, i) => (editingId === f.id ? fixedForm(laneCategories, laneAccounts, f) : fixedRow(f, categories, accountName(f.accountId), i, fixed.length)))
             .join('')}${loanItems.map((l) => loanRow(l, accountName(l.accountId))).join('')}</div>`
@@ -699,6 +715,16 @@ export async function render(container) {
       draft = null;
       redraw(container, () => render(container));
     });
+    // Removing is asked about first, and lives here (in the edit form) rather than as a cross on every row.
+    form.querySelector('.ff-remove')?.addEventListener('click', async (e) => {
+      const going = recurring.find((r) => r.id === e.currentTarget.dataset.id);
+      const ok = await askConfirm({ title: 'Remove this commitment?', message: `"${going ? going.label : 'It'}" comes off your plan. Payments already saved are not touched.`, confirmLabel: 'Remove', danger: true });
+      if (!ok) return;
+      await remove('recurring', e.currentTarget.dataset.id);
+      adding = false;
+      editingId = null;
+      redraw(container, () => render(container));
+    });
     form.querySelector('.ff-cancel').addEventListener('click', () => {
       adding = false;
       editingId = null;
@@ -1053,7 +1079,7 @@ function havenArrange(container, figures, todayIso, skipped) {
   const kids = () => [...container.children];
   const headBefore = (el) => (el && el.previousElementSibling && el.previousElementSibling.classList.contains('section-head') ? el.previousElementSibling : null);
   const notes = kids().filter((n) => n.classList.contains('plan-flag'));
-  const month = container.querySelector('[data-hv-plan-month]');
+  const month = container.querySelector('[data-hv-box]');
   const monthWrap = container.querySelector('.plan-month');
   const forecast = container.querySelector('.forecast');
   const commitHead = kids().find((n) => n.classList.contains('section-head') && /^(Commitments|Fixed costs)$/.test(n.querySelector('h3')?.textContent.trim() || ''));
@@ -1285,6 +1311,7 @@ function fixedForm(categories, accounts, item) {
       </label>
       <button type="submit" class="btn-primary">${item ? 'Save' : 'Add'}</button>
       <button type="button" class="btn-tiny ff-cancel btn-block" style="margin-top:var(--space-xs)">Cancel</button>
+      ${item ? '<button type="button" class="btn-tiny ff-remove btn-block" data-id="' + item.id + '" style="margin-top:var(--space-xs);color:var(--out)">Remove this commitment</button>' : ''}
     </form>
   `;
 }

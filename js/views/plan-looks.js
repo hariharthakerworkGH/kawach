@@ -75,29 +75,67 @@ export function planMonth(style, rows, now = new Date()) {
     </div>`;
 }
 
-/* --- Haven (5.52): "Still to pay this month", as the prototype draws it ----------------------------------------
- * Each cost still to pay is a small card of its own: its gem, its name, its day and whether it is late, its amount and
- * a "Mark paid" button (only for what Kawach can mark: a cost you added yourself). Tapping the rest of the card opens
- * what can be done with it (skip, see its payments, edit). What is paid or skipped folds under one line.
- * `rows` are plan.js's own: { id, label, day, amount, state }. Exported for a test. */
-export function havenMonth(rows, { canMark = () => false } = {}) {
-  const open = rows.filter((r) => r.state === 'due' || r.state === 'late');
-  const finished = rows.filter((r) => r.state === 'paid' || r.state === 'skipped').sort((a, b) => String(a.label).localeCompare(String(b.label), undefined, { sensitivity: 'base' }));
+/* --- Haven (5.55): Plan's two lists as one -------------------------------------------------------------------
+ * "This month" (what is left of each set-aside) and "Commitments" were two lists of the same things. Here they are one:
+ * a box that says how the month stands (paid, to pay, kept aside; tap a figure to see only those), and under it every
+ * commitment once. A bill says Paid, Due 21st or Late, and has a tick when it can be marked paid from here. A set-aside
+ * says what is left and has a thin line for how much is used. Bills not yet paid come first, then the rest; inside each
+ * group the order is the one chosen on the sort control (A to Z unless changed). Tapping a row opens what can be done with
+ * it (mark paid, skip, see its payments, edit). `tracker` is free-to-spend.js's own list; nothing is calculated again.
+ * Exported for a test. */
+const isProgress = (t) => t.setAside || ['ok', 'heading-over', 'over'].includes(t.status);
+const UNPAID = new Set(['late', 'due', 'part']);
+
+export function havenCommitments(tracker, { order = new Map(), dayOf = () => null, markable = () => false, note = () => '', editingId = null, form = () => '' } = {}) {
+  const at = (t) => (order.has(t.id) ? order.get(t.id) : 1e9);
+  const byOrder = (a, b) => at(a) - at(b) || String(a.label).localeCompare(String(b.label), undefined, { sensitivity: 'base' });
+  const rows = tracker.filter((t) => t.amount > 0 || t.skipped);
+  const progress = rows.filter(isProgress).sort(byOrder);
+  const bills = rows.filter((t) => !isProgress(t));
+  const unpaid = bills.filter((t) => UNPAID.has(t.status)).sort(byOrder);
+  const done = bills.filter((t) => !UNPAID.has(t.status)).sort(byOrder);
+  const money = (p) => `₹${Math.round(Math.abs(p) / 100).toLocaleString('en-IN')}`;
   const gem = (label) => `<span class="hv-gem hv-g${gemNo(label)}"><span class="hv-ic">${categoryStyle(label).icon}</span></span>`;
-  const money = (p) => `₹${Math.round(p / 100).toLocaleString('en-IN')}`;
-  const said = (r) => `${r.label}, ${formatRupees(r.amount)} on the ${ordinal(r.day)}: ${r.state === 'late' ? 'late' : 'still to pay'}. Tap for more.`;
-  // One line each: what, when, how much, and a tick to say it is paid (only for a cost you added yourself; the rest
-  // open what can be done with them).
-  const step = (r) => `<div class="hv-bill${r.state === 'late' ? ' late' : ''}" data-step="${escapeHtml(r.id)}">
-      <button type="button" class="hv-bill__open" data-month-item="${escapeHtml(r.id)}" aria-label="${escapeHtml(said(r))}">${gem(r.label)}<span class="hv-bill__name"><b>${escapeHtml(r.label)}</b><span class="hv-row__m">${ordinal(r.day)} · ${r.state === 'late' ? 'Late' : 'Due'}</span></span><span class="hv-bill__amt hv-amt">${money(r.amount)}</span></button>
-      ${canMark(r.id) ? `<button type="button" class="hv-paycheck" data-pay-step="${escapeHtml(r.id)}" aria-label="Mark ${escapeHtml(r.label)} paid" title="Mark paid"><span class="nest"><span class="hv-ic">${icon('tick')}</span></span></button>` : '<span class="hv-paycheck-gap"></span>'}
-    </div>`;
-  const done = (r) => `<button type="button" class="hv-row" data-month-item="${escapeHtml(r.id)}">${gem(r.label)}<div><div class="hv-row__t">${escapeHtml(r.label)}</div><div class="hv-row__m">${r.state === 'skipped' ? 'Skipped this month' : `Paid · ${ordinal(r.day)}`}</div></div><div class="hv-row__v hv-amt">${money(r.amount)}</div></button>`;
-  const head = `<div class="hv-sec"><h2>Still to pay this month</h2><span class="hv-muted" id="hv-left-count">${open.length ? `${open.length} left` : 'all paid'}</span></div>`;
-  const body = `<div class="hv-shell"><div class="hv-core flush"><div class="hv-bills no-swipe" id="hv-steps">${open.length ? open.map(step).join('') : '<p class="hv-muted" style="padding:14px 16px">Everything is paid for this month.</p>'}</div>${
-    finished.length
-      ? `<button type="button" class="hv-chev-row" data-hv-fold aria-expanded="false"><span>Paid or skipped (${finished.length})</span><span class="hv-chev"><span class="hv-ic">${icon('chevdown')}</span></span></button><div class="hv-fold"><div>${finished.map(done).join('')}</div></div>`
-      : ''
-  }</div></div>`;
-  return `<div class="hv-screen hv-plan-month" data-hv-plan-month>${head}${body}</div>`;
+  const day = (t) => (dayOf(t.id) ? ordinal(dayOf(t.id)) : '');
+  const word = (t) => {
+    const d = day(t);
+    if (t.status === 'paid') return { cls: 'paid', text: `${d ? `${d} · ` : ''}Paid`, tick: true };
+    if (t.status === 'late') return { cls: 'late', text: `${d ? `${d} · ` : ''}Late` };
+    if (t.status === 'due') return { cls: 'due', text: d ? `Due ${d}` : 'Due' };
+    if (t.status === 'part') return { cls: 'due', text: `${d ? `${d} · ` : ''}${money(t.left)} to go` };
+    if (t.skipped || t.status === 'skipped') return { cls: 'due', text: 'Skipped this month' };
+    return { cls: 'due', text: d };
+  };
+  const said = (t, w) => `${t.label}, ${formatRupees(t.amount)}${w.text ? `: ${w.text}` : ''}. Tap for more.`;
+  const bill = (t) => {
+    if (editingId === t.id) return form(t.id);
+    const w = word(t);
+    const kind = UNPAID.has(t.status) ? 'topay' : 'paid';
+    const check = UNPAID.has(t.status) && markable(t.id)
+      ? `<button type="button" class="hv-paycheck" data-pay-step="${escapeHtml(t.id)}" aria-label="Mark ${escapeHtml(t.label)} paid" title="Mark paid"><span class="nest"><span class="hv-ic">${icon('tick')}</span></span></button>`
+      : '<span class="hv-paycheck-gap"></span>';
+    return `<div class="hv-bill${t.status === 'late' ? ' late' : ''}" data-kind="${kind}" data-step="${escapeHtml(t.id)}">
+      <button type="button" class="hv-bill__open" data-month-item="${escapeHtml(t.id)}" aria-label="${escapeHtml(said(t, w))}">${gem(t.label)}<span class="hv-bill__name"><b>${escapeHtml(t.label)}</b><span class="hv-row__m hv-st-${w.cls}">${w.tick ? `<span class="hv-tick">${icon('tick')}</span>` : ''}${w.text}</span></span><span class="hv-bill__amt hv-amt">${money(t.amount)}</span></button>${check}</div>`;
+  };
+  const aside = (t) => {
+    if (editingId === t.id) return form(t.id);
+    const used = t.amount > 0 ? Math.max(0, Math.min(1, t.used / t.amount)) : 0;
+    const over = t.left < 0;
+    const extra = note(t.id);
+    const text = (over ? `${money(t.left)} over` : t.left > 0 ? `${money(t.left)} left` : 'Used up') + (extra ? ` · ${extra}` : '');
+    return `<div class="hv-bill hv-bill--aside" data-kind="aside" data-step="${escapeHtml(t.id)}">
+      <button type="button" class="hv-bill__open" data-month-item="${escapeHtml(t.id)}" aria-label="${escapeHtml(`${t.label}, ${money(t.amount)} set aside, ${text}. Tap for more.`)}">${gem(t.label)}<span class="hv-bill__name"><b>${escapeHtml(t.label)}</b><span class="hv-row__m${over ? ' hv-st-late' : ''}">${text}</span></span><span class="hv-bill__amt hv-amt">${money(t.amount)}</span></button><span class="hv-paycheck-gap"></span>
+      <div class="hv-usedline${t.left <= 0 ? ' full' : ''}" aria-hidden="true"><i style="width:${(used * 100).toFixed(0)}%"></i></div></div>`;
+  };
+  const paid = done.filter((t) => t.status === 'paid').reduce((s, t) => s + t.amount, 0);
+  const toPay = unpaid.reduce((s, t) => s + (t.status === 'part' ? Math.max(0, t.left) : t.amount), 0);
+  const kept = progress.reduce((s, t) => s + Math.max(0, t.left), 0);
+  const key = (f, cls, label, v) => `<button type="button" data-f="${f}"><span><i class="${cls}"></i>${label}</span><b class="hv-amt">${money(v)}</b></button>`;
+  const seg = (v, cls) => (v > 0 ? `<i class="${cls}" style="flex:${v}"></i>` : '');
+  const box = paid + toPay + kept > 0
+    ? `<div class="hv-screen" data-hv-box><div class="hv-sec"><h2>This month</h2><span class="hv-muted">tap a figure to filter</span></div><div class="hv-shell"><div class="hv-core hv-sum"><div class="hv-sum__bar" role="img" aria-label="Paid ${money(paid)}, to pay ${money(toPay)}, kept aside ${money(kept)}">${seg(paid, 'a')}${seg(toPay, 'b')}${seg(kept, 'c')}</div><div class="hv-sum__keys">${key('paid', 'a', 'Paid', paid)}${key('topay', 'b', 'To pay', toPay)}${key('aside', 'c', 'Kept aside', kept)}</div></div></div></div>`
+    : '';
+  const bills_ = [...unpaid, ...done];
+  const list = `<div class="hv-shell"><div class="hv-core flush hv-clist">${bills_.length ? `<div class="hv-clabel" data-g="bills">Bills</div>${bills_.map(bill).join('')}` : ''}${progress.length ? `<div class="hv-clabel" data-g="aside">Set aside this month</div>${progress.map(aside).join('')}` : ''}</div></div>`;
+  return { box, list };
 }

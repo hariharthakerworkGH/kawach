@@ -468,11 +468,9 @@ html:root[data-style="haven"] .hv-addform #add-date { box-sizing: border-box; he
 :root[data-style="haven"] .hv-due.hv-core { box-shadow: inset 0 1px 0 var(--hv-hl), var(--hv-lift); }
 
 /* Plan: each bill is a line, with a tick to say it is paid */
-:root[data-style="haven"] .hv-bills { display: grid; }
 :root[data-style="haven"] .hv-bill { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--hv-s2); padding: var(--hv-s2) var(--hv-s3) var(--hv-s2) var(--hv-s4); min-height: 60px; transition: opacity var(--hv-d-base) var(--hv-ease-settle), transform var(--hv-d-slow) var(--hv-ease-settle), max-height var(--hv-d-slow) var(--hv-ease-settle); max-height: 120px; overflow: clip; }
 :root[data-style="haven"] .hv-bill + .hv-bill { box-shadow: inset 0 1px 0 var(--hv-hair); }
 :root[data-style="haven"] .hv-bill.late .hv-bill__amt { color: var(--hv-bad); }
-:root[data-style="haven"] .hv-bill.gone { opacity: 0; transform: translateX(24px); max-height: 0; padding-block: 0; }
 :root[data-style="haven"] .hv-bill__open { all: unset; box-sizing: border-box; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--hv-s3); min-width: 0; cursor: pointer; }
 :root[data-style="haven"] .hv-bill__open .hv-gem { width: 38px; height: 38px; border-radius: 13px; }
 :root[data-style="haven"] .hv-bill__name { display: grid; min-width: 0; }
@@ -521,3 +519,38 @@ html:root[data-style="haven"] .hv-addform #add-date { box-sizing: border-box; he
 /* reach: small buttons still have a 44px target */
 :root[data-style="haven"] .hv-cardbtn, :root[data-style="haven"] .hv-bill__open { position: relative; }
 :root[data-style="haven"] .hv-cardbtn::before, :root[data-style="haven"] .hv-bill__open::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--k-tap, 44px); transform: translateY(-50%); }
+
+/* ======================= 5.55: Plan's two lists as one ======================= */
+:root[data-style="haven"] .hv-sum { display: grid; gap: 14px; }
+:root[data-style="haven"] .hv-sum__bar { display: flex; gap: 4px; height: 14px; }
+:root[data-style="haven"] .hv-sum__bar i { border-radius: 7px; min-width: 6px; transition: opacity var(--hv-d-base) var(--hv-ease-settle); }
+:root[data-style="haven"] .hv-sum i.a { background: var(--hv-good); }
+:root[data-style="haven"] .hv-sum i.b { background: var(--hv-warn); }
+:root[data-style="haven"] .hv-sum i.c { background: linear-gradient(90deg, var(--hv-tide-a), var(--hv-tide-b)); }
+:root[data-style="haven"] .hv-sum[data-filter="paid"] .hv-sum__bar i:not(.a),
+:root[data-style="haven"] .hv-sum[data-filter="topay"] .hv-sum__bar i:not(.b),
+:root[data-style="haven"] .hv-sum[data-filter="aside"] .hv-sum__bar i:not(.c) { opacity: 0.25; }
+:root[data-style="haven"] .hv-sum__keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hv-s2); }
+:root[data-style="haven"] .hv-sum__keys button { all: unset; box-sizing: border-box; display: grid; gap: 2px; padding: 8px 10px; margin: -8px -4px; border-radius: 14px; cursor: pointer; position: relative; transition: background var(--hv-d-fast) var(--hv-ease-out); }
+:root[data-style="haven"] .hv-sum__keys button::before { content: ""; position: absolute; inset: -2px; }
+:root[data-style="haven"] .hv-sum__keys button.on { background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair-strong); }
+:root[data-style="haven"] .hv-sum__keys span { display: flex; align-items: center; gap: 6px; font-size: var(--hv-fs-label); color: var(--hv-ink-2); }
+:root[data-style="haven"] .hv-sum__keys span i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+:root[data-style="haven"] .hv-sum__keys i.a { background: var(--hv-good); }
+:root[data-style="haven"] .hv-sum__keys i.b { background: var(--hv-warn); }
+:root[data-style="haven"] .hv-sum__keys i.c { background: var(--hv-tide-a); }
+:root[data-style="haven"] .hv-sum__keys b { font-size: 16px; font-weight: 650; letter-spacing: -0.015em; }
+:root[data-style="haven"] .hv-clabel { padding: 12px 16px 4px; font-size: var(--hv-fs-label); font-weight: 600; color: var(--hv-ink-2); }
+:root[data-style="haven"] .hv-clabel:not(:first-child) { margin-top: 4px; box-shadow: inset 0 1px 0 var(--hv-hair); }
+:root[data-style="haven"] .hv-clabel[hidden], :root[data-style="haven"] .hv-clist [data-kind][hidden] { display: none; }
+:root[data-style="haven"] .hv-bill[hidden] { display: none; }
+:root[data-style="haven"] .hv-clist .hv-bill + .hv-bill { box-shadow: inset 0 1px 0 var(--hv-hair); }
+:root[data-style="haven"] .hv-st-paid { color: var(--hv-good); display: flex; align-items: center; gap: 4px; line-height: 1; }
+:root[data-style="haven"] .hv-st-late { color: var(--hv-bad); }
+:root[data-style="haven"] .hv-tick { display: inline-grid; place-items: center; width: 14px; height: 14px; }
+:root[data-style="haven"] .hv-tick .icon { width: 100%; height: 100%; stroke-width: 2; }
+:root[data-style="haven"] .hv-bill--aside { position: relative; padding-bottom: 14px; }
+:root[data-style="haven"] .hv-usedline { position: absolute; left: 70px; right: 58px; bottom: 7px; height: 4px; border-radius: 2px; background: var(--hv-well); overflow: hidden; }
+:root[data-style="haven"] .hv-usedline i { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--hv-tide-a), var(--hv-tide-b)); transition: width var(--hv-d-hero) var(--hv-spring-soft); }
+:root[data-style="haven"] .hv-usedline.full i { background: var(--hv-warn); }
+:root[data-style="haven"] .hv-clist form { margin: 0; }

@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.55',
+    items: [
+      {
+        icon: 'plan',
+        title: "Plan: one list, one box",
+        text: "Plan's two lists are one: a box says how the month stands (paid, to pay, kept aside; tap a figure to see only those), and under it every commitment once. Bills not yet paid come first, then A to Z. A bill says Paid, Due or Late, with a tick to mark it paid; a set-aside shows what is left with a thin line. Remove is now in the edit screen, and asks first.",
+        guide: [{ view: 'plan', target: '.hv-sum', text: "Tap a figure to see only the paid, the to-pay or the kept-aside ones." }],
+      },
+    ],
+  },
+  {
     version: '5.54',
     items: [
       {
