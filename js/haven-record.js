@@ -156,18 +156,12 @@ function showResult(report) {
   });
 }
 
-// Hidden on purpose: tap the version in Settings five times and the row appears (it is for fixing, not for everyone).
+// A quiet row under the version in Settings (it is for fixing: speed and taps only, no money).
 export function wireRecordRow(container) {
-  const vt = container.querySelector('#version-text');
-  if (!vt) return;
-  let n = 0; let timer = 0;
-  const reveal = () => {
-    if (container.querySelector('.hv-recrow')) return;
-    const row = document.createElement('div');
-    row.className = 'hv-recrow';
-    row.innerHTML = '<span>Record a run <small>for fixing: speed and taps only, no money</small></span><button type="button" class="hv-recrow__go">Start</button>';
-    container.querySelector('#version-line')?.after(row);
-    row.querySelector('button').addEventListener('click', () => { startRecording(); document.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'summary' } })); });
-  };
-  vt.addEventListener('click', () => { n += 1; clearTimeout(timer); timer = setTimeout(() => { n = 0; }, 2500); if (n >= 5) { n = 0; reveal(); } });
+  if (container.querySelector('.hv-recrow') || !container.querySelector('#version-line')) return;
+  const row = document.createElement('div');
+  row.className = 'hv-recrow';
+  row.innerHTML = '<span>Record a run <small>for fixing: speed and taps only, no money</small></span><button type="button" class="hv-recrow__go">Start</button>';
+  container.querySelector('#version-line').after(row);
+  row.querySelector('button').addEventListener('click', () => { startRecording(); document.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'summary' } })); });
 }

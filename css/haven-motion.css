@@ -181,14 +181,6 @@
 :root[data-style="haven"] .setup-card .setup-progress { display: none; }
 
 /* ================================================================== lab 3 (5.60): js/haven-life.js */
-/* ---- rewind the month: a thin strip under the shield's figure ---- */
-:root[data-style="haven"] .hv-rewind { position: relative; height: 34px; margin-top: 10px; touch-action: none; cursor: ew-resize; }
-:root[data-style="haven"] .hv-rewind__line { position: absolute; left: 0; right: 0; top: 15px; height: 3px; border-radius: 2px; background: var(--hv-on-navy-3); }
-:root[data-style="haven"] .hv-rewind__h { position: absolute; top: 8px; left: 100%; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: var(--hv-on-navy); box-shadow: 0 0 0 4px oklch(100% 0 0 / 0.16); }
-:root[data-style="haven"] .hv-rewind__t { position: absolute; left: 0; top: 0; font-size: var(--hv-fs-micro, 11px); color: var(--hv-on-navy-2); pointer-events: none; }
-:root[data-style="haven"] .hv-rewind:focus-visible { outline: 2px solid var(--hv-on-navy); outline-offset: 2px; border-radius: 8px; }
-.hv-trail { position: absolute; left: -6px; right: -6px; height: 0; border-top: 1.5px dashed oklch(100% 0 0 / 0.55); opacity: 0; transition: opacity 250ms; pointer-events: none; z-index: 2; }
-.hv-trail.on { opacity: 1; }
 /* ---- a limit kept by hand, and the one being tried ---- */
 :root[data-style="haven"] .hv-vault__cap { margin-top: 3px; font-size: var(--hv-fs-label, 13px); color: var(--hv-on-navy-2); }
 :root[data-style="haven"] .hv-vault__cap b { color: var(--hv-on-navy); font-weight: 600; cursor: pointer; text-decoration: underline dotted; }
@@ -430,15 +422,15 @@ html.hv-sweeping::view-transition-new(root) { z-index: 2; }
 .hv-sky__cloud::after { width: 20px; height: 20px; left: 38px; top: -8px; }
 .hv-sky__mote { width: 3px; height: 3px; background: #fff6c8; opacity: var(--mote-o, 0); transition: opacity 1.2s; }
 @media (prefers-reduced-motion: no-preference) {
-  :root[data-style="haven"][data-motion="alive"] .hv-sky__star { animation: hv-twinkle 3.4s ease-in-out infinite; }
-  :root[data-style="haven"][data-motion="alive"] .hv-sky__cloud { animation: hv-drift linear infinite; }
-  :root[data-style="haven"][data-motion="alive"] .hv-sky__mote { animation: hv-float 9s ease-in-out infinite; }
+  :root[data-style="haven"][data-motion="alive"] .hv-sky__star { animation: hv-sky-twinkle 3.4s ease-in-out infinite; }
+  :root[data-style="haven"][data-motion="alive"] .hv-sky__cloud { animation: hv-sky-drift linear infinite; }
+  :root[data-style="haven"][data-motion="alive"] .hv-sky__mote { animation: hv-sky-float 9s ease-in-out infinite; }
 }
 :root[data-style="haven"]:not([data-motion="alive"]) .hv-sky__cloud { transform: translateX(120px); }
 :root[data-style="haven"][data-dozing] .hv-sky__cloud, :root[data-style="haven"][data-dozing] .hv-sky__mote, :root[data-style="haven"][data-dozing] .hv-sky__star { animation-play-state: paused; }
-@keyframes hv-twinkle { 50% { opacity: calc(var(--star-o, 0) * 0.3); } }
-@keyframes hv-drift { from { transform: translateX(-130px); } to { transform: translateX(520px); } }
-@keyframes hv-float { 0%, 100% { transform: translate(0, 0); } 33% { transform: translate(14px, -16px); } 66% { transform: translate(-10px, -6px); } }
+@keyframes hv-sky-twinkle { 50% { opacity: calc(var(--star-o, 0) * 0.3); } }
+@keyframes hv-sky-drift { from { transform: translateX(-130px); } to { transform: translateX(520px); } }
+@keyframes hv-sky-float { 0%, 100% { transform: translate(0, 0); } 33% { transform: translate(14px, -16px); } 66% { transform: translate(-10px, -6px); } }
 
 /* ---- record a run (5.69, js/haven-record.js): hidden until the version is tapped five times ---- */
 .hv-recrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0; padding: 10px 14px; border-radius: 16px; background: var(--hv-core); box-shadow: 0 0 0 1px var(--hv-hair); color: var(--hv-ink); }
@@ -458,3 +450,13 @@ html.hv-sweeping::view-transition-new(root) { z-index: 2; }
 /* The header lets the sky show until the page scrolls under it (dna.css gave it a solid ground, which hid the sky). */
 html:root[data-style="haven"] body:has(#view-container.k) .app-header:not(.is-scrolled) { background: none; }
 html:root[data-style="haven"] body:has(#view-container.k) .app-header.is-scrolled { background: color-mix(in oklab, var(--hv-paper) 82%, transparent); }
+
+/* The page itself lets the sky and the night lights show: dna.css gave every screen a solid ground of its own, which cut the sky
+ * off at the header on all screens but Settings. The body has the same colour, so nothing else changes. */
+html:root[data-style="haven"] .view-container.k { background: transparent; }
+/* Record a run sits right under the version, one short row. */
+.hv-recrow { margin: 0 0 8px; padding: 6px 6px 6px 14px; }
+
+/* The line an account says about itself ("billed 25 Sep, statement not imported", cash not written down) sits inside the card:
+ * no box of its own, the same side space as the row, one hairline above it. */
+:root[data-style="haven"] .account-block .account-note { margin: 0; padding: 8px 14px 10px 14px; border: 0; border-top: 1px solid var(--hv-hair); border-radius: 0; background: color-mix(in oklab, var(--hv-warn) 9%, transparent); font-size: 12.5px; line-height: 1.4; color: var(--hv-ink-2); box-sizing: border-box; max-width: 100%; overflow-wrap: anywhere; }

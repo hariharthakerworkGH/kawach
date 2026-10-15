@@ -65,6 +65,11 @@ let payFrom = [];
 // The phone's back button closes an open form (or reordering, or the bill
 // panel) first, before it leaves the screen.
 export function onBack() {
+  // An account that is open closes first (the same tap that opened it, so it closes the same smooth way).
+  if (shownIn && shownIn.isConnected && editing === null && !reordering && !payingBill) {
+    const row = shownIn.querySelector('.account-block.is-open .account-row, .account-open[aria-expanded="true"]');
+    if (row) { row.click(); return true; }
+  }
   if (!shownIn || !shownIn.isConnected || (editing === null && !reordering && !payingBill)) return false;
   editing = null;
   reordering = false;

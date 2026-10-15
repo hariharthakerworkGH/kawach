@@ -280,9 +280,25 @@ function urlFor(view) {
 // or more away starts a fresh trail: leaving with the home button is leaving.
 const TOP = { kawach: 'top' };
 const FRESH_AFTER_MS = 30000;
-const TABS = new Set(['add', 'transactions', 'accounts', 'plan', 'coach']);
 let leaving = false;
 let hiddenAt = 0;
+
+// The topmost thing open over the screen, closed the way its own close button would: true when something was closed.
+const OVERLAYS = ['.hv-recdlg', '.hv-sheet', '.hv-story', '.hv-recap', '.hv-ask', '.dialog-backdrop', '.notes-sheet', '.tour-box', '.guide-tip', '#month-sheet', '#quick-sheet', '#add-cat-sheet:not([hidden])', '.secret-dialog', '.lock'];
+function dismissOverlay() {
+  const shown = (el) => el && el.getClientRects().length > 0;
+  const el = OVERLAYS.map((s) => document.querySelector(s)).find(shown);
+  if (!el) return false;
+  if (el.matches('.hv-sheet')) { closeAddSheet(); return true; }
+  if (el.matches('.lock')) return false; // the lock screen is never dismissed by back
+  // its own Escape handling first (sheets and dialogs listen for it), whether on it or on the page
+  for (const target of [el.querySelector('[role=dialog], .k-sheet, .dialog') || el, document]) {
+    target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  }
+  // things that do not listen are taken away
+  if (shown(el) && el.matches('.hv-recdlg, .hv-story, .hv-recap, .hv-ask')) el.remove();
+  return true;
+}
 
 function wireBackButton() {
   // Reopened on the app's own top entry (a reload, an update): the root marker
@@ -300,28 +316,27 @@ function wireBackButton() {
       history.back();
       return;
     }
+    // 1. Whatever is open over the screen closes first: a sheet, a dialog, the month's story, a recording box.
+    if (dismissOverlay()) {
+      history.pushState(TOP, '', urlFor(currentView));
+      return;
+    }
+    // 2. Then what is open on the screen itself (an opened account, an unfolded section).
     const stepBack = views[currentView]?.module?.onBack;
     if (typeof stepBack === 'function' && stepBack()) {
       history.pushState(TOP, '', urlFor(currentView));
       return;
     }
-    if (window.scrollY > 4) {
-      history.pushState(TOP, '', urlFor(currentView));
-      const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      window.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
-      return;
-    }
+    // 3. Summary is home: back from it leaves the app.
     if (currentView === 'summary') {
       leaving = true;
       history.back();
       return;
     }
-    // A tab goes home; a screen opened from another goes back to it.
-    const prev = !TABS.has(currentView) && trail.length ? trail.pop() : null;
-    if (!prev) trail.length = 0;
-    const to = prev ? prev.view : 'summary';
-    history.pushState(TOP, '', urlFor(to));
-    await showView(to, prev ? prev.params : {}, true, prev ? prev.scrollY : 0);
+    // 4. From any other screen, back goes home to Summary.
+    trail.length = 0;
+    history.pushState(TOP, '', urlFor('summary'));
+    await showView('summary', {}, true, 0);
   });
 
   document.addEventListener('visibilitychange', () => {

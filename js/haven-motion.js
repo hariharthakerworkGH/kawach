@@ -648,6 +648,8 @@ let ticking = false;
 function tiltStep() {
   vel = (vel + (target - angle) * 0.12) * 0.82;
   angle += vel;
+  const LIMIT = MAX_TILT + 6;
+  if (angle > LIMIT || angle < -LIMIT) { angle = clamp(angle, -LIMIT, LIMIT); vel *= -0.25; }
   for (const g of tilts) if (g.isConnected) g.setAttribute('transform', `rotate(${angle.toFixed(2)} 50 ${g.dataset.sy || 50})`);
   if (Math.abs(vel) > 0.02 || Math.abs(target - angle) > 0.05) requestAnimationFrame(tiltStep);
   else ticking = false;
@@ -682,7 +684,7 @@ function onMotion(e) {
   if (lastX != null) {
     const d = Math.abs(x - lastX);
     // A shake slops the water about (alive only)...
-    if (alive() && d > 6) { vel += clamp((x - lastX) * -0.5, -5, 5); kick(); }
+    if (alive() && d > 6) { vel = clamp(vel + clamp((x - lastX) * -0.25, -1.5, 1.5), -4, 4); kick(); }
     // ...and three gentle jolts within a second offer to undo the last payment.
     if (d > 9) {
       const now = Date.now();

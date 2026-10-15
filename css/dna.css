@@ -3402,8 +3402,6 @@ html.is-locked .app-header, html.is-locked #view-container, html.is-locked #tabs
 .lock__dots { display: flex; gap: 14px; margin: 8px 0 6px; }
 .lock__dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--k-text-3); transition: background-color var(--k-t-fast) var(--k-ease), border-color var(--k-t-fast) var(--k-ease); }
 .lock__dots i.on { background: var(--k-accent); border-color: var(--k-accent); }
-@keyframes lock-shake { 20% { transform: translateX(-8px); } 60% { transform: translateX(8px); } 100% { transform: none; } }
-.lock__dots.shake { animation: lock-shake 360ms var(--k-ease); }
 .lock__pad { display: grid; grid-template-columns: repeat(3, 72px); gap: 12px; justify-content: center; }
 .lock__key { width: 72px; height: 64px; display: grid; place-items: center; border: 1px solid var(--k-border); border-radius: 18px; background: var(--k-surface); color: var(--k-text); font: inherit; font-size: 24px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .lock__key:active { background: var(--k-surface-press); }

@@ -52,65 +52,6 @@ function setLevel(vault, lvl, ms) {
   const t = tide.querySelector('.tilt');
   if (t) t.dataset.sy = surfaceOf(clamp(lvl, 0, 1)).toFixed(1);
 }
-const figNode = (vault) => vault.querySelector('.hv-vault__fig .hv-num');
-
-/* ---- rewind the month ---------------------------------------------------------------------------------------- */
-function rewind(vault) {
-  const strip = vault.querySelector('[data-rewind]');
-  const L = parse(vault.dataset.life);
-  if (!strip || !L || L.cum.length < 2 || strip.dataset.wired) { if (strip && (!L || L.cum.length < 2)) strip.remove(); return; }
-  strip.dataset.wired = '1';
-  const n = L.cum.length;
-  const handle = strip.querySelector('.hv-rewind__h');
-  const label = strip.querySelector('.hv-rewind__t');
-  const fig = figNode(vault);
-  const original = fig ? fig.textContent : '';
-  const today = L.limit > 0 ? clamp(L.free / L.limit, 0, 1) : 0;
-  const HINT = 'Drag to look back';
-  label.textContent = HINT;
-  const left = (i) => L.free + (L.cum[n - 1] - L.cum[i]);
-  strip.setAttribute('aria-valuemax', String(n));
-  strip.setAttribute('aria-valuenow', String(n));
-  let timer = 0;
-  let down = false;
-  const trail = document.createElement('i');
-  trail.className = 'hv-trail';
-  vault.querySelector('.tide')?.append(trail);
-  const show = (i, ms) => {
-    const lv = L.limit > 0 ? left(i) / L.limit : 0;
-    setLevel(vault, lv, ms);
-    if (fig) fig.textContent = Math.round(Math.abs(left(i)) / 100).toLocaleString('en-IN');
-    handle.style.transition = ms > 60 ? `left ${ms}ms var(--hv-spring-soft)` : 'none';
-    handle.style.left = `${(i / (n - 1)) * 100}%`;
-    label.textContent = i === n - 1 ? HINT : `${niceDate(`2000-${L.days[i][0]}`)} · ${rs(left(i))} left`;
-    strip.setAttribute('aria-valuenow', String(i + 1));
-    const tideEl = vault.querySelector('.tide');
-    if (tideEl) {
-      trail.style.top = `${((surfaceOf(clamp(today, 0, 1)) - 8) / 86) * tideEl.clientHeight}px`;
-      trail.classList.toggle('on', i !== n - 1);
-    }
-  };
-  const at = (e) => {
-    const r = strip.getBoundingClientRect();
-    const f = clamp((e.clientX - r.left) / r.width, 0, 1);
-    show(Math.round(f * (n - 1)), 160);
-  };
-  const back = () => {
-    clearTimeout(timer);
-    timer = setTimeout(() => { show(n - 1, 900); setTimeout(() => { if (fig) fig.textContent = original; setLevel(vault, today, 0); vault.querySelector('.tide .water').style.transition = ''; }, 950); }, 500);
-  };
-  strip.addEventListener('pointerdown', (e) => { down = true; clearTimeout(timer); try { strip.setPointerCapture(e.pointerId); } catch { /* a pointer that is gone */ } at(e); });
-  strip.addEventListener('pointermove', (e) => down && at(e));
-  for (const t of ['pointerup', 'pointercancel']) strip.addEventListener(t, () => { if (down) { down = false; back(); } });
-  strip.addEventListener('keydown', (e) => {
-    const cur = Number(strip.getAttribute('aria-valuenow')) - 1;
-    const to = { ArrowLeft: cur - 1, ArrowRight: cur + 1, Home: 0, End: n - 1 }[e.key];
-    if (to === undefined) return;
-    e.preventDefault();
-    show(clamp(to, 0, n - 1), 160);
-    if (to >= n - 1) back();
-  });
-}
 
 /* ---- a limit to try, by dragging the water -------------------------------------------------------------------- */
 function whatIf(vault) {
@@ -518,7 +459,6 @@ export function lifeDraw(scope) {
   if (document.documentElement.dataset.style !== 'haven') return;
   const vault = scope.querySelector?.('[data-hv-summary] .hv-vault') || scope.querySelector?.('.hv-vault');
   if (vault) {
-    rewind(vault);
     whatIf(vault);
     insights(scope, vault);
     calendar(scope, vault);

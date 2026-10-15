@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.70',
+    items: [
+      {
+        icon: 'shield',
+        title: "Back goes home, sky everywhere, water stays in",
+        text: "Back closes what is open, then goes to Summary. The sky shows on every page. The shield's water stays inside. The look-back line is gone. Record a run sits under the version in Settings.",
+      },
+    ],
+  },
+  {
     version: '5.69',
     items: [
       {
@@ -131,7 +141,6 @@ const NOTES = [
         icon: 'sparkle',
         title: "Haven looks back and lends a hand",
         text: "Drag the line under the shield to rewind the month. On Sunday evening a card tells your week, and when a month closes it is told back in a few cards, with small badges. The keypad says the amount in words, and keys feel better. In History a guessed category is a swipe away. Drag the water to try a daily limit. Latest payments open in place, the sky shows the weather, and a quiet month sleeps. A calendar of days sits under More.",
-        guide: [{ view: 'summary', target: '[data-rewind]', text: "Drag along this line to see the month on an earlier day." }],
       },
     ],
   },
