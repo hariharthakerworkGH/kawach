@@ -8,6 +8,7 @@
  * choice takes effect at once. Haven only. */
 import { appearance } from './appearance.js';
 import { rollOverride } from './ui.js';
+import { startSky } from './haven-sky.js';
 
 const root = document.documentElement;
 const quiet = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
@@ -757,6 +758,7 @@ export function initMotion() {
       buzz(10);
   });
 
+  startSky();
   fireflies();
   new MutationObserver(fireflies).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-motion', 'data-style'] });
   paintSky();

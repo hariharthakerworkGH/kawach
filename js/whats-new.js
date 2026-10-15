@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.69',
+    items: [
+      {
+        icon: 'sun',
+        title: "A sky that follows the day",
+        text: "A small sun and soft glow cross the top of every page by day, with slow clouds; at night a moon, stars and fireflies. It follows the real time.",
+      },
+    ],
+  },
+  {
     version: '5.68',
     items: [
       {

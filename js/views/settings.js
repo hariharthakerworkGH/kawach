@@ -16,6 +16,7 @@ import { redraw } from '../redraw.js';
 import { dataIsKept } from '../install.js';
 import { playTour, shareKawach } from '../tour.js';
 import { APP_VERSION, versionStatus, checkForUpdate } from '../version.js';
+import { wireRecordRow } from '../haven-record.js';
 import { enhancePasswords, checkPair, MIN_PASSPHRASE } from '../password-field.js';
 import { moneyProfile, addBusiness, renameBusiness, removeBusiness, setBusinessGst, setCurrentSpace } from '../business.js';
 import { notesFor, openNotes } from '../whats-new.js';
@@ -330,6 +331,7 @@ export async function render(container, params = {}) {
   container.querySelector('#watch-tour').addEventListener('click', playTour);
   container.querySelector('#start-demo').addEventListener('click', async () => (await import('../demo.js')).startDemoFlow());
   renderVersionLine(container);
+  wireRecordRow(container);
   container.querySelector('#safe-backup')?.addEventListener('click', () => {
     const go = container.querySelector('#drive-backup-btn') || container.querySelector('#file-backup-btn');
     if (go) go.click();
