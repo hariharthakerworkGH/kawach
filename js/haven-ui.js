@@ -194,6 +194,31 @@ export function havenHeader(view) {
  * Built from the rows the screen has already drawn, so every figure and every button is the screen's. */
 const GEM_OF_TYPE = { bank: [1, 'accounts'], card: [4, 'card'], cash: [3, 'cash'], savings: [6, 'piggy'], loan: [5, 'loan'], pf: [6, 'piggy'] };
 const localOpen = new Set();
+
+// A bigger change takes a little longer, so it never rushes.
+const glideMs = (from, to) => Math.min(720, 380 + Math.abs(to - from) * 0.35);
+// Grow or shrink a card from one height to another, so what sits below it glides instead of jumping.
+function glide(block, from, to) {
+  if (!isLive() || Math.abs(from - to) < 2) return;
+  block.style.overflow = 'hidden';
+  const a = block.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: glideMs(from, to), easing: 'cubic-bezier(.3,.7,.2,1)' });
+  const done = () => { block.style.overflow = ''; };
+  a.onfinish = done; a.oncancel = done;
+}
+const keyOf = (b) => b.querySelector('.account-row')?.dataset.id;
+
+// Accounts redraws itself when a card or bank is opened or closed (its details are worked out then). Done in plain sight that
+// replays the whole screen's arrival and jumps; this keeps the arrival for the first draw only and glides each card to its new size.
+export async function softRedraw(container, run) {
+  if (!isHaven() || !isLive()) return run();
+  const before = new Map([...container.querySelectorAll('.account-block')].map((b) => [keyOf(b), b.getBoundingClientRect().height]));
+  container._hvSoft = true;
+  try { await run(); } finally { container._hvSoft = false; }
+  for (const b of container.querySelectorAll('.account-block')) {
+    const k = keyOf(b);
+    if (before.has(k)) glide(b, before.get(k), b.getBoundingClientRect().height);
+  }
+}
 const FILTERS = { All: null, Cards: ['Cards'], Money: ['Cash', 'Bank', 'Savings and FDs', 'Provident fund'], Loans: ['Loans'] };
 const lakh = (n) => shortRupees(n);
 export function havenAccounts(container, justOpened = null) {
@@ -257,15 +282,27 @@ function dressAccounts(container, justOpened) {
       const block = row.closest('.account-block');
       const id = row.dataset.id;
       const open = !block.classList.contains('is-open');
+      const from = block.getBoundingClientRect().height;
+      const y = window.scrollY;
       if (open) localOpen.add(id); else localOpen.delete(id);
       block.classList.toggle('is-open', open);
       row.setAttribute('aria-expanded', String(open));
       row.querySelector('.hv-rowwater')?.remove();
       if (open) row.insertAdjacentHTML('afterbegin', '<span class="hv-rowwater" aria-hidden="true"></span>');
-      if (open && isLive()) {
-        [...block.children].filter((c) => c !== row && getComputedStyle(c).display !== 'none').forEach((c, i) => c.animate([{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: 480, easing: 'cubic-bezier(.34,1.3,.64,1)' }));
-        row.animate([{ transform: 'scale(.985)' }, { transform: 'none' }], { duration: 520, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+      if (!isLive()) return;
+      const to = block.getBoundingClientRect().height;
+      if (open) {
+        glide(block, from, to);
+        [...block.children].filter((c) => c !== row && getComputedStyle(c).display !== 'none').forEach((c, i) => c.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 360, delay: 80 + i * 30, easing: 'ease-out', fill: 'backwards' }));
         row.querySelector('.hv-rowwater')?.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { duration: 1100, easing: 'cubic-bezier(.22,1,.36,1)' });
+      } else {
+        // closing: keep what is inside on show while the card shrinks over it, then let it go
+        block.classList.add('is-open');
+        window.scrollTo(0, y);
+        block.style.overflow = 'hidden';
+        const a = block.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: glideMs(from, to), easing: 'cubic-bezier(.3,.7,.2,1)' });
+        const done = () => { block.classList.toggle('is-open', localOpen.has(id)); block.style.overflow = ''; };
+        a.onfinish = done; a.oncancel = done;
       }
     };
     container.addEventListener('click', (e) => {
@@ -310,11 +347,14 @@ function dressAccounts(container, justOpened) {
   if (sort) { sort.classList.add('hv-sortsel'); bar.append(sort); }
   container.prepend(head, ...groups, chips);
   // arrival: the figures count up, the lines draw, the shields fill, the cards rise
-  if (isLive()) {
+  const soft = container._hvSoft;
+  if (isLive() && !soft) {
     top.querySelectorAll('[data-count]').forEach((n) => { const to = Number(n.dataset.count); const t0 = performance.now(); const step = (t) => { const p = Math.min(1, (t - t0) / 900); n.textContent = lakh(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); });
     container.querySelectorAll('.hv-lead--tank .water').forEach((w) => { const to = w.style.getPropertyValue('--lvl'); w.style.transition = 'none'; w.style.setProperty('--lvl', '0'); void w.getBoundingClientRect(); w.style.transition = 'transform 1200ms var(--hv-spring-soft)'; requestAnimationFrame(() => requestAnimationFrame(() => w.style.setProperty('--lvl', to))); });
     container.querySelectorAll('.account-block').forEach((b) => b.animate([{ transform: 'translateY(14px)', opacity: 0.4 }, { transform: 'none', opacity: 1 }], { duration: 420, easing: 'cubic-bezier(.16,1,.3,1)' }));
-    // the account you just opened: its details unfold and its card turns navy with water rising
+  }
+  // the account you just opened: its details unfold and its card turns navy with water rising
+  if (isLive()) {
     if (justOpened) {
       const row = container.querySelector(`.account-open[data-id="${CSS.escape(justOpened)}"]`);
       const block = row?.closest('.account-block');

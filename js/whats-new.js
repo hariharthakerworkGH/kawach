@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.67',
+    items: [
+      {
+        icon: 'accounts',
+        title: "Accounts open smoothly",
+        text: "Opening and closing an account now glides: no flash, no jumps.",
+      },
+    ],
+  },
+  {
     version: '5.66.2',
     items: [
       {

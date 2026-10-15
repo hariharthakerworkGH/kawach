@@ -8,12 +8,14 @@ import { pfPosition, pfContribution, DEFAULT_PF_RATE } from '../pf.js';
 import { isoLocal } from '../frequency.js';
 import { findDuplicates } from '../duplicates.js';
 import { byYourOrder } from '../commitments.js';
-import { redraw } from '../redraw.js';
+import { redraw as plainRedraw } from '../redraw.js';
+// Haven: a redraw after a tap keeps the screen still and glides the cards that changed size.
+const redraw = (container, draw) => softRedraw(container, () => plainRedraw(container, draw));
 import { ensureBusinessCategories, moneyProfile, activeSpace, accountInSpace } from '../business.js';
 import { detectTransfers } from '../transfers.js';
 import { icon } from '../icons.js';
 import { brandMark } from '../brand.js';
-import { havenAccounts } from '../haven-ui.js';
+import { havenAccounts, softRedraw } from '../haven-ui.js';
 import { reminderText, updatePerson, shareReminder } from '../people.js';
 import { allocationRing, tickGauge } from '../charts.js';
 import { appearance, setAppearance } from '../appearance.js';
