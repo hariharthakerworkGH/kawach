@@ -2,6 +2,7 @@ import { getAll } from '../db.js';
 import { formatCurrency, formatDateNice } from '../format.js';
 import { isDemo } from '../demo-flag.js';
 import { matchCategoryForDescription, isIncomeCategory, fitsDirection } from '../merchant-rules.js';
+import { flyWordsToFields } from '../haven-life.js';
 import { parseAlert, resolveAccount, findExisting, alertFingerprint, dateMatch } from '../alerts.js';
 import { pendingAlerts, addToInbox, dismissAlert, saveAlert } from '../alert-inbox.js';
 import { loadLearned, forgetLearned } from '../alert-learning.js';
@@ -447,18 +448,18 @@ function showReading(card) {
   const p = draft.parsed;
   const marks = [];
   const money = [...raw.matchAll(/(?:Rs\.?|INR|₹|Rupees|Amt\.?:?|Amount:?)\s*([\d,]+(?:\.\d{1,2})?)/gi)].find((m) => Math.round(parseFloat(m[1].replace(/,/g, '')) * 100) === p.amount);
-  if (money) marks.push({ at: money.index, len: money[0].length });
+  if (money) marks.push({ at: money.index, len: money[0].length, kind: 'money' });
   const who = p.party ? raw.toLowerCase().indexOf(p.party.toLowerCase()) : -1;
-  if (who >= 0) marks.push({ at: who, len: p.party.length });
+  if (who >= 0) marks.push({ at: who, len: p.party.length, kind: 'who' });
   const day = dateMatch(raw);
-  if (day) marks.push({ at: day.index, len: day.text.length });
+  if (day) marks.push({ at: day.index, len: day.text.length, kind: 'day' });
   marks.sort((a, b) => a.at - b.at);
   let html = '';
   let from = 0;
   let k = 0;
   for (const m of marks) {
     if (m.at < from) continue;
-    html += `${escapeHtml(raw.slice(from, m.at))}<mark style="--k:${k}">${escapeHtml(raw.slice(m.at, m.at + m.len))}</mark>`;
+    html += `${escapeHtml(raw.slice(from, m.at))}<mark data-kind="${m.kind}" style="--k:${k}">${escapeHtml(raw.slice(m.at, m.at + m.len))}</mark>`;
     from = m.at + m.len;
     k += 1;
   }
@@ -467,10 +468,12 @@ function showReading(card) {
   box.className = 'alert-sms';
   box.innerHTML = html;
   card.querySelector('.alert-top').after(box);
+  // Haven: each underlined word flies into the field it filled, one after another.
+  flyWordsToFields(box, card, ['money', 'who', 'day']);
   setTimeout(async () => {
     if (box.animate) await box.animate([{ height: `${box.offsetHeight}px`, opacity: 1 }, { height: '0px', opacity: 0, marginTop: '0px', marginBottom: '0px' }], { duration: 200, easing: 'cubic-bezier(0.7, 0, 0.84, 0)' }).finished.catch(() => {});
     box.remove();
-  }, 1800);
+  }, 2600);
 }
 
 // `inline`: a field that will not do shakes and says why under itself (one card, one tap), rather

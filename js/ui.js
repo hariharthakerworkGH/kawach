@@ -434,6 +434,7 @@ export function invalidField(input, message) {
  * figure carries data-roll (the value in paise) and data-roll-key (what it is a figure of, so one
  * month never rolls into another). The real figure is always on screen a moment later. */
 const ROLL_MS = 700;
+export const rollOverride = { run: null };
 const lastFigure = new Map();
 
 export function rollFigures(root = document) {
@@ -444,6 +445,8 @@ export function rollFigures(root = document) {
     const from = lastFigure.get(key);
     lastFigure.set(key, to);
     if (reduced || document.hidden || from == null || from === to || (from < 0) !== (to < 0)) continue;
+    // Haven's big figure rolls digit by digit, like a meter (js/haven-motion.js): it takes the figure over.
+    if (rollOverride.run && rollOverride.run(el, from, to)) continue;
     // A figure can sit beside a unit ("1,830" and a small rupee sign): only its own text is rewritten.
     const node = [...el.childNodes].find((n) => n.nodeType === 3 && /\d/.test(n.nodeValue)) || el;
     const write = (text) => (node === el ? (el.textContent = text) : (node.nodeValue = text));

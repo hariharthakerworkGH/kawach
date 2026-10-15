@@ -297,3 +297,81 @@ svg.waves:focus-visible:not(.by-pointer) { outline: 2px solid var(--hv-link, cur
 :root[data-style="haven"] .money-label { margin: 4px 0 6px; font-size: 12.5px; }
 :root[data-style="haven"] .money-label-gap { margin-top: 10px; }
 :root[data-style="haven"] #view-container .k.settings-k { padding-inline: 0; margin-inline: 0; }
+
+/* ================================================================== Accounts (5.64) */
+:root[data-style="haven"] .hv-hold-wrap { display: grid; gap: 8px; margin-bottom: 10px; }
+:root[data-style="haven"] .hv-hold { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+:root[data-style="haven"] .hv-hold > div { display: grid; gap: 2px; padding: 10px 14px; border-radius: 20px; background: var(--hv-shell); box-shadow: 0 0 0 1px var(--hv-hair); }
+:root[data-style="haven"] .hv-hold small { font-size: 12px; color: var(--hv-ink-3); }
+:root[data-style="haven"] .hv-hold b { font-size: 22px; font-weight: 650; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+:root[data-style="haven"] .hv-hold__bar { display: block; height: 5px; border-radius: 3px; background: var(--hv-well); overflow: hidden; margin-top: 4px; }
+:root[data-style="haven"] .hv-hold__bar > i { display: block; height: 100%; border-radius: 3px; transform-origin: left; background: linear-gradient(90deg, var(--hv-tide-a), var(--hv-tide-b)); }
+:root[data-style="haven"] .hv-hold__bar.owe > i { background: linear-gradient(90deg, oklch(60% 0.15 55), oklch(75% 0.13 70)); }
+:root[data-style="haven"] .hv-filter { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; align-items: center; }
+:root[data-style="haven"] .hv-filter [data-f] { flex: none; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--hv-shell); box-shadow: 0 0 0 1px var(--hv-hair); font: inherit; font-weight: 600; color: var(--hv-ink-2); transition: transform 400ms var(--hv-spring-snap); }
+:root[data-style="haven"] .hv-filter [data-f].on { background: var(--hv-primary); color: var(--hv-on-primary); box-shadow: none; transform: scale(1.04); }
+:root[data-style="haven"] .hv-sortsel { margin-left: auto; flex: none; }
+/* each account is its own card; the group's pane stops being one big box */
+:root[data-style="haven"] .account-group.k-pane { display: grid; gap: 8px; padding: 0; background: none; box-shadow: none; border: 0; }
+:root[data-style="haven"] .account-group-label { margin: 10px 6px 6px; font-size: 13px; color: var(--hv-ink-3); }
+:root[data-style="haven"] .account-block { position: relative; border-radius: 22px; background: linear-gradient(180deg, var(--hv-core), var(--hv-core-2)); box-shadow: 0 0 0 1px var(--hv-hair), var(--hv-lift); overflow: hidden; }
+:root[data-style="haven"] .account-block .k-row.account-row { position: relative; min-height: 64px; padding: 10px 14px; background: none; box-shadow: none; border: 0; border-radius: 0; transition: color 400ms; }
+:root[data-style="haven"] .account-block.is-open .account-row { background: var(--hv-vault); background-color: #11234f; color: #fff; }
+:root[data-style="haven"] .account-block.is-open .account-row :is(.k-row__title, .k-row__value, .account-balance) { color: #fff; }
+:root[data-style="haven"] .account-block.is-open .account-row .k-row__meta { color: var(--hv-on-navy-2); }
+.hv-rowwater { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, transparent 55%, rgba(110, 200, 235, 0.3)); }
+:root[data-style="haven"] .account-block .account-detail { padding: 8px 14px 12px; }
+:root[data-style="haven"] .hv-lead { flex: none; display: grid; place-items: center; }
+:root[data-style="haven"] .hv-lead--tank { position: relative; width: 36px; height: 44px; }
+:root[data-style="haven"] .hv-lead--line { width: 70px; }
+:root[data-style="haven"] .account-block.is-open .hv-lead--line svg path { stroke: #fff; }
+
+/* ---- where it went (layers) and the budget tanks ---- */
+.hv-ins__layers { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
+.hv-lkeys { display: grid; gap: 2px; }
+.hv-lkey { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center; min-height: 44px; padding: 0 4px; border: 0; background: none; font: inherit; font-size: 13px; color: var(--hv-ink); text-align: left; transition: opacity .3s; }
+.hv-lkey i { width: 10px; height: 10px; border-radius: 3px; }
+.hv-lkey b { font-variant-numeric: tabular-nums; font-weight: 600; }
+.hv-ins__layers [data-layer] { cursor: pointer; }
+.hv-ins__tanks { display: flex; gap: 12px; align-items: flex-end; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; }
+.hv-tank { display: grid; gap: 5px; justify-items: center; font-size: 11px; color: var(--hv-ink-2); flex: none; }
+.hv-tank__v { position: relative; width: 30px; height: 90px; border-radius: 13px; background: var(--hv-well); box-shadow: inset 0 0 0 1.5px var(--hv-hair-strong); overflow: hidden; }
+.hv-tank__v i { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, var(--hv-tide-b), var(--hv-tide-a)); }
+.hv-tank.warm .hv-tank__v i { background: linear-gradient(180deg, oklch(78% 0.14 70), oklch(62% 0.17 40)); }
+
+/* ---- lab 4 (5.62): fireflies, the day-night sweep, today's ring, the way to salary, this month beside last, the chart's flag ---- */
+.hv-flies { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.hv-flies i { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #ffe9a8; box-shadow: 0 0 10px 3px rgba(255, 230, 150, 0.45); }
+:root[data-style="haven"][data-motion="still"] .hv-flies { display: none; }
+html.hv-sweeping::view-transition-old(root), html.hv-sweeping::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.hv-sweeping::view-transition-old(root) { z-index: 1; }
+html.hv-sweeping::view-transition-new(root) { z-index: 2; }
+.hv-ins { display: grid; gap: 16px; }
+.hv-ins__ring { position: relative; display: grid; place-items: center; }
+.hv-ins__t { position: absolute; display: grid; text-align: center; }
+.hv-ins__t b { font-size: 22px; font-weight: 650; letter-spacing: -0.03em; }
+.hv-ins__t span { font-size: 12px; color: var(--hv-ink-3); }
+.hv-ins__s { text-align: center; font-size: 13px; color: var(--hv-ink-2); margin-top: -4px; }
+.hv-ins__cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
+.hv-ins__cmp > div { display: grid; justify-items: center; gap: 3px; }
+.hv-ins__cmp > div > span { font-size: 12px; color: var(--hv-ink-3); }
+.hv-ins__cmp > p { grid-column: 1 / -1; margin: 4px 0 0; font-weight: 650; font-size: 14px; }
+.hv-ins__shield { position: relative; width: 74px; height: 92px; }
+.waves__pole { stroke: var(--hv-ink); stroke-width: 1.4; }
+.waves__pennant { fill: var(--hv-primary); }
+.waves__pt { font-size: 9.5px; font-weight: 650; fill: var(--hv-on-primary); }
+@media (prefers-reduced-motion: no-preference) { :root[data-style="haven"][data-motion="alive"] .waves__pennant { animation: hv-flagwave 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: left center; } }
+@keyframes hv-flagwave { 50% { transform: skewY(3deg); } }
+
+/* ---- a pasted message: the words are underlined only; and the shield while a statement is read ---- */
+:root[data-style="haven"] .alert-sms mark { animation: none; box-shadow: inset 0 -2px 0 var(--hv-link); color: var(--hv-ink); }
+.hv-flychip { position: fixed; z-index: 60; padding: 1px 6px; border-radius: 6px; background: color-mix(in oklab, var(--hv-link) 25%, var(--hv-core)); color: var(--hv-ink); font-size: 12px; pointer-events: none; }
+.hv-readshield { display: inline-flex; align-items: center; gap: 12px; }
+.hv-readshield .tide { position: relative; width: 44px; height: 54px; flex: none; }
+:root[data-style="haven"] .hv-ins > * { min-width: 0; }
+.hv-ins__tanks { max-width: 100%; }
+.hv-ins__layers { grid-template-columns: auto minmax(0, 1fr); }
+.hv-lkey span { min-width: 0; overflow-wrap: anywhere; line-height: 1.2; }
+:root[data-style="haven"] .hv-filter { flex-wrap: wrap; overflow: visible; }
+:root[data-style="haven"] .hv-hold-wrap { min-width: 0; }
+:root[data-style="haven"] .hv-acctchips { flex-wrap: wrap; }

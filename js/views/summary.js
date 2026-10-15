@@ -16,7 +16,7 @@ import { detectRecurring, nextDueDate } from '../recurring.js';
 import { detectAnomalies } from '../anomalies.js';
 import { categoryStyle } from '../category-style.js';
 import { categorySlices, needsCategory } from '../splits.js';
-import { getBudgets, budgetStatusForMonth, cycleAwareEnabled } from '../budgets.js';
+import { getBudgets, budgetStatusForMonth, cycleAwareEnabled, spendByCategoryForMonth } from '../budgets.js';
 import { spendingMonthOf, accountMap, currentMonthKey, previousMonthKey } from '../spending-month.js';
 import { appearance } from '../appearance.js';
 import { playTour } from '../tour.js';
@@ -347,8 +347,8 @@ function havenLatest(transactions, categories, accounts = []) {
 
 /* What Haven's Summary shows beyond the month itself (5.58): the goals, a salary that has just landed, and last month's
  * line for the chart to hold up beside this month's. Each is left out when there is nothing to say. */
-async function havenMore(fts, transactions, months, thisKey) {
-  const out = { goals: [], salary: null };
+async function havenMore(fts, transactions, months, thisKey, categories = []) {
+  const out = { goals: [], salary: null, layers: [], tanks: [] };
   try {
     const accounts = await getAll('accounts');
     const today = isoLocal(new Date());
@@ -376,6 +376,14 @@ async function havenMore(fts, transactions, months, thisKey) {
       if (was.limit > 0 && n > 0 && was.spendDays && was.spendDays.length) out.cmp = { other: Math.max(0, was.limit - (was.spendDays[Math.min(n, was.spendDays.length) - 1] || 0)), limit: was.limit };
     }
     out.cap = Number(await getSetting('dailyCap', 0)) || 0;
+    // Where this month's money went (the five biggest categories, the way budgets count it), and each budget as a tank.
+    const monthKey = currentMonthKey();
+    const spentBy = spendByCategoryForMonth(transactions, accounts, monthKey, await cycleAwareEnabled());
+    out.layers = [...spentBy.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id, amount]) => {
+      const name = (categories.find((c) => c.id === id) || {}).name || 'Other';
+      return { name, amount, color: categoryStyle(name).color };
+    });
+    out.tanks = (await budgetStatusForMonth(await getBudgets(), categories, transactions, monthKey)).slice(0, 6).map((b) => ({ name: b.name, left: Math.max(0, 1 - b.pct), over: b.state === 'over' }));
     // The month has just turned (the first time this one is drawn): the last one told back in a few cards, and the badges it earned.
     const ls = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
     const fresh = Boolean(ls('kawach-cycle') && fts.cycleKey && ls('kawach-cycle') !== fts.cycleKey);
@@ -451,7 +459,7 @@ async function renderDashboard(container) {
 
   const [transactions, fts, install, list, categoryList, accountList] = await Promise.all([getAll('transactions'), computeFreeToSpend(), installCard(), businesses(), getAll('categories'), getAll('accounts')]);
   const latest = havenLatest(transactions, categoryList, accountList);
-  const more = document.documentElement.dataset.style === 'haven' ? await havenMore(fts, transactions, months, thisKey) : null;
+  const more = document.documentElement.dataset.style === 'haven' ? await havenMore(fts, transactions, months, thisKey, categoryList) : null;
   // Anyone with business income has tax dates to keep.
   const tax = taxCard(taxDates(isoLocal(new Date()), { business: list.length > 0 || fts.incomeKind === 'business' }));
 
@@ -483,7 +491,7 @@ async function renderDashboard(container) {
       `<details class="sum-more" id="sum-more">
         <summary><span class="sum-more__t">More about this month</span><span class="sum-more__s">This week, your cards, what is coming up, where it went</span></summary>
         <div class="sum-more__body">
-          ${haven ? '<div id="hv-ins" class="hv-cal-host"></div><div id="hv-cal" class="hv-cal-host"></div>' : ''}
+          ${haven ? `<div id="hv-ins" class="hv-cal-host" data-extra='${more ? escapeAttr(JSON.stringify({ layers: more.layers, tanks: more.tanks })) : ''}'></div><div id="hv-cal" class="hv-cal-host"></div>` : ''}
           ${rest}
           ${renderBankCard(fts)}
           ${fold('Commitments', fts.tracker ? `${fts.tracker.length}` : '', commitments, false, 'commitments-fold')}

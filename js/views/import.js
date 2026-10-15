@@ -19,6 +19,7 @@ import { detectEmis, emiCommitment, emiCommitmentId } from '../commitments.js';
 import { sortAccounts, sortCategories } from '../list-order.js';
 import { isoLocal } from '../frequency.js';
 import { sameTransaction } from '../duplicates.js';
+import { readingShield, mergeTwins } from '../haven-life.js';
 import * as csvParser from '../parsers/csv.js';
 import { readerFor, BANKS } from '../parsers/any-bank.js';
 import { enhancePasswords } from '../password-field.js';
@@ -222,6 +223,7 @@ async function readPdf(file, password) {
   const passwordInput = screen.querySelector('#import-password');
 
   showStatus(status, 'Reading…', false);
+  const shield = readingShield(status);
   resultsEl.innerHTML = '';
 
   try {
@@ -240,6 +242,7 @@ async function readPdf(file, password) {
       showStatus(status, "Couldn't find any payments in this PDF. Download the statement from your bank as a spreadsheet (CSV) instead and choose that.", true);
       return;
     }
+    shield.finish();
     status.hidden = true;
     await startReview({ parser, text, queue: [] }, status, resultsEl);
   } catch (err) {
@@ -993,7 +996,10 @@ function renderResults(resultsEl) {
     skipBox.addEventListener('change', () => {
       state.skipDuplicates = skipBox.checked;
       updateTotals(resultsEl);
+      mergeTwins(resultsEl, skipBox.checked, () => { skipBox.checked = false; state.skipDuplicates = false; updateTotals(resultsEl); mergeTwins(resultsEl, false); });
     });
+    // Skipping is on from the start when there are duplicates: they merge as the list arrives.
+    if (skipBox.checked) setTimeout(() => mergeTwins(resultsEl, true, () => { skipBox.checked = false; state.skipDuplicates = false; updateTotals(resultsEl); mergeTwins(resultsEl, false); }), 600);
   }
 
   const cardSelect = resultsEl.querySelector('#import-card');

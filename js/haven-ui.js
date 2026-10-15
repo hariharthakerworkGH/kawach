@@ -7,6 +7,8 @@ import { pendingAlerts } from './alert-inbox.js';
 import { categoryIcon } from './category-icons.js';
 import { afterDraw, paidOut, buzzFor, sweepTheme } from './haven-motion.js';
 import { lifeDraw } from './haven-life.js';
+import { tideSvg } from './views/summary-looks.js';
+import { shortRupees } from './format.js';
 
 const inr = (paise) => Math.round(Math.abs(paise) / 100).toLocaleString('en-IN');
 const isHaven = () => document.documentElement.dataset.style === 'haven';
@@ -186,71 +188,103 @@ export function havenHeader(view) {
   if (bell) Promise.resolve(pendingAlerts()).then((list) => { const n = Array.isArray(list) ? list.length : 0; if (n) { bell.textContent = n; bell.hidden = false; } }).catch(() => {});
 }
 
-/* Accounts, as the prototype draws it: the accounts as cards you slide through (the middle one forward), "All accounts"
- * with its order control, then the groups, each account on a gem of its kind. Built from the rows the screen has
- * already drawn, so every figure and every button is the screen's own. */
-const GEM_OF_TYPE = { bank: [1, 'accounts'], card: [4, 'card'], cash: [3, 'cash'], savings: [6, 'piggy'], loan: [5, 'loan'] };
-export function havenAccounts(container) {
-  if (!isHaven() || container.querySelector('.hv-cards')) return;
-  const rows = [...container.querySelectorAll('.account-row')].filter((r) => !r.classList.contains('account-row--move'));
-  const typeOf = (r) => ([...r.classList].find((c) => c.startsWith('account-row--')) || '').replace('account-row--', '');
-  // each account on a gem of its kind
-  for (const r of rows) {
-    const [g, ic] = GEM_OF_TYPE[typeOf(r)] || [1, 'accounts'];
-    const mark = r.querySelector('.k-brand');
-    if (mark) mark.outerHTML = `<span class="hv-gem hv-g${g}"><span class="hv-ic">${ic === 'piggy' || ic === 'loan' ? categoryIcon(ic) : icon(ic)}</span></span>`;
-  }
-  // Each card is the account in hand: its figure, and what you do with it (see its payments, add a spend). Tapping the card
-  // opens that account's payments in History; the list below is where an account is managed.
-  const cardOf = (r, i) => {
-    const title = r.querySelector('.k-row__title')?.textContent.trim() || '';
-    const meta = r.querySelector('.k-row__meta')?.textContent.trim() || '';
-    const bal = r.querySelector('.account-balance')?.textContent.trim() || '';
-    const id = r.dataset.id || r.closest('.account-block')?.querySelector('[data-id]')?.dataset.id || '';
-    const type = typeOf(r);
-    const [, ic] = GEM_OF_TYPE[type] || [1, 'accounts'];
-    const spend = ['bank', 'card', 'cash', 'savings'].includes(type);
-    return `<div class="hv-card card--${(i % 3) + 1}" data-account="${escapeText(id)}" role="group" aria-label="${escapeText(title)}"><div class="hv-card__top"><span>${escapeText(title)}</span><span class="hv-ic">${ic === 'piggy' || ic === 'loan' ? categoryIcon(ic) : icon(ic)}</span></div><div><div class="hv-card__fig hv-fig hv-amt">${escapeText(bal)}</div><div class="hv-card__sub">${escapeText(meta)}</div></div><div class="hv-card__acts"><button type="button" class="hv-cardbtn" data-card-act="payments">Payments</button>${spend ? '<button type="button" class="hv-cardbtn" data-card-act="spend">Add a spend</button>' : ''}</div></div>`;
-  };
-  const withBalance = rows.filter((r) => r.querySelector('.account-balance')?.textContent.trim());
-  if (!withBalance.length) return;
-  const deck = document.createElement('div');
-  deck.className = 'hv-accounts-deck';
-  deck.innerHTML = `<div class="hv-cards" id="hv-cards">${withBalance.map(cardOf).join('')}</div><div class="hv-dots" id="hv-dots">${withBalance.map((_, i) => `<i${i === 0 ? ' class="on"' : ''}></i>`).join('')}</div>`;
-  const sort = container.querySelector('#accounts-sort');
-  const sec = document.createElement('div');
-  sec.className = 'hv-sec';
-  sec.innerHTML = '<h2>All accounts</h2>';
-  if (sort) sec.append(sort);
+/* Accounts (5.64): what you hold and what you owe on top, a few filter chips, and one card for each account. Every account
+ * is shown once. A card is a picture of the account (a shield that fills with a card's use, a line for a bank balance), its name
+ * and its figure; tap it and it opens, in place, into the account's own details and buttons (the screen's own, unchanged).
+ * Built from the rows the screen has already drawn, so every figure and every button is the screen's. */
+const GEM_OF_TYPE = { bank: [1, 'accounts'], card: [4, 'card'], cash: [3, 'cash'], savings: [6, 'piggy'], loan: [5, 'loan'], pf: [6, 'piggy'] };
+const FILTERS = { All: null, Cards: ['Cards'], Money: ['Cash', 'Bank', 'Savings and FDs', 'Provident fund'], Loans: ['Loans'] };
+const lakh = (n) => shortRupees(n);
+export function havenAccounts(container, justOpened = null) {
+  if (!isHaven() || container.querySelector('.hv-hold')) return;
+  const groups = [...container.querySelectorAll('.account-group-sec')];
+  const holdBox = container.querySelector('#hv-hold');
+  // the old total and ring give way to the two figures
+  container.querySelector('.acct-total')?.remove();
   const chips = document.createElement('div');
-  chips.className = 'hv-chips';
+  chips.className = 'hv-chips hv-acctchips';
   for (const id of ['add-account-btn', 'go-import-btn', 'accounts-reveal', 'accounts-reorder']) {
     const b = container.querySelector(`#${id}`);
     if (b) { b.classList.add('hv-chip'); b.classList.remove('k-btn', 'k-btn--secondary', 'k-btn--ghost'); chips.append(b); }
   }
   container.querySelector('.accounts-actions')?.remove();
-  const groups = [...container.querySelectorAll('.account-group-sec')];
-  container.prepend(deck, sec, ...groups, chips);
-  deck.addEventListener('click', (e) => {
-    const card = e.target.closest('.hv-card');
-    if (!card) return;
-    const act = e.target.closest('[data-card-act]')?.dataset.cardAct;
-    const view = act === 'spend' ? 'add' : 'transactions';
-    card.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view, accountId: card.dataset.account || undefined } }));
-  });
-  const cards = deck.querySelector('.hv-cards'), dots = [...deck.querySelectorAll('.hv-dots i')];
-  const upd = () => {
-    const c = cards.getBoundingClientRect(), mid = c.left + c.width / 2;
-    let best = 0, bd = 1e9;
-    [...cards.children].forEach((k, i) => {
-      const r = k.getBoundingClientRect(), d = Math.abs(r.left + r.width / 2 - mid) / r.width;
-      k.style.setProperty('--sc', (1 - 0.08 * Math.min(d, 1)).toFixed(3));
-      k.style.setProperty('--op', (1 - 0.4 * Math.min(d, 1)).toFixed(3));
-      if (d < bd) { bd = d; best = i; }
-    });
-    dots.forEach((x, i) => x.classList.toggle('on', i === best));
+  const sort = container.querySelector('#accounts-sort');
+
+  // the picture of each account
+  for (const block of container.querySelectorAll('.account-block')) {
+    const row = block.querySelector('.account-row');
+    if (!row || row.classList.contains('account-row--move')) continue;
+    const lead = (() => { try { return JSON.parse(row.dataset.lead || 'null'); } catch { return null; } })();
+    const mark = row.querySelector('.k-brand');
+    const type = ([...row.classList].find((c) => c.startsWith('account-row--')) || '').replace('account-row--', '');
+    const [g, ic] = GEM_OF_TYPE[type] || [1, 'accounts'];
+    if (mark) mark.outerHTML = lead && lead.t === 'tank'
+      ? `<span class="hv-lead hv-lead--tank tide" data-mood="calm" style="--lvl:${lead.v.toFixed(3)}">${tideSvg(lead.v, 0)}</span>`
+      : lead && lead.t === 'line'
+        ? `<span class="hv-lead hv-lead--line">${sparkline(lead.pts)}</span>`
+        : `<span class="hv-gem hv-g${g}"><span class="hv-ic">${ic === 'piggy' || ic === 'loan' ? categoryIcon(ic) : icon(ic)}</span></span>`;
+    block.classList.toggle('is-open', row.getAttribute('aria-expanded') === 'true');
+    // a balance from a lakh up reads short; the whole figure is on the row's label
+    const fig = row.querySelector('.account-balance');
+    const m = fig && /^₹\s?([\d,]+)$/.exec(fig.textContent.trim());
+    if (m) { const n = Number(m[1].replace(/,/g, '')) * 100; if (n >= 10000000) { fig.setAttribute('title', fig.textContent.trim()); fig.textContent = lakh(n); } }
+    // the water inside a card that is open
+    if (block.classList.contains('is-open') && !row.querySelector('.hv-rowwater')) row.insertAdjacentHTML('afterbegin', '<span class="hv-rowwater" aria-hidden="true"></span>');
+  }
+
+  const hold = Number(holdBox?.dataset.hold) || 0;
+  const owe = Number(holdBox?.dataset.owe) || 0;
+  const top = document.createElement('div');
+  top.className = 'hv-hold';
+  top.innerHTML = `<div><small>You hold</small><b class="hv-amt" data-count="${hold}">${lakh(hold)}</b><i class="hv-hold__bar"><i style="transform:scaleX(${(hold / Math.max(1, hold + owe)).toFixed(3)})"></i></i></div><div><small>You owe</small><b class="hv-amt" data-count="${owe}">${lakh(owe)}</b><i class="hv-hold__bar owe"><i style="transform:scaleX(${(owe / Math.max(1, hold + owe)).toFixed(3)})"></i></i></div>`;
+
+  const bar = document.createElement('div');
+  bar.className = 'hv-filter';
+  bar.innerHTML = Object.keys(FILTERS).map((k) => `<button type="button" data-f="${k}">${k}</button>`).join('');
+  let filt = 'All';
+  try { filt = sessionStorage.getItem('kawach-acct-filter') || 'All'; } catch { filt = 'All'; }
+  const apply = () => {
+    bar.querySelectorAll('[data-f]').forEach((b) => b.classList.toggle('on', b.dataset.f === filt));
+    for (const sec of groups) {
+      const title = sec.querySelector('.account-group-label')?.textContent.trim();
+      sec.hidden = Boolean(FILTERS[filt]) && !FILTERS[filt].includes(title);
+    }
   };
-  cards.addEventListener('scroll', upd, { passive: true });
-  requestAnimationFrame(upd);
+  bar.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-f]');
+    if (!b) return;
+    filt = b.dataset.f;
+    try { sessionStorage.setItem('kawach-acct-filter', filt); } catch { /* none */ }
+    apply();
+    groups.filter((g) => !g.hidden).forEach((g, i) => g.animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 420, delay: i * 50, easing: 'cubic-bezier(.16,1,.3,1)' }));
+  });
+  apply();
+  const head = document.createElement('div');
+  head.className = 'hv-hold-wrap';
+  head.append(top, bar);
+  if (sort) { sort.classList.add('hv-sortsel'); bar.append(sort); }
+  container.prepend(head, ...groups, chips);
+  // arrival: the figures count up, the lines draw, the shields fill, the cards rise
+  if (isLive()) {
+    top.querySelectorAll('[data-count]').forEach((n) => { const to = Number(n.dataset.count); const t0 = performance.now(); const step = (t) => { const p = Math.min(1, (t - t0) / 900); n.textContent = lakh(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); });
+    container.querySelectorAll('.hv-lead--tank .water').forEach((w) => { const to = w.style.getPropertyValue('--lvl'); w.style.transition = 'none'; w.style.setProperty('--lvl', '0'); void w.getBoundingClientRect(); w.style.transition = 'transform 1200ms var(--hv-spring-soft)'; requestAnimationFrame(() => requestAnimationFrame(() => w.style.setProperty('--lvl', to))); });
+    container.querySelectorAll('.account-block').forEach((b, i) => b.animate([{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 480, delay: Math.min(i, 8) * 50, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
+    // the account you just opened: its details unfold and its card turns navy with water rising
+    if (justOpened) {
+      const row = container.querySelector(`.account-open[data-id="${CSS.escape(justOpened)}"]`);
+      const block = row?.closest('.account-block');
+      const det = block?.querySelector('.account-detail');
+      if (det) det.animate([{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: 520, easing: 'cubic-bezier(.34,1.3,.64,1)' });
+      row?.animate([{ transform: 'scale(.985)' }, { transform: 'none' }], { duration: 520, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+      row?.querySelector('.hv-rowwater')?.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { duration: 1100, easing: 'cubic-bezier(.22,1,.36,1)' });
+    }
+  }
+}
+const isLive = () => document.documentElement.dataset.motion !== 'still' && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+/* a balance as a line drawing itself (eight points) */
+function sparkline(pts) {
+  const mx = Math.max(...pts), mn = Math.min(...pts);
+  const d = pts.map((v, i) => `${i ? 'L' : 'M'}${((i / (pts.length - 1)) * 68 + 1).toFixed(1)} ${(24 - ((v - mn) / (mx - mn || 1)) * 22).toFixed(1)}`).join(' ');
+  return `<svg viewBox="0 0 70 26" width="70" height="26" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--hv-link)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"><animate attributeName="stroke-dashoffset" from="100" to="0" dur="1.1s" fill="freeze" calcMode="spline" keySplines=".16 1 .3 1" keyTimes="0;1"/></path></svg>`;
 }
 const escapeText = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);

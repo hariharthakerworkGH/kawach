@@ -12,6 +12,7 @@ import { tideSvg } from './views/summary-looks.js';
 
 const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
 const SOFT = 'cubic-bezier(.22,1,.36,1)';
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const rs = (paise) => `₹${Math.round(Math.abs(paise) / 100).toLocaleString('en-IN')}`;
 const parse = (s) => { try { return JSON.parse(s); } catch { return null; } };
 const surfaceOf = (lvl) => 12 + (1 - lvl) * 77;
@@ -264,6 +265,16 @@ function calendar(scope, vault) {
   else play();
 }
 
+/* Where it went: the water in a shield, layered by category, biggest at the bottom; touch a layer and the rest dim. */
+const SHIELD_PATH = 'M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z';
+function shieldLayers(layers) {
+  const total = layers.reduce((s, c) => s + c.amount, 0) || 1;
+  let y = 89;
+  const bands = layers.map((c, i) => { const h = (c.amount / total) * 77 * 0.78; const top = y - h; y = top; return `<rect data-layer="${i}" x="10" y="${top.toFixed(1)}" width="80" height="${h.toFixed(1)}" style="fill:${c.color};transform-box:fill-box;transform-origin:bottom;transition:opacity .3s"/>`; }).join('');
+  const key = layers.map((c, i) => `<button type="button" class="hv-lkey" data-key="${i}"><i style="background:${c.color}"></i><span>${esc(c.name)}</span><b>${rs(c.amount)}</b></button>`).join('');
+  return `<div class="hv-ins__layers"><svg viewBox="16 8 68 86" width="116" height="144" role="img" aria-label="Where this month's money went, by category"><defs><clipPath id="hvL"><path d="${SHIELD_PATH}"/></clipPath></defs><path d="${SHIELD_PATH}" fill="rgba(120,140,170,.12)"/><g clip-path="url(#hvL)">${bands}</g><path d="${SHIELD_PATH}" fill="none" stroke="var(--hv-ink-3)" stroke-width="1.6"/></svg><div class="hv-lkeys">${key}</div></div>`;
+}
+
 /* ---- today as a ring, the way to the next salary, this month beside last ----------------------------------------------------- */
 function insights(scope, vault) {
   const host = scope.querySelector('#hv-ins');
@@ -281,17 +292,24 @@ function insights(scope, vault) {
   const over = left < 0;
   const salary = L.toSalary > 0 ? new Date(Date.now() + L.toSalary * 86400000) : null;
   const cmp = L.cmp;
+  const extra = parse(host.dataset.extra) || {};
+  const layers = extra.layers || [];
+  const tanks = extra.tanks || [];
   const mineLvl = clamp(L.free / L.limit, 0, 1);
   const sh = (lvl) => `<div class="tide hv-ins__shield" data-mood="calm" style="--lvl:${lvl.toFixed(3)}">${tideSvg(lvl, 0)}</div>`;
   host.innerHTML = `<div class="hv-sec"><h2>Today and the way ahead</h2></div><div class="hv-shell"><div class="hv-core"><div class="hv-ins">
     <div class="hv-ins__ring"><svg viewBox="0 0 120 120" width="120" height="120" style="transform:rotate(-90deg)" role="img" aria-label="${over ? rs(-left) + ' over today' : rs(left) + ' left today'}"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--hv-well)" stroke-width="12"/><circle data-ring cx="60" cy="60" r="50" fill="none" stroke="${over ? 'oklch(70% .15 55)' : 'var(--hv-tide-b)'}" stroke-width="12" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314"/></svg><div class="hv-ins__t"><b>${over ? '−' : ''}${rs(Math.abs(left))}</b><span>${over ? 'over today' : 'left today'}</span></div></div>
     ${salary ? `<div class="hv-ins__arc"><svg viewBox="0 0 280 110" width="100%" height="110" aria-hidden="true"><path d="M20 100 Q140 -40 260 100" fill="none" stroke="var(--hv-hair-strong)" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/><path data-arc d="M20 100 Q140 -40 260 100" fill="none" stroke="var(--hv-tide-b)" stroke-width="3" stroke-linecap="round"/><g data-sun><circle r="11" fill="#ffd36a"/><circle r="19" fill="#ffd36a" opacity=".3"/></g><circle cx="260" cy="100" r="6" fill="var(--hv-good)"/></svg><div class="hv-ins__s">${L.toSalary} day${L.toSalary === 1 ? '' : 's'} to salary · ${salary.getDate()} ${MONTH[salary.getMonth()]}</div></div>` : ''}
+    ${layers.length ? shieldLayers(layers) : ''}
+    ${tanks.length ? `<div class="hv-ins__tanks" role="group" aria-label="Budgets left">${tanks.map((t, i) => `<div class="hv-tank${t.left < 0.15 ? ' warm' : ''}" data-i="${i}"><span class="hv-tank__v"><i data-f style="height:${(t.left * 100).toFixed(0)}%"></i></span><span>${esc(t.name)}</span></div>`).join('')}</div>` : ''}
     ${cmp ? `<div class="hv-ins__cmp"><div>${sh(mineLvl)}<b>This month</b><span>${rs(L.free)} left</span></div><div>${sh(clamp(cmp.other / cmp.limit, 0, 1))}<b>Last month</b><span>${rs(cmp.other)} left by now</span></div><p>${L.free >= cmp.other ? `${rs(L.free - cmp.other)} ahead of last month` : `${rs(cmp.other - L.free)} behind last month`}</p></div>` : ''}
   </div></div></div>`;
   const ring = host.querySelector('[data-ring]');
   const arc = host.querySelector('[data-arc]');
   const sun = host.querySelector('[data-sun]');
   const play = () => {
+    host.querySelectorAll('[data-layer]').forEach((r, i) => r.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: live() ? 700 : 1, delay: live() ? i * 140 : 0, easing: 'cubic-bezier(.34,1.3,.64,1)', fill: 'backwards' }));
+    host.querySelectorAll('.hv-tank [data-f]').forEach((f) => { const to = f.style.height; f.style.transition = 'none'; f.style.height = '0%'; void f.offsetHeight; f.style.transition = live() ? 'height 900ms var(--hv-spring-soft)' : 'none'; requestAnimationFrame(() => requestAnimationFrame(() => { f.style.height = to; })); });
     ring.style.transition = live() ? 'stroke-dashoffset 900ms var(--hv-spring-soft)' : 'none';
     requestAnimationFrame(() => requestAnimationFrame(() => { ring.style.strokeDashoffset = String(314 * (1 - p)); }));
     if (arc) {
@@ -306,6 +324,13 @@ function insights(scope, vault) {
     }
     if (cmp) host.querySelectorAll('.hv-ins__shield .water').forEach((w) => { const to = w.style.getPropertyValue('--lvl'); w.style.transition = 'none'; w.style.setProperty('--lvl', '0'); void w.getBoundingClientRect(); w.style.transition = live() ? 'transform 1200ms var(--hv-spring-soft)' : 'none'; requestAnimationFrame(() => requestAnimationFrame(() => w.style.setProperty('--lvl', to))); });
   };
+  let sel = -1;
+  const pick = (i) => {
+    sel = sel === i ? -1 : i;
+    host.querySelectorAll('[data-layer]').forEach((r) => { r.style.opacity = sel < 0 || Number(r.dataset.layer) === sel ? '1' : '0.5'; });
+    host.querySelectorAll('.hv-lkey').forEach((k) => { k.style.opacity = sel < 0 || Number(k.dataset.key) === sel ? '1' : '0.5'; });
+  };
+  host.addEventListener('click', (e) => { const t = e.target.closest('[data-layer], .hv-lkey'); if (t) pick(Number(t.dataset.layer ?? t.dataset.key)); });
   const fold = host.closest('details');
   if (fold && !fold.open) fold.addEventListener('toggle', () => fold.open && play(), { once: true });
   else play();
@@ -448,7 +473,7 @@ export function filingSwipe(container, { find, needs, nameOf, apply }) {
     const name = categoryId && nameOf(categoryId);
     if (!name || !rowEl.isConnected) return;
     const sub = rowEl.querySelector('.hist-sub');
-    if (sub) sub.insertAdjacentHTML('beforeend', ` <span class="hist-guess">Looks like <b>${name.replace(/[<>&]/g, '')}</b></span>`);
+    if (sub) sub.insertAdjacentHTML('beforeend', ` <span class="hist-guess">Looks like <b>${esc(name)}</b></span>`);
     const line = rowEl.querySelector('.hist-line');
     // A swipe along this row is for filing, not for moving to the next tab (js/swipe.js).
     line.classList.add('no-swipe');
@@ -516,4 +541,67 @@ export function lifeDraw(scope) {
     t.innerHTML = tideSvg(0.15, 0);
     el.prepend(t);
   });
+}
+
+/* ---- a pasted message is understood where you can see it: the words are underlined and fly into their fields ------------------ */
+export function flyWordsToFields(box, card, kinds) {
+  if (document.documentElement.dataset.style !== 'haven' || !live()) return;
+  const target = { money: '.al-amount', who: '.al-desc', day: '.al-date' };
+  kinds.forEach((kind, i) => {
+    const mark = box.querySelector(`mark[data-kind="${kind}"]`);
+    const field = card.querySelector(target[kind]);
+    if (!mark || !field) return;
+    setTimeout(() => {
+      const a = mark.getBoundingClientRect();
+      const b = field.getBoundingClientRect();
+      const chip = document.createElement('i');
+      chip.className = 'hv-flychip';
+      chip.textContent = mark.textContent;
+      chip.style.left = `${a.left}px`;
+      chip.style.top = `${a.top}px`;
+      document.body.append(chip);
+      chip.animate([{ transform: 'translate(0,0)', opacity: 1 }, { transform: `translate(${b.left - a.left}px,${b.top - a.top}px) scale(.85)`, opacity: 0 }], { duration: 520, easing: 'cubic-bezier(.5,0,.2,1)' }).onfinish = () => chip.remove();
+      mark.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], 360);
+    }, 300 + i * 500);
+  });
+}
+
+/* ---- reading a statement: a shield fills while it is read, and never looks stuck ------------------------------------------------ */
+export function readingShield(status) {
+  const none = { finish() {} };
+  if (document.documentElement.dataset.style !== 'haven' || !status) return none;
+  status.hidden = false;
+  status.className = 'status in';
+  status.innerHTML = `<span class="hv-readshield"><span class="tide" data-mood="calm" style="--lvl:0.05">${tideSvg(0.05, 0)}</span><span>Reading…</span></span>`;
+  const water = status.querySelector('.water');
+  if (!water || !live()) return none;
+  requestAnimationFrame(() => requestAnimationFrame(() => { water.style.transition = 'transform 7000ms cubic-bezier(.2,.8,.3,1)'; water.style.setProperty('--lvl', '0.86'); }));
+  return {
+    finish() {
+      water.style.transition = 'transform 500ms var(--hv-spring-soft)';
+      water.style.setProperty('--lvl', '1');
+      sparks(status.querySelector('.tide'), 6, 900);
+    },
+  };
+}
+
+/* ---- two rows that are the same payment slide together and become one (with five seconds to take it back) ---------------------- */
+export function mergeTwins(resultsEl, on, onUndo) {
+  if (document.documentElement.dataset.style !== 'haven') return;
+  const rows = [...resultsEl.querySelectorAll('.import-row-duplicate')];
+  if (!rows.length) return;
+  const move = (r, hide) => {
+    if (!live()) { r.hidden = hide; return; }
+    if (hide) {
+      const h = r.offsetHeight;
+      r.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: `translateY(-${Math.min(h, 90)}px)`, opacity: 0 }], { duration: 520, delay: 250, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'forwards' }).onfinish = () => { r.hidden = true; r.getAnimations().forEach((a) => a.cancel()); };
+    } else {
+      r.hidden = false;
+      r.animate([{ transform: 'translateY(-30px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 420, easing: 'cubic-bezier(.34,1.3,.64,1)' });
+    }
+  };
+  rows.forEach((r) => move(r, on));
+  if (on) {
+    import('./toast.js').then(({ showToast }) => showToast(`${rows.length} already-imported ${rows.length === 1 ? 'row' : 'rows'} merged`, { ms: 5000, action: { label: 'Undo', run: () => onUndo && onUndo() } }));
+  }
 }

@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.64',
+    items: [
+      {
+        icon: 'sparkle',
+        title: "Accounts, rebuilt, and more life",
+        text: "Accounts now shows what you hold and what you owe, filter chips (All, Cards, Money, Loans) and one card for each account: a shield that fills for a card's use, a line for a bank balance. Tap a card and it opens in place. Also: budgets as little tanks and where your money went as layers (under More), the figure rolls digit by digit, a pasted bank message flies into its fields, a statement fills a shield while it is read, and duplicate rows merge.",
+        guide: [{ view: 'accounts', target: '.hv-hold', text: "What you hold, what you owe, then one card for each account." }],
+      },
+    ],
+  },
+  {
     version: '5.63',
     items: [
       {

@@ -209,8 +209,6 @@
 :root[data-style="haven"] .pl-today, :root[data-style="haven"] .pl-hint, :root[data-style="haven"] .pl-clear, :root[data-style="haven"] .pl-done summary { text-align: left; color: var(--hv-ink-2); }
 
 /* one shell per group: the accounts inside a group and the payments inside a day are rows, not cards */
-:root[data-style="haven"] .k .account-block { background: none; box-shadow: none; border-radius: 0; margin-inline: 0; }
-:root[data-style="haven"] .k .account-block + .account-block { border-top: 1px solid var(--hv-hair); }
 :root[data-style="haven"] .k .account-group { padding: 4px 16px; }
 :root[data-style="haven"] .k .hist-day-card { padding: 2px 14px; }
 :root[data-style="haven"] .k .hist-day-card .hist-row { padding-inline: 0; }

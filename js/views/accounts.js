@@ -1,7 +1,7 @@
 import { getAll, put, remove, newId } from '../db.js';
 import { computeFreeToSpend } from '../free-to-spend.js';
 import { formatCurrency, formatDateNice, formatMonthYear, formatRupees, ordinal } from '../format.js';
-import { bankBalance, cardCycleSpend, cardBillDue, cardPosition, statementDay, isPutAway } from '../account-metrics.js';
+import { bankBalance, balanceAt, cardCycleSpend, cardBillDue, cardPosition, statementDay, isPutAway } from '../account-metrics.js';
 import { loanPosition, loanPayments, paymentsFor, payFasterPlan, loanHistory, isLoanAccount } from '../loans.js';
 import { askConfirm } from '../dialog.js';
 import { pfPosition, pfContribution, DEFAULT_PF_RATE } from '../pf.js';
@@ -122,6 +122,7 @@ export async function render(container) {
       ${accounts.length > 1 && accountOrder === 'yours' ? `<button type="button" id="accounts-reorder" class="k-btn k-btn--ghost">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
     </div>
     ${accountsTotal(groups, transactions, homeFigures)}
+    ${holdOwe(groups, transactions, homeFigures)}
     ${cushionCard(homeFigures)}
     ${editing === 'new' ? accountForm(null, transactions, accounts) : ''}
     ${
@@ -170,7 +171,12 @@ export async function render(container) {
   container.querySelectorAll('.account-open').forEach((btn) =>
     btn.addEventListener('click', () => {
       if (opened.has(btn.dataset.id)) opened.delete(btn.dataset.id);
-      else opened.add(btn.dataset.id);
+      else {
+        // Haven opens one account at a time, into its own card.
+        if (document.documentElement.dataset.style === 'haven') opened.clear();
+        opened.add(btn.dataset.id);
+        justOpened = btn.dataset.id;
+      }
       redraw(container, () => render(container));
     })
   );
@@ -180,7 +186,8 @@ export async function render(container) {
     })
   );
 
-  havenAccounts(container);
+  havenAccounts(container, justOpened);
+  justOpened = null;
   // Absent while the empty state is showing, which is the one time it would
   // be saying the same thing twice.
   const addBtn = container.querySelector('#add-account-btn');
@@ -723,6 +730,7 @@ const openPeople = new Set();
 
 // Work costs on each card, from the same figures as Summary (set in render).
 let workByCard = new Map();
+let justOpened = null;
 
 /* On a card: what you spent yourself, what was for work (your employer pays it
  * back), and the fixed costs you set on Plan that this card has still to be
@@ -873,7 +881,20 @@ let balancesShown = false;
 const covering = () => appearance('accounts') === 'private' && !balancesShown;
 const cover = (text) => (covering() && text ? '<span class="amount-covered" aria-label="Balance hidden">••••</span>' : text);
 
-function accountRow(account, { meta = '', value = '', tone = '', canOpen = false, place = {} }) {
+// The balance on each of the last eight weeks, as a line (null when the statement does not reach back).
+function balanceLine(account, transactions) {
+  const pts = [];
+  for (let i = 7; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 7 * 86400000);
+    const v = balanceAt(account, transactions, isoLocal(d));
+    if (v == null) return null;
+    pts.push(v);
+  }
+  return pts.some((v) => v !== pts[0]) ? { t: 'line', pts } : null;
+}
+
+function accountRow(account, { meta = '', value = '', tone = '', canOpen = false, place = {}, lead = null }) {
+  const leadAttr = lead ? ` data-lead='${escapeAttr(JSON.stringify(lead))}'` : '';
   value = cover(value);
   const open = opened.has(account.id);
   // The bank's own name if we know it, otherwise what the account is called.
@@ -901,9 +922,9 @@ function accountRow(account, { meta = '', value = '', tone = '', canOpen = false
   }
 
   const figure = `<span class="k-row__value account-balance ${tone}">${value}</span>`;
-  if (!canOpen) return `<div class="k-row account-row account-row--${account.type}">${body}${figure}</div>`;
+  if (!canOpen) return `<div class="k-row account-row account-row--${account.type}"${leadAttr}>${body}${figure}</div>`;
   return `
-    <button type="button" class="k-row account-row account-open account-row--${account.type}" data-id="${account.id}" aria-expanded="${open}">
+    <button type="button" class="k-row account-row account-open account-row--${account.type}" data-id="${account.id}" aria-expanded="${open}"${leadAttr}>
       ${body}${figure}
       <span class="account-row__chev" aria-hidden="true"></span>
     </button>`;
@@ -1014,6 +1035,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
           value: position.outstanding != null ? formatRupees(position.outstanding) : '',
           tone: position.outstanding != null ? moneyTone(position.outstanding) : '',
           place,
+          lead: position.outstanding != null && paidOff != null ? { t: 'tank', v: Math.max(0.05, 1 - paidOff / 100) } : null,
         })}
         <div class="account-detail">
         ${
@@ -1073,6 +1095,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
             tone: moneyTone(cycleSpend),
             canOpen: true,
             place,
+            lead: account.creditLimit > 0 ? { t: 'tank', v: Math.min(1, Math.max(0.06, (Math.max(cycleSpend, 0) + (bill && !bill.paid ? bill.amount : 0)) / account.creditLimit)) } : null,
           }),
           // A real amount already billed that the app cannot see yet: a fact
           // the card computes, not a remark invented about it.
@@ -1111,6 +1134,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
                   value: formatRupees(deposits.length ? total : balance),
                   canOpen: account.type === 'bank',
                   place,
+                  lead: account.type === 'bank' ? balanceLine(account, transactions) : null,
                 }),
                 '',
                 { spendable }
@@ -1537,6 +1561,14 @@ export function cushionCard(fts) {
       <div class="cushion__bar" role="img" aria-label="${said} of fixed costs covered; many people aim for ${c.target}">${cells}</div>
       <p class="cushion__line">Savings ${formatRupees(c.savings)} · costs ${formatRupees(c.costs)} a month · many aim for ${c.target}</p>
     </div>`;
+}
+
+// Haven's top: what you hold (everything you could name a balance for) and what you owe (cards and loans), as two figures.
+function holdOwe(groups, transactions, fts) {
+  const sum = (list) => (list || []).map((a) => bankBalance(a, transactions)).filter((v) => v != null).reduce((s, v) => s + v, 0);
+  const hold = sum(groups.bank) + sum(groups.cash) + sum(groups.savings) + sum(groups.pf);
+  const owe = Math.max(0, ((fts && fts.totals && fts.totals.owedCards) || 0) + ((fts && fts.totals && fts.totals.unpaidBills) || 0)) + (((fts && fts.loans) || []).reduce((s, l) => s + (l.outstanding || 0), 0));
+  return `<div id="hv-hold" data-hold="${hold}" data-owe="${owe}" hidden></div>`;
 }
 
 function accountsTotal(groups, transactions, fts = null) {

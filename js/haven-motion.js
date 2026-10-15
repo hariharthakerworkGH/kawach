@@ -7,6 +7,7 @@
  * (nothing). A phone set to "reduce motion" is always still. Everything asks level() when it runs, so changing the
  * choice takes effect at once. Haven only. */
 import { appearance } from './appearance.js';
+import { rollOverride } from './ui.js';
 
 const root = document.documentElement;
 const quiet = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
@@ -821,3 +822,44 @@ export function fireflies() {
   }
   document.body.append(flies);
 }
+
+/* ---- digits that roll like an odometer (800 ms, all at once, a little overshoot) ------------------------------------------- */
+export function odometer(el, from, to) {
+  const rupees = (p) => Math.round(Math.abs(p) / 100);
+  const was = rupees(from).toLocaleString('en-IN');
+  const now = rupees(to).toLocaleString('en-IN');
+  const final = el.textContent;
+  const up = rupees(to) >= rupees(from);
+  el.textContent = '';
+  const cols = [];
+  [...now].forEach((ch, i) => {
+    const old = was[was.length - now.length + i];
+    const col = document.createElement('span');
+    col.style.cssText = 'display:inline-block;height:1.1em;line-height:1.1em;overflow:hidden;vertical-align:top';
+    const strip = document.createElement('span');
+    strip.style.cssText = 'display:block';
+    if (!/\d/.test(ch) || !/\d/.test(old || '')) {
+      strip.textContent = ch;
+      col.append(strip);
+      el.append(col);
+      return;
+    }
+    const target = Number(ch);
+    const seq = [];
+    let d = Number(old);
+    do { seq.push(d); d = (d + (up ? 1 : 9)) % 10; } while (seq.length < 11 && seq[seq.length - 1] !== target);
+    strip.innerHTML = seq.map((x) => `<span style="display:block;height:1.1em">${x}</span>`).join('');
+    col.append(strip);
+    el.append(col);
+    cols.push([strip, seq.length - 1]);
+  });
+  cols.forEach(([strip, steps]) => {
+    strip.animate([{ transform: 'translateY(0)' }, { transform: `translateY(${-steps * 1.1}em)`, offset: 0.9 }, { transform: `translateY(${-steps * 1.1 - 0.06}em)`, offset: 0.95 }, { transform: `translateY(${-steps * 1.1}em)` }], { duration: 800, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'forwards' });
+  });
+  setTimeout(() => { el.textContent = final; }, 860);
+}
+rollOverride.run = (el, from, to) => {
+  if (!isHaven() || !live() || !el.closest('.hv-vault') || el.dataset.rollKind !== 'left') return false;
+  odometer(el, from, to);
+  return true;
+};
