@@ -548,10 +548,20 @@ export function lifeDraw(scope) {
 export function flyWordsToFields(box, card, kinds) {
   if (document.documentElement.dataset.style !== 'haven' || !live()) return;
   const target = { money: '.al-amount', who: '.al-desc', day: '.al-date' };
-  kinds.forEach((kind, i) => {
+  // The fields start empty (their values stay put, only hidden) and each one is filled the moment its word lands on it.
+  const jobs = [];
+  kinds.forEach((kind) => {
     const mark = box.querySelector(`mark[data-kind="${kind}"]`);
-    const field = card.querySelector(target[kind]);
+    const field = card.querySelector(target[kind]) || (kind === 'money' ? card.querySelector('.alert-amount') : null);
     if (!mark || !field) return;
+    field.style.opacity = '0';
+    jobs.push({ mark, field });
+  });
+  const fill = (field) => {
+    field.style.opacity = '';
+    field.animate([{ opacity: 0, transform: 'translateY(6px) scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: 380, easing: 'cubic-bezier(.34,1.4,.64,1)' });
+  };
+  jobs.forEach(({ mark, field }, i) => {
     setTimeout(() => {
       const a = mark.getBoundingClientRect();
       const b = field.getBoundingClientRect();
@@ -561,10 +571,13 @@ export function flyWordsToFields(box, card, kinds) {
       chip.style.left = `${a.left}px`;
       chip.style.top = `${a.top}px`;
       document.body.append(chip);
-      chip.animate([{ transform: 'translate(0,0)', opacity: 1 }, { transform: `translate(${b.left - a.left}px,${b.top - a.top}px) scale(.85)`, opacity: 0 }], { duration: 520, easing: 'cubic-bezier(.5,0,.2,1)' }).onfinish = () => chip.remove();
+      const fly = chip.animate([{ transform: 'translate(0,0)', opacity: 1 }, { transform: `translate(${b.left - a.left}px,${b.top - a.top}px) scale(.85)`, opacity: 0.9 }], { duration: 520, easing: 'cubic-bezier(.5,0,.2,1)', fill: 'forwards' });
+      fly.onfinish = () => { chip.remove(); fill(field); };
       mark.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], 360);
     }, 300 + i * 500);
   });
+  // Whatever happens, every field is on show again once the show is over.
+  setTimeout(() => jobs.forEach(({ field }) => { field.style.opacity = ''; }), 300 + jobs.length * 500 + 900);
 }
 
 /* ---- reading a statement: a shield fills while it is read, and never looks stuck ------------------------------------------------ */

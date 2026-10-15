@@ -5,7 +5,7 @@ import { matchCategoryForDescription, isIncomeCategory, fitsDirection } from '..
 import { flyWordsToFields } from '../haven-life.js';
 import { parseAlert, resolveAccount, findExisting, alertFingerprint, dateMatch } from '../alerts.js';
 import { pendingAlerts, addToInbox, dismissAlert, saveAlert } from '../alert-inbox.js';
-import { loadLearned, forgetLearned } from '../alert-learning.js';
+import { loadLearned } from '../alert-learning.js';
 import { showToast } from '../toast.js';
 import { commitmentField, cardPaymentField } from './add.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
@@ -35,7 +35,7 @@ let generation = 0;
 
 export async function render(container) {
   const mine = ++generation;
-  const learnedList = await loadLearned();
+  await loadLearned(); // wordings taught earlier are read silently; nothing about them is shown
   const [items, accounts, transactions, categories, recurring] = await Promise.all([
     pendingAlerts(),
     getAll('accounts'),
@@ -101,21 +101,6 @@ export async function render(container) {
       <button type="button" class="btn-tiny" id="inbox-read">Read it</button>
     </div>
 
-    ${
-      learnedList.length
-        ? `<details class="section-fold learned-list">
-    <summary>Wordings I have learned (${learnedList.length})</summary>
-    <div class="totals-card">
-      ${learnedList
-        .map(
-          (f) => `<div class="learned-row"><span class="learned-shape">${escapeHtml(f.shape)}</span><button type="button" class="btn-tiny learned-forget" data-id="${escapeAttr(f.id)}">Forget</button></div>`
-        )
-        .join('')}
-    </div>
-    </details>`
-        : ''
-    }
-
     <details class="section-fold">
     <summary>Share straight from Messages</summary>
     <div class="totals-card">
@@ -166,7 +151,6 @@ function draftTemplate(d) {
       </div>
       ${existingNote(d.existing)}
       ${partial ? partialNote(parsed) : ''}
-      ${parsed.confidence === 'learned' ? `<p class="alert-note">Read the way you taught me.</p>` : ''}
       ${!d.account ? `<p class="alert-note">${parsed.last4 ? `Which account is ••${parsed.last4}? It'll be remembered.` : 'Pick the account.'}</p>` : ''}
 
       <label class="field">
@@ -263,7 +247,7 @@ function partialNote(parsed) {
     !parsed.date ? 'the date' : '',
     !parsed.last4 ? 'the account' : '',
   ].filter(Boolean);
-  return `<p class="alert-note">New wording. ${gaps.length ? `I could not read ${gaps.join(', ')}: fill ${gaps.length === 1 ? 'it' : 'them'} in. ` : 'Check what I read. '}Save it once and I will read messages worded like this by myself.</p>`;
+  return `<p class="alert-note">${gaps.length ? `I could not read ${gaps.join(', ')}: fill ${gaps.length === 1 ? 'it' : 'them'} in.` : 'Check what I read.'}</p>`;
 }
 
 function existingNote(existing) {
@@ -377,14 +361,6 @@ function wire(root, container) {
           }
         }
         showToast(`Saved ${saved} alert${saved === 1 ? '' : 's'}`);
-        await refresh();
-        return;
-      }
-
-      const forget = e.target.closest('.learned-forget');
-      if (forget) {
-        await forgetLearned(forget.dataset.id);
-        showToast('Forgotten');
         await refresh();
         return;
       }

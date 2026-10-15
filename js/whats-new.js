@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.66.2',
+    items: [
+      {
+        icon: 'bell',
+        title: "Pasted alerts fill in front of you",
+        text: "A pasted bank message now fills its fields one by one as each word lands. The list of learned wordings is gone.",
+      },
+    ],
+  },
+  {
     version: '5.66.1',
     items: [
       {
