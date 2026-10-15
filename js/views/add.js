@@ -913,7 +913,7 @@ function havenArrangeAdd(container) {
   // Other ways in than typing: one quiet line under the main button, so the sheet stays about the amount.
   const via = document.createElement('p');
   via.className = 'hv-via';
-  via.innerHTML = `<button type="button" data-hv-go="import">Import a statement</button>`;
+  via.innerHTML = `Or <button type="button" data-hv-go="inbox">paste a bank message</button> <span aria-hidden="true">·</span> <button type="button" data-hv-go="import">import a statement</button>`;
   one.append(toggle, wrap.closest('.amount-field') || wrap, pad, next, via);
   const two = document.createElement('div');
   two.className = 'hv-addstep hv-stack';
