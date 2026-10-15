@@ -21,7 +21,7 @@ import { forecast, costInMonth } from '../js/forecast.js';
 import { flexReport } from '../js/flex-report.js';
 import { flexCard } from '../js/views/recap.js';
 import { makeRecord, checkPin, waitFor, mustLock, makeKeyText, normaliseKey, formatKey, makeKeyRecord, checkKey } from '../js/lock.js';
-import { comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts, longestAhead, monthStory, weekRecap, skyFor } from '../js/views/summary-looks.js';
+import { comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts, longestAhead, monthStory, weekRecap } from '../js/views/summary-looks.js';
 import { neighbour } from '../js/swipe.js';
 import { festivalOn } from '../js/haven-motion.js';
 import { rupeeWords } from '../js/haven-life.js';
@@ -2042,7 +2042,7 @@ test('Haven lab 2: days ahead of pace, what today kept, yesterday, and the festi
   equal(festivalOn('2027-01-01'), 'New Year', 'New Year');
   equal(festivalOn('2026-10-15'), null, 'an ordinary day');
 });
-test('Haven lab 3: the amount in words, short lakhs, the month told back, the week and the sky', () => {
+test('Haven lab 3: the amount in words, short lakhs, the month told back and the week', () => {
   equal(rupeeWords(0), '', 'nothing, nothing said');
   equal(rupeeWords(450), 'Four hundred and fifty', 'hundreds');
   equal(rupeeWords(45000), 'Forty five thousand', 'thousands');
@@ -2063,9 +2063,6 @@ test('Haven lab 3: the amount in words, short lakhs, the month told back, the we
   equal(monthStory({ limit: 0, spendByDay: [] }, 0, 'X').length, 0, 'no budget, no story');
   const w = weekRecap(f([5, 12, 18, 25, 30, 35, 40, 45]));
   ok(w && w.days.length === 7 && w.total === rupees(45 - 5) && w.big.amount === rupees(7), 'a week: its seven days, its total and its biggest');
-  equal(skyFor('calm', 0.9, 0.5), 'clear', 'well ahead is clear');
-  equal(skyFor('calm', 0.5, 0.5), 'clouds', 'level is clouds');
-  equal(skyFor('watch', 0.4, 0.6), 'rain', 'behind is a light rain');
 });
 test('Swiping between tabs goes round and round in the order of the tab bar', () => {
   equal(neighbour('summary', 1), 'accounts', 'left from Summary is Accounts');

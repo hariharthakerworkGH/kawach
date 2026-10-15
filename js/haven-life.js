@@ -1,7 +1,7 @@
 /* Haven's life, second part (5.60): what the owner chose in motion lab 3. Looking back (rewind the month, the Sunday card,
  * the month as a patch of colour, the month told in cards, small badges), doing things more easily (the amount in words,
  * keys that feel good, a limit to try by dragging the water, a payment that stamps in, a category that trembles) and the
- * world around the shield (the sky's weather, a row that opens into itself, a shield that sleeps when there is nothing yet).
+ * world around the shield (a row that opens into itself, a shield that sleeps when there is nothing yet).
  * The pieces of data come on the Summary's own markup (data-life, data-recap, data-story, data-weather, ...), drawn in
  * js/views/summary-looks.js; nothing here reads the database except the daily limit it saves.
  * Same three levels as js/haven-motion.js (alive, calm, still); a phone set to reduce motion is always still. */
@@ -346,44 +346,6 @@ function morph(scope) {
   });
 }
 
-/* ---- the sky has weather (alive) ------------------------------------------------------------------------------------ */
-let wx = null;
-let wxKind = '';
-let rain = 0;
-function weather(vault, force) {
-  if (!vault || !alive()) { wx?.remove(); wx = null; wxKind = ''; clearInterval(rain); return; }
-  const kind = force || vault.dataset.weather || 'clouds';
-  if (wx && wxKind === kind && wx.isConnected) return;
-  clearInterval(rain);
-  wx?.remove();
-  wxKind = kind;
-  wx = document.createElement('div');
-  wx.className = `hv-weather hv-weather--${kind}`;
-  wx.setAttribute('aria-hidden', 'true');
-  document.body.append(wx);
-  if (kind === 'clear') wx.insertAdjacentHTML('beforeend', '<i class="hv-sun"></i>');
-  const clouds = kind === 'clear' ? 1 : kind === 'clouds' ? 3 : 4;
-  for (let i = 0; i < clouds; i++) {
-    const c = document.createElement('i');
-    c.className = 'hv-cloud';
-    c.style.cssText = `top:${16 + i * 22}px;width:${90 + i * 24}px;height:${26 + i * 6}px`;
-    wx.append(c);
-    c.animate([{ transform: 'translateX(-120px)' }, { transform: `translateX(${innerWidth + 120}px)` }], { duration: 50000 + i * 14000, iterations: Infinity, delay: -i * 17000, easing: 'linear' });
-  }
-  if (kind === 'rain') {
-    rain = setInterval(() => {
-      if (!wx || !wx.isConnected || document.hidden) return;
-      for (let j = 0; j < 2; j++) {
-        const d = document.createElement('i');
-        d.className = 'hv-drop';
-        d.style.left = `${Math.random() * 100}%`;
-        wx.append(d);
-        d.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(260px)', opacity: 0.15 }], { duration: 1000 + Math.random() * 400, easing: 'linear' }).onfinish = () => d.remove();
-      }
-    }, 160);
-  }
-}
-
 /* ---- a category near its limit trembles (alive) ---------------------------------------------------------------------- */
 let tremor = 0;
 function trembleLoop() {
@@ -541,7 +503,6 @@ export function lifeDraw(scope) {
     }
     sleeping(vault);
   }
-  weather(vault);
   stamp(scope);
   morph(scope);
   trembleLoop();
@@ -556,62 +517,3 @@ export function lifeDraw(scope) {
     el.prepend(t);
   });
 }
-
-/* ---- "Try the motion" (Settings, How it looks) ---------------------------------------------------------------------------- */
-export const demoLife = {
-  recap(vault) { sundayCard(vault, true); },
-  story(vault) {
-    const L = parse(vault.dataset.life);
-    const spent = L ? L.cum[L.cum.length - 1] : 0;
-    const big = L ? L.days.reduce((a, d) => (d[1] > a[1] ? d : a), L.days[0]) : null;
-    const cards = [['This month so far', L && L.limit - spent >= 0 ? `You have kept ${rs(L.limit - spent)}` : 'A month in progress', L && L.limit - spent >= 0 ? 'of your budget' : 'told as it goes']];
-    if (big && big[1] > 0) cards.push(['Biggest day so far', rs(big[1]), `the ${Number(big[0].slice(3))}th`]);
-    cards.push(['A sample of the month told back', 'Five cards at most', 'tap to go on']);
-    story(vault, { key: 'demo', cards });
-  },
-  badge(vault) {
-    const top = vault.querySelector('.hv-vault__top');
-    if (!top) return;
-    const b = document.createElement('span');
-    b.className = 'hv-medal is-new';
-    b.setAttribute('role', 'img');
-    b.setAttribute('aria-label', 'A sample badge');
-    b.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 2l8 3v7c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V5z" fill="#ffd36a" stroke="#c98a13" stroke-width="1.4"/><path d="M8 12.5l3 3 5-6" fill="none" stroke="#7a4a05" stroke-width="2" stroke-linecap="round"/></svg>';
-    top.insertBefore(b, top.lastElementChild);
-    b.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 700, easing: SOFT });
-    setTimeout(() => b.remove(), 5000);
-  },
-  weather(vault) {
-    const order = ['clear', 'clouds', 'rain'];
-    let i = 0;
-    const next = () => { weather(vault, order[i]); i += 1; if (i < order.length) setTimeout(next, 3500); else setTimeout(() => weather(vault), 3500); };
-    next();
-  },
-  sleep(vault) {
-    const tide = vault.querySelector('.tide');
-    let n = 0;
-    const t = setInterval(() => {
-      const z = document.createElement('i');
-      z.className = 'hv-z';
-      z.textContent = 'z';
-      tide.append(z);
-      z.animate([{ transform: 'translate(0,0) scale(.6)', opacity: 0 }, { opacity: 1, offset: 0.3 }, { transform: 'translate(26px,-34px) scale(1.2)', opacity: 0 }], { duration: 2400 }).onfinish = () => z.remove();
-      if (++n >= 5) clearInterval(t);
-    }, 700);
-  },
-  rewind(vault) {
-    const strip = vault.querySelector('[data-rewind]');
-    if (!strip) return;
-    const r = strip.getBoundingClientRect();
-    const fire = (type, f) => strip.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: r.left + r.width * f, clientY: r.top + r.height / 2, pointerId: 77, pointerType: 'touch' }));
-    let f = 1;
-    fire('pointerdown', f);
-    const t = setInterval(() => { f -= 0.06; fire('pointermove', Math.max(0.3, f)); if (f <= 0.3) { clearInterval(t); setTimeout(() => fire('pointerup', 0.3), 500); } }, 70);
-  },
-  tremble() {
-    const g = document.querySelector('.hv-bill--aside .hv-gem') || document.querySelector('.hv-gem');
-    if (!g) return;
-    const k = 0.45;
-    g.animate([{ transform: 'rotate(0)' }, { transform: `rotate(${-9 * k}deg) translateX(${-2 * k}px)` }, { transform: `rotate(${8 * k}deg) translateX(${2 * k}px)` }, { transform: `rotate(${-5 * k}deg)` }, { transform: 'rotate(0)' }], { duration: 640, easing: 'ease-out' });
-  },
-};

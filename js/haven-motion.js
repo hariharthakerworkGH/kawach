@@ -778,61 +778,6 @@ export function initMotion() {
   }
 }
 
-/* ---- "Try the motion" (Settings, How it looks): each moment can be played now, without waiting for its day ---------------- */
-export const demo = {
-  drop(vault) {
-    const tide = vault.querySelector('.tide');
-    const to = Number(tide.style.getPropertyValue('--lvl')) || 0.5;
-    const from = Math.min(0.95, to + 0.07);
-    const water = tide.querySelector('.water');
-    water.style.transition = 'none';
-    water.style.setProperty('--lvl', from.toFixed(3));
-    void water.getBoundingClientRect();
-    dropIn(tide, to, from);
-  },
-  closed(vault) {
-    const tide = vault.querySelector('.tide');
-    store.set('kawach-closed', '');
-    tide.dataset.closed = `demo-${Date.now()}`;
-    closedGlow(tide);
-  },
-  salary(vault) {
-    const tide = vault.querySelector('.tide');
-    const to = Number(tide.style.getPropertyValue('--lvl')) || 0.5;
-    const water = tide.querySelector('.water');
-    water.style.transition = 'none';
-    water.style.setProperty('--lvl', Math.max(0.05, to * 0.55).toFixed(3));
-    void water.getBoundingClientRect();
-    vault.dataset.salary = 'demo|₹80,000';
-    salaryRise(vault, tide);
-    requestAnimationFrame(() => requestAnimationFrame(() => { water.style.transition = ''; settle(tide, to); }));
-  },
-  refill(vault) {
-    const tide = vault.querySelector('.tide');
-    const to = Number(tide.style.getPropertyValue('--lvl')) || 0.5;
-    const water = tide.querySelector('.water');
-    water.style.transition = 'none';
-    water.style.setProperty('--lvl', '0');
-    void water.getBoundingClientRect();
-    water.style.transition = 'transform 1800ms var(--hv-spring-soft)';
-    countFigure(vault, 0, 1800);
-    requestAnimationFrame(() => requestAnimationFrame(() => settle(tide, to)));
-  },
-  festival(vault, which = 'Diwali') { festival(vault, which); },
-  evening(vault) { if (!vault.dataset.eve) vault.dataset.eve = 'Today you kept ₹1,065'; eveLine(vault, true); },
-  dot() { setDueDot(0); setTimeout(() => setDueDot(1), 80); },
-  undo() { return offerUndo(); },
-  streak(vault) { sparks(vault, 12, 1300, '#ffe7a8', 20); const c = vault.querySelector('.hv-streak'); c?.animate([{ transform: 'scale(0)' }, { transform: 'scale(1.25)' }, { transform: 'scale(1)' }], { duration: 480, easing: 'ease-out' }); },
-  tilt() { target = 22; kick(); setTimeout(() => { target = -22; }, 1100); setTimeout(() => { target = 0; }, 2200); },
-  peek() {
-    const page = document.getElementById('view-container');
-    if (!page) return;
-    page.style.transition = 'transform 400ms cubic-bezier(.16,1,.3,1)';
-    page.style.transform = 'translateY(30px)';
-    peekHold(() => { page.style.transform = ''; setTimeout(() => { page.style.transition = ''; }, 420); });
-  },
-};
-
 /* ---- the day-to-night sweep: the new colours arrive from the left over a second; at night a few stars come out (alive and calm) ---- */
 export function sweepTheme(swap) {
   if (!live() || typeof document.startViewTransition !== 'function' || document.hidden) { swap(); fireflies(); return; }

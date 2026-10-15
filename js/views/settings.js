@@ -15,7 +15,7 @@ import { CYCLE_SETTING_KEY } from '../spending-month.js';
 import { redraw } from '../redraw.js';
 import { dataIsKept } from '../install.js';
 import { playTour, shareKawach } from '../tour.js';
-import { renderVersionLine } from './summary.js';
+import { APP_VERSION, versionStatus, checkForUpdate } from '../version.js';
 import { enhancePasswords, checkPair, MIN_PASSPHRASE } from '../password-field.js';
 import { moneyProfile, addBusiness, renameBusiness, removeBusiness, setBusinessGst, setCurrentSpace } from '../business.js';
 import { notesFor, openNotes } from '../whats-new.js';
@@ -55,7 +55,29 @@ export async function render(container, params = {}) {
   await Promise.all(['transactions', 'accounts', 'recurring', 'categories'].map((store) => getAll(store)));
   const damaged = damagedRecords();
 
+  const haven = document.documentElement.dataset.style === 'haven';
+  const amber = !safety.ok || (safety.daysUnprotected != null && safety.daysUnprotected >= 7);
+  const SHIELD = 'M12 2l8 3v7c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V5z';
+  // Your data's safety as a small shield with a lock: calm green while backed up lately, amber (never red) once it has been a week.
+  const safeCard = haven
+    ? `<div class="hv-safe${amber ? ' is-amber' : ''}" role="status">
+        <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="${SHIELD}" class="hv-safe__s"/><rect x="8.5" y="10.5" width="7" height="5.5" rx="1.4" class="hv-safe__l"/><path d="M9.8 10.5V9a2.2 2.2 0 0 1 4.4 0v1.5" fill="none" class="hv-safe__h"/></svg>
+        <div><b>${safety.ok ? 'Your data is safe' : 'Your data is only on this phone'}</b><span>Sync ${String(safety.syncText).toLowerCase()} · backup ${String(safety.backupText).toLowerCase()}</span></div>
+        <button type="button" class="hv-pillbtn" id="safe-backup">Back up</button>
+      </div>`
+    : `<div class="totals-card data-safety ${safety.ok ? '' : 'warn-card'}">
+      <div class="totals-row"><span><strong>${safety.ok ? `${icon('check')} Your data is safe` : `${icon('alert')} Your data is only on this phone`}</strong></span></div>
+      <div class="totals-row"><span class="muted">Sync</span><span>${safety.syncText}</span></div>
+      <div class="totals-row"><span class="muted">Last backup</span><span>${safety.backupText}</span></div>
+      <div class="totals-row"><span class="muted">Kept safe on this phone</span><span>${kept ? 'Yes' : 'Not yet'}</span></div>
+    </div>`;
+
   container.innerHTML = `
+    <div class="version-line" id="version-line">
+      <span><span id="version-text">Version ${APP_VERSION}</span> <span id="version-note" class="version-note"></span></span>
+      <button type="button" class="icon-btn" id="version-check">Check for updates</button>
+    </div>
+    ${safeCard}
     ${moneyCard(profile)}
     ${
       damaged.length
@@ -66,13 +88,6 @@ export async function render(container, params = {}) {
     </div>`
         : ''
     }
-    <div class="totals-card data-safety ${safety.ok ? '' : 'warn-card'}">
-      <div class="totals-row"><span><strong>${safety.ok ? `${icon('check')} Your data is safe` : `${icon('alert')} Your data is only on this phone`}</strong></span></div>
-      <div class="totals-row"><span class="muted">Sync</span><span>${safety.syncText}</span></div>
-      <div class="totals-row"><span class="muted">Last backup</span><span>${safety.backupText}</span></div>
-      <div class="totals-row"><span class="muted">Kept safe on this phone</span><span>${kept ? 'Yes' : 'Not yet'}</span></div>
-    </div>
-
     ${backupSection(backup)}
     ${syncSection(sync, syncPass, backup)}
 
@@ -203,12 +218,6 @@ export async function render(container, params = {}) {
         <div id="import-history"></div>
       </details>
 
-      <!-- NEW (5.18): the version and the update check, moved from Summary. -->
-      <div class="version-line" id="version-line">
-        <span id="version-text">Version</span>
-        <button type="button" class="icon-btn" id="version-check">Check for update</button>
-      </div>
-
       <!-- Three small things, one line. -->
       <div class="settings-foot">
         <button type="button" class="link-btn" id="whats-new-btn">What's new</button>
@@ -321,6 +330,11 @@ export async function render(container, params = {}) {
   container.querySelector('#watch-tour').addEventListener('click', playTour);
   container.querySelector('#start-demo').addEventListener('click', async () => (await import('../demo.js')).startDemoFlow());
   renderVersionLine(container);
+  container.querySelector('#safe-backup')?.addEventListener('click', () => {
+    const go = container.querySelector('#drive-backup-btn') || container.querySelector('#file-backup-btn');
+    if (go) go.click();
+    else container.querySelector('#backup-card')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
 
   container.querySelector('#run-setup').addEventListener('click', () => {
     container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'setup', restart: true } }));
@@ -1061,3 +1075,25 @@ function showStatus(el, message, isError) {
   el.classList.toggle('in', !isError);
 }
 
+
+
+// The version, and whether a newer one is ready, in as few words as will do.
+async function renderVersionLine(container) {
+  const note = container.querySelector('#version-note');
+  const btn = container.querySelector('#version-check');
+  if (!note || !btn) return;
+  const paint = (status) => {
+    note.textContent = status.stale ? 'New version ready' : status.cached != null ? 'Up to date' : '';
+    note.classList.toggle('stale', status.stale);
+    btn.textContent = status.stale ? 'Reload' : 'Check for updates';
+    btn.onclick = status.stale ? () => window.location.reload() : null;
+  };
+  paint(await versionStatus());
+  btn.addEventListener('click', async () => {
+    if (btn.onclick) return;
+    btn.disabled = true;
+    btn.textContent = 'Checking…';
+    paint(await checkForUpdate());
+    btn.disabled = false;
+  });
+}

@@ -910,7 +910,11 @@ function havenArrangeAdd(container) {
   const one = document.createElement('div');
   one.className = 'hv-addstep hv-stack';
   one.dataset.step = '1';
-  one.append(toggle, wrap.closest('.amount-field') || wrap, pad, next);
+  // Other ways in than typing, where the eye already is: a bank message pasted, or a whole statement.
+  const via = document.createElement('div');
+  via.className = 'hv-addvia';
+  via.innerHTML = `<button type="button" class="hv-chip" data-hv-go="inbox"><span class="hv-ic">${icon('inbox')}</span>Paste a bank message</button><button type="button" class="hv-chip" data-hv-go="import"><span class="hv-ic">${icon('upload')}</span>Import a statement</button>`;
+  one.append(toggle, via, wrap.closest('.amount-field') || wrap, pad, next);
   const two = document.createElement('div');
   two.className = 'hv-addstep hv-stack';
   two.dataset.step = '2';

@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.63',
+    items: [
+      {
+        icon: 'check',
+        title: "Tidier Settings, easier Add",
+        text: "The version and Check for updates are now at the top of Settings, in a few words. Your data's safety is a small shield. Settings is much more compact. The + button now offers Paste a bank message and Import a statement at once. The sun and weather behind the header are gone, and tapping the chart no longer draws a box.",
+      },
+    ],
+  },
+  {
     version: '5.62',
     items: [
       {
@@ -28,9 +38,8 @@ const NOTES = [
     items: [
       {
         icon: 'sparkle',
-        title: "Find and try every motion",
-        text: "Settings, How it looks, now lists every motion you chose: where it lives, how to see it, and a Play button for the ones that wait for a day (a new month, a salary, a Sunday). Dragging the look-back line no longer swipes you to another tab, and changing the month with the arrows no longer jumps.",
-        guide: [{ view: 'appearance', target: '.hv-guide', text: "Every motion, where it lives, and a Play button." }],
+        title: "Smoother month arrows",
+        text: "Changing the month with the arrows no longer jumps, and dragging the look-back line no longer swipes you to another tab.",
       },
     ],
   },

@@ -386,11 +386,6 @@ export function weekRecap(f) {
   const big = by.reduce((a, d) => ((d.amount || 0) > (a.amount || 0) ? d : a), by[0]);
   return { total, under: Math.round((f.limit * by.length) / D) - total, days: by.map((d) => d.amount || 0), big: { date: big.date, amount: big.amount || 0 }, from: by[0].date, to: by[by.length - 1].date };
 }
-// The sky: clear when well ahead, soft clouds when level, light rain when behind.
-export function skyFor(mood, lvl, pace) {
-  if (mood === 'watch' || mood === 'low') return 'rain';
-  return pace > 0 && lvl >= pace + 0.15 ? 'clear' : 'clouds';
-}
 
 export function havenTop(f, status, month, extra = {}) {
   const x = topFigures(f);
@@ -417,7 +412,7 @@ export function havenTop(f, status, month, extra = {}) {
   const story = more.story && more.story.length ? ` data-story='${escapeHtml(JSON.stringify({ key: more.storyKey, cards: more.story }))}'` : '';
   const badges = (more.badges || []).map((b) => `<span class="hv-medal${b.isNew ? ' is-new' : ''}" role="img" aria-label="${escapeHtml(b.label)}" title="${escapeHtml(b.label)}">${BADGE}</span>`).join('');
   const asleep = !x.finished && x.spent === 0 && (f.spendDays || []).every((v) => !v);
-  const sky = `${asleep ? ' data-sleeping' : ''} data-weather="${skyFor(mood, lvl, pace)}"`;
+  const sky = `${asleep ? ' data-sleeping' : ''}`;
   const vaultData = `${life}${recap}${story}${sky} data-cycle="${escapeHtml(String(f.cycleKey || ''))}" data-soon2="${soon2}"${streak >= 3 ? ` data-streak="${streak}"` : ''}${kept > 0 ? ` data-eve="Today you kept ${escapeHtml(formatRupees(kept))}"` : ''}${salary ? ` data-salary="${escapeHtml(String(salary.id))}|${escapeHtml(formatRupees(salary.amount))}"` : ''}`;
   const streakChip = streak >= 3 && !x.finished ? `<span class="hv-streak" title="Days in a row at or under an even pace">${SHIELD_MINI}${streak} days ahead</span>` : '';
   const peek = yest ? `<div class="hv-peek" aria-hidden="true"><span>Yesterday you spent <b>${escapeHtml(formatRupees(yest.spent))}</b></span><span>${yest.under >= 0 ? `${escapeHtml(formatRupees(yest.under))} under pace` : `${escapeHtml(formatRupees(-yest.under))} over pace`}</span></div>` : '';

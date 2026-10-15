@@ -240,14 +240,6 @@
 /* ---- a category near its limit: a thin ring goes out from its icon now and then ---- */
 .hv-ringout { position: absolute; inset: -2px; border-radius: inherit; border: 2px solid var(--hv-warn); pointer-events: none; }
 :root[data-style="haven"] .hv-bill[data-near] .hv-gem { overflow: visible; }
-/* ---- the sky's weather, behind the page ---- */
-.hv-weather { position: fixed; left: 0; right: 0; top: 0; height: 300px; z-index: -1; pointer-events: none; overflow: hidden; }
-.hv-cloud { position: absolute; left: 0; border-radius: 30px; background: rgba(255, 255, 255, calc(0.8 * var(--hv-wx, 0.55))); filter: blur(6px); }
-.hv-weather--rain .hv-cloud { background: rgba(255, 255, 255, calc(0.5 * var(--hv-wx, 0.55) * 1.4)); }
-:root[data-theme="dark"] .hv-cloud { background: rgba(190, 210, 255, calc(0.18 * var(--hv-wx, 0.55) * 1.6)); }
-.hv-sun { position: absolute; right: 36px; top: 22px; width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle, #fff6c4, #ffd36a 60%, rgba(255, 200, 80, 0)); opacity: 0.55; }
-.hv-drop { position: absolute; top: 40px; width: 1.5px; height: 12px; border-radius: 1px; background: rgba(60, 90, 150, calc(0.55 * var(--hv-wx, 0.55) * 1.2)); }
-:root[data-theme="dark"] .hv-drop { background: rgba(160, 190, 255, calc(0.5 * var(--hv-wx, 0.55))); }
 /* ---- the Add keypad ---- */
 :root[data-style="haven"] .hv-words { min-height: 20px; margin-top: 6px; text-align: center; font-size: var(--hv-fs-label, 13px); color: var(--hv-ink-2); }
 :root[data-style="haven"] .hv-words.warn { color: var(--hv-warn); }
@@ -258,39 +250,50 @@
 :root[data-style="haven"] .hist-row[data-swipe="pulling"] { background: color-mix(in oklab, var(--hv-good) 10%, transparent); }
 .hv-fly { position: fixed; z-index: 60; font: 650 20px var(--hv-font, inherit); color: var(--hv-ink); pointer-events: none; }
 
-/* ---- Settings, How it looks: Try the motion ---- */
-.hv-guide__lab { margin-top: 10px; border-top: 1px solid var(--hv-hair, rgb(128 128 128 / 0.2)); padding-top: 8px; }
-.hv-guide__lab > summary { cursor: pointer; padding: 6px 0; display: flex; justify-content: space-between; gap: 8px; }
-.hv-guide__row { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 8px 0; }
-.hv-guide__row + .hv-guide__row { border-top: 1px solid var(--hv-hair, rgb(128 128 128 / 0.15)); }
-.hv-guide__row--skipped, .hv-guide__row--soon { opacity: 0.7; }
-.hv-guide__tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--hv-well, rgb(128 128 128 / 0.15)); color: var(--hv-ink-2, inherit); white-space: nowrap; margin-left: 4px; }
-.hv-guide__row .muted-note { margin-top: 2px; }
+/* ---- the chart takes no frame from a tap (the keyboard still shows where it is) ---- */
+svg.waves { outline: none; -webkit-tap-highlight-color: transparent; }
+svg.waves:focus-visible:not(.by-pointer) { outline: 2px solid var(--hv-link, currentColor); outline-offset: 2px; border-radius: 12px; }
 
-.hv-guide__row .k-btn { min-height: 44px; min-width: 64px; }
-.hv-guide__lab > summary { min-height: 44px; align-items: center; }
-
-/* ---- lab 4 (5.62) ---- */
-.hv-flies { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
-.hv-flies i { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #ffe9a8; box-shadow: 0 0 10px 3px rgba(255, 230, 150, 0.45); }
-:root[data-style="haven"][data-motion="still"] .hv-flies { display: none; }
-html.hv-sweeping::view-transition-old(root), html.hv-sweeping::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
-html.hv-sweeping::view-transition-old(root) { z-index: 1; }
-html.hv-sweeping::view-transition-new(root) { z-index: 2; }
-
-.hv-ins { display: grid; gap: 16px; }
-.hv-ins__ring { position: relative; display: grid; place-items: center; }
-.hv-ins__t { position: absolute; display: grid; text-align: center; }
-.hv-ins__t b { font-size: 22px; font-weight: 650; letter-spacing: -0.03em; }
-.hv-ins__t span { font-size: 12px; color: var(--hv-ink-3); }
-.hv-ins__s { text-align: center; font-size: 13px; color: var(--hv-ink-2); margin-top: -4px; }
-.hv-ins__cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
-.hv-ins__cmp > div { display: grid; justify-items: center; gap: 3px; }
-.hv-ins__cmp > div > span { font-size: 12px; color: var(--hv-ink-3); }
-.hv-ins__cmp > p { grid-column: 1 / -1; margin: 4px 0 0; font-weight: 650; font-size: 14px; }
-.hv-ins__shield { position: relative; width: 74px; height: 92px; }
-.waves__pole { stroke: var(--hv-ink); stroke-width: 1.4; }
-.waves__pennant { fill: var(--hv-primary); }
-.waves__pt { font-size: 9.5px; font-weight: 650; fill: var(--hv-on-primary); }
-@media (prefers-reduced-motion: no-preference) { :root[data-style="haven"][data-motion="alive"] .waves__pennant { animation: hv-flagwave 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: left center; } }
-@keyframes hv-flagwave { 50% { transform: skewY(3deg); } }
+/* ================================================================== Settings, compact (5.63) */
+/* The version and the update check: one line at the very top. */
+:root[data-style="haven"] .version-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 4px 8px; padding: 0; border: 0; font-size: 13px; color: var(--hv-ink-2); }
+:root[data-style="haven"] .version-line b, :root[data-style="haven"] #version-text { font-weight: 650; color: var(--hv-ink); }
+:root[data-style="haven"] .version-note { margin-left: 6px; color: var(--hv-ink-3); }
+:root[data-style="haven"] .version-note.stale { color: var(--hv-warn); font-weight: 650; }
+:root[data-style="haven"] .version-line .icon-btn { height: 34px; padding: 0 12px; border-radius: 999px; background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair); color: var(--hv-ink); font-size: 12.5px; font-weight: 600; width: auto; min-height: 44px; }
+/* Your data's shield: a small shield with a lock, calm green, amber when it has been a week. */
+.hv-safe { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 8px; border-radius: 20px; background: linear-gradient(180deg, var(--hv-core), var(--hv-core-2)); box-shadow: 0 0 0 1px var(--hv-hair), var(--hv-lift); }
+.hv-safe b { display: block; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+.hv-safe span { font-size: 12.5px; color: var(--hv-ink-2); }
+.hv-safe__s { fill: color-mix(in oklab, var(--hv-good) 22%, transparent); stroke: var(--hv-good); stroke-width: 1.6; stroke-linejoin: round; }
+.hv-safe__l { fill: var(--hv-good); }
+.hv-safe__h { stroke: var(--hv-good); stroke-width: 1.6; stroke-linecap: round; }
+.hv-safe.is-amber .hv-safe__s { fill: color-mix(in oklab, oklch(78% 0.15 70) 25%, transparent); stroke: oklch(70% 0.15 65); }
+.hv-safe.is-amber .hv-safe__l { fill: oklch(70% 0.15 65); }
+.hv-safe.is-amber .hv-safe__h { stroke: oklch(70% 0.15 65); }
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-style="haven"][data-motion="alive"] .hv-safe.is-amber svg { animation: hv-amber 2.2s ease-in-out infinite; }
+}
+@keyframes hv-amber { 50% { filter: drop-shadow(0 0 8px oklch(78% 0.15 70 / 0.7)); } }
+.hv-safe .hv-pillbtn { min-height: 44px; }
+/* Fewer pixels for what is only a line or two: the whole Settings screen, tighter. */
+:root[data-style="haven"] #view-container:has(.settings-k) h3 { margin: 14px 4px 6px; font-size: 14px; letter-spacing: 0; }
+:root[data-style="haven"] #view-container:has(.settings-k) .group-subtitle { display: none; }
+:root[data-style="haven"] #view-container:has(.settings-k) .totals-card { padding: 4px 12px; margin-bottom: 8px; }
+:root[data-style="haven"] #view-container:has(.settings-k) .totals-row { padding: 5px 0; min-height: 0; }
+:root[data-style="haven"] #view-container:has(.settings-k) .backup-row { padding: 8px 0; min-height: 52px; }
+:root[data-style="haven"] #view-container:has(.settings-k) .k-row, :root[data-style="haven"] #view-container:has(.settings-k) .k-switch-row { min-height: 48px; padding-block: 6px; gap: 10px; }
+:root[data-style="haven"] #view-container:has(.settings-k) .k-row__sub, :root[data-style="haven"] #view-container:has(.settings-k) .k-switch-row__sub { font-size: 12px; line-height: 1.25; }
+:root[data-style="haven"] #view-container:has(.settings-k) .k-icon { width: 30px; height: 30px; border-radius: 10px; }
+:root[data-style="haven"] #view-container:has(.settings-k) .k-icon svg { width: 17px; height: 17px; }
+:root[data-style="haven"] #view-container:has(.settings-k) .muted-note { margin: 4px 0; font-size: 12px; }
+:root[data-style="haven"] #view-container:has(.settings-k) .section-fold > summary { min-height: 44px; padding-block: 4px; }
+:root[data-style="haven"] #view-container:has(.settings-k) .settings-foot { margin-top: 10px; }
+/* Add: ways in other than typing, right under the way the money went. */
+.hv-addvia { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 4px; }
+.hv-addvia .hv-chip { flex: 1 1 auto; justify-content: center; }
+:root[data-style="haven"] .money-kinds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+:root[data-style="haven"] .money-kind { min-height: 44px; padding: 4px 6px; font-size: 12.5px; line-height: 1.15; }
+:root[data-style="haven"] .money-label { margin: 4px 0 6px; font-size: 12.5px; }
+:root[data-style="haven"] .money-label-gap { margin-top: 10px; }
+:root[data-style="haven"] #view-container .k.settings-k { padding-inline: 0; margin-inline: 0; }
