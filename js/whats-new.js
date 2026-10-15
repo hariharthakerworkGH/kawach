@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.68',
+    items: [
+      {
+        icon: 'list',
+        title: "Shorter pages",
+        text: "Plan and History take much less scrolling: repeated-cost lists fold away and History rows sit closer.",
+      },
+    ],
+  },
+  {
     version: '5.67',
     items: [
       {

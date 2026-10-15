@@ -402,3 +402,16 @@ html.hv-sweeping::view-transition-new(root) { z-index: 2; }
 :root[data-style="haven"] .account-block { overflow-anchor: none; }
 /* The foot links of an open card already sit inside its details' side space: no second indent. */
 :root[data-style="haven"] .account-block .account-detail .account-actions-inline { padding-inline: 0; }
+
+/* ---- compact pages (5.68): the same rules the options page follows, on every page --------------------------------------
+ * History rows sit close (still 44px to touch), the home-screen card is one short line, a double-cost warning is one line
+ * until opened. */
+:root[data-style="haven"] .hist-row { padding-block: 0; }
+:root[data-style="haven"] .hist-row .hist-main { padding-block: 5px; min-height: 48px; }
+:root[data-style="haven"] .k .hist-day-head { margin: 6px 6px 4px; }
+:root[data-style="haven"] .k .hist-day { margin-bottom: 4px; }
+:root[data-style="haven"] .install-card .install-head .muted-note { display: none; }
+:root[data-style="haven"] .install-card { padding-block: 10px; }
+:root[data-style="haven"] .dupe-fold { margin: 0 0 8px; }
+:root[data-style="haven"] .dupe-fold .totals-card { margin-top: 6px; }
+:root[data-style="haven"] .dupe-pair .btn-tiny { min-height: 44px; }

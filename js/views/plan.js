@@ -292,7 +292,7 @@ export async function render(container) {
     }
     ${
       doubled.length
-        ? `${sectionHead('The same payment twice?')}
+        ? `${isHaven ? `<details class="section-fold dupe-fold"><summary>${doubled.length} cost${doubled.length === 1 ? '' : 's'} may be on your list twice</summary>` : sectionHead('The same payment twice?')}
            <div class="totals-card">
              <p class="muted-note dupe-note">${
                doubled.some((p) => p.counted)
@@ -322,7 +322,7 @@ export async function render(container) {
                  </div>`
                )
                .join('')}
-           </div>`
+           </div>${isHaven ? '</details>' : ''}`
         : ''
     }
     ${sectionHead(
@@ -431,7 +431,7 @@ export async function render(container) {
 
     ${
       detected.length
-        ? `${sectionHead('Looks recurring')}
+        ? `${isHaven ? `<details class="section-fold"><summary>${detected.length} payment${detected.length === 1 ? '' : 's'} look like they repeat</summary>` : sectionHead('Looks recurring')}
            <div class="totals-card">
              ${detected
                .map(
@@ -446,7 +446,7 @@ export async function render(container) {
                  </div>`
                )
                .join('')}
-           </div>`
+           </div>${isHaven ? '</details>' : ''}`
         : ''
     }`
     }
