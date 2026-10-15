@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.61',
+    items: [
+      {
+        icon: 'sparkle',
+        title: "Find and try every motion",
+        text: "Settings, How it looks, now lists every motion you chose: where it lives, how to see it, and a Play button for the ones that wait for a day (a new month, a salary, a Sunday). Dragging the look-back line no longer swipes you to another tab, and changing the month with the arrows no longer jumps.",
+        guide: [{ view: 'appearance', target: '.hv-guide', text: "Every motion, where it lives, and a Play button." }],
+      },
+    ],
+  },
+  {
     version: '5.60',
     items: [
       {

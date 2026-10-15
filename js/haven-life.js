@@ -119,6 +119,7 @@ function whatIf(vault) {
   if (!tide || !L || !(L.perDay > 0) || tide.dataset.wired) return;
   tide.dataset.wired = '1';
   tide.style.touchAction = 'none';
+  tide.classList.add('no-swipe');
   const base = L.perDay;
   const lvl0 = Number(tide.style.getPropertyValue('--lvl')) || 0.5;
   const original = status.innerHTML;
@@ -171,12 +172,13 @@ function whatIf(vault) {
 }
 
 /* ---- the Sunday card ---------------------------------------------------------------------------------------- */
-function sundayCard(vault) {
+function sundayCard(vault, force) {
   const w = parse(vault.dataset.recap);
   const now = new Date();
   const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-  if (!w || now.getDay() !== 0 || now.getHours() < 18 || store.get('kawach-recap') === dayKey || !live()) return;
-  store.set('kawach-recap', dayKey);
+  if (!w || !live()) return;
+  if (!force && (now.getDay() !== 0 || now.getHours() < 18 || store.get('kawach-recap') === dayKey)) return;
+  if (!force) store.set('kawach-recap', dayKey);
   const card = document.createElement('div');
   card.className = 'hv-recap';
   card.setAttribute('role', 'status');
@@ -198,10 +200,13 @@ function sundayCard(vault) {
 }
 
 /* ---- the month told in cards ----------------------------------------------------------------------------------- */
-function story(vault) {
-  const s = parse(vault.dataset.story);
-  if (!s || !s.cards.length || store.get('kawach-story') === s.key || !live()) return;
-  store.set('kawach-story', s.key);
+function story(vault, force) {
+  const s = force || parse(vault.dataset.story);
+  if (!s || !s.cards.length || !live()) return;
+  if (!force) {
+    if (store.get('kawach-story') === s.key) return;
+    store.set('kawach-story', s.key);
+  }
   const wrap = document.createElement('div');
   wrap.className = 'hv-story';
   wrap.setAttribute('role', 'dialog');
@@ -243,7 +248,7 @@ function calendar(scope, vault) {
   const lead = (first.getDay() + 6) % 7;
   const max = Math.max(1, ...dates.map((d) => d.amt));
   const cells = [...Array(lead).fill('<i class="blank"></i>'), ...dates.map((d, i) => `<span class="hv-cal__d" role="img" data-i="${i}" style="--k:${(d.amt / max).toFixed(2)}" aria-label="${niceDate(d.iso)}, ${d.amt ? rs(d.amt) : 'nothing'} spent">${Number(d.iso.slice(8))}</span>`)];
-  host.innerHTML = `<div class="hv-sec"><h2>The month, day by day</h2></div><div class="hv-shell"><div class="hv-core"><div class="hv-cal"><div class="hv-cal__w">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((x) => `<span>${x}</span>`).join('')}</div><div class="hv-cal__g">${cells.join('')}</div><div class="hv-cal__t" aria-live="polite">Press a day</div></div></div></div>`;
+  host.innerHTML = `<div class="hv-sec"><h2>The month, day by day</h2></div><div class="hv-shell"><div class="hv-core"><div class="hv-cal"><div class="hv-cal__w">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((x) => `<span>${x}</span>`).join('')}</div><div class="hv-cal__g no-swipe">${cells.join('')}</div><div class="hv-cal__t" aria-live="polite">Press a day</div></div></div></div>`;
   const tip = host.querySelector('.hv-cal__t');
   const grid = host.querySelector('.hv-cal__g');
   const on = (b) => { b.classList.add('lift'); tip.textContent = `${dayName(dates[Number(b.dataset.i)].iso)} ${niceDate(dates[Number(b.dataset.i)].iso)} · ${dates[Number(b.dataset.i)].amt ? rs(dates[Number(b.dataset.i)].amt) : 'nothing spent'}`; };
@@ -298,9 +303,9 @@ function morph(scope) {
 let wx = null;
 let wxKind = '';
 let rain = 0;
-function weather(vault) {
+function weather(vault, force) {
   if (!vault || !alive()) { wx?.remove(); wx = null; wxKind = ''; clearInterval(rain); return; }
-  const kind = vault.dataset.weather || 'clouds';
+  const kind = force || vault.dataset.weather || 'clouds';
   if (wx && wxKind === kind && wx.isConnected) return;
   clearInterval(rain);
   wx?.remove();
@@ -503,3 +508,62 @@ export function lifeDraw(scope) {
     el.prepend(t);
   });
 }
+
+/* ---- "Try the motion" (Settings, How it looks) ---------------------------------------------------------------------------- */
+export const demoLife = {
+  recap(vault) { sundayCard(vault, true); },
+  story(vault) {
+    const L = parse(vault.dataset.life);
+    const spent = L ? L.cum[L.cum.length - 1] : 0;
+    const big = L ? L.days.reduce((a, d) => (d[1] > a[1] ? d : a), L.days[0]) : null;
+    const cards = [['This month so far', L && L.limit - spent >= 0 ? `You have kept ${rs(L.limit - spent)}` : 'A month in progress', L && L.limit - spent >= 0 ? 'of your budget' : 'told as it goes']];
+    if (big && big[1] > 0) cards.push(['Biggest day so far', rs(big[1]), `the ${Number(big[0].slice(3))}th`]);
+    cards.push(['A sample of the month told back', 'Five cards at most', 'tap to go on']);
+    story(vault, { key: 'demo', cards });
+  },
+  badge(vault) {
+    const top = vault.querySelector('.hv-vault__top');
+    if (!top) return;
+    const b = document.createElement('span');
+    b.className = 'hv-badge is-new';
+    b.setAttribute('role', 'img');
+    b.setAttribute('aria-label', 'A sample badge');
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 2l8 3v7c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V5z" fill="#ffd36a" stroke="#c98a13" stroke-width="1.4"/><path d="M8 12.5l3 3 5-6" fill="none" stroke="#7a4a05" stroke-width="2" stroke-linecap="round"/></svg>';
+    top.insertBefore(b, top.lastElementChild);
+    b.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 700, easing: SOFT });
+    setTimeout(() => b.remove(), 5000);
+  },
+  weather(vault) {
+    const order = ['clear', 'clouds', 'rain'];
+    let i = 0;
+    const next = () => { weather(vault, order[i]); i += 1; if (i < order.length) setTimeout(next, 3500); else setTimeout(() => weather(vault), 3500); };
+    next();
+  },
+  sleep(vault) {
+    const tide = vault.querySelector('.tide');
+    let n = 0;
+    const t = setInterval(() => {
+      const z = document.createElement('i');
+      z.className = 'hv-z';
+      z.textContent = 'z';
+      tide.append(z);
+      z.animate([{ transform: 'translate(0,0) scale(.6)', opacity: 0 }, { opacity: 1, offset: 0.3 }, { transform: 'translate(26px,-34px) scale(1.2)', opacity: 0 }], { duration: 2400 }).onfinish = () => z.remove();
+      if (++n >= 5) clearInterval(t);
+    }, 700);
+  },
+  rewind(vault) {
+    const strip = vault.querySelector('[data-rewind]');
+    if (!strip) return;
+    const r = strip.getBoundingClientRect();
+    const fire = (type, f) => strip.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: r.left + r.width * f, clientY: r.top + r.height / 2, pointerId: 77, pointerType: 'touch' }));
+    let f = 1;
+    fire('pointerdown', f);
+    const t = setInterval(() => { f -= 0.06; fire('pointermove', Math.max(0.3, f)); if (f <= 0.3) { clearInterval(t); setTimeout(() => fire('pointerup', 0.3), 500); } }, 70);
+  },
+  tremble() {
+    const g = document.querySelector('.hv-bill--aside .hv-gem') || document.querySelector('.hv-gem');
+    if (!g) return;
+    const k = 0.45;
+    g.animate([{ transform: 'rotate(0)' }, { transform: `rotate(${-9 * k}deg) translateX(${-2 * k}px)` }, { transform: `rotate(${8 * k}deg) translateX(${2 * k}px)` }, { transform: `rotate(${-5 * k}deg)` }, { transform: 'rotate(0)' }], { duration: 640, easing: 'ease-out' });
+  },
+};

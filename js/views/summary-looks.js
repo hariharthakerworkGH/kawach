@@ -425,8 +425,8 @@ export function havenTop(f, status, month, extra = {}) {
       <div class="hv-vault__top"><span class="hv-pill">${monthName}</span>${streakChip}${badges}<span>${x.finished ? 'Final' : `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`}</span></div>
       <div class="hv-vault__main"><div><div class="hv-vault__lab">Left to spend</div><div class="hv-vault__fig hv-amt">${num}</div><div class="hv-vault__sub" data-status>${sub}</div>${more.cap ? `<div class="hv-vault__cap" data-cap>Your own limit: <b>${escapeHtml(formatRupees(more.cap))}</b> a day</div>` : ''}${asleep ? '<div class="hv-vault__sleep">A quiet month so far.</div>' : ''}<div class="hv-vault__eve" data-eve-line aria-live="polite"></div></div>
       <div class="tide" data-mood="${mood}"${x.finished && x.closedUnder ? ` data-closed="${escapeHtml(String(f.cycleKey || ''))}"` : ''} style="--lvl:${lvl.toFixed(3)}" role="img" aria-label="${word}: ${formatRupees(x.left)} left of ${formatRupees(x.limit)}">${tideSvg(lvl, pace)}</div></div>
-      ${x.finished || !(f.limit > 0) ? '' : '<div class="hv-rewind" data-rewind aria-label="Drag to see the month on an earlier day" role="slider" aria-valuemin="1" aria-valuemax="1" tabindex="0"><i class="hv-rewind__line"></i><i class="hv-rewind__h"></i><span class="hv-rewind__t" aria-live="polite"></span></div>'}
-      <div class="hv-vault__stats"><div><span>Spent</span><b class="hv-amt" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div><div><span>Budget</span><b class="hv-amt">${shortRupees(x.limit)}</b></div><div><span>On track</span><b class="hv-mood" data-mood="${mood}"><span class="hv-ic" style="width:16px;height:16px;vertical-align:-3px">${mIcon}</span> ${word}</b></div></div>
+      ${x.finished || !(f.limit > 0) ? '' : '<div class="hv-rewind no-swipe" data-rewind aria-label="Drag to see the month on an earlier day" role="slider" aria-valuemin="1" aria-valuemax="1" tabindex="0"><i class="hv-rewind__line"></i><i class="hv-rewind__h"></i><span class="hv-rewind__t" aria-live="polite"></span></div>'}
+      <div class="hv-vault__stats"><div><span>Spent</span><b class="hv-amt" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div><div><span>Budget</span><b class="hv-amt">${shortRupees(x.limit)}</b></div><div><span>${x.finished ? 'Result' : 'On track'}</span><b class="hv-mood" data-mood="${mood}"><span class="hv-ic" style="width:16px;height:16px;vertical-align:-3px">${mIcon}</span> ${x.finished ? (x.closedUnder ? 'Under' : 'Over') : word}</b></div></div>
       ${closedNote(x)}
     </div></div>`;
 
@@ -465,6 +465,6 @@ export function havenTop(f, status, month, extra = {}) {
   });
   const goalBlock = goalRows.length ? `<div class="hv-sec"><h2>Saving for</h2><button type="button" class="hv-link" data-hv-go="plan">Plan</button></div><div class="hv-shell"><div class="hv-core flush">${goalRows.join('')}</div></div>` : '';
   const blocks = [vault, chart, bank, chips, dueRow, goalBlock, latestBlock].filter(Boolean);
-  const protoHtml = `<div class="hv-screen enter on-screen" data-hv-summary>${peek}${blocks.map((b, i) => rise(i + 1, b)).join('')}</div>`;
+  const protoHtml = `<div class="hv-screen ${extra.still ? 'still' : 'enter'} on-screen" data-hv-summary>${peek}${blocks.map((b, i) => rise(i + 1, b)).join('')}</div>`;
   return tactileTop(f, status, '', protoHtml, { noComing: true, noWeek: true });
 }

@@ -18,6 +18,7 @@ import { allocationRing } from '../charts.js';
 import { sixMonthCharts, lastSixMonths } from './transactions.js';
 import { showToast } from '../toast.js';
 import { STYLES, COLOURINGS, AUTO, ownColouring } from '../looks.js';
+import { motionGuideHtml, wireMotionGuide } from '../haven-moments.js';
 
 // Enough invented money to draw every option honestly, for someone who has
 // not added anything yet. Paise, like everywhere else.
@@ -55,10 +56,12 @@ let state = { real: null, months: null, sample: false };
 export async function render(container) {
   container.innerHTML = `
     <p class="group-subtitle">Your choices, kept on this device. None of this changes your money, and none of it leaves the phone.</p>
-    <div id="look-cards"></div>`;
+    <div id="look-cards"></div><div id="look-guide"></div>`;
   await loadData();
   draw(container);
   wire(container);
+  // Haven's motion: where each is and a Play for the ones that wait for a day.
+  wireMotionGuide(container);
 }
 
 /* The same figures the real screens use. If the money is not set up yet there
@@ -219,7 +222,13 @@ function card(name, spec) {
     </div>`;
 }
 
+function fillGuide(container) {
+  const host = container.querySelector('#look-guide');
+  if (host) host.innerHTML = appearance('style') === 'haven' ? motionGuideHtml() : '';
+}
+
 function draw(container) {
+  fillGuide(container);
   // Motion is Haven's own (the other looks keep the motion they have).
   container.querySelector('#look-cards').innerHTML = Object.entries(CHOICES)
     .filter(([name]) => !['motion', 'liquid', 'festivals'].includes(name) || appearance('style') === 'haven')
@@ -236,6 +245,7 @@ function wire(container) {
       showToast('Could not save that on this device');
       return;
     }
+    if (name === 'style') fillGuide(container);
     // Only this card is redrawn, never the screen: a full redraw would scroll
     // the person away from the choice they just made.
     container.querySelectorAll(`input[name="${input.name}"]`).forEach((other) => {

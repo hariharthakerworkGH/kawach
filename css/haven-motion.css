@@ -257,3 +257,15 @@
 :root[data-style="haven"] .hist-row[data-swipe="ready"] { background: color-mix(in oklab, var(--hv-good) 22%, transparent); }
 :root[data-style="haven"] .hist-row[data-swipe="pulling"] { background: color-mix(in oklab, var(--hv-good) 10%, transparent); }
 .hv-fly { position: fixed; z-index: 60; font: 650 20px var(--hv-font, inherit); color: var(--hv-ink); pointer-events: none; }
+
+/* ---- Settings, How it looks: Try the motion ---- */
+.hv-guide__lab { margin-top: 10px; border-top: 1px solid var(--hv-hair, rgb(128 128 128 / 0.2)); padding-top: 8px; }
+.hv-guide__lab > summary { cursor: pointer; padding: 6px 0; display: flex; justify-content: space-between; gap: 8px; }
+.hv-guide__row { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 8px 0; }
+.hv-guide__row + .hv-guide__row { border-top: 1px solid var(--hv-hair, rgb(128 128 128 / 0.15)); }
+.hv-guide__row--skipped, .hv-guide__row--soon { opacity: 0.7; }
+.hv-guide__tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--hv-well, rgb(128 128 128 / 0.15)); color: var(--hv-ink-2, inherit); white-space: nowrap; margin-left: 4px; }
+.hv-guide__row .muted-note { margin-top: 2px; }
+
+.hv-guide__row .k-btn { min-height: 44px; min-width: 64px; }
+.hv-guide__lab > summary { min-height: 44px; align-items: center; }

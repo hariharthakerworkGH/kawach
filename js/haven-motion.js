@@ -321,11 +321,12 @@ export function setDueDot(n) {
 }
 
 /* After eight in the evening, one quiet line under the figure: what today kept. */
-function eveLine(vault) {
+function eveLine(vault, force) {
   const line = vault?.querySelector('[data-eve-line]');
   const text = vault?.dataset.eve;
   if (!line || !text) return;
-  if (new Date().getHours() >= 20) {
+  if (force || new Date().getHours() >= 20) {
+    if (force) line.textContent = '';
     if (line.textContent === text) return;
     line.textContent = text;
     if (live()) line.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 700, easing: 'cubic-bezier(.16,1,.3,1)' });
@@ -353,11 +354,11 @@ export function festivalOn(iso) {
   if (iso.slice(5) === '01-01') return 'New Year';
   return null;
 }
-function festival(vault) {
+function festival(vault, force) {
   const day = today();
-  const which = festivalOn(day);
-  if (!which || appearance('festivals') !== 'on' || store.get('kawach-fest') === day) return;
-  store.set('kawach-fest', day);
+  const which = force || festivalOn(day);
+  if (!force && (!which || appearance('festivals') !== 'on' || store.get('kawach-fest') === day)) return;
+  if (!force) store.set('kawach-fest', day);
   const host = document.createElement('div');
   host.style.cssText = 'position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit';
   vault.append(host);
@@ -532,10 +533,10 @@ function onFigureTap(e) {
 /* Shake the phone (three gentle jolts) and it offers to take back the last payment you typed in. */
 let asking = false;
 async function offerUndo() {
-  if (asking || document.body.classList.contains('sheet-open')) return;
+  if (asking || document.body.classList.contains('sheet-open')) return false;
   const { getAll, remove, put } = await import('./db.js');
   const last = (await getAll('transactions')).filter((t) => t.source === 'manual' && t.createdAt && Date.now() - t.createdAt < 3600000).sort((a, b) => b.createdAt - a.createdAt)[0];
-  if (!last) return;
+  if (!last) return false;
   asking = true;
   navigator.vibrate?.([10, 30, 10]);
   const name = String(last.merchant || last.rawDescription || 'payment');
@@ -765,3 +766,58 @@ export function initMotion() {
     }, { passive: true });
   }
 }
+
+/* ---- "Try the motion" (Settings, How it looks): each moment can be played now, without waiting for its day ---------------- */
+export const demo = {
+  drop(vault) {
+    const tide = vault.querySelector('.tide');
+    const to = Number(tide.style.getPropertyValue('--lvl')) || 0.5;
+    const from = Math.min(0.95, to + 0.07);
+    const water = tide.querySelector('.water');
+    water.style.transition = 'none';
+    water.style.setProperty('--lvl', from.toFixed(3));
+    void water.getBoundingClientRect();
+    dropIn(tide, to, from);
+  },
+  closed(vault) {
+    const tide = vault.querySelector('.tide');
+    store.set('kawach-closed', '');
+    tide.dataset.closed = `demo-${Date.now()}`;
+    closedGlow(tide);
+  },
+  salary(vault) {
+    const tide = vault.querySelector('.tide');
+    const to = Number(tide.style.getPropertyValue('--lvl')) || 0.5;
+    const water = tide.querySelector('.water');
+    water.style.transition = 'none';
+    water.style.setProperty('--lvl', Math.max(0.05, to * 0.55).toFixed(3));
+    void water.getBoundingClientRect();
+    vault.dataset.salary = 'demo|₹80,000';
+    salaryRise(vault, tide);
+    requestAnimationFrame(() => requestAnimationFrame(() => { water.style.transition = ''; settle(tide, to); }));
+  },
+  refill(vault) {
+    const tide = vault.querySelector('.tide');
+    const to = Number(tide.style.getPropertyValue('--lvl')) || 0.5;
+    const water = tide.querySelector('.water');
+    water.style.transition = 'none';
+    water.style.setProperty('--lvl', '0');
+    void water.getBoundingClientRect();
+    water.style.transition = 'transform 1800ms var(--hv-spring-soft)';
+    countFigure(vault, 0, 1800);
+    requestAnimationFrame(() => requestAnimationFrame(() => settle(tide, to)));
+  },
+  festival(vault, which = 'Diwali') { festival(vault, which); },
+  evening(vault) { if (!vault.dataset.eve) vault.dataset.eve = 'Today you kept ₹1,065'; eveLine(vault, true); },
+  dot() { setDueDot(0); setTimeout(() => setDueDot(1), 80); },
+  undo() { return offerUndo(); },
+  streak(vault) { sparks(vault, 12, 1300, '#ffe7a8', 20); const c = vault.querySelector('.hv-streak'); c?.animate([{ transform: 'scale(0)' }, { transform: 'scale(1.25)' }, { transform: 'scale(1)' }], { duration: 480, easing: 'ease-out' }); },
+  tilt() { target = 22; kick(); setTimeout(() => { target = -22; }, 1100); setTimeout(() => { target = 0; }, 2200); },
+  peek() {
+    const page = document.getElementById('view-container');
+    if (!page) return;
+    page.style.transition = 'transform 400ms cubic-bezier(.16,1,.3,1)';
+    page.style.transform = 'translateY(30px)';
+    peekHold(() => { page.style.transform = ''; setTimeout(() => { page.style.transition = ''; }, 420); });
+  },
+};

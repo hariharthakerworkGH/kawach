@@ -404,6 +404,7 @@ async function havenMore(fts, transactions, months, thisKey) {
   return out;
 }
 
+let quiet = false;
 async function renderDashboard(container) {
   if (space !== 'home') return renderBusinessDashboard(container);
   const dashboardEl = container.querySelector('#dashboard');
@@ -423,7 +424,9 @@ async function renderDashboard(container) {
       const next = months[months.indexOf(viewMonth || thisKey) + delta];
       if (!next) return;
       viewMonth = next === thisKey ? null : next;
-      redraw(container, () => render(container)).then(() => slideIn([container.querySelector('#dashboard')], delta));
+      // The month slides; the blocks inside it do not also rise one by one.
+      quiet = true;
+      redraw(container, () => render(container)).then(() => { quiet = false; slideIn([container.querySelector('#dashboard')], delta); });
     };
     dashboardEl.querySelector('#sum-month-prev').addEventListener('click', () => step(-1));
     dashboardEl.querySelector('#sum-month-next').addEventListener('click', () => step(1));
@@ -1290,7 +1293,7 @@ function renderCardsHero(f, opts = {}) {
   const drawn = past ? { ...shown, finished: true } : f;
   const top = lookTop
     ? style === 'haven'
-      ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), '', { latest: opts.latest, more: opts.more, chart: monthWaves(drawn) })
+      ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), '', { latest: opts.latest, more: opts.more, still: Boolean(past) || quiet, chart: monthWaves(drawn) })
       : lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), monthWaves(drawn))
     : spendingHero(shown, short ? 'full' : appearance('summary'), past ? `Final for ${past.name}` : null, short ? shortStatus(f) : null) + `<!--k:answer-->
     ${past ? '' : monthWaves(f)}<!--k:month-->

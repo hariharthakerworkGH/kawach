@@ -114,7 +114,7 @@ export function havenCommitments(tracker, { order = new Map(), dayOf = () => nul
     const check = UNPAID.has(t.status) && markable(t.id)
       ? `<button type="button" class="hv-paycheck" data-pay-step="${escapeHtml(t.id)}" aria-label="Mark ${escapeHtml(t.label)} paid" title="Mark paid"><span class="nest"><span class="hv-ic">${icon('tick')}</span></span></button>`
       : '<span class="hv-paycheck-gap"></span>';
-    return `<div class="hv-bill${t.status === 'late' ? ' late' : ''}" data-kind="${kind}" data-step="${escapeHtml(t.id)}" data-amt="${t.status === 'part' ? Math.max(0, t.left) : t.amount}" data-can-pay="${check.includes('data-pay-step') ? 1 : 0}">
+    return `<div class="hv-bill${t.status === 'late' ? ' late' : ''}${kind === 'topay' ? ' no-swipe' : ''}" data-kind="${kind}" data-step="${escapeHtml(t.id)}" data-amt="${t.status === 'part' ? Math.max(0, t.left) : t.amount}" data-can-pay="${check.includes('data-pay-step') ? 1 : 0}">
       <button type="button" class="hv-bill__open" data-month-item="${escapeHtml(t.id)}" aria-label="${escapeHtml(said(t, w))}">${gem(t.label)}<span class="hv-bill__name"><b>${escapeHtml(t.label)}</b><span class="hv-row__m hv-st-${w.cls}">${w.tick ? `<span class="hv-tick">${icon('tick')}</span>` : ''}${w.text}</span></span><span class="hv-bill__amt hv-amt">${money(t.amount)}</span></button>${check}</div>`;
   };
   const aside = (t) => {
