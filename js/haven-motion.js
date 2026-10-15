@@ -30,6 +30,12 @@ export const store = {
 export function buzz(ms = 10) {
   if (live()) navigator.vibrate?.(ms);
 }
+/* A small language of buzzes (6 ms is the unit): saved is one tap, paid two quick, a heads-up one slow soft one, a month closed three, rising. */
+const UNIT = 6;
+const PATTERNS = { saved: [UNIT], paid: [UNIT, 40, UNIT], heads: [UNIT * 4], closed: [UNIT, 60, UNIT * 1.5, 60, UNIT * 2.5] };
+export function buzzFor(kind) {
+  if (live()) navigator.vibrate?.(PATTERNS[kind] || PATTERNS.saved);
+}
 
 /* ---- the sky follows the hour ------------------------------------------------------------------------------- */
 const SKY = [[0, [10, 14, 38]], [5, [40, 40, 90]], [7, [244, 170, 130]], [9, [170, 215, 245]], [14, [150, 205, 245]], [17, [250, 190, 120]], [19, [120, 80, 150]], [21, [20, 28, 70]], [24, [10, 14, 38]]];
@@ -259,6 +265,7 @@ function closedGlow(tide) {
   const key = tide.dataset.closed;
   if (!key || store.get('kawach-closed') === key) return;
   store.set('kawach-closed', key);
+  buzzFor('closed');
   tide.closest('.hv-vault')?.classList.add('hv-glowing');
   setTimeout(() => tide.closest('.hv-vault')?.classList.remove('hv-glowing'), 2500);
   for (let i = 0; i < 9; i++) {
@@ -305,6 +312,7 @@ export function sparks(host, n, ms, colour, top = 55) {
 
 /* The Plan tab's dot: something is due within two days (or late). It pulses; the icon wiggles once as it arrives. */
 export function setDueDot(n) {
+  // (a new dot is a heads-up: one slow soft buzz)
   const tab = document.querySelector('#tabs .nav-btn[data-view="plan"]');
   if (!tab) return;
   let dot = tab.querySelector('.hv-dot');
@@ -315,6 +323,7 @@ export function setDueDot(n) {
   dot.setAttribute('aria-hidden', 'true');
   tab.append(dot);
   if (live()) {
+    buzzFor('heads');
     dot.animate([{ transform: 'scale(0)' }, { transform: 'scale(1.4)' }, { transform: 'scale(1)' }], { duration: 450, easing: 'ease-out' });
     tab.querySelector('.nav-icon svg')?.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-14deg)' }, { transform: 'rotate(11deg)' }, { transform: 'rotate(-6deg)' }, { transform: 'rotate(0)' }], { duration: 700 });
   }
@@ -745,6 +754,8 @@ export function initMotion() {
       buzz(10);
   });
 
+  fireflies();
+  new MutationObserver(fireflies).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-motion', 'data-style'] });
   paintSky();
   setInterval(paintSky, 5 * 60 * 1000);
   setInterval(sheen, 3000);
@@ -821,3 +832,47 @@ export const demo = {
     peekHold(() => { page.style.transform = ''; setTimeout(() => { page.style.transition = ''; }, 420); });
   },
 };
+
+/* ---- the day-to-night sweep: the new colours arrive from the left over a second; at night a few stars come out (alive and calm) ---- */
+export function sweepTheme(swap) {
+  if (!live() || typeof document.startViewTransition !== 'function' || document.hidden) { swap(); fireflies(); return; }
+  const going = document.documentElement.dataset.theme === 'dark' ? 'day' : 'night';
+  try {
+    root.classList.add('hv-sweeping');
+    const t = document.startViewTransition(swap);
+    t.ready.then(() => {
+      document.documentElement.animate({ clipPath: ['circle(0 at 0 50%)', 'circle(150% at 0 50%)'] }, { duration: 1000, easing: 'cubic-bezier(.45,0,.2,1)', pseudoElement: '::view-transition-new(root)' });
+      if (going === 'night') stars();
+    }).catch(() => {});
+    t.finished.then(() => { root.classList.remove('hv-sweeping'); fireflies(); }).catch(() => root.classList.remove('hv-sweeping'));
+  } catch { swap(); fireflies(); }
+}
+function stars() {
+  for (let i = 0; i < 9; i++) {
+    const s = document.createElement('i');
+    s.style.cssText = `position:fixed;left:${Math.random() * 95}%;top:${Math.random() * 30}%;width:2.5px;height:2.5px;border-radius:50%;background:#fff;pointer-events:none;z-index:45`;
+    document.body.append(s);
+    s.animate([{ opacity: 0 }, { opacity: 0.9, offset: 0.4 }, { opacity: 0 }], { duration: 2600, delay: 600 + i * 80 }).onfinish = () => s.remove();
+  }
+}
+
+/* ---- fireflies at night: nine soft lights drift behind the cards (alive) ---- */
+let flies = null;
+export function fireflies() {
+  const want = alive() && isHaven() && root.dataset.theme === 'dark';
+  if (!want) { flies?.remove(); flies = null; return; }
+  if (flies && flies.isConnected) return;
+  flies = document.createElement('div');
+  flies.className = 'hv-flies';
+  flies.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 9; i++) {
+    const f = document.createElement('i');
+    f.style.left = `${Math.random() * 100}%`;
+    f.style.top = `${Math.random() * 100}%`;
+    flies.append(f);
+    const dx = (Math.random() - 0.5) * 140;
+    const dy = (Math.random() - 0.5) * 90;
+    f.animate([{ transform: 'translate(0,0)', opacity: 0.2 }, { transform: `translate(${dx}px,${dy}px)`, opacity: 1, offset: 0.5 }, { transform: `translate(${dx * 0.2}px,${dy * -0.3}px)`, opacity: 0.25 }], { duration: 14000 * (0.7 + Math.random() * 0.6), iterations: Infinity, direction: 'alternate', easing: 'ease-in-out', delay: -Math.random() * 6000 });
+  }
+  document.body.append(flies);
+}

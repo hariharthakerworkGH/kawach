@@ -5,7 +5,7 @@ import { appearance, setAppearance, applyTheme } from './appearance.js';
 import { icon } from './icons.js';
 import { pendingAlerts } from './alert-inbox.js';
 import { categoryIcon } from './category-icons.js';
-import { afterDraw, paidOut, buzz } from './haven-motion.js';
+import { afterDraw, paidOut, buzzFor, sweepTheme } from './haven-motion.js';
 import { lifeDraw } from './haven-life.js';
 
 const inr = (paise) => Math.round(Math.abs(paise) / 100).toLocaleString('en-IN');
@@ -71,7 +71,8 @@ export function saveMorph(btn, after, hold = 560) {
   if (!nest.querySelector(".spin")) nest.insertAdjacentHTML('afterbegin', '<i class="spin"></i>');
   nest.querySelector('svg')?.classList.add('tick');
   btn.classList.add('saving');
-  buzz(10);
+  // a bill marked paid is two quick taps; a payment saved is one
+  buzzFor(btn.matches('[data-pay-step]') ? 'paid' : 'saved');
   setTimeout(() => { btn.classList.remove('saving'); btn.classList.add('saved'); }, reduced() ? 10 : hold);
   setTimeout(() => { if (after) after(); setTimeout(() => btn.classList.remove('saved'), 900); }, reduced() ? 20 : hold + 640);
 }
@@ -171,9 +172,12 @@ export function havenHeader(view) {
       try { localStorage.setItem('kawach-covered', on ? '1' : ''); } catch { /* private window */ }
     }
     else if (act === 'theme') {
-      setAppearance('colour', document.documentElement.dataset.theme === 'dark' ? 'haven-day' : 'haven-night');
-      applyTheme();
-      b.innerHTML = icon(document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon');
+      const swap = () => {
+        setAppearance('colour', document.documentElement.dataset.theme === 'dark' ? 'haven-day' : 'haven-night');
+        applyTheme();
+        b.innerHTML = icon(document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon');
+      };
+      sweepTheme(swap);
     } else if (act === 'bell') document.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'inbox' } }));
     else if (act === 'coach') document.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'coach' } }));
   });

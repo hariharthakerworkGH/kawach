@@ -264,6 +264,53 @@ function calendar(scope, vault) {
   else play();
 }
 
+/* ---- today as a ring, the way to the next salary, this month beside last ----------------------------------------------------- */
+function insights(scope, vault) {
+  const host = scope.querySelector('#hv-ins');
+  const L = vault && parse(vault.dataset.life);
+  if (!host || !L || host.dataset.done || !(L.limit > 0)) return;
+  host.dataset.done = '1';
+  const D = Math.max(1, L.D);
+  const share = Math.round(L.limit / D);
+  const now = new Date();
+  const md = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const last = L.days[L.days.length - 1];
+  const spentToday = last && last[0] === md ? last[1] : 0;
+  const left = share - spentToday;
+  const p = clamp(left / share, 0, 1);
+  const over = left < 0;
+  const salary = L.toSalary > 0 ? new Date(Date.now() + L.toSalary * 86400000) : null;
+  const cmp = L.cmp;
+  const mineLvl = clamp(L.free / L.limit, 0, 1);
+  const sh = (lvl) => `<div class="tide hv-ins__shield" data-mood="calm" style="--lvl:${lvl.toFixed(3)}">${tideSvg(lvl, 0)}</div>`;
+  host.innerHTML = `<div class="hv-sec"><h2>Today and the way ahead</h2></div><div class="hv-shell"><div class="hv-core"><div class="hv-ins">
+    <div class="hv-ins__ring"><svg viewBox="0 0 120 120" width="120" height="120" style="transform:rotate(-90deg)" role="img" aria-label="${over ? rs(-left) + ' over today' : rs(left) + ' left today'}"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--hv-well)" stroke-width="12"/><circle data-ring cx="60" cy="60" r="50" fill="none" stroke="${over ? 'oklch(70% .15 55)' : 'var(--hv-tide-b)'}" stroke-width="12" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314"/></svg><div class="hv-ins__t"><b>${over ? '−' : ''}${rs(Math.abs(left))}</b><span>${over ? 'over today' : 'left today'}</span></div></div>
+    ${salary ? `<div class="hv-ins__arc"><svg viewBox="0 0 280 110" width="100%" height="110" aria-hidden="true"><path d="M20 100 Q140 -40 260 100" fill="none" stroke="var(--hv-hair-strong)" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/><path data-arc d="M20 100 Q140 -40 260 100" fill="none" stroke="var(--hv-tide-b)" stroke-width="3" stroke-linecap="round"/><g data-sun><circle r="11" fill="#ffd36a"/><circle r="19" fill="#ffd36a" opacity=".3"/></g><circle cx="260" cy="100" r="6" fill="var(--hv-good)"/></svg><div class="hv-ins__s">${L.toSalary} day${L.toSalary === 1 ? '' : 's'} to salary · ${salary.getDate()} ${MONTH[salary.getMonth()]}</div></div>` : ''}
+    ${cmp ? `<div class="hv-ins__cmp"><div>${sh(mineLvl)}<b>This month</b><span>${rs(L.free)} left</span></div><div>${sh(clamp(cmp.other / cmp.limit, 0, 1))}<b>Last month</b><span>${rs(cmp.other)} left by now</span></div><p>${L.free >= cmp.other ? `${rs(L.free - cmp.other)} ahead of last month` : `${rs(cmp.other - L.free)} behind last month`}</p></div>` : ''}
+  </div></div></div>`;
+  const ring = host.querySelector('[data-ring]');
+  const arc = host.querySelector('[data-arc]');
+  const sun = host.querySelector('[data-sun]');
+  const play = () => {
+    ring.style.transition = live() ? 'stroke-dashoffset 900ms var(--hv-spring-soft)' : 'none';
+    requestAnimationFrame(() => requestAnimationFrame(() => { ring.style.strokeDashoffset = String(314 * (1 - p)); }));
+    if (arc) {
+      const len = arc.getTotalLength();
+      const frac = clamp(1 - L.toSalary / 30, 0.03, 1);
+      arc.style.strokeDasharray = String(len);
+      const put = (v) => { arc.style.strokeDashoffset = String(len - v); const pt = arc.getPointAtLength(v); sun.setAttribute('transform', `translate(${pt.x},${pt.y})`); };
+      if (!live()) { put(len * frac); return; }
+      const t0 = performance.now();
+      const step = (n) => { const q = Math.min(1, (n - t0) / 900); put(len * frac * (1 - Math.pow(1 - q, 3))); if (q < 1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    }
+    if (cmp) host.querySelectorAll('.hv-ins__shield .water').forEach((w) => { const to = w.style.getPropertyValue('--lvl'); w.style.transition = 'none'; w.style.setProperty('--lvl', '0'); void w.getBoundingClientRect(); w.style.transition = live() ? 'transform 1200ms var(--hv-spring-soft)' : 'none'; requestAnimationFrame(() => requestAnimationFrame(() => w.style.setProperty('--lvl', to))); });
+  };
+  const fold = host.closest('details');
+  if (fold && !fold.open) fold.addEventListener('toggle', () => fold.open && play(), { once: true });
+  else play();
+}
+
 /* ---- a payment that has just been saved stamps into the list -------------------------------------------------------- */
 function stamp(scope) {
   let fresh = false;
@@ -485,10 +532,11 @@ export function lifeDraw(scope) {
   if (vault) {
     rewind(vault);
     whatIf(vault);
+    insights(scope, vault);
     calendar(scope, vault);
     setTimeout(() => { sundayCard(vault); story(vault); }, 2200);
-    if (vault.querySelector('.hv-badge.is-new') && live()) {
-      const b = vault.querySelector('.hv-badge.is-new');
+    if (vault.querySelector('.hv-medal.is-new') && live()) {
+      const b = vault.querySelector('.hv-medal.is-new');
       b.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 700, easing: SOFT });
     }
     sleeping(vault);
@@ -525,7 +573,7 @@ export const demoLife = {
     const top = vault.querySelector('.hv-vault__top');
     if (!top) return;
     const b = document.createElement('span');
-    b.className = 'hv-badge is-new';
+    b.className = 'hv-medal is-new';
     b.setAttribute('role', 'img');
     b.setAttribute('aria-label', 'A sample badge');
     b.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 2l8 3v7c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V5z" fill="#ffd36a" stroke="#c98a13" stroke-width="1.4"/><path d="M8 12.5l3 3 5-6" fill="none" stroke="#7a4a05" stroke-width="2" stroke-linecap="round"/></svg>';

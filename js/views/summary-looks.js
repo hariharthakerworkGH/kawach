@@ -412,10 +412,10 @@ export function havenTop(f, status, month, extra = {}) {
   const salary = extra.more && extra.more.salary;
   const more = extra.more || {};
   const week = weekRecap(f);
-  const life = x.finished || !(f.limit > 0) ? '' : ` data-life='${escapeHtml(JSON.stringify({ limit: f.limit, free: f.free, days: (f.spendByDay || []).map((d) => [d.date.slice(5), d.amount || 0]), cum: f.spendDays || [], D: monthLen(f), cap: more.cap || 0, perDay: x.perDay > 0 && f.free >= 0 ? x.perDay : 0, daysLeft: x.daysLeft }))}'`;
+  const life = x.finished || !(f.limit > 0) ? '' : ` data-life='${escapeHtml(JSON.stringify({ limit: f.limit, free: f.free, days: (f.spendByDay || []).map((d) => [d.date.slice(5), d.amount || 0]), cum: f.spendDays || [], D: monthLen(f), cap: more.cap || 0, perDay: x.perDay > 0 && f.free >= 0 ? x.perDay : 0, daysLeft: x.daysLeft, toSalary: f.daysToSalary || 0, cmp: more.cmp || null }))}'`;
   const recap = week ? ` data-recap='${escapeHtml(JSON.stringify(week))}'` : '';
   const story = more.story && more.story.length ? ` data-story='${escapeHtml(JSON.stringify({ key: more.storyKey, cards: more.story }))}'` : '';
-  const badges = (more.badges || []).map((b) => `<span class="hv-badge${b.isNew ? ' is-new' : ''}" role="img" aria-label="${escapeHtml(b.label)}" title="${escapeHtml(b.label)}">${BADGE}</span>`).join('');
+  const badges = (more.badges || []).map((b) => `<span class="hv-medal${b.isNew ? ' is-new' : ''}" role="img" aria-label="${escapeHtml(b.label)}" title="${escapeHtml(b.label)}">${BADGE}</span>`).join('');
   const asleep = !x.finished && x.spent === 0 && (f.spendDays || []).every((v) => !v);
   const sky = `${asleep ? ' data-sleeping' : ''} data-weather="${skyFor(mood, lvl, pace)}"`;
   const vaultData = `${life}${recap}${story}${sky} data-cycle="${escapeHtml(String(f.cycleKey || ''))}" data-soon2="${soon2}"${streak >= 3 ? ` data-streak="${streak}"` : ''}${kept > 0 ? ` data-eve="Today you kept ${escapeHtml(formatRupees(kept))}"` : ''}${salary ? ` data-salary="${escapeHtml(String(salary.id))}|${escapeHtml(formatRupees(salary.amount))}"` : ''}`;

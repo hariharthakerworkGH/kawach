@@ -200,8 +200,8 @@
 .hv-z { position: absolute; left: 58%; top: 26%; z-index: 3; font: 700 14px var(--hv-font, inherit); color: var(--hv-on-navy, #fff); opacity: 0; pointer-events: none; }
 .hv-sleep { position: relative; width: 52px; height: 64px; margin: 0 auto 8px; }
 /* ---- small badges ---- */
-:root[data-style="haven"] .hv-badge { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: oklch(100% 0 0 / 0.14); overflow: hidden; position: relative; }
-:root[data-style="haven"] .hv-badge.is-new::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.7) 50%, transparent 70%); transform: translateX(-120%); animation: hv-sheen 900ms ease-out 500ms forwards; }
+:root[data-style="haven"] .hv-medal { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: oklch(100% 0 0 / 0.14); overflow: hidden; position: relative; }
+:root[data-style="haven"] .hv-medal.is-new::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.7) 50%, transparent 70%); transform: translateX(-120%); animation: hv-sheen 900ms ease-out 500ms forwards; }
 /* ---- the Sunday card ---- */
 .hv-recap { position: fixed; left: 14px; right: 14px; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 36; max-width: 480px; margin: 0 auto; padding: 14px 16px; border-radius: 24px; background: linear-gradient(180deg, var(--hv-core), var(--hv-core-2)); box-shadow: 0 0 0 1px var(--hv-hair), var(--hv-lift); display: grid; gap: 8px; color: var(--hv-ink); }
 .hv-recap__h { display: flex; justify-content: space-between; align-items: baseline; }
@@ -269,3 +269,28 @@
 
 .hv-guide__row .k-btn { min-height: 44px; min-width: 64px; }
 .hv-guide__lab > summary { min-height: 44px; align-items: center; }
+
+/* ---- lab 4 (5.62) ---- */
+.hv-flies { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.hv-flies i { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #ffe9a8; box-shadow: 0 0 10px 3px rgba(255, 230, 150, 0.45); }
+:root[data-style="haven"][data-motion="still"] .hv-flies { display: none; }
+html.hv-sweeping::view-transition-old(root), html.hv-sweeping::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.hv-sweeping::view-transition-old(root) { z-index: 1; }
+html.hv-sweeping::view-transition-new(root) { z-index: 2; }
+
+.hv-ins { display: grid; gap: 16px; }
+.hv-ins__ring { position: relative; display: grid; place-items: center; }
+.hv-ins__t { position: absolute; display: grid; text-align: center; }
+.hv-ins__t b { font-size: 22px; font-weight: 650; letter-spacing: -0.03em; }
+.hv-ins__t span { font-size: 12px; color: var(--hv-ink-3); }
+.hv-ins__s { text-align: center; font-size: 13px; color: var(--hv-ink-2); margin-top: -4px; }
+.hv-ins__cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
+.hv-ins__cmp > div { display: grid; justify-items: center; gap: 3px; }
+.hv-ins__cmp > div > span { font-size: 12px; color: var(--hv-ink-3); }
+.hv-ins__cmp > p { grid-column: 1 / -1; margin: 4px 0 0; font-weight: 650; font-size: 14px; }
+.hv-ins__shield { position: relative; width: 74px; height: 92px; }
+.waves__pole { stroke: var(--hv-ink); stroke-width: 1.4; }
+.waves__pennant { fill: var(--hv-primary); }
+.waves__pt { font-size: 9.5px; font-weight: 650; fill: var(--hv-on-primary); }
+@media (prefers-reduced-motion: no-preference) { :root[data-style="haven"][data-motion="alive"] .waves__pennant { animation: hv-flagwave 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: left center; } }
+@keyframes hv-flagwave { 50% { transform: skewY(3deg); } }

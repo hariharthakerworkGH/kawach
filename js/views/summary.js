@@ -372,6 +372,9 @@ async function havenMore(fts, transactions, months, thisKey) {
     if (prev) {
       was = await computeFreeToSpend(endOfMonthNoon(prev));
       fts.ghost = (was.spendDays || []).slice();
+      // Last month as it stood on the same day: what was left of its budget by then.
+      const n = (fts.spendDays || []).length;
+      if (was.limit > 0 && n > 0 && was.spendDays && was.spendDays.length) out.cmp = { other: Math.max(0, was.limit - (was.spendDays[Math.min(n, was.spendDays.length) - 1] || 0)), limit: was.limit };
     }
     out.cap = Number(await getSetting('dailyCap', 0)) || 0;
     // The month has just turned (the first time this one is drawn): the last one told back in a few cards, and the badges it earned.
@@ -481,7 +484,7 @@ async function renderDashboard(container) {
       `<details class="sum-more" id="sum-more">
         <summary><span class="sum-more__t">More about this month</span><span class="sum-more__s">This week, your cards, what is coming up, where it went</span></summary>
         <div class="sum-more__body">
-          ${haven ? '<div id="hv-cal" class="hv-cal-host"></div>' : ''}
+          ${haven ? '<div id="hv-ins" class="hv-cal-host"></div><div id="hv-cal" class="hv-cal-host"></div>' : ''}
           ${rest}
           ${renderBankCard(fts)}
           ${fold('Commitments', fts.tracker ? `${fts.tracker.length}` : '', commitments, false, 'commitments-fold')}
@@ -1007,6 +1010,25 @@ function drawOnce(card) {
   watch.observe(card);
 }
 
+// A small flag on the dot says how the month stands on that day ("₹7,218 under pace"); it follows the dot as you drag (Haven).
+function flagFor(card, svg, days) {
+  if (typeof document === 'undefined' || document.documentElement.dataset.style !== 'haven') return () => {};
+  const ns = 'http://www.w3.org/2000/svg';
+  const g = document.createElementNS(ns, 'g');
+  g.setAttribute('class', 'waves__flag');
+  svg.append(g);
+  return (i) => {
+    const d = days[i];
+    const under = d[3] - d[2];
+    const text = under >= 0 ? `${formatRupees(under)} under pace` : `${formatRupees(-under)} over pace`;
+    const w = text.length * 5.4 + 14;
+    const left = d[4] + w > 336;
+    const x = left ? d[4] - w : d[4];
+    const y = Math.max(16, d[5] - 8);
+    g.innerHTML = `<line x1="${d[4]}" y1="${d[5] - 5}" x2="${d[4]}" y2="${y - 22}" class="waves__pole"/><path class="waves__pennant" d="M${x} ${y - 22} h${w} l-7 9 l7 9 h-${w} z"/><text class="waves__pt" x="${x + (left ? 6 : 6)}" y="${y - 9.5}">${text}</text>`;
+  };
+}
+
 function wireCharts(root) {
   root.querySelectorAll('[data-chart-days]').forEach((card) => {
     if (card.dataset.wired) return;
@@ -1034,9 +1056,12 @@ function wireCharts(root) {
       if (ring) ring.style.transform = `translate(${d[4] - dx}px, ${d[5] - dy}px)`;
       card.querySelectorAll('[data-bar]').forEach((b) => b.classList.toggle('is-picked', Number(b.dataset.bar) === i));
       readout.textContent = chartReadout(d, dayWord(d[0]), finished);
+      flagAt(i);
       if (!quiet && readout.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) readout.animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: 120 });
     };
     drawOnce(card);
+    const flagAt = flagFor(card, svg, days);
+    flagAt(days.length - 1);
     const dayAt = (clientX) => {
       const r = svg.getBoundingClientRect();
       const vx = ((clientX - r.left) / r.width) * w;

@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.62',
+    items: [
+      {
+        icon: 'sparkle',
+        title: "Today, the way to salary, and night",
+        text: "Under More: today as one ring, an arc towards your next salary, and this month beside last month. The chart's dot carries a flag that says how you stand. Day turns to night with a sweep, with fireflies at night, and buzzes now mean different things.",
+        guide: [{ view: 'summary', target: '#hv-ins', text: "Today as a ring, the way to salary, this month beside last." }],
+      },
+    ],
+  },
+  {
     version: '5.61',
     items: [
       {
