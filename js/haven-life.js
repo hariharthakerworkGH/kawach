@@ -614,7 +614,12 @@ export function mergeTwins(resultsEl, on, onUndo) {
       r.animate([{ transform: 'translateY(-30px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 420, easing: 'cubic-bezier(.34,1.3,.64,1)' });
     }
   };
+  // The twins usually sit in a folded list: open it so the merge is seen, then fold it back (the toast brings them back with Undo).
+  const fold = rows[0].closest('details');
+  const wasShut = !!fold && !fold.open;
+  if (wasShut && live()) { fold.open = true; rows[0].scrollIntoView({ block: 'center', behavior: 'smooth' }); }
   rows.forEach((r) => move(r, on));
+  if (wasShut && live() && on) setTimeout(() => { fold.open = false; }, 1500);
   if (on) {
     import('./toast.js').then(({ showToast }) => showToast(`${rows.length} already-imported ${rows.length === 1 ? 'row' : 'rows'} merged`, { ms: 5000, action: { label: 'Undo', run: () => onUndo && onUndo() } }));
   }
