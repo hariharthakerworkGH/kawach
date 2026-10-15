@@ -193,6 +193,7 @@ export function havenHeader(view) {
  * and its figure; tap it and it opens, in place, into the account's own details and buttons (the screen's own, unchanged).
  * Built from the rows the screen has already drawn, so every figure and every button is the screen's. */
 const GEM_OF_TYPE = { bank: [1, 'accounts'], card: [4, 'card'], cash: [3, 'cash'], savings: [6, 'piggy'], loan: [5, 'loan'], pf: [6, 'piggy'] };
+const localOpen = new Set();
 const FILTERS = { All: null, Cards: ['Cards'], Money: ['Cash', 'Bank', 'Savings and FDs', 'Provident fund'], Loans: ['Loans'] };
 const lakh = (n) => shortRupees(n);
 export function havenAccounts(container, justOpened = null) {
@@ -223,7 +224,13 @@ export function havenAccounts(container, justOpened = null) {
       : lead && lead.t === 'line'
         ? `<span class="hv-lead hv-lead--line">${sparkline(lead.pts)}</span>`
         : `<span class="hv-gem hv-g${g}"><span class="hv-ic">${ic === 'piggy' || ic === 'loan' ? categoryIcon(ic) : icon(ic)}</span></span>`;
-    block.classList.toggle('is-open', row.getAttribute('aria-expanded') === 'true');
+    // Everything but the row waits behind a tap: a card's bill and its facts, a loan's plan, the buttons. A row that opens by
+    // redrawing (a card, a bank) says so itself; the others (a loan, savings, cash) open here, on the spot.
+    const opensItself = row.classList.contains('account-open');
+    if (!opensItself) { row.setAttribute('role', 'button'); row.setAttribute('tabindex', '0'); }
+    const open = opensItself ? row.getAttribute('aria-expanded') === 'true' : localOpen.has(row.dataset.id);
+    row.setAttribute('aria-expanded', String(open));
+    block.classList.toggle('is-open', open);
     // a balance from a lakh up reads short; the whole figure is on the row's label
     const fig = row.querySelector('.account-balance');
     const m = fig && /^₹\s?([\d,]+)$/.exec(fig.textContent.trim());
@@ -232,6 +239,32 @@ export function havenAccounts(container, justOpened = null) {
     if (block.classList.contains('is-open') && !row.querySelector('.hv-rowwater')) row.insertAdjacentHTML('afterbegin', '<span class="hv-rowwater" aria-hidden="true"></span>');
   }
 
+  if (!container._hvAcc) {
+    container._hvAcc = true;
+    const flip = (row) => {
+      const block = row.closest('.account-block');
+      const id = row.dataset.id;
+      const open = !block.classList.contains('is-open');
+      if (open) localOpen.add(id); else localOpen.delete(id);
+      block.classList.toggle('is-open', open);
+      row.setAttribute('aria-expanded', String(open));
+      row.querySelector('.hv-rowwater')?.remove();
+      if (open) row.insertAdjacentHTML('afterbegin', '<span class="hv-rowwater" aria-hidden="true"></span>');
+      if (open && isLive()) {
+        [...block.children].filter((c) => c !== row && getComputedStyle(c).display !== 'none').forEach((c, i) => c.animate([{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: 480, delay: i * 40, easing: 'cubic-bezier(.34,1.3,.64,1)', fill: 'backwards' }));
+        row.animate([{ transform: 'scale(.985)' }, { transform: 'none' }], { duration: 520, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+        row.querySelector('.hv-rowwater')?.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { duration: 1100, easing: 'cubic-bezier(.22,1,.36,1)' });
+      }
+    };
+    container.addEventListener('click', (e) => {
+      const row = e.target.closest('.account-row[role="button"]:not(.account-open)');
+      if (row && !e.target.closest('button, a, input, select, summary')) flip(row);
+    });
+    container.addEventListener('keydown', (e) => {
+      const row = e.target.closest?.('.account-row[role="button"]:not(.account-open)');
+      if (row && (e.key === 'Enter' || e.key === ' ') && e.target === row) { e.preventDefault(); flip(row); }
+    });
+  }
   const hold = Number(holdBox?.dataset.hold) || 0;
   const owe = Number(holdBox?.dataset.owe) || 0;
   const top = document.createElement('div');

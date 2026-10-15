@@ -922,7 +922,7 @@ function accountRow(account, { meta = '', value = '', tone = '', canOpen = false
   }
 
   const figure = `<span class="k-row__value account-balance ${tone}">${value}</span>`;
-  if (!canOpen) return `<div class="k-row account-row account-row--${account.type}"${leadAttr}>${body}${figure}</div>`;
+  if (!canOpen) return `<div class="k-row account-row account-row--${account.type}" data-id="${account.id}"${leadAttr}>${body}${figure}</div>`;
   return `
     <button type="button" class="k-row account-row account-open account-row--${account.type}" data-id="${account.id}" aria-expanded="${open}"${leadAttr}>
       ${body}${figure}

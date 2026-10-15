@@ -377,3 +377,9 @@ html.hv-sweeping::view-transition-new(root) { z-index: 2; }
 /* Add: the other ways in, as one quiet line under the main button. */
 .hv-via { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0 6px; margin: 0; font-size: 13px; color: var(--hv-ink-3); }
 .hv-via button { min-height: 44px; padding: 0 4px; border: 0; background: none; font: inherit; font-weight: 600; color: var(--hv-link); }
+
+/* A closed account is its row and nothing else (a one-line warning may stay); the rest opens with a tap. */
+:root[data-style="haven"] .account-block:not(.is-open) > :not(.account-row):not(.account-note) { display: none; }
+:root[data-style="haven"] .account-block .account-row[role="button"] { cursor: pointer; }
+:root[data-style="haven"] .account-block .account-row[role="button"]:focus-visible { outline: 2px solid var(--hv-link); outline-offset: -2px; border-radius: 22px; }
+:root[data-style="haven"] .account-block .account-note { margin: 0; padding: 0 14px 8px; font-size: 12.5px; }

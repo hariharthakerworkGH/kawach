@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.66',
+    items: [
+      {
+        icon: 'check',
+        title: "Accounts, fixed",
+        text: "Accounts is now what it should have been: each account is one short card, and its bill, facts, loan plan and buttons wait behind a tap. Loans, savings and cash open on a tap too.",
+      },
+    ],
+  },
+  {
     version: '5.65',
     items: [
       {
