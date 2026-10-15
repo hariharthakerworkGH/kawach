@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.66.1',
+    items: [
+      {
+        icon: 'shield',
+        title: "Accounts tidied",
+        text: "Cards open without blank screens, text and bars keep their space, and the top bar stays clear when you scroll.",
+      },
+    ],
+  },
+  {
     version: '5.66',
     items: [
       {

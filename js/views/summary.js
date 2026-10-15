@@ -373,7 +373,7 @@ async function havenMore(fts, transactions, months, thisKey, categories = []) {
       fts.ghost = (was.spendDays || []).slice();
       // Last month as it stood on the same day: what was left of its budget by then.
       const n = (fts.spendDays || []).length;
-      if (was.limit > 0 && n > 0 && was.spendDays && was.spendDays.length) out.cmp = { other: Math.max(0, was.limit - (was.spendDays[Math.min(n, was.spendDays.length) - 1] || 0)), limit: was.limit };
+      if (n > 0 && was.spendDays && was.spendDays.length && was.limit > 0) out.cmp = { spent: was.spendDays[Math.min(n, was.spendDays.length) - 1] || 0, limit: was.limit };
     }
     out.cap = Number(await getSetting('dailyCap', 0)) || 0;
     // Where this month's money went (the five biggest categories, the way budgets count it), and each budget as a tank.

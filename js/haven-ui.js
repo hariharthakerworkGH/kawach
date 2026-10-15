@@ -197,6 +197,18 @@ const localOpen = new Set();
 const FILTERS = { All: null, Cards: ['Cards'], Money: ['Cash', 'Bank', 'Savings and FDs', 'Provident fund'], Loans: ['Loans'] };
 const lakh = (n) => shortRupees(n);
 export function havenAccounts(container, justOpened = null) {
+  // Whatever goes wrong while the cards are dressed, the screen as drawn stays on show (never a blank page).
+  try { dressAccounts(container, justOpened); } catch (err) { console.error('Accounts could not be dressed', err); container.querySelectorAll('.account-group-sec[hidden]').forEach((s) => { s.hidden = false; }); }
+  // And a last check once it has settled: if the cards are somehow invisible, show them as they are.
+  setTimeout(() => {
+    const cards = [...container.querySelectorAll('.account-block')];
+    if (cards.length && (!container.querySelector('.hv-hold') || cards.some((c) => Number(getComputedStyle(c).opacity) < 0.5))) {
+      container.getAnimations({ subtree: true }).forEach((a) => a.cancel());
+      container.querySelectorAll('.account-group-sec[hidden]').forEach((s) => { s.hidden = false; });
+    }
+  }, 900);
+}
+function dressAccounts(container, justOpened) {
   if (!isHaven() || container.querySelector('.hv-hold')) return;
   const groups = [...container.querySelectorAll('.account-group-sec')];
   const holdBox = container.querySelector('#hv-hold');
@@ -251,7 +263,7 @@ export function havenAccounts(container, justOpened = null) {
       row.querySelector('.hv-rowwater')?.remove();
       if (open) row.insertAdjacentHTML('afterbegin', '<span class="hv-rowwater" aria-hidden="true"></span>');
       if (open && isLive()) {
-        [...block.children].filter((c) => c !== row && getComputedStyle(c).display !== 'none').forEach((c, i) => c.animate([{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: 480, delay: i * 40, easing: 'cubic-bezier(.34,1.3,.64,1)', fill: 'backwards' }));
+        [...block.children].filter((c) => c !== row && getComputedStyle(c).display !== 'none').forEach((c, i) => c.animate([{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: 480, easing: 'cubic-bezier(.34,1.3,.64,1)' }));
         row.animate([{ transform: 'scale(.985)' }, { transform: 'none' }], { duration: 520, easing: 'cubic-bezier(.34,1.56,.64,1)' });
         row.querySelector('.hv-rowwater')?.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { duration: 1100, easing: 'cubic-bezier(.22,1,.36,1)' });
       }
@@ -301,7 +313,7 @@ export function havenAccounts(container, justOpened = null) {
   if (isLive()) {
     top.querySelectorAll('[data-count]').forEach((n) => { const to = Number(n.dataset.count); const t0 = performance.now(); const step = (t) => { const p = Math.min(1, (t - t0) / 900); n.textContent = lakh(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); });
     container.querySelectorAll('.hv-lead--tank .water').forEach((w) => { const to = w.style.getPropertyValue('--lvl'); w.style.transition = 'none'; w.style.setProperty('--lvl', '0'); void w.getBoundingClientRect(); w.style.transition = 'transform 1200ms var(--hv-spring-soft)'; requestAnimationFrame(() => requestAnimationFrame(() => w.style.setProperty('--lvl', to))); });
-    container.querySelectorAll('.account-block').forEach((b, i) => b.animate([{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 480, delay: Math.min(i, 8) * 50, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' }));
+    container.querySelectorAll('.account-block').forEach((b) => b.animate([{ transform: 'translateY(14px)', opacity: 0.4 }, { transform: 'none', opacity: 1 }], { duration: 420, easing: 'cubic-bezier(.16,1,.3,1)' }));
     // the account you just opened: its details unfold and its card turns navy with water rising
     if (justOpened) {
       const row = container.querySelector(`.account-open[data-id="${CSS.escape(justOpened)}"]`);

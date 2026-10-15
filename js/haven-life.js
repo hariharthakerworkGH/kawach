@@ -295,14 +295,15 @@ function insights(scope, vault) {
   const extra = parse(host.dataset.extra) || {};
   const layers = extra.layers || [];
   const tanks = extra.tanks || [];
-  const mineLvl = clamp(L.free / L.limit, 0, 1);
+  const mineSpent = L.cum[L.cum.length - 1] || 0;
+  const mineLvl = clamp(1 - mineSpent / L.limit, 0, 1);
   const sh = (lvl) => `<div class="tide hv-ins__shield" data-mood="calm" style="--lvl:${lvl.toFixed(3)}">${tideSvg(lvl, 0)}</div>`;
   host.innerHTML = `<div class="hv-sec"><h2>Today and the way ahead</h2></div><div class="hv-shell"><div class="hv-core"><div class="hv-ins">
     <div class="hv-ins__ring"><svg viewBox="0 0 120 120" width="120" height="120" style="transform:rotate(-90deg)" role="img" aria-label="${over ? rs(-left) + ' over today' : rs(left) + ' left today'}"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--hv-well)" stroke-width="12"/><circle data-ring cx="60" cy="60" r="50" fill="none" stroke="${over ? 'oklch(70% .15 55)' : 'var(--hv-tide-b)'}" stroke-width="12" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314"/></svg><div class="hv-ins__t"><b>${over ? '−' : ''}${rs(Math.abs(left))}</b><span>${over ? 'over today' : 'left today'}</span></div></div>
     ${salary ? `<div class="hv-ins__arc"><svg viewBox="0 0 280 110" width="100%" height="110" aria-hidden="true"><path d="M20 100 Q140 -40 260 100" fill="none" stroke="var(--hv-hair-strong)" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/><path data-arc d="M20 100 Q140 -40 260 100" fill="none" stroke="var(--hv-tide-b)" stroke-width="3" stroke-linecap="round"/><g data-sun><circle r="11" fill="#ffd36a"/><circle r="19" fill="#ffd36a" opacity=".3"/></g><circle cx="260" cy="100" r="6" fill="var(--hv-good)"/></svg><div class="hv-ins__s">${L.toSalary} day${L.toSalary === 1 ? '' : 's'} to salary · ${salary.getDate()} ${MONTH[salary.getMonth()]}</div></div>` : ''}
     ${layers.length ? shieldLayers(layers) : ''}
     ${tanks.length ? `<div class="hv-ins__tanks" role="group" aria-label="Budgets left">${tanks.map((t, i) => `<div class="hv-tank${t.left < 0.15 ? ' warm' : ''}" data-i="${i}"><span class="hv-tank__v"><i data-f style="height:${(t.left * 100).toFixed(0)}%"></i></span><span>${esc(t.name)}</span></div>`).join('')}</div>` : ''}
-    ${cmp ? `<div class="hv-ins__cmp"><div>${sh(mineLvl)}<b>This month</b><span>${rs(L.free)} left</span></div><div>${sh(clamp(cmp.other / cmp.limit, 0, 1))}<b>Last month</b><span>${rs(cmp.other)} left by now</span></div><p>${L.free >= cmp.other ? `${rs(L.free - cmp.other)} ahead of last month` : `${rs(cmp.other - L.free)} behind last month`}</p></div>` : ''}
+    ${cmp ? `<div class="hv-ins__cmp"><div>${sh(mineLvl)}<b>This month</b><span>${rs(mineSpent)} spent so far</span></div><div>${sh(clamp(1 - cmp.spent / cmp.limit, 0, 1))}<b>Last month</b><span>${rs(cmp.spent)} by this day</span></div><p>${mineSpent <= cmp.spent ? `${rs(cmp.spent - mineSpent)} less than last month so far` : `${rs(mineSpent - cmp.spent)} more than last month so far`}</p></div>` : ''}
   </div></div></div>`;
   const ring = host.querySelector('[data-ring]');
   const arc = host.querySelector('[data-arc]');

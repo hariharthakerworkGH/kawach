@@ -598,6 +598,8 @@ function watchVault() {
   if (!vaultEl && mini) mini.classList.remove('on');
 }
 function onScroll() {
+  const hdr = document.querySelector('.app-header');
+  if (hdr && isHaven()) hdr.classList.toggle('is-scrolled', scrollY > 6);
   if (!vaultEl || !vaultEl.isConnected) { mini?.classList.remove('on'); return; }
   const show = scrollY > 160 && isHaven();
   if (!mini) {

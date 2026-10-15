@@ -383,3 +383,17 @@ html.hv-sweeping::view-transition-new(root) { z-index: 2; }
 :root[data-style="haven"] .account-block .account-row[role="button"] { cursor: pointer; }
 :root[data-style="haven"] .account-block .account-row[role="button"]:focus-visible { outline: 2px solid var(--hv-link); outline-offset: -2px; border-radius: 22px; }
 :root[data-style="haven"] .account-block .account-note { margin: 0; padding: 0 14px 8px; font-size: 12.5px; }
+
+/* Cards: whatever sits in an account's card apart from its row keeps the card's own side space. */
+:root[data-style="haven"] .account-block > :not(.account-row):not(.account-detail):not(.account-note) { padding-inline: 14px; box-sizing: border-box; }
+:root[data-style="haven"] .account-block > :not(.account-row) { max-width: 100%; }
+:root[data-style="haven"] .account-block .account-detail { padding-inline: 14px; }
+:root[data-style="haven"] .account-block .account-detail .k-btn { min-height: 44px; }
+/* The header gets a soft ground once the page has scrolled under it, so nothing is seen through its buttons. */
+:root[data-style="haven"] .app-header.is-scrolled { background: color-mix(in oklab, var(--hv-paper) 82%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 1px 0 var(--hv-hair); }
+:root[data-style="haven"] .app-header { transition: background 200ms, box-shadow 200ms; }
+/* Links at the foot of an open card start where its text starts: no extra indent, none centred. */
+:root[data-style="haven"] .account-block .account-actions-inline { margin: 0; padding-inline: 14px; justify-content: flex-start; gap: 20px; }
+:root[data-style="haven"] .account-block .account-actions-inline .k-btn,
+:root[data-style="haven"] .account-block .account-see-all { padding-inline: 0; justify-content: flex-start; min-height: 44px; }
+:root[data-style="haven"] .account-block .account-see-all { display: flex; margin: 0; }
