@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.65',
+    items: [
+      {
+        icon: 'check',
+        title: "Cleaner Add, lighter app",
+        text: "The + sheet is quieter: the amount first, and one small line under Next to paste a bank message or import a statement. The app is lighter too: unused styles and code were removed.",
+      },
+    ],
+  },
+  {
     version: '5.64',
     items: [
       {

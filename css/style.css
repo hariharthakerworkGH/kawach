@@ -3296,12 +3296,6 @@ details:has(> .muted-note:last-child) + .bank-card,
   padding-inline: var(--space-sm);
 }
 
-.hist-cat-more {
-  width: auto;
-  margin-top: 0;
-  border-radius: var(--radius-pill);
-}
-
 .hist-actions {
   display: flex;
   flex-wrap: wrap;

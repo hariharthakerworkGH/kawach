@@ -198,7 +198,6 @@ export function startGuide(hooks = {}, from = null) {
   window.addEventListener('scroll', place, true);
 }
 
-export const stopGuide = () => active && active.stop();
 
 /* Back to the first step the next time it opens (Start over). */
 export const resetGuide = () => write(0);

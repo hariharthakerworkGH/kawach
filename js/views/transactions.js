@@ -1566,11 +1566,6 @@ function dayLabel(iso) {
   return `${DAYS[date.getDay()]} ${d} ${MONTHS[m - 1]}`;
 }
 
-function formatFull(iso) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return `${d} ${MONTHS[m - 1]} ${y}`;
-}
-
 // Six months of money in and out, for the drawing above the list: is this
 // month normal for me? Transfers between your own accounts are money moved,
 // never money in or out.

@@ -275,13 +275,9 @@ html:root[data-style="haven"] #tabs:has(.nav-btn[data-view="add"].active) .nav-i
 /* Plan, in the prototype's order (js/views/plan.js havenArrange) */
 :root[data-style="haven"] .plan-coach { display: none; }
 :root[data-style="haven"] .hv-step { position: relative; }
-:root[data-style="haven"] .hv-step__open { all: unset; box-sizing: border-box; display: grid; gap: 6px; cursor: pointer; }
-:root[data-style="haven"] .hv-step__name { display: grid; }
-:root[data-style="haven"] .hv-step__name b { font-size: var(--hv-fs-body); font-weight: 650; }
-:root[data-style="haven"] .hv-chev-row { all: unset; box-sizing: border-box; display: flex; width: 100%; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; box-shadow: inset 0 1px 0 var(--hv-hair); color: var(--hv-ink-2); font-size: var(--hv-fs-label); cursor: pointer; }
-:root[data-style="haven"] .hv-chev-row .hv-ic { width: 20px; height: 20px; }
+
 :root[data-style="haven"] .hv-fold .hv-row { padding-inline: 0; }
-:root[data-style="haven"] .hv-btn .hv-nest .hv-ic { width: 16px; height: 16px; }
+
 :root[data-style="haven"] .k .hv-note-wrap { margin-inline: 0; }
 :root[data-style="haven"] .k .k-context__mark { background: none; box-shadow: none; width: auto; height: auto; --hv-gem: currentColor; color: var(--hv-warn); }
 :root[data-style="haven"] .k .k-context--alert .k-context__mark { color: var(--hv-bad); }
@@ -301,8 +297,7 @@ html:root[data-style="haven"] #tabs:has(.nav-btn[data-view="add"].active) .nav-i
 :root[data-style="haven"] .k .k-row + .k-row { box-shadow: inset 0 1px 0 var(--hv-hair); border-top: 0; }
 
 /* Accounts (js/haven-ui.js havenAccounts): the cards, the dots, the order control, the list */
-:root[data-style="haven"] .hv-accounts-deck { margin: 0 -16px 8px; }
-:root[data-style="haven"] .hv-accounts-deck .hv-cards { margin: 0; }
+
 :root[data-style="haven"] .hv-sec:has(> #accounts-sort) { margin-bottom: 8px; }
 :root[data-style="haven"] .k > .hv-sec { padding: 6px 6px 0; margin-bottom: 8px; }
 :root[data-style="haven"] .account-group-label { font-size: var(--hv-fs-label); font-weight: 600; color: var(--hv-ink-2); margin: 8px 6px 6px; letter-spacing: 0; }
@@ -458,10 +453,7 @@ html:root[data-style="haven"] .hv-addform #add-date { box-sizing: border-box; he
 :root[data-style="haven"] .waves-card svg { width: 100%; height: auto; }
 
 /* Accounts: the cards are the account in hand, with what you do with it */
-:root[data-style="haven"] .hv-card { cursor: pointer; }
-:root[data-style="haven"] .hv-card__acts { display: flex; gap: var(--hv-s2); }
-:root[data-style="haven"] .hv-cardbtn { height: 30px; padding: 0 14px; border: 0; border-radius: var(--hv-r-pill); background: oklch(100% 0 0 / 0.16); color: var(--hv-on-navy); font: inherit; font-size: var(--hv-fs-label); font-weight: 600; cursor: pointer; }
-:root[data-style="haven"] .hv-cardbtn:active { background: oklch(100% 0 0 / 0.28); }
+
 :root[data-style="haven"] .hv-due.hv-core { padding: var(--hv-s2) var(--hv-s4); }
 :root[data-style="haven"] .hv-due.hv-core { box-shadow: inset 0 1px 0 var(--hv-hl), var(--hv-lift); }
 
@@ -515,8 +507,8 @@ html:root[data-style="haven"] .hv-addform #add-date { box-sizing: border-box; he
 :root[data-style="haven"] .waves-card { overflow: visible; min-width: 0; }
 
 /* reach: small buttons still have a 44px target */
-:root[data-style="haven"] .hv-cardbtn, :root[data-style="haven"] .hv-bill__open { position: relative; }
-:root[data-style="haven"] .hv-cardbtn::before, :root[data-style="haven"] .hv-bill__open::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--k-tap, 44px); transform: translateY(-50%); }
+:root[data-style="haven"] .hv-bill__open { position: relative; }
+:root[data-style="haven"] .hv-bill__open::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--k-tap, 44px); transform: translateY(-50%); }
 
 /* ======================= 5.55: Plan's two lists as one ======================= */
 :root[data-style="haven"] .hv-sum { display: grid; gap: 14px; }

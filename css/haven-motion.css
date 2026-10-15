@@ -41,7 +41,7 @@
 @keyframes hv-wake { 40% { transform: scale(1.035); } }
 
 /* ---- pressing: a card sinks 6% and springs back; a ripple spreads from the touch (alive and calm) ---- */
-:root[data-style="haven"]:not([data-motion="still"]) :is(.hv-chip, button.hv-row, .hv-row[data-hv-go], .hv-bill__open, .hv-cardbtn, button.hv-note, .hv-sum__keys button) {
+:root[data-style="haven"]:not([data-motion="still"]) :is(.hv-chip, button.hv-row, .hv-row[data-hv-go], .hv-bill__open, button.hv-note, .hv-sum__keys button) {
   position: relative; overflow: clip; transition: transform 500ms var(--hv-spring-snap), background var(--hv-d-fast) var(--hv-ease-out);
 }
 :root[data-style="haven"]:not([data-motion="still"]) .hv-down { transform: scale(0.94); transition: transform 120ms ease-out; }
@@ -290,8 +290,6 @@ svg.waves:focus-visible:not(.by-pointer) { outline: 2px solid var(--hv-link, cur
 :root[data-style="haven"] #view-container:has(.settings-k) .section-fold > summary { min-height: 44px; padding-block: 4px; }
 :root[data-style="haven"] #view-container:has(.settings-k) .settings-foot { margin-top: 10px; }
 /* Add: ways in other than typing, right under the way the money went. */
-.hv-addvia { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 4px; }
-.hv-addvia .hv-chip { flex: 1 1 auto; justify-content: center; }
 :root[data-style="haven"] .money-kinds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 :root[data-style="haven"] .money-kind { min-height: 44px; padding: 4px 6px; font-size: 12.5px; line-height: 1.15; }
 :root[data-style="haven"] .money-label { margin: 4px 0 6px; font-size: 12.5px; }
@@ -375,3 +373,7 @@ html.hv-sweeping::view-transition-new(root) { z-index: 2; }
 :root[data-style="haven"] .hv-filter { flex-wrap: wrap; overflow: visible; }
 :root[data-style="haven"] .hv-hold-wrap { min-width: 0; }
 :root[data-style="haven"] .hv-acctchips { flex-wrap: wrap; }
+
+/* Add: the other ways in, as one quiet line under the main button. */
+.hv-via { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0 6px; margin: 0; font-size: 13px; color: var(--hv-ink-3); }
+.hv-via button { min-height: 44px; padding: 0 4px; border: 0; background: none; font: inherit; font-weight: 600; color: var(--hv-link); }

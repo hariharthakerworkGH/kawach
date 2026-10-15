@@ -730,7 +730,7 @@
 
 /* --- Motion --------------------------------------------------------- */
 @keyframes k-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
-@keyframes k-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
 @keyframes k-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
 /* Said once, for the whole system: when the phone asks for less movement,
@@ -1748,8 +1748,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 /* Pull to refresh. The ring is the distance pulled, so it is feedback, not
    a spinner pretending the app is busy. */
 
-@keyframes k-spin { to { transform: rotate(360deg); } }
-
 /* --- Motion, as classes ----------------------------------------------
    The budget, stated once so nobody has to guess which duration to reach
    for. Every animation in the product is one of these three.
@@ -1766,23 +1764,11 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
    movement is what tells you it changed, since two numbers of the same size
    in the same place otherwise just swap without being noticed. */
 
-@keyframes k-tick {
-  0% { transform: translateY(0.14em); opacity: 0.35; }
-  100% { transform: none; opacity: 1; }
-}
-
 /* A row arriving in a list it was not in a moment ago. It comes from the
    direction it came from - the top - and settles rather than bouncing. */
 
-@keyframes k-settle {
-  from { opacity: 0; transform: translateY(-10px) scale(0.99); }
-  to { opacity: 1; transform: none; }
-}
-
 /* A meter or a bar filling toward its target, used by the radial and the
    share rows. Held here so a drawing cannot invent its own timing. */
-
-@keyframes k-fill { from { stroke-dashoffset: var(--k-len, 1000); } to { stroke-dashoffset: var(--k-off, 0); } }
 
 /* The delta pill has to be corrected for daylight after it is defined,
    which is here rather than up with the other light-mode rules: a colour
@@ -2634,19 +2620,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 
 /* The Time box in a payment's Edit panel: the label on the left, the
    control taking the rest of the line. */
-.k .hist-time { justify-content: space-between; }
-.k .hist-time input[type="time"] {
-  width: auto;
-  flex: 0 1 9rem;
-  min-height: var(--k-ctl-md);
-  margin: 0;
-  padding: 0 var(--k-3);
-  border-radius: var(--k-r-md);
-  border: 1px solid var(--k-border-subtle);
-  background-color: var(--k-glass-1);
-  color: var(--k-text);
-  font: inherit;
-}
 
 /* The bank card's second figure (what it would read if the work costs are paid
    back) and the line for a late refund; and the note under "Owed back by
@@ -2955,8 +2928,7 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .waves--day.waves__fill { fill: color-mix(in srgb, var(--k-grad-1b) 30%, transparent); }
 .waves--day.waves__line { stroke: var(--k-grad-1a); }
 .waves__dot { fill: var(--k-grad-1a); stroke: var(--k-surface); stroke-width: 2; }
-.waves__tip rect { fill: var(--k-grad-1a); }
-.waves__tip text { fill: var(--k-accent-ink); font-size: 10.5px; font-weight: var(--k-w-strong); font-family: var(--k-font); }
+
 .waves__key { display: grid; gap: 6px; padding: var(--k-2) var(--k-4) 0; font-size: var(--k-label); color: var(--k-text-3); }
 .waves__k { display: grid; grid-template-columns: 14px 104px 1fr; align-items: center; }
 .waves__k::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 2px solid currentColor; }
@@ -3351,7 +3323,7 @@ body:has(#view-container.k) .app-header {
 .k .txn-edit-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--k-2); align-items: stretch; }
 .k .txn-edit-row .rv-field[type="date"] { flex: none; width: 100%; min-height: 44px; }
 .k .txn-edit-row .direction-toggle { align-self: stretch; }
-.k .hist-time { justify-content: space-between; }
+
 .k .hist-edit .rv-field { width: 100%; }
 
 /* Small text that was already here, brought up to AA on the light looks. */
@@ -3470,7 +3442,6 @@ html.is-locked .app-header, html.is-locked #view-container, html.is-locked #tabs
 .k-sheet__grip.is-handle { position: relative; }
 .k-sheet__grip.is-handle::after { content: ''; position: absolute; inset: -14px -48px; }
 
-
 /* ======================================================================
    Motion (5.37). Corporate-premium: short, decelerating in, accelerating out, only transform
    and opacity moving. Every rule that moves has a reduced-motion answer at the end.
@@ -3564,7 +3535,6 @@ html.is-locked .app-header, html.is-locked #view-container, html.is-locked #tabs
   .k .hist-row.is-pressing { transform: none; }
 }
 
-
 /* 24. The message lights up as its fields land: each word glows as its field arrives, 80 ms apart. */
 .alert-sms { margin: 8px 0 4px; padding: 8px 10px; font-size: var(--k-label, 13px); line-height: 1.45; color: var(--k-text-2); background: color-mix(in srgb, var(--k-text) 5%, transparent); border-radius: 6px; overflow: hidden; overflow-wrap: anywhere; }
 .alert-sms mark { background: transparent; color: var(--k-text); border-radius: 3px; animation: sms-glow 700ms linear calc(var(--k, 0) * 80ms) both; }
@@ -3592,7 +3562,6 @@ html.is-locked .app-header, html.is-locked #view-container, html.is-locked #tabs
 .view-skeleton .sk--card { width: min(100%, 420px); height: 84px; border-radius: 12px; }
 @keyframes sk-sweep { from { background-position: -60vw 0; } to { background-position: 160vw 0; } }
 @media (prefers-reduced-motion: reduce) { .view-skeleton .sk { animation: none; background-image: none; } }
-
 
 /* 22. A goal that is reached: the ring draws to its end, a tick badge draws, one ripple leaves the ring. */
 @keyframes ring-draw { from { stroke-dasharray: 0 999; } }
@@ -3638,7 +3607,6 @@ html { overscroll-behavior-y: contain; }
 .app-header::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--k-hairline, var(--border)); opacity: var(--shrink); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .app-header h1 { transform: none; } .ptr__arrows { transition: none; } }
 
-
 /* ======================================================================
    What was spent outside the budget, on every look (5.38): hatched, as Instrument had it since 5.33.
    ====================================================================== */
@@ -3646,7 +3614,7 @@ html { overscroll-behavior-y: contain; }
 .k .waves__hatch, .k .scale__hatch { stroke: var(--k-text-2); stroke-width: 1.4; }
 .k .waves__note { display: flex; align-items: flex-start; gap: 8px; margin: 8px var(--k-4) 0; font-size: var(--k-caption); line-height: 1.4; color: var(--k-text-2); }
 .k .waves__note i { flex: none; width: 12px; height: 8px; margin-top: 4px; border-radius: 2px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--k-text) 34%, transparent) 0 2px, transparent 2px 4px); }
-.k .waves__note i.is-dashed { height: 0; margin-top: 8px; border-radius: 0; background: none; border-top: 2px dashed var(--k-text-2); }
+
 .k .pills-note { margin: 10px 0 0; }
 /* Charts: a hatched block above a day's pill. */
 .k .pill-col i.pill-other { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--k-text) 34%, transparent) 0 2px, transparent 2px 4px); box-shadow: none; min-height: 3px; border-radius: 3px; }
@@ -3676,7 +3644,7 @@ html { overscroll-behavior-y: contain; }
 @keyframes bar-rise { from { transform: scaleY(0); } }
 @keyframes dot-land { from { opacity: 0; } }
 @keyframes fill-in-soft { from { opacity: 0; } }
-@keyframes reveal-x { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
 .k .waves-card:not(.scale-card).is-armed .waves__bar, .k .waves-card:not(.scale-card).is-armed .waves__other { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); }
 .k .waves-card:not(.scale-card).is-armed .waves--spent.waves__line { stroke-dasharray: 100; stroke-dashoffset: 100; }
 .k .waves-card:not(.scale-card).is-armed .waves__fill, .k .waves-card:not(.scale-card).is-armed .waves__dot { opacity: 0; }

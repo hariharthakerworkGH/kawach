@@ -9,7 +9,6 @@ let isOpen = false;
 let closer = null;
 const reduced = () => Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-export function sheetOpen() { return isOpen; }
 /* Going to another screen (a link inside the sheet, the back button) puts the sheet away first. */
 export function closeAddSheet() { if (closer) closer(); }
 

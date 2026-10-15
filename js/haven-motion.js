@@ -86,7 +86,7 @@ function sheen() {
 }
 
 /* ---- pressing, holding, swiping ----------------------------------------------------------------------------- */
-const PRESS = '.hv-chip, button.hv-row, .hv-row[data-hv-go], .hv-bill__open, .hv-cardbtn, button.hv-note, .hv-sum__keys button';
+const PRESS = '.hv-chip, button.hv-row, .hv-row[data-hv-go], .hv-bill__open, button.hv-note, .hv-sum__keys button';
 const LIFT = '.hv-bill, .hv-row';
 
 function ripple(el, e) {

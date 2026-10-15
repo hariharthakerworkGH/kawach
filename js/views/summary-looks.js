@@ -299,7 +299,6 @@ export const gem = (label, svg = categoryStyle(label).icon) => `<span class="hv-
 export const rupee = (paise) => `<span class="hv-cur">₹</span>${Math.round(Math.abs(paise) / 100).toLocaleString('en-IN')}`;
 const rise = (i, html) => `<div class="hv-rise" style="--i:${i}">${html}</div>`;
 const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /* Lab 2 (5.58): small facts about the days, read from the month's own figures. Pure, so they can be tested. */
 const monthLen = (f) => (f.daysIntoCycle || (f.spendDays || []).length) + (f.daysToClose || 1) - 1;

@@ -287,4 +287,3 @@ function sparkline(pts) {
   const d = pts.map((v, i) => `${i ? 'L' : 'M'}${((i / (pts.length - 1)) * 68 + 1).toFixed(1)} ${(24 - ((v - mn) / (mx - mn || 1)) * 22).toFixed(1)}`).join(' ');
   return `<svg viewBox="0 0 70 26" width="70" height="26" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--hv-link)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"><animate attributeName="stroke-dashoffset" from="100" to="0" dur="1.1s" fill="freeze" calcMode="spline" keySplines=".16 1 .3 1" keyTimes="0;1"/></path></svg>`;
 }
-const escapeText = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
