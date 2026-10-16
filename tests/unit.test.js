@@ -15,6 +15,7 @@ import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance, applyTheme, retireOldLooks } from '../js/appearance.js';
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
 import { cardWorkSplit, cushionCard, cardFacts } from '../js/views/accounts.js';
+import { ringSlices } from '../js/haven-ring.js';
 import { subscriptionsOf, isSubscription } from '../js/subscriptions.js';
 import { limitUse, bestDay, payBy } from '../js/card-smarts.js';
 import { forecast, costInMonth } from '../js/forecast.js';
@@ -2069,6 +2070,15 @@ test('Haven lab 3: the amount in words, short lakhs, the month told back and the
   equal(monthStory({ limit: 0, spendByDay: [] }, 0, 'X').length, 0, 'no budget, no story');
   const w = weekRecap(f([5, 12, 18, 25, 30, 35, 40, 45]));
   ok(w && w.days.length === 7 && w.total === rupees(45 - 5) && w.big.amount === rupees(7), 'a week: its seven days, its total and its biggest');
+});
+test('History ring: the five biggest categories keep their slice, the rest are gathered as Other, biggest first', () => {
+  const e = (name, amount) => ({ name, amount: rupees(amount), icon: '' });
+  const few = ringSlices([e('A', 10), e('B', 30), e('C', 20)]);
+  equal(few.map((x) => x.name), ['B', 'C', 'A'], 'three or so: all shown, biggest first');
+  const many = ringSlices([e('A', 70), e('B', 60), e('C', 50), e('D', 40), e('E', 30), e('F', 20), e('G', 10)]);
+  equal(many.length, 6, 'five and Other');
+  equal([many[5].name, many[5].amount], ['Other', rupees(30)], 'the rest add up in Other');
+  ok(many[5].other === true, 'Other is marked so it is drawn grey');
 });
 test('Summary in each style: what is coming up, what is kept back', () => {
   const tracker = [

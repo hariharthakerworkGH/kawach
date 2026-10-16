@@ -194,6 +194,117 @@ export function havenHeader(view) {
  * Built from the rows the screen has already drawn, so every figure and every button is the screen's. */
 const GEM_OF_TYPE = { bank: [1, 'accounts'], card: [4, 'card'], cash: [3, 'cash'], savings: [6, 'piggy'], loan: [5, 'loan'], pf: [6, 'piggy'] };
 const localOpen = new Set();
+// The account in front of the stack, kept across redraws (an edit, a sync).
+let deckId = null;
+const WIFI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 10a10 10 0 0 1 14 0M8 13.5a6 6 0 0 1 8 0M11 17a2 2 0 0 1 2 0"/></svg>';
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+// The accounts as cards stacked like a wallet (mockups/7.12-cards-and-ring): swipe the front card sideways, or press the arrow keys,
+// and the next one comes forward; the account's own details show below it. Reordering falls back to the plain list.
+function buildDeck(container, head, groups) {
+  if (container.querySelector('.account-row--move') || !container.querySelector('.account-block')) return null;
+  container.classList.add('hv-deckmode');
+  const wrap = el('div', 'hv-deckwrap');
+  const stack = el('div', 'hv-dk');
+  stack.tabIndex = 0;
+  stack.setAttribute('role', 'group');
+  stack.setAttribute('aria-roledescription', 'carousel');
+  stack.setAttribute('aria-label', 'Your accounts: swipe sideways, or use the left and right arrow keys');
+  const dots = el('div', 'hv-dk__dots');
+  dots.setAttribute('aria-hidden', 'true');
+  const live = el('p', 'hv-sr');
+  live.setAttribute('aria-live', 'polite');
+  wrap.append(stack, dots, live);
+  head.after(wrap);
+  const keyOf = (b) => b.querySelector('.account-row')?.dataset.id;
+  let list = [];
+  let idx = 0;
+  const visibleBlocks = () => groups.filter((g) => g.querySelector('.account-block') && !g.hidden).flatMap((g) => [...g.querySelectorAll('.account-block')]).filter((b) => b.querySelector('.account-row'));
+  const faceOf = (b) => {
+    const row = b.querySelector('.account-row');
+    const type = ([...row.classList].find((c) => c.startsWith('account-row--')) || '').replace('account-row--', '');
+    const [, ic] = GEM_OF_TYPE[type] || [1, 'accounts'];
+    const card = el('div', 'hv-dk__card');
+    const top = el('div', 'hv-dk__top');
+    const name = el('span', '');
+    const chip = el('b', 'hv-dk__chip');
+    chip.innerHTML = ic === 'piggy' || ic === 'loan' ? categoryIcon(ic) : icon(ic);
+    name.append(chip, document.createTextNode(row.querySelector('.k-row__title')?.textContent.trim() || ''));
+    const wifi = el('i', 'hv-dk__wifi');
+    wifi.innerHTML = WIFI;
+    top.append(name, wifi);
+    const bal = el('div', 'hv-dk__bal', row.querySelector('.account-balance')?.textContent.trim() || '');
+    const meta = el('div', 'hv-dk__meta');
+    meta.append(el('span', '', (row.querySelector('.k-row__meta')?.textContent || '').replace(/\s+/g, ' ').trim()), el('b', '', row.dataset.last4 ? `•••• ${row.dataset.last4}` : ''));
+    card.append(top, bal, meta);
+    return card;
+  };
+  const paintStack = () => {
+    const n = list.length;
+    stack.querySelectorAll('.hv-dk__card').forEach((c, i) => {
+      const rel = (i - idx + n) % n;
+      c.style.zIndex = String(n - rel);
+      c.style.transform = `translateX(${rel * 22}px) scale(${1 - rel * 0.055})`;
+      c.style.opacity = rel > 2 ? '0' : String(1 - rel * 0.22);
+      c.style.filter = rel ? `brightness(${1 - rel * 0.18})` : 'none';
+      c.setAttribute('aria-hidden', rel ? 'true' : 'false');
+    });
+    dots.innerHTML = n <= 9 ? list.map((_, i) => `<i${i === idx ? ' class="on"' : ''}></i>`).join('') : `<span>${idx + 1} / ${n}</span>`;
+  };
+  const show = (i, animate) => {
+    const n = list.length;
+    if (!n) return;
+    idx = ((i % n) + n) % n;
+    const sel = list[idx];
+    deckId = keyOf(sel);
+    list.forEach((b) => { b.hidden = b !== sel; });
+    groups.forEach((g) => { if (g.querySelector('.account-block')) g.classList.toggle('deck-off', !g.contains(sel)); });
+    paintStack();
+    live.textContent = `${sel.querySelector('.k-row__title')?.textContent.trim() || ''}, ${idx + 1} of ${n}`;
+    if (animate && isLive()) sel.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 300, easing: 'cubic-bezier(.22,1,.36,1)' });
+  };
+  const refresh = () => {
+    list = visibleBlocks();
+    groups.forEach((g) => g.classList.remove('deck-off'));
+    list.forEach((b) => { b.hidden = false; });
+    stack.replaceChildren(...list.map(faceOf));
+    wrap.hidden = !list.length;
+    const keep = list.findIndex((b) => keyOf(b) === deckId);
+    show(keep >= 0 ? keep : 0, false);
+  };
+  let startX = 0;
+  let dx = 0;
+  let drag = null;
+  stack.addEventListener('pointerdown', (e) => {
+    const c = e.target.closest('.hv-dk__card');
+    if (!c || c.getAttribute('aria-hidden') === 'true') return;
+    drag = c; startX = e.clientX; dx = 0;
+    c.style.transition = 'none';
+    try { c.setPointerCapture(e.pointerId); } catch { /* gone */ }
+  });
+  stack.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    dx = e.clientX - startX;
+    drag.style.transform = `translateX(${dx}px) rotate(${dx / 18}deg)`;
+  });
+  const end = () => {
+    if (!drag) return;
+    const c = drag;
+    drag = null;
+    c.style.transition = '';
+    if (dx < -60) show(idx + 1, true);
+    else if (dx > 60) show(idx - 1, true);
+    else paintStack();
+  };
+  stack.addEventListener('pointerup', end);
+  stack.addEventListener('pointercancel', end);
+  stack.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); show(idx + 1, true); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); show(idx - 1, true); }
+  });
+  refresh();
+  return { refresh };
+}
 
 // A bigger change takes a little longer, so it never rushes.
 const glideMs = (from, to) => Math.min(720, 380 + Math.abs(to - from) * 0.35);
@@ -265,6 +376,7 @@ function dressAccounts(container, justOpened) {
   const sort = container.querySelector('#accounts-sort');
 
   // the picture of each account
+  const deckOn = !container.querySelector('.account-row--move');
   for (const block of container.querySelectorAll('.account-block')) {
     const row = block.querySelector('.account-row');
     if (!row || row.classList.contains('account-row--move')) continue;
@@ -281,7 +393,7 @@ function dressAccounts(container, justOpened) {
     // redrawing (a card, a bank) says so itself; the others (a loan, savings, cash) open here, on the spot.
     const opensItself = row.classList.contains('account-open');
     if (!opensItself) { row.setAttribute('role', 'button'); row.setAttribute('tabindex', '0'); }
-    const open = opensItself ? row.getAttribute('aria-expanded') === 'true' : localOpen.has(row.dataset.id);
+    const open = deckOn || (opensItself ? row.getAttribute('aria-expanded') === 'true' : localOpen.has(row.dataset.id));
     row.setAttribute('aria-expanded', String(open));
     block.classList.toggle('is-open', open);
     // a balance from a lakh up reads short; the whole figure is on the row's label
@@ -342,6 +454,7 @@ function dressAccounts(container, justOpened) {
   bar.innerHTML = Object.keys(FILTERS).map((k) => `<button type="button" data-f="${k}">${k}</button>`).join('');
   let filt = 'All';
   try { filt = sessionStorage.getItem('kawach-acct-filter') || 'All'; } catch { filt = 'All'; }
+  let deck = null;
   const apply = () => {
     bar.querySelectorAll('[data-f]').forEach((b) => b.classList.toggle('on', b.dataset.f === filt));
     for (const sec of groups) {
@@ -355,6 +468,7 @@ function dressAccounts(container, justOpened) {
     filt = b.dataset.f;
     try { sessionStorage.setItem('kawach-acct-filter', filt); } catch { /* none */ }
     apply();
+    deck?.refresh();
     groups.filter((g) => !g.hidden).forEach((g, i) => g.animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 420, delay: i * 50, easing: 'cubic-bezier(.16,1,.3,1)' }));
   });
   apply();
@@ -363,6 +477,7 @@ function dressAccounts(container, justOpened) {
   head.append(top, bar);
   if (sort) { sort.classList.add('hv-sortsel'); bar.append(sort); }
   container.prepend(head, ...groups, chips);
+  deck = buildDeck(container, head, groups);
   // arrival: the figures count up, the lines draw, the shields fill, the cards rise
   const soft = container._hvSoft;
   if (isLive() && !soft) {

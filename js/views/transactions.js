@@ -7,6 +7,7 @@ import { learnFromAssignment, fitsDirection, isIncomeCategory } from '../merchan
 import { filingSwipe } from '../haven-life.js';
 import { formatCurrency, formatRupees, formatMonthYear, formatDateNice } from '../format.js';
 import { categoryStyle } from '../category-style.js';
+import { ringSlices, ringHtml, wireRing } from '../haven-ring.js';
 import { categoryIcon } from '../category-icons.js';
 import { isSplit, categorySlices, needsCategory, splitTotal } from '../splits.js';
 import { showToast } from '../toast.js';
@@ -157,6 +158,7 @@ export async function render(container, params = {}) {
       <button type="button" id="bulk-delete" class="btn-tiny danger">Delete</button>
     </div>
   `;
+  if (document.documentElement.dataset.style === 'haven') arrangeHistory(container);
   // NEW (5.15): in Tactile and Instrument, In and Out sit on the net's
   // own card, as their mockups have them, and the day chart gets a card of
   // its own. The elements move with their ids, so filling them in later is
@@ -467,6 +469,48 @@ function sideOf(t) {
   return cashSide(t, byId(t.accountId), cache.moves);
 }
 
+// Haven: the month's ring first, In and Out under it, and the old charts (net, day by day, month by month) behind a tap.
+function arrangeHistory(container) {
+  const hero = container.querySelector('#hist-hero');
+  const days = container.querySelector('#hist-days');
+  if (!hero || !days || container.querySelector('#hist-ring')) return;
+  const ring = document.createElement('section');
+  ring.id = 'hist-ring';
+  ring.className = 'hv-ringcard';
+  const tiles = document.createElement('div');
+  tiles.id = 'hist-tiles';
+  tiles.className = 'hv-pair';
+  const fold = document.createElement('details');
+  fold.className = 'section-fold hv-histfold';
+  fold.innerHTML = '<summary>Day by day, and month by month</summary>';
+  hero.before(ring);
+  ring.after(tiles);
+  tiles.after(fold);
+  fold.append(hero, days);
+  container.querySelector('#hist-stats')?.setAttribute('hidden', '');
+}
+
+// What the ring and the tiles say for the rows shown.
+function drawRing(container, rows, sum, across) {
+  const ring = container.querySelector('#hist-ring');
+  const tiles = container.querySelector('#hist-tiles');
+  if (!ring || !tiles) return;
+  ring.hidden = across;
+  tiles.hidden = across;
+  if (across) return;
+  const byName = new Map();
+  for (const x of rows.filter((r) => sideOf(r) === 'out')) {
+    const name = catName(x.categoryId) || 'Needs a category';
+    const cur = byName.get(name) || { name, amount: 0, icon: categoryStyle(catName(x.categoryId)).icon };
+    cur.amount += x.amount;
+    byName.set(name, cur);
+  }
+  const slices = ringSlices([...byName.values()]);
+  ring.innerHTML = ringHtml(slices);
+  wireRing(ring, slices);
+  tiles.innerHTML = `<div class="hv-pair__t"><i class="in"></i><div><small>In</small><b>+${formatRupees(sum.in)}</b></div></div><div class="hv-pair__t"><i class="out"></i><div><small>Out</small><b>−${formatRupees(sum.out)}</b></div></div>`;
+}
+
 function totals(rows) {
   const sum = (side) => rows.filter((t) => sideOf(t) === side).reduce((s, t) => s + t.amount, 0);
   return { out: sum('out'), in: sum('in') };
@@ -517,6 +561,7 @@ function renderList(container) {
     statsEl.innerHTML = '';
   }
   container.querySelector('#hist-days').innerHTML = across ? '' : dayChart(rows, filters.month);
+  if (document.documentElement.dataset.style === 'haven') drawRing(container, rows, sum, across);
   const carried = carryLine(container, across, net);
   salaryQuestion(container, across);
   // The month in one sentence, said once (the six months below used to say

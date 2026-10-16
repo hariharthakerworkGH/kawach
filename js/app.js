@@ -742,6 +742,8 @@ async function init() {
     if (['summary', 'accounts', 'plan', 'transactions'].includes(currentView)) showView(currentView, currentParams, true, window.scrollY);
   });
   wireExplain();
+  // iPhone Safari ignores the page setting for a pinch; it announces the gesture first, and that is stopped here.
+  for (const g of ['gesturestart', 'gesturechange']) document.addEventListener(g, (e) => e.preventDefault());
 
   document.addEventListener('navigate', (e) => {
     const { view, ...params } = e.detail;

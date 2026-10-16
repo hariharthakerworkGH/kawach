@@ -476,3 +476,64 @@ html:root[data-style="haven"] .view-container.k { background: transparent; }
 /* Add (5.73): the page and the + sheet are the same form with the same two small chips on top. The old banner is gone everywhere. */
 :root[data-style="haven"] .k-add-sms { display: none; }
 :root[data-style="haven"] .hv-addways { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 2px; }
+
+/* ---- Accounts as a stack of cards (5.74, mockups/7.12-cards-and-ring) ---- */
+:root[data-style="haven"] { --hv-card-a: #1c4aa8; --hv-card-b: #10306f; }
+:root[data-style="haven"][data-theme="dark"] { --hv-card-a: #1a3a78; --hv-card-b: #0f2352; }
+.hv-deckwrap { margin: 2px 0 6px; }
+.hv-dk { position: relative; height: 178px; margin: 6px 28px 0 6px; touch-action: pan-y; user-select: none; -webkit-user-select: none; outline-offset: 6px; }
+.hv-dk__card { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 16px 18px; border-radius: 22px; color: #fff; background: linear-gradient(150deg, var(--hv-card-a), var(--hv-card-b)); box-shadow: 0 14px 30px #0006, inset 0 1px 0 #ffffff26; transition: transform .45s cubic-bezier(.22, 1, .36, 1), opacity .35s; will-change: transform; cursor: grab; touch-action: pan-y; }
+.hv-dk__top { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; min-width: 0; }
+.hv-dk__top > span { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.hv-dk__chip { width: 26px; height: 26px; flex: none; border-radius: 8px; background: #ffffff22; display: grid; place-items: center; }
+.hv-dk__chip svg { width: 16px; height: 16px; }
+.hv-dk__wifi { display: grid; flex: none; }
+.hv-dk__wifi svg { width: 16px; height: 16px; }
+.hv-dk__bal { font-size: 30px; font-weight: 650; letter-spacing: -0.03em; }
+.hv-dk__meta { display: flex; justify-content: space-between; align-items: end; gap: 10px; font-size: 12.5px; opacity: 0.85; letter-spacing: 0.02em; }
+.hv-dk__meta > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-width: 0; }
+.hv-dk__meta b { flex: none; font-size: 14px; letter-spacing: 0.12em; }
+.hv-dk__dots { display: flex; gap: 6px; justify-content: center; align-items: center; min-height: 18px; margin: 12px 0 4px; color: var(--hv-ink-2); font-size: 13px; }
+.hv-dk__dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--hv-ink-2); opacity: 0.4; transition: all .3s; }
+.hv-dk__dots i.on { width: 18px; border-radius: 4px; background: var(--hv-L1); opacity: 1; }
+.hv-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; clip-path: inset(50%); white-space: nowrap; }
+/* with the stack on, only the account in front is drawn below it, without its own row (the card is that) or its group's title */
+.hv-deckmode .account-group-sec.deck-off { display: none; }
+.hv-deckmode .account-group-sec:not(.people-sec) .account-group-label { display: none; }
+.hv-deckmode .account-group-sec:not(.people-sec) { margin-top: 0; }
+.hv-deckmode .account-block[hidden] { display: none; }
+.hv-deckmode .account-block > .account-row { display: none; }
+
+/* ---- History's ring (5.74, mockups/7.12-cards-and-ring) ---- */
+.hv-ringcard { background: linear-gradient(180deg, var(--hv-core), var(--hv-core-2)); border-radius: 24px; padding: 12px 10px 14px; margin: 4px 0 10px; box-shadow: 0 0 0 1px var(--hv-hair); }
+.hv-ringcard[hidden], .hv-pair[hidden] { display: none; }
+.hv-ring__wrap { position: relative; width: min(300px, 100%); aspect-ratio: 1; margin: 0 auto; }
+.hv-ring__svg { width: 100%; height: 100%; display: block; transform: rotate(-90deg); }
+.hv-ring__arc { fill: none; stroke-width: 26; cursor: pointer; transition: opacity .25s, stroke-width .25s; }
+.hv-ring__arc.dim { opacity: 0.25; }
+.hv-ring__arc.on { stroke-width: 32; }
+.hv-ring__mid { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; padding: 0 70px; }
+.hv-ring__mid b { font-size: 30px; letter-spacing: -0.03em; color: var(--hv-ink); line-height: 1.1; }
+.hv-ring__mid span { font-size: 13px; color: var(--hv-ink-2); }
+.hv-ring__mid em { font-style: normal; font-size: 13px; font-weight: 600; color: var(--hv-L1); }
+.hv-ring__badge { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; padding: 0; border: 0; background: none; display: grid; place-items: center; cursor: pointer; transition: transform .25s, opacity .25s; }
+.hv-ring__badge .hv-ic { width: 36px; height: 36px; border-radius: 50%; background: var(--hv-core); box-shadow: 0 0 0 1px var(--hv-hair), 0 4px 12px #0004; color: var(--hv-gem-ink); }
+.hv-ring__badge .hv-ic svg { width: 18px; height: 18px; }
+.hv-ring__badge.dim { opacity: 0.35; }
+.hv-ring__badge.on { transform: scale(1.15); }
+.hv-ring__badge.on .hv-ic { box-shadow: 0 0 0 2px var(--hv-L1), 0 6px 16px #0005; }
+.hv-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 10px; }
+.hv-pair__t { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 18px; background: linear-gradient(180deg, var(--hv-core), var(--hv-core-2)); box-shadow: 0 0 0 1px var(--hv-hair); min-width: 0; }
+.hv-pair__t i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.hv-pair__t i.in { background: var(--hv-L1); }
+.hv-pair__t i.out { background: var(--hv-L4); }
+.hv-pair__t small { display: block; font-size: 12px; color: var(--hv-ink-2); }
+.hv-pair__t b { font-size: 18px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--hv-ink); }
+.hv-histfold { margin: 0 0 10px; }
+
+/* The app does not zoom: a two-finger pinch or a double tap changes nothing (5.74.1). */
+html, body { touch-action: pan-x pan-y; }
+/* Changing screen: the old header and tab bar are not shown at all (they were drawn under the new ones now that they are see-through). */
+@supports (view-transition-name: none) {
+  ::view-transition-old(kv-header), ::view-transition-old(kv-nav) { display: none; }
+}

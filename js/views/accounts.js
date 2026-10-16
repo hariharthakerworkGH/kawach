@@ -66,7 +66,7 @@ let payFrom = [];
 // panel) first, before it leaves the screen.
 export function onBack() {
   // An account that is open closes first (the same tap that opened it, so it closes the same smooth way).
-  if (shownIn && shownIn.isConnected && editing === null && !reordering && !payingBill) {
+  if (!allOpen() && shownIn && shownIn.isConnected && editing === null && !reordering && !payingBill) {
     // everything that is open closes together: the ones that open on the spot by their own tap, the rest by one redraw
     const local = [...shownIn.querySelectorAll('.account-block.is-open .account-row[role="button"]:not(.account-open)')];
     const redrawn = shownIn.querySelector('.account-open[aria-expanded="true"]');
@@ -902,10 +902,13 @@ function balanceLine(account, transactions) {
   return pts.some((v) => v !== pts[0]) ? { t: 'line', pts } : null;
 }
 
+// Haven shows the accounts as a stack of cards; the one in front is open, so every block is drawn open and the stack picks which shows.
+const allOpen = () => document.documentElement.dataset.style === 'haven' && !reordering;
+
 function accountRow(account, { meta = '', value = '', tone = '', canOpen = false, place = {}, lead = null }) {
-  const leadAttr = lead ? ` data-lead='${escapeAttr(JSON.stringify(lead))}'` : '';
+  const leadAttr = (lead ? ` data-lead='${escapeAttr(JSON.stringify(lead))}'` : '') + (account.last4 ? ` data-last4="${escapeAttr(String(account.last4))}"` : '');
   value = cover(value);
-  const open = opened.has(account.id);
+  const open = opened.has(account.id) || allOpen();
   // The bank's own name if we know it, otherwise what the account is called.
   // brandMark() is the resolver from phase 9C: a licensed file, a category
   // icon, or a monogram. Nothing here draws a bank's logo.
@@ -1210,7 +1213,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
  */
 function openable(account, acctTxns, row, note = '', { spendable = false } = {}) {
   if (!account) return row;
-  const open = opened.has(account.id);
+  const open = opened.has(account.id) || allOpen();
   const recent = open
     ? [...acctTxns].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)).slice(0, 5)
     : [];

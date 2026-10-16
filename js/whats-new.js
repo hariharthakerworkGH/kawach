@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.74',
+    items: [
+      {
+        icon: 'accounts',
+        title: "Swipeable cards, a ring for the month, no zoom",
+        text: "Accounts are a stack of cards: swipe one to see the next, with its details below. History shows the month as a ring with an icon on each slice. The app no longer zooms when you pinch, and titles no longer overlap when you change screen.",
+        guide: [{ view: 'accounts', target: '.hv-dk', text: "Swipe the front card sideways to bring the next account forward" }],
+      },
+    ],
+  },
+  {
     version: '5.73',
     items: [
       {
