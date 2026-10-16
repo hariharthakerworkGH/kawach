@@ -78,7 +78,7 @@
 :root[data-style="haven"] .k .totals-card.plan-month { background: none; box-shadow: none; padding: 0; margin-inline: 0; }
 
 :root[data-style="haven"] .k .section-head { margin: 8px 6px 0; }
-:root[data-style="haven"] #view-container h3,
+:root[data-style="haven"] :is(#view-container, .view-still) h3,
 :root[data-style="haven"] .k .section-head h3 { font-size: var(--hv-fs-title); font-weight: 650; letter-spacing: -0.02em; color: var(--hv-ink); }
 :root[data-style="haven"] .tl-list { display: block; padding: 4px 16px; }
 :root[data-style="haven"] .tl-item { background: none; box-shadow: none; border-radius: 0; padding: 12px 0; }

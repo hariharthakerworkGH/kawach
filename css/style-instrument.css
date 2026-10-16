@@ -105,8 +105,8 @@
 :root[data-style="instrument"] .k .hist-days-card::before,
 :root[data-style="instrument"] .k .hist-days__title,
 :root[data-style="instrument"] .k .hist-day-head,
-:root[data-style="instrument"] #view-container h3 { font-size: var(--in-label); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
-:root[data-style="instrument"] #view-container h3,
+:root[data-style="instrument"] :is(#view-container, .view-still) h3 { font-size: var(--in-label); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+:root[data-style="instrument"] :is(#view-container, .view-still) h3,
 :root[data-style="instrument"] .k .hist-day-head { color: var(--k-text-3); text-shadow: none; border-bottom: 1px solid var(--in-rule); box-shadow: none; }
 :root[data-style="instrument"] .tl-stats .tl-k { font-size: 10.5px; letter-spacing: .12em; white-space: nowrap; }
 :root[data-style="instrument"] .tl-period { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }

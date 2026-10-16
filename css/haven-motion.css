@@ -138,7 +138,7 @@
 :root[data-style="haven"] .hv-vault__fig .hv-fig { transition: filter 360ms var(--hv-ease-settle), opacity 360ms var(--hv-ease-settle); }
 
 /* ---- pull down: yesterday waits in the gap above the screen ---- */
-:root[data-style="haven"] #view-container { position: relative; }
+:root[data-style="haven"] :is(#view-container, .view-still) { position: relative; }
 :root[data-style="haven"] .hv-peek {
   position: absolute; left: 0; right: 0; top: -34px; height: 28px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px;
   font-size: var(--hv-fs-label, 13px); color: var(--hv-ink-2); opacity: var(--peek, 0); pointer-events: none; visibility: hidden; transition: opacity 200ms ease, visibility 0s linear 200ms;
@@ -269,24 +269,24 @@ svg.waves:focus-visible:not(.by-pointer) { outline: 2px solid var(--hv-link, cur
 @keyframes hv-amber { 50% { filter: drop-shadow(0 0 8px oklch(78% 0.15 70 / 0.7)); } }
 .hv-safe .hv-pillbtn { min-height: 44px; }
 /* Fewer pixels for what is only a line or two: the whole Settings screen, tighter. */
-:root[data-style="haven"] #view-container:has(.settings-k) h3 { margin: 14px 4px 6px; font-size: 14px; letter-spacing: 0; }
-:root[data-style="haven"] #view-container:has(.settings-k) .group-subtitle { display: none; }
-:root[data-style="haven"] #view-container:has(.settings-k) .totals-card { padding: 4px 12px; margin-bottom: 8px; }
-:root[data-style="haven"] #view-container:has(.settings-k) .totals-row { padding: 5px 0; min-height: 0; }
-:root[data-style="haven"] #view-container:has(.settings-k) .backup-row { padding: 8px 0; min-height: 52px; }
-:root[data-style="haven"] #view-container:has(.settings-k) .k-row, :root[data-style="haven"] #view-container:has(.settings-k) .k-switch-row { min-height: 48px; padding-block: 6px; gap: 10px; }
-:root[data-style="haven"] #view-container:has(.settings-k) .k-row__sub, :root[data-style="haven"] #view-container:has(.settings-k) .k-switch-row__sub { font-size: 12px; line-height: 1.25; }
-:root[data-style="haven"] #view-container:has(.settings-k) .k-icon { width: 30px; height: 30px; border-radius: 10px; }
-:root[data-style="haven"] #view-container:has(.settings-k) .k-icon svg { width: 17px; height: 17px; }
-:root[data-style="haven"] #view-container:has(.settings-k) .muted-note { margin: 4px 0; font-size: 12px; }
-:root[data-style="haven"] #view-container:has(.settings-k) .section-fold > summary { min-height: 44px; padding-block: 4px; }
-:root[data-style="haven"] #view-container:has(.settings-k) .settings-foot { margin-top: 10px; }
+:root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) h3 { margin: 14px 4px 6px; font-size: 14px; letter-spacing: 0; }
+:root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .group-subtitle { display: none; }
+:root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .totals-card { padding: 4px 12px; margin-bottom: 8px; }
+:root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .totals-row { padding: 5px 0; min-height: 0; }
+:root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .backup-row { padding: 8px 0; min-height: 52px; }
+:root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .k-row, :root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .k-switch-row { min-height: 48px; padding-block: 6px; gap: 10px; }
+:root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .k-row__sub, :root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .k-switch-row__sub { font-size: 12px; line-height: 1.25; }
+:root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .k-icon { width: 30px; height: 30px; border-radius: 10px; }
+:root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .k-icon svg { width: 17px; height: 17px; }
+:root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .muted-note { margin: 4px 0; font-size: 12px; }
+:root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .section-fold > summary { min-height: 44px; padding-block: 4px; }
+:root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .settings-foot { margin-top: 10px; }
 /* Add: ways in other than typing, right under the way the money went. */
 :root[data-style="haven"] .money-kinds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 :root[data-style="haven"] .money-kind { min-height: 44px; padding: 4px 6px; font-size: 12.5px; line-height: 1.15; }
 :root[data-style="haven"] .money-label { margin: 4px 0 6px; font-size: 12.5px; }
 :root[data-style="haven"] .money-label-gap { margin-top: 10px; }
-:root[data-style="haven"] #view-container .k.settings-k { padding-inline: 0; margin-inline: 0; }
+:root[data-style="haven"] :is(#view-container, .view-still) .k.settings-k { padding-inline: 0; margin-inline: 0; }
 
 /* ================================================================== Accounts (5.64) */
 :root[data-style="haven"] .hv-hold-wrap { display: grid; gap: 8px; margin-bottom: 10px; }

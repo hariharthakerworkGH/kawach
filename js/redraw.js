@@ -16,7 +16,9 @@ export async function redraw(container, draw) {
   const still = container.cloneNode(true);
   // A copy for looking at only: no ids to clash with the real screen's, and
   // nothing in it can be tapped.
+  // It has no id (that would clash with the real screen's), so the rules written for the screen's id also name this class.
   still.removeAttribute('id');
+  still.classList.add('view-still');
   still.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
   still.setAttribute('aria-hidden', 'true');
   still.inert = true;

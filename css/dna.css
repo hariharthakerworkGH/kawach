@@ -3687,7 +3687,7 @@ body.has-demo { --demo-h: calc(30px + env(safe-area-inset-top, 0px)); padding-to
 .demo-card .btn-block { margin-top: 10px; }
 
 /* --- the guide (5.41): one sentence at a time above the tab bar, and a ring on what to touch -------- */
-.has-coach #view-container { padding-bottom: calc(var(--coach-h, 170px) + var(--nav-height, 64px) + 24px); }
+.has-coach :is(#view-container, .view-still) { padding-bottom: calc(var(--coach-h, 170px) + var(--nav-height, 64px) + 24px); }
 .demo-ring {
   position: fixed; z-index: 8000; pointer-events: none; border-radius: 18px;
   outline: 2px solid var(--k-accent, #ffb020);

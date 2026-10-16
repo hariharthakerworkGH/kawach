@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.72.2',
+    items: [
+      {
+        icon: 'accounts',
+        title: "Headings stay steady",
+        text: "Section titles like Cards and Bank no longer shrink and grow back when you open an account.",
+      },
+    ],
+  },
+  {
     version: '5.72.1',
     items: [
       {
