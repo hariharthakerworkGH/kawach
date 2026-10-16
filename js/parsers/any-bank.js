@@ -1,3 +1,4 @@
+import { toPaise } from '../format.js';
 // Any Indian bank's or card's statement PDF, read without knowing its layout.
 //
 // The readers beside this one each know one bank's statement exactly. This
@@ -152,8 +153,7 @@ function readAmount(token) {
   const mark = /cr\)?\.?$/i.test(token) ? 'cr' : /dr\)?\.?$/i.test(token) ? 'dr' : null;
   const negative = /^-|^\(|\(\s*[\d₹]/.test(token.trim()) && !/^\(?(cr|dr)/i.test(token.trim());
   const digits = token.match(/\d[\d,]*\.\d{2}/)[0].replace(/,/g, '');
-  const [whole, frac] = digits.split('.');
-  return { paise: Number(whole) * 100 + Number(frac), mark, negative };
+  return { paise: toPaise(digits), mark, negative };
 }
 
 // Lines that are the statement's own furniture, never part of a transaction.
@@ -330,10 +330,7 @@ const DATE_TEXT = `(\\d{1,2}[\\s/-](?:\\d{1,2}|[A-Za-z]{3,9})[\\s/,-]+\\d{2,4}|[
 // What a card statement asks you to pay, and by when.
 function cardFigures(text, monthFirst) {
   const out = {};
-  const paise = (s) => {
-    const [whole, frac] = s.replace(/,/g, '').split('.');
-    return Number(whole) * 100 + Number(frac);
-  };
+  const paise = toPaise;
   const dateOf = (s) => (leadingDate(s.trim(), monthFirst) || {}).date || null;
   const total = AMOUNT_AFTER('total\\s*(?:amount\\s*)?(?:due|payable)').exec(text);
   if (total) out.totalAmountDue = paise(total[1]);

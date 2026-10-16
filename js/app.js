@@ -82,6 +82,9 @@ let drawing = 0;
 // every screen from before, so back walked you through all of them again.
 const trail = [];
 const TRAIL_MAX = 30;
+// Screens left by tapping something inside them (a card on Accounts, a budget on Summary): back returns to that screen, exactly as
+// it was left, before it goes home. Choosing a screen from the tab bar starts afresh.
+const drillBack = [];
 
 // The lit mark above the active tab (Instrument): one shared mark that glides to the tab you chose in
 // 280 ms, instead of a mark that disappears from one tab and appears on the next (css "nav-ind").
@@ -204,6 +207,9 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0) {
   levelWatch(next);
   clearTimeout(enterTimer);
   enterTimer = setTimeout(() => next.classList.remove('view-enter'), 1400);
+  // A screen opened to show one thing (a payment on History) puts you on it, once the screen is really on show: scrolling any
+  // earlier happens on a page that is not drawn yet, and the swap above then puts you back at the top.
+  if (!fromHistory && typeof view.module.arrive === 'function') requestAnimationFrame(() => requestAnimationFrame(() => mine === drawing && view.module.arrive(next, params)));
 }
 
 function brokenScreen() {
@@ -326,7 +332,14 @@ function wireBackButton() {
       history.back();
       return;
     }
-    // 4. From any other screen, back goes home to Summary.
+    // 4. A screen opened by a tap inside another: back to that one, as it was left.
+    const from = drillBack.pop();
+    if (from) {
+      history.pushState(TOP, '', urlFor(from.view));
+      await showView(from.view, from.params, true, from.scrollY);
+      return;
+    }
+    // 5. From any other screen, back goes home to Summary.
     trail.length = 0;
     history.pushState(TOP, '', urlFor('summary'));
     await showView('summary', {}, true, 0);
@@ -339,6 +352,7 @@ function wireBackButton() {
     }
     if (hiddenAt && Date.now() - hiddenAt >= FRESH_AFTER_MS) {
       trail.length = 0;
+      drillBack.length = 0;
       leaving = false;
     }
   });
@@ -733,10 +747,17 @@ async function init() {
   // (not while the demo or a guide is walking you through a screen: it points at the Add screen itself)
   const haven = () => document.documentElement.dataset.style === 'haven' && !document.body.classList.contains('has-demo') && !document.querySelector('.guide-layer');
   document.querySelectorAll('.nav-btn').forEach((btn) => {
-    btn.addEventListener('click', () => (haven() && btn.dataset.view === 'add' ? openAddSheet() : showView(btn.dataset.view)));
+    btn.addEventListener('click', () => {
+      if (haven() && btn.dataset.view === 'add') return openAddSheet();
+      drillBack.length = 0;
+      showView(btn.dataset.view);
+    });
   });
 
-  document.getElementById('settings-btn').addEventListener('click', () => showView('settings'));
+  document.getElementById('settings-btn').addEventListener('click', () => {
+    drillBack.length = 0;
+    showView('settings');
+  });
   // The Add sheet saved something: the screen under it is drawn again, as it was, with the new figures.
   window.addEventListener('hv-refresh', () => {
     if (['summary', 'accounts', 'plan', 'transactions'].includes(currentView)) showView(currentView, currentParams, true, window.scrollY);
@@ -748,6 +769,10 @@ async function init() {
   document.addEventListener('navigate', (e) => {
     const { view, ...params } = e.detail;
     if (view === 'add' && haven()) return openAddSheet(params);
+    if (view !== currentView) {
+      drillBack.push({ view: currentView, params: currentParams, scrollY: window.scrollY });
+      if (drillBack.length > 8) drillBack.shift();
+    }
     showView(view, params);
   });
 

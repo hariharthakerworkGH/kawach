@@ -1,3 +1,4 @@
+import { toPaise as toPaiseText } from '../format.js';
 // Any bank's statement saved as CSV (or Excel saved as CSV).
 //
 // Nearly every bank lets you download a statement as a spreadsheet, but no
@@ -100,9 +101,7 @@ function toPaise(value) {
     .replace(/^\((.*)\)$/, '$1')
     .replace(/^[-+]/, '')
     .trim();
-  const m = s.match(/^(\d+)(?:\.(\d{1,2}))?$/);
-  if (!m) return null;
-  return Number(m[1]) * 100 + Number(((m[2] || '') + '00').slice(0, 2));
+  return toPaiseText(s);
 }
 
 // dd/mm/yyyy, dd-mm-yy, yyyy-mm-dd, 12 Sep 2026, 12-Sep-26. Numeric dates are

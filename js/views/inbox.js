@@ -10,7 +10,7 @@ import { showToast } from '../toast.js';
 import { commitmentField, cardPaymentField } from './add.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
 import { sortAccounts, sortCategories } from '../list-order.js';
-import { cardPosition } from '../account-metrics.js';
+import { cardStandings, whatItPaid } from '../card-standing.js';
 import { looksLikeCardPayment } from '../transfers.js';
 import { redraw } from '../redraw.js';
 import { escapeHtml, escapeAttr, sectionHead, invalidField, slidingPill } from '../ui.js';
@@ -148,16 +148,16 @@ function guessOther(d) {
   return '';
 }
 
-// A card payment pays either a bill the statement already made, or the spending since it (paying ahead). Guessed from what the card owes.
+// What a card payment most likely paid (js/card-standing.js), on this phone's own date.
 function guessWhat(d) {
   const mine = d.account;
   if (!mine || mine.type !== 'card') return 'bill';
   try {
-    const p = cardPosition(mine, context.transactions, context.importBatches || [], new Date().toISOString().slice(0, 10));
-    const billed = p.unpaid + p.billedNotImported;
-    if (billed >= d.parsed.amount * 0.99) return 'bill';
-    return p.owed >= d.parsed.amount * 0.95 ? 'current' : 'bill';
-  } catch { return 'bill'; }
+    const { cards } = cardStandings(context.accounts, context.transactions, context.importBatches || [], localDay());
+    return whatItPaid(cards.find((c) => c.account.id === mine.id), d.parsed.amount);
+  } catch {
+    return 'bill';
+  }
 }
 
 function otherField(d) {
@@ -564,10 +564,13 @@ function readEdits(card, draft, inline = false) {
     otherId = v === '__none' ? null : v;
   }
   const whatWrap = card.querySelector('.al-what-wrap');
-  const paysCurrent = Boolean(isTransfer && whatWrap && !whatWrap.hidden && whatWrap.querySelector('.al-what').value === 'current');
+  const said = isTransfer && whatWrap && !whatWrap.hidden ? whatWrap.querySelector('.al-what').value : null;
+  const paysCurrent = said === 'current';
+  const paysBill = said === 'bill';
   return {
     otherId,
     paysCurrent,
+    paysBill,
     accountId,
     direction,
     amount,

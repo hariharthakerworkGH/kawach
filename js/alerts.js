@@ -1,3 +1,4 @@
+import { toPaise } from './format.js';
 // Reads bank and card alert messages - an SMS, or the text of an alert email
 // shared into the app - and turns each one into a draft transaction.
 //
@@ -465,13 +466,6 @@ export function findExisting(p, accountId, transactions) {
 
 // --- Helpers -------------------------------------------------------------
 
-export function toPaise(str) {
-  if (!str) return null;
-  const cleaned = String(str).replace(/,/g, '');
-  if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) return null;
-  const [whole, frac = ''] = cleaned.split('.');
-  return Number(whole) * 100 + Number((frac + '00').slice(0, 2));
-}
 
 function isoDate(y, m, d) {
   const year = Number(y);
@@ -521,3 +515,5 @@ function bankName(text) {
   if (/\bKotak\b/i.test(raw)) return 'Kotak';
   return null;
 }
+
+export { toPaise };

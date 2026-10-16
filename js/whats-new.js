@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.77',
+    items: [
+      {
+        icon: 'card',
+        title: "Cards that react to every payment",
+        text: "A card payment now lowers the card at once, even after its bill was marked paid. Tap a card to see its own payments, and back brings you to the same card. Tapping a payment lands on it. Summary and Accounts always agree.",
+        guide: [{ view: 'accounts', target: '.hv-dk', text: "Tap the front card to see its payments." }],
+      },
+    ],
+  },
+  {
     version: '5.76',
     items: [
       {

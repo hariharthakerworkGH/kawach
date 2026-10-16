@@ -62,3 +62,13 @@ export function shortRupees(paise) {
   if (n >= 100000) return `${sign}₹${trim(n / 100000)} L`;
   return formatRupees(paise);
 }
+
+// "1,234.50" -> 123450 paise, in whole numbers with no floating-point error. null when it is not an amount (more than two decimals,
+// letters, nothing). The one place text becomes money: every reader and the alert parser use it.
+export function toPaise(str) {
+  if (!str) return null;
+  const cleaned = String(str).replace(/,/g, '');
+  if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) return null;
+  const [whole, frac = ''] = cleaned.split('.');
+  return Number(whole) * 100 + Number((frac + '00').slice(0, 2));
+}

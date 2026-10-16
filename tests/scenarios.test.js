@@ -1141,7 +1141,7 @@ test('a backup cannot ask for an unreasonable amount of work to open', async () 
   equal(back.hello, 'there', 'a real file still opens');
 
   const envelope = JSON.parse(text);
-  equal(envelope.kdf.iterations, 210000, 'and is written with the proper number of rounds');
+  equal(envelope.kdf.iterations, 600000, 'and is written with the proper number of rounds');
 
   const greedy = JSON.stringify({ ...envelope, kdf: { ...envelope.kdf, iterations: 2000000000 } });
   let refused = null;

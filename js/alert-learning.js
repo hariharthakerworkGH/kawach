@@ -169,9 +169,3 @@ export async function learnFrom(raw, parsed, confirmed) {
   useLearned(list);
   return format;
 }
-
-export async function forgetLearned(id) {
-  const list = (await loadLearned()).filter((f) => f.id !== id);
-  await setSetting(KEY, list);
-  useLearned(list);
-}

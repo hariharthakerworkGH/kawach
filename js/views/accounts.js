@@ -1,7 +1,8 @@
 import { getAll, put, remove, newId } from '../db.js';
 import { computeFreeToSpend } from '../free-to-spend.js';
 import { formatCurrency, formatDateNice, formatMonthYear, formatRupees, ordinal } from '../format.js';
-import { bankBalance, balanceAt, cardCycleSpend, cardBillDue, cardPosition, statementDay, isPutAway } from '../account-metrics.js';
+import { bankBalance, balanceAt, cardBillDue, statementDay, isPutAway } from '../account-metrics.js';
+import { cardStandings } from '../card-standing.js';
 import { loanPosition, loanPayments, paymentsFor, payFasterPlan, loanHistory, isLoanAccount } from '../loans.js';
 import { askConfirm } from '../dialog.js';
 import { pfPosition, pfContribution, DEFAULT_PF_RATE } from '../pf.js';
@@ -720,6 +721,15 @@ function wireForm(form, container, accounts, transactions) {
 // A group is a quiet label and a list of rows on one surface. It used to be
 // a heading and a box per account, which made five accounts read as five
 // separate things rather than as one list of where the money is.
+// Every card's figures, worked out once for a screen and shared with Summary (js/card-standing.js).
+const standingMemo = new WeakMap();
+function standingsOf(allAccounts, transactions, importBatches) {
+  if (!standingMemo.has(transactions)) {
+    standingMemo.set(transactions, new Map(cardStandings(allAccounts, transactions, importBatches, isoLocal(new Date())).cards.map((c) => [c.account.id, c])));
+  }
+  return standingMemo.get(transactions);
+}
+
 function renderGroup(title, accounts, transactions, importBatches, editingAccount, allAccounts) {
   if (!accounts || accounts.length === 0) return '';
   return `
@@ -730,7 +740,7 @@ function renderGroup(title, accounts, transactions, importBatches, editingAccoun
         .map((a, i) =>
           editingAccount && editingAccount.id === a.id
             ? accountForm(a, transactions, allAccounts, importBatches)
-            : accountCard(a, transactions, importBatches, allAccounts.filter(isLoanAccount), { index: i, count: accounts.length })
+            : accountCard(a, transactions, importBatches, allAccounts.filter(isLoanAccount), { index: i, count: accounts.length }, standingsOf(allAccounts, transactions, importBatches))
         )
         .join('')}
       </div>
@@ -974,7 +984,7 @@ function cashNoteText(c) {
   return escapeHtml(parts.join(' · ') + '.' + tail);
 }
 
-function accountCard(account, transactions, importBatches, allLoans = [], place = {}) {
+function accountCard(account, transactions, importBatches, allLoans = [], place = {}, standings = new Map()) {
   const acctTxns = transactions.filter((t) => t.accountId === account.id);
   // "+ Spend" sits beside Edit in the card's top line rather than on a row of
   // its own, which made every card a line taller for one small button. Not on
@@ -1085,28 +1095,15 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
   }
 
   if (account.type === 'card') {
-    // Same figure as the Summary: spends this cycle less refunds and cashback.
+    // The same figures the Summary shows: one calculation (js/card-standing.js), so a payment moves both at once.
     const day = statementDay(account, importBatches);
-    // A bill paid from the bank counts against the card at once, even before the card's own "payment received" reaches the app
-    // (the same rule the Summary's figures follow): a bank payment that names this card and has no card-side twin yet.
-    const near = (a, b) => Math.abs((new Date(a) - new Date(b)) / 86400000) <= 5;
-    const bankSide = transactions.filter(
-      (t) =>
-        t.paysCardId === account.id && t.direction === 'debit' && t.isTransfer &&
-        !transactions.some((c) => c.accountId === account.id && c.direction === 'credit' && c.isTransfer && c.amount === t.amount && near(c.date, t.date))
-    );
-    const position = day ? cardPosition(account, transactions, importBatches, isoLocal(new Date()), bankSide) : null;
-    const { cycleStart, spend: fallbackSpend } = cardCycleSpend(account, transactions, importBatches);
-    const cycleSpend = position ? position.owed : fallbackSpend;
+    const standing = standings.get(account.id);
+    const position = standing && standing.positioned ? standing : null;
+    const cycleStart = standing ? standing.cycleStart : null;
+    const cycleSpend = standing ? standing.owed : 0;
     // What is owed on the card right now: bills not yet paid plus this cycle's spending. It drops the moment a payment is saved.
-    const billsLeft = position ? position.unpaid + position.billedNotImported : 0;
-    // With no statement day yet there are no cycles to match payments to, so what has been paid since the list began simply comes off.
-    const paidSince = position
-      ? 0
-      : [...transactions.filter((t) => t.accountId === account.id && t.direction === 'credit' && t.isTransfer), ...bankSide]
-          .filter((t) => !cycleStart || t.date > cycleStart)
-          .reduce((sum, t) => sum + t.amount, 0);
-    const owedNow = position ? cycleSpend + billsLeft : fallbackSpend - paidSince;
+    const billsLeft = standing ? standing.unpaid : 0;
+    const owedNow = cycleSpend + billsLeft;
     const since = position ? position.lastClose : cycleStart;
     const bill = cardBillDue(account);
 
@@ -1259,10 +1256,10 @@ function openable(account, acctTxns, row, note = '', { spendable = false } = {})
               recent.length
                 ? `<div class="k-rows account-recent-rows">${recent
                     .map(
-                      (t) => `<button type="button" class="k-row account-recent-row" data-txn="${t.id}" data-account="${account.id}" aria-label="Open ${escapeAttr(displayName(t.rawDescription))} to edit">
+                      (t) => `<button type="button" class="k-row account-recent-row" data-txn="${escapeAttr(t.id)}" data-account="${escapeAttr(account.id)}" aria-label="Open ${escapeAttr(displayName(t.rawDescription))} to edit">
                         <span class="k-row__body">
                           <span class="k-row__title">${escapeHtml(displayName(t.rawDescription))}</span>
-                          <span class="k-row__meta">${formatDateNice(t.date)}${t.time ? ` · ${t.time}` : ''}${t.isTransfer ? ` · ${moveWord(t, account)}` : ''}</span>
+                          <span class="k-row__meta">${formatDateNice(t.date)}${t.time ? ` · ${escapeHtml(t.time)}` : ''}${t.isTransfer ? ` · ${moveWord(t, account)}` : ''}</span>
                         </span>
                         <span class="k-row__value ${t.isTransfer ? 'muted' : t.direction === 'credit' ? 'in' : 'out'}">${t.direction === 'credit' ? '+' : '−'}${formatRupees(t.amount)}</span>
                       </button>`

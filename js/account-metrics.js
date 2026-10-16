@@ -272,6 +272,8 @@ export function cardPosition(account, transactions, importBatches, today, extraP
       known: Boolean(fromStatement) || spend.has(close),
       amount: fromStatement ? account.statementDue : Math.max(0, spend.get(close) || 0),
       markedPaid: Boolean(fromStatement && account.statementDuePaid),
+      // The day after which a payment is no longer taken to be for this bill: its due date, or 20 days after the statement.
+      paidBy: (fromStatement && account.statementDueDate) || addDays(close, 20),
       left: 0,
     };
   });
@@ -282,20 +284,23 @@ export function cardPosition(account, transactions, importBatches, today, extraP
     ...extraPayments,
   ]
     .filter((p) => p.date > prevClose)
-    .sort((a, b) => (a.date < b.date ? -1 : 1));
+    .sort((a, b) => a.date.localeCompare(b.date));
   let advance = 0;
   for (const p of payments) {
     // Said to be paying ahead (the spending since the last statement, not a bill): it comes straight off this cycle.
     if (p.paysCurrent) { advance += p.amount; continue; }
     let amount = p.amount;
-    const payable = bills.filter((b) => b.known && b.close < p.date);
+    const eligible = bills.filter((b) => b.known && b.close < p.date);
+    // A bill marked paid is settled: a payment after its due date that was not said to be for it is new money, never swallowed
+    // by that bill (which left a card payment made after the bill was marked paid changing nothing).
+    const payable = eligible.filter((b) => !(b.markedPaid && p.date > b.paidBy && !p.paysStatement && !p.paysBill));
     for (const b of payable) {
       const take = Math.min(b.left, amount);
       b.left -= take;
       amount -= take;
     }
     // Paid more than the bills in the app: the extra comes off this cycle.
-    if (amount > 0 && payable.length) advance += amount;
+    if (amount > 0 && eligible.length) advance += amount;
   }
   for (const b of bills) if (b.markedPaid) b.left = 0;
 

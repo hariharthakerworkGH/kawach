@@ -1,5 +1,6 @@
 import { getAll, getSetting } from './db.js';
-import { bankBalance, cardBillDue, cardOwedThisCycle, cardPosition, statementDay, afterKnownBalance, isEverydayBank, isPutAway } from './account-metrics.js';
+import { bankBalance, statementDay, afterKnownBalance, isEverydayBank, isPutAway } from './account-metrics.js';
+import { cardStandings } from './card-standing.js';
 import { nextOccurrence, isoLocal, frequencyOf, monthlyAmountOf } from './frequency.js';
 import { isLiveCommitment, commitmentDueInWindow, paidAround, commitmentMatcher, matchWords, isSetAside, isAtmPlan, CASH_ENTRY_RE } from './commitments.js';
 import { looksLikeCardPayment } from './transfers.js';
@@ -336,87 +337,8 @@ export async function computeFreeToSpend(now = new Date()) {
   const daysLeft = Math.max(1, daysBetweenInclusive(today, windowEnd));
 
   // --- Cards --------------------------------------------------------------
-  // A card bill paid from the bank leaves the bank at once, but the card's
-  // "payment received" only reaches the app with the next list or statement.
-  // Until then the bank-side payment has to count as paying the card, or the
-  // bill is taken off twice: once from the bank balance, once as unpaid.
-  const cardCreditsPaired = new Set();
-  const bankOnlyPayments = transactions.filter((t) => {
-    if (!bankIds.has(t.accountId) || t.direction !== 'debit' || !t.isTransfer || !(t.paysCardId || looksLikeCardPayment(t, 'bank'))) return false;
-    const twin = transactions.find(
-      (c) => cardIds.has(c.accountId) && (!t.paysCardId || c.accountId === t.paysCardId) && c.direction === 'credit' && c.isTransfer && c.amount === t.amount && !cardCreditsPaired.has(c.id) && Math.abs(dateOf(c.date) - dateOf(t.date)) <= 7 * DAY_MS
-    );
-    if (twin) cardCreditsPaired.add(twin.id);
-    return !twin;
-  });
-
-  const cards = cardAccounts.map((account) => {
-    const { owed: owedNet, cycleStart, since } = cardOwedThisCycle(account, transactions, importBatches);
-    const bill = cardBillDue(account);
-    const credits = transactions
-      .filter((t) => t.accountId === account.id && t.isTransfer && t.direction === 'credit' && (!since || t.date > since))
-      .reduce((s, t) => s + t.amount, 0);
-    return { account, owedNet, cycleStart, since, bill, credits, extraPayments: [] };
-  });
-
-  // Hand each bank-only payment to the card it paid: the card you picked for
-  // it, then the card's digits in the bank's description, otherwise the one
-  // card whose bill it equals. A payment through CRED names no card at all, so
-  // one that fits none of these is listed for you to say which card it paid.
-  const unassignedCardPayments = [];
-  for (const p of bankOnlyPayments) {
-    const desc = p.rawDescription || '';
-    const candidates = cards.filter((c) => !c.since || p.date > c.since);
-    let target = p.paysCardId ? cards.find((c) => c.account.id === p.paysCardId) : null;
-    if (!target) target = candidates.find((c) => [c.account.last4, ...(c.account.linkedLast4s || [])].filter(Boolean).some((d) => desc.includes(d)));
-    if (!target) {
-      const byAmount = candidates.filter((c) => c.bill && !c.bill.paid && c.bill.amount === p.amount);
-      if (byAmount.length === 1) target = byAmount[0];
-    }
-    if (target) {
-      target.credits += p.amount;
-      target.extraPayments.push(p);
-    } else if (candidates.length && p.date >= addDays(today, -45)) {
-      unassignedCardPayments.push(p);
-    }
-  }
-
-  // Cards with a statement day are worked out cycle by cycle, which matches
-  // each payment to the bill it paid. The rest fall back to "everything since
-  // the last imported statement".
-  for (const c of cards) {
-    if (!statementDay(c.account, importBatches)) continue;
-    const p = cardPosition(c.account, transactions, importBatches, today, c.extraPayments);
-    c.owed = p.owed;
-    c.unpaid = p.unpaid + p.billedNotImported;
-    c.billedNotImported = p.billedNotImported;
-    c.refunds = p.refunds;
-    c.statementMissing = p.statementMissing;
-    c.positioned = true;
-  }
-
-  for (const c of cards) {
-    if (!c.positioned) {
-      // Payments since the last statement first settle that statement's bill,
-      // and anything beyond it comes off what's owed since. Once the bill is
-      // marked paid, the first payments are taken to be the ones that paid it.
-      const billed = c.bill && !c.bill.paid ? c.bill.amount : 0;
-      const payments = c.bill && c.bill.paid ? Math.max(0, c.credits - c.bill.amount) : c.credits;
-      const total = Math.max(0, billed + c.owedNet - payments);
-      c.unpaid = Math.min(total, Math.max(0, billed - payments));
-      c.owed = total - c.unpaid;
-      c.billedNotImported = 0;
-      c.statementMissing = false;
-    }
-    const latestList = importBatches
-      .filter((b) => b.accountId === c.account.id && b.provisional)
-      .sort((a, b) => (a.importedAt < b.importedAt ? 1 : -1))[0];
-    c.listImportedAt = latestList ? latestList.importedAt : null;
-    delete c.credits;
-    delete c.owedNet;
-    delete c.extraPayments;
-    delete c.positioned;
-  }
+  // One calculation, shared with Accounts (js/card-standing.js).
+  const { cards, unassigned: unassignedCardPayments } = cardStandings(accounts, transactions, importBatches, today);
 
   for (const c of cards) {
     if (c.owed === 0 && c.unpaid === 0) continue;

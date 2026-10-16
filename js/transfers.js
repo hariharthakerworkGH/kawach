@@ -1,4 +1,4 @@
-import { getAll, put, newId } from './db.js';
+import { getAll, put, putMany, newId } from './db.js';
 import { DEPOSIT_MOVE_RE } from './parsers/sbi-savings.js';
 
 const MAX_DAYS_APART = 5;
@@ -17,6 +17,17 @@ export async function detectTransfers() {
   const cardCredits = auto.filter((t) => !t.isTransfer && t.direction === 'credit' && accountType.get(t.accountId) === 'card');
   const ownMoved = detectOwnAccountTransfers(auto, accounts, accountType);
 
+  // Looked up by amount: a debit only ever pairs with a credit of the same amount, so walking every credit for every debit
+  // (millions of checks with a few years of statements) is needless.
+  const byAmount = (list) => {
+    const m = new Map();
+    for (const t of list) {
+      if (!m.has(t.amount)) m.set(t.amount, []);
+      m.get(t.amount).push(t);
+    }
+    return m;
+  };
+  const cardCreditsByAmount = byAmount(cardCredits);
   const updates = [];
   const cardDigits = new Map(accounts.map((a) => [a.id, [a.last4, ...(a.linkedLast4s || [])].filter(Boolean)]));
   for (const debit of payingDebits) {
@@ -24,7 +35,7 @@ export async function detectTransfers() {
     // the card and a ₹1,299 UPI payment to a friend would pair up and both
     // vanish from spending. One side has to read like a card payment, or the
     // bank's line has to name the card.
-    const match = cardCredits.find(
+    const match = (cardCreditsByAmount.get(debit.amount) || []).find(
       (credit) =>
         credit.amount === debit.amount &&
         // A payment you said was for one card never pairs with another.
@@ -96,12 +107,17 @@ function detectOwnAccountTransfers(auto, accounts, accountType) {
   // From the business's account to a home one (or back) is how an owner
   // takes money home, often by UPI with nothing in the wording to go on. Both
   // sides are yours, so the same amount within the days is enough.
+  const creditsByAmount = new Map();
+  for (const c of credits) {
+    if (!creditsByAmount.has(c.amount)) creditsByAmount.set(c.amount, []);
+    creditsByAmount.get(c.amount).push(c);
+  }
   const business = new Set(accounts.filter((a) => a.business).map((a) => a.id));
   const acrossBusiness = (a, b) => business.has(a) !== business.has(b);
   const moved = [];
   for (const debit of debits) {
     const desc = (debit.rawDescription || '').toLowerCase();
-    const twin = credits.find(
+    const twin = (creditsByAmount.get(debit.amount) || []).find(
       (credit) =>
         credit.accountId !== debit.accountId &&
         credit.amount === debit.amount &&
@@ -220,8 +236,7 @@ export async function settleOtherSide(tx, otherId) {
   if (twin) {
     const linked = { ...twin, isTransfer: true, transferManual: true, settledWith: tx.id };
     if (card && opposite === 'debit') linked.paysCardId = card.id;
-    await put('transactions', linked);
-    await put('transactions', { ...tx, settledWith: twin.id });
+    await putMany('transactions', [linked, { ...tx, settledWith: twin.id }]);
     return { linked };
   }
   const label = tx.direction === 'credit'
@@ -245,8 +260,7 @@ export async function settleOtherSide(tx, otherId) {
   };
   if (tx.time) leg.time = tx.time;
   if (card && opposite === 'debit') leg.paysCardId = card.id;
-  await put('transactions', leg);
-  await put('transactions', { ...tx, settledWith: leg.id });
+  await putMany('transactions', [leg, { ...tx, settledWith: leg.id }]);
   return { created: leg };
 }
 

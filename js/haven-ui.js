@@ -209,7 +209,7 @@ function buildDeck(container, head, groups) {
   stack.tabIndex = 0;
   stack.setAttribute('role', 'group');
   stack.setAttribute('aria-roledescription', 'carousel');
-  stack.setAttribute('aria-label', 'Your accounts: swipe sideways, or use the left and right arrow keys');
+  stack.setAttribute('aria-label', 'Your accounts: swipe sideways, or use the left and right arrow keys. Press Enter, or tap the card, to see its payments');
   const dots = el('div', 'hv-dk__dots');
   dots.setAttribute('aria-hidden', 'true');
   const live = el('p', 'hv-sr');
@@ -275,10 +275,13 @@ function buildDeck(container, head, groups) {
   let startX = 0;
   let dx = 0;
   let drag = null;
+  let downAt = 0;
+  // The front card opens its own payments in History; back returns here with the same card in front.
+  const openPayments = () => { if (deckId) container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'transactions', accountId: deckId } })); };
   stack.addEventListener('pointerdown', (e) => {
     const c = e.target.closest('.hv-dk__card');
     if (!c || c.getAttribute('aria-hidden') === 'true') return;
-    drag = c; startX = e.clientX; dx = 0;
+    drag = c; startX = e.clientX; dx = 0; downAt = performance.now();
     c.style.transition = 'none';
     try { c.setPointerCapture(e.pointerId); } catch { /* gone */ }
   });
@@ -287,20 +290,24 @@ function buildDeck(container, head, groups) {
     dx = e.clientX - startX;
     drag.style.transform = `translateX(${dx}px) rotate(${dx / 18}deg)`;
   });
-  const end = () => {
+  const end = (e) => {
     if (!drag) return;
     const c = drag;
     drag = null;
     c.style.transition = '';
     if (dx < -60) show(idx + 1, true);
     else if (dx > 60) show(idx - 1, true);
-    else paintStack();
+    else {
+      paintStack();
+      if (e && e.type === 'pointerup' && Math.abs(dx) < 8 && performance.now() - downAt < 600) openPayments();
+    }
   };
   stack.addEventListener('pointerup', end);
   stack.addEventListener('pointercancel', end);
   stack.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowRight') { e.preventDefault(); show(idx + 1, true); }
     if (e.key === 'ArrowLeft') { e.preventDefault(); show(idx - 1, true); }
+    if (e.key === 'Enter') { e.preventDefault(); openPayments(); }
   });
   refresh();
   return { refresh };

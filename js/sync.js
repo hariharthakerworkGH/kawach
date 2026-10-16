@@ -121,7 +121,7 @@ export async function syncNow(passphrase, { onProgress = () => {}, previous = nu
   // Sent only when there is something to send: this phone changed since the last sync, there is no synced copy
   // yet, or the passphrase changed. Opening the app and coming back to it used to upload everything every time.
   const dirty = readDirty();
-  if (dirty || !found || previous) {
+  if (dirty || !found || previous || (merged.stats && merged.stats.ahead > 0)) {
     onProgress('Uploading…');
     const payload = { data: merged.data, deletions: merged.deletions, syncedAt: Date.now() };
     await place.write(await encryptPayload(payload, passphrase));
@@ -332,6 +332,20 @@ export function mergeSnapshots(local, remote, { base = {}, now = Date.now() } = 
 
     data[store] = [...byId.values()];
   }
+
+  // What this phone holds that the downloaded copy lacks (or holds an older version of): the shared file is behind, and the
+  // next write must send it. Without this, two devices syncing at the same moment leave one device's edits out of the file
+  // until it is edited again.
+  stats.ahead = 0;
+  for (const store of SYNCED_STORES) {
+    const theirs = new Map((remote.data?.[store] || []).map((r) => [r.id, r]));
+    for (const r of data[store]) {
+      const t = theirs.get(r.id);
+      if (!t || stamp(r) > stamp(t)) stats.ahead++;
+    }
+  }
+  const theirDeletes = new Set((remote.deletions || []).map((t) => t.id));
+  for (const t of tombstones.values()) if (!theirDeletes.has(t.id)) stats.ahead++;
 
   return { data, deletions: [...tombstones.values()], stats, changed: true };
 }

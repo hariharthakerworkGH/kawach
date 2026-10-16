@@ -1,9 +1,11 @@
 // Money that moves has two ends (5.75): saving one end with the other named settles both. Made-up data only.
 import { test, equal, ok } from './harness.js';
-import { seedBasics, txn, rupees } from './fixtures.js';
+import { seedBasics, txn, rupees, day } from './fixtures.js';
 import { put, getAll } from '../js/db.js';
 import { settleOtherSide, moveWord } from '../js/transfers.js';
-import { bankBalance } from '../js/account-metrics.js';
+import { bankBalance, cardPosition } from '../js/account-metrics.js';
+import { cardStandings, bankOnlyCardPayments, whatItPaid } from '../js/card-standing.js';
+import { computeFreeToSpend } from '../js/free-to-spend.js';
 
 // A card alert "payment received" for 13,000, saved on the card and flagged as money moved.
 const cardCredit = (over = {}) => txn({ accountId: 'card', date: '2026-10-16', amount: 13000, direction: 'credit', source: 'alert', isTransfer: true, transferManual: true, rawDescription: 'Payment received', ...over });
@@ -75,4 +77,59 @@ test('moveWord names a transfer for what it was, never just "moved" for a card b
   equal(moveWord({ isTransfer: true, direction: 'debit', paysCardId: 'card', rawDescription: 'x' }, { type: 'bank' }), 'card bill paid');
   equal(moveWord({ isTransfer: true, direction: 'debit', rawDescription: 'Sent to savings' }, { type: 'bank' }), 'moved');
   equal(moveWord({ isTransfer: false, direction: 'debit' }, card), '');
+});
+
+
+// --- One card, one figure (5.77): Summary and Accounts read the same calculation, and a payment always moves it. ---
+const standingOf = async (id, today) => cardStandings(await getAll('accounts'), await getAll('transactions'), await getAll('importBatches'), today).cards.find((c) => c.account.id === id);
+const summaryOf = async (id, today) => (await computeFreeToSpend(day(today))).cards.find((c) => c.account.id === id);
+
+test('a card paid from the bank six days before its own "payment received" is counted once, on Summary and on Accounts', async () => {
+  await seedBasics({});
+  await put('transactions', txn({ accountId: 'card', date: '2026-09-10', amount: 4000, rawDescription: 'Big purchase' }));
+  await put('transactions', txn({ accountId: 'card', date: '2026-10-05', amount: 1500, rawDescription: 'Cafe' }));
+  await put('transactions', txn({ accountId: 'bank', date: '2026-10-04', amount: 4000, direction: 'debit', isTransfer: true, paysCardId: 'card', source: 'alert', rawDescription: 'CRED' }));
+  await put('transactions', txn({ accountId: 'card', date: '2026-10-10', amount: 4000, direction: 'credit', isTransfer: true, source: 'alert', rawDescription: 'Payment received' }));
+  const acc = await standingOf('card', '2026-10-12');
+  const sum = await summaryOf('card', '2026-10-12');
+  equal([acc.unpaid, acc.owed], [0, rupees(1500)], 'the bill is paid once, this cycle is untouched');
+  equal([sum.unpaid, sum.owed], [acc.unpaid, acc.owed], 'Summary says the same as Accounts');
+});
+
+test('a bank payment you linked to its card side is never counted again, however far apart the dates', async () => {
+  await seedBasics({});
+  const credit = txn({ accountId: 'card', date: '2026-10-30', amount: 500, direction: 'credit', isTransfer: true, source: 'manual', rawDescription: 'Payment received' });
+  const debit = txn({ accountId: 'bank', date: '2026-10-05', amount: 500, direction: 'debit', isTransfer: true, paysCardId: 'card', source: 'manual', rawDescription: 'CRED', settledWith: credit.id });
+  const accounts = await getAll('accounts');
+  const lone = bankOnlyCardPayments([debit, { ...credit, settledWith: debit.id }], new Set(['bank']), new Set(['card']));
+  equal(lone.length, 0, 'linked: not a bank-only payment');
+  equal(bankOnlyCardPayments([{ ...debit, settledWith: undefined }, credit], new Set(['bank']), new Set(['card'])).length, 1, 'not linked and 25 days apart: it is');
+  ok(accounts.length > 0);
+});
+
+test('a card with no statement day: a refund lowers what is owed, the same on both screens', async () => {
+  await seedBasics({});
+  await put('accounts', { id: 'new', label: 'New Card', type: 'card', issuer: 'Test Bank', last4: '9999' });
+  await put('transactions', txn({ accountId: 'new', date: '2026-10-03', amount: 5000, rawDescription: 'Shop', source: 'alert' }));
+  await put('transactions', txn({ accountId: 'new', date: '2026-10-05', amount: 1000, direction: 'credit', rawDescription: 'Shop refund', source: 'alert' }));
+  const acc = await standingOf('new', '2026-10-12');
+  const sum = await summaryOf('new', '2026-10-12');
+  equal(acc.owed + acc.unpaid, rupees(4000), 'spend less refund');
+  equal([sum.owed, sum.unpaid], [acc.owed, acc.unpaid], 'Summary says the same');
+});
+
+test('a card bill marked paid does not swallow a payment made after it: that payment comes off this cycle', () => {
+  const card = { id: 'c', type: 'card', billingCycleDay: 25, statementDue: rupees(4000), statementPeriodEnd: '2026-09-25', statementDueDate: '2026-10-15', statementDuePaid: true };
+  const rows = [txn({ accountId: 'c', date: '2026-10-05', amount: 1500, rawDescription: 'Cafe' })];
+  const pay = (date) => txn({ accountId: 'c', date, amount: 1500, direction: 'credit', isTransfer: true, source: 'alert', rawDescription: 'Payment received' });
+  equal(cardPosition(card, [...rows, pay('2026-10-16')], [], '2026-10-17').owed, 0, 'paid after the due date: it is for this cycle');
+  equal(cardPosition(card, [...rows, pay('2026-10-12')], [], '2026-10-17').owed, rupees(1500), 'paid before the due date: it was for the bill');
+  equal(cardPosition(card, [...rows, { ...pay('2026-10-16'), paysBill: true }], [], '2026-10-17').owed, rupees(1500), 'said to be for the bill: it is');
+});
+
+test('what a card payment most likely paid: the bill when one is billed, else the spending since', () => {
+  equal(whatItPaid({ unpaid: rupees(4000), owed: rupees(500) }, rupees(4000)), 'bill');
+  equal(whatItPaid({ unpaid: 0, owed: rupees(13000) }, rupees(13000)), 'current');
+  equal(whatItPaid({ unpaid: 0, owed: rupees(100) }, rupees(13000)), 'bill');
+  equal(whatItPaid(undefined, rupees(5)), 'bill');
 });

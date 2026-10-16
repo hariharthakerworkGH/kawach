@@ -3,7 +3,7 @@
 import { test, equal, ok } from './harness.js';
 import { seedBasics, txn, rupees, day, resetDB } from './fixtures.js';
 import { problemWith, tidyRecord, screenRecords, validDate, BadRecordError, MAX_PAISE } from '../js/records.js';
-import { put, getAll, getAllRaw, damagedRecords, removeDamaged, getSetting, setSetting, forgetCachedReads, replaceAll } from '../js/db.js';
+import { put, putMany, getAll, getAllRaw, damagedRecords, removeDamaged, getSetting, setSetting, forgetCachedReads, replaceAll } from '../js/db.js';
 import { computeFreeToSpend } from '../js/free-to-spend.js';
 import { mergeSnapshots, mergeLists } from '../js/sync.js';
 import { restoreBackup, screenBackup, undoInfo, undoRestore } from '../js/backup.js';
@@ -283,7 +283,10 @@ test('lighter: sync sends only when this phone has something new, and what it br
     await syncNow(pass);
     equal(drive.syncFile().text, first, 'nothing new on this phone: nothing was uploaded');
     // the other device adds a payment; this phone takes it in and does not send it back
-    drive.syncFile().text = await otherDevice([txn({ accountId: 'bank', date: '2026-09-12', amount: 900, rawDescription: 'FROM LAPTOP', updatedAt: 9 })], 'shield-phrase-1');
+    // the laptop has everything this phone sent, plus one payment of its own
+    const laptop = await decryptPayload(first, 'shield-phrase-1');
+    laptop.data.transactions.push(txn({ accountId: 'bank', date: '2026-09-12', amount: 900, rawDescription: 'FROM LAPTOP', updatedAt: 9 }));
+    drive.syncFile().text = await encryptPayload(laptop, 'shield-phrase-1');
     const before = drive.syncFile().text;
     await syncNow(pass);
     ok((await getAll('transactions')).some((t) => t.rawDescription === 'FROM LAPTOP'));
@@ -522,4 +525,47 @@ test('lists: accounts and categories are A to Z, or by size or use when asked', 
   equal(sortCategories(cats, 'name').map((c) => c.id), ['z', 'y', 'x']);
   equal(sortCategories(cats, 'used', used).map((c) => c.id), ['x', 'y', 'z']);
   equal(sortCategories(cats, 'used').map((c) => c.id), ['z', 'y', 'x'], 'without counts, A to Z');
+});
+
+test('safety: sync notices when the shared file is behind this phone (two devices syncing at once)', () => {
+  const rec = (id, at) => ({ id, accountId: 'bank', date: '2026-09-05', rawDescription: 'X', merchant: 'X', amount: 100, direction: 'debit', updatedAt: at });
+  const snap = (rows, deletions = []) => ({ data: { transactions: rows }, deletions });
+  const now = 1_000_000;
+  const same = mergeSnapshots(snap([rec('a', 10)]), snap([rec('a', 10)]), { now });
+  equal(same.stats.ahead, 0, 'identical: nothing to send');
+  const extra = mergeSnapshots(snap([rec('a', 10), rec('b', 20)]), snap([rec('a', 10)]), { now });
+  equal(extra.stats.ahead, 1, 'a row only this phone has');
+  const newer = mergeSnapshots(snap([rec('a', 30)]), snap([rec('a', 10)]), { now });
+  equal(newer.stats.ahead, 1, 'a newer version here');
+  const theirs = mergeSnapshots(snap([rec('a', 10)]), snap([rec('a', 30)]), { now });
+  equal(theirs.stats.ahead, 0, 'a newer version there is theirs to send, not ours');
+  const gone = mergeSnapshots(snap([], [{ id: 'transactions:z', store: 'transactions', recordId: 'z', deletedAt: 5 }]), snap([]), { now });
+  equal(gone.stats.ahead, 1, 'a delete the file has not heard of');
+});
+
+test('safety: a backup made with the older 210,000 rounds still opens', async () => {
+  const enc = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const base = await crypto.subtle.importKey('raw', enc.encode('old-pass-phrase'), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 210000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+  const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(JSON.stringify({ accounts: [], transactions: [{ id: 'x' }] })));
+  const b64 = (u8) => btoa(String.fromCharCode(...u8));
+  const file = JSON.stringify({ format: 'expense-tracker-backup', formatVersion: 1, createdAt: '2026-01-01T00:00:00Z', kdf: { name: 'PBKDF2', hash: 'SHA-256', iterations: 210000, salt: b64(salt) }, iv: b64(iv), data: b64(new Uint8Array(cipher)) });
+  equal((await decryptPayload(file, 'old-pass-phrase')).transactions[0].id, 'x');
+});
+
+test('safety: records saved together are all saved or none', async () => {
+  await seedBasics();
+  const bad = { id: 'bad', accountId: 'bank', date: 'nope', amount: 1, direction: 'debit' };
+  let threw = false;
+  try {
+    await putMany('transactions', [good('ok1'), bad]);
+  } catch {
+    threw = true;
+  }
+  ok(threw, 'the bad one is refused');
+  equal((await getAll('transactions')).length, 0, 'and the good one beside it was not saved either');
+  await putMany('transactions', [good('ok1'), good('ok2')]);
+  equal((await getAll('transactions')).length, 2);
 });

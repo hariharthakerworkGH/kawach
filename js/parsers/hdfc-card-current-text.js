@@ -1,3 +1,4 @@
+import { toPaise } from '../format.js';
 // HDFC credit card "current transactions" - the unbilled list for the cycle
 // that hasn't been billed yet. HDFC offers no file download for it, so this
 // reads the text you copy from NetBanking instead. Each transaction arrives as:
@@ -145,11 +146,6 @@ export function parse(text) {
   };
 }
 
-function toPaise(str) {
-  const cleaned = String(str).replace(/,/g, '');
-  const [whole, frac = ''] = cleaned.split('.');
-  return Number(whole) * 100 + Number((frac + '00').slice(0, 2));
-}
 
 function isoDate(y, m, d) {
   if (!m) return null;

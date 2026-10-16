@@ -56,8 +56,13 @@ let shownIn = null;
 // The phone's back button closes what is open here first: a payment, then
 // Select. Filters stay: arriving from Summary with one set, back should
 // return to Summary.
+// The payment this screen was opened on (from Accounts): it is open because you tapped it over there, so back leaves the screen
+// instead of first closing it.
+let openedFor = null;
+
 export function onBack() {
   if (!shownIn || !shownIn.isConnected) return false;
+  if (expanded && expanded === openedFor && !splitDraft && !selecting) return false;
   if (expanded || splitDraft) {
     expanded = null;
     splitDraft = null;
@@ -89,6 +94,7 @@ export async function render(container, params = {}) {
   selected = new Set();
   selecting = false;
   expanded = null;
+  openedFor = null;
   splitDraft = null;
   await fileSalaries(allAccounts);
 
@@ -113,6 +119,7 @@ export async function render(container, params = {}) {
     const hit = transactions.find((x) => x.id === openAfter);
     if (hit) filters.month = hit.date.slice(0, 7);
     expanded = openAfter;
+    openedFor = openAfter;
   }
 
   container.classList.add('k');
@@ -340,7 +347,6 @@ export async function render(container, params = {}) {
   wireQuick(listEl, container);
 
   renderList(container);
-  if (openAfter) requestAnimationFrame(() => container.querySelector('.hist-row.open')?.scrollIntoView({ block: 'center' }));
 }
 
 // The controls show the filters as they are, so what you are looking at is
@@ -431,6 +437,17 @@ function matching() {
 //     id, so the order is the same every time the screen is drawn.
 // Every step compares one fixed value, so this is a proper ordering and never
 // shuffles. Exported so it can be tested.
+// Called by the app once this screen is on show: when it was opened for one payment, that payment is in the middle of the
+// screen and lights up for a moment.
+export function arrive(container, params = {}) {
+  if (!params.open) return;
+  const row = container.querySelector('.hist-row.open') || container.querySelector(`[data-id="${CSS.escape(params.open)}"]`);
+  if (!row) return;
+  row.scrollIntoView({ block: 'center' });
+  row.classList.add('hist-row--found');
+  setTimeout(() => row.classList.remove('hist-row--found'), 1800);
+}
+
 export function newestFirst(a, b) {
   if (a.date !== b.date) return a.date < b.date ? 1 : -1;
   const ta = secondOfDay(a);
@@ -595,7 +612,8 @@ function renderList(container) {
 
   // The "need a category" chip counts across everything, so it shows whether
   // or not this month has any.
-  const needing = cache.transactions.filter(needsCategory).length;
+  // (Only this account's, when History is open for one account: another card's payments are not what you are looking at.)
+  const needing = cache.transactions.filter((t) => needsCategory(t) && (!filters.accountId || t.accountId === filters.accountId)).length;
   const needsChip = container.querySelector('#txn-needs');
   needsChip.hidden = needing === 0 && filters.categoryId !== 'uncategorized';
   needsChip.textContent = filters.categoryId === 'uncategorized' ? 'Showing: need a category' : `${needing} need a category`;

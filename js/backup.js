@@ -8,7 +8,8 @@ const FORMAT = 'expense-tracker-backup';
 // 2 = the data is compressed (gzip) before it is locked; 1 is what every older backup says. An older app that
 // meets a 2 says it was made by a newer version, instead of trying to read compressed bytes as text.
 const FORMAT_VERSION = 2;
-const PBKDF2_ITERATIONS = 210000;
+// 600,000: the current advice for this method. A file says its own count, so every older backup (210,000) still opens.
+const PBKDF2_ITERATIONS = 600000;
 
 // Everything lives in one browser's IndexedDB, so a backup is the only thing
 // standing between you and total loss if the phone dies or site data gets

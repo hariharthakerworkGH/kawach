@@ -1,3 +1,4 @@
+import { toPaise } from '../format.js';
 // ICICI credit card "VIEW CURRENT STATEMENT" PDF - the transactions so far in
 // the cycle that hasn't been billed yet, as opposed to the monthly statement
 // (see icici-amazon-pay-credit-card.js). Rows look like:
@@ -99,8 +100,3 @@ function appendDetails(row, extra) {
   if (text) row.details = `${row.details} ${text}`;
 }
 
-function toPaise(str) {
-  const cleaned = String(str).replace(/,/g, '');
-  const [whole, frac = ''] = cleaned.split('.');
-  return Number(whole) * 100 + Number((frac + '00').slice(0, 2));
-}

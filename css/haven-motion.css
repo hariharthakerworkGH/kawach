@@ -550,3 +550,14 @@ html, body { touch-action: pan-x pan-y; }
 /* a payment listed on an account is a button: tap it to open it in History, ready to edit */
 button.account-recent-row { width: 100%; text-align: left; background: none; border: 0; font: inherit; color: inherit; cursor: pointer; min-height: 56px; }
 button.account-recent-row:active { background: var(--hv-hair); }
+
+/* a passphrase that is allowed but short gets a quiet hint, not a red error */
+.field-error-text.is-hint { color: var(--text-muted); font-weight: 500; }
+
+/* the four account filters share the width evenly, edge to edge; the sort choice, when there is one, sits on its own line */
+:root[data-style="haven"] .hv-filter { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; overflow: visible; }
+:root[data-style="haven"] .hv-filter [data-f] { width: 100%; padding: 0 4px; text-align: center; }
+:root[data-style="haven"] .hv-filter .hv-sortsel { grid-column: 1 / -1; justify-self: end; margin-left: 0; }
+/* a payment opened from another screen lights up for a moment so the eye finds it */
+@keyframes hv-found-glow { from { box-shadow: 0 0 0 2px var(--hv-link); } to { box-shadow: 0 0 0 2px transparent; } }
+.hist-row--found { animation: hv-found-glow 1.8s ease-out; border-radius: 16px; }

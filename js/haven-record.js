@@ -19,8 +19,6 @@ function describe(el) {
 const pct = (arr, p) => { if (!arr.length) return 0; const s = [...arr].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(s.length * p))]; };
 const r1 = (n) => Math.round(n * 10) / 10;
 
-export const isRecording = () => !!run;
-
 export function startRecording() {
   if (run) return;
   const t0 = performance.now();

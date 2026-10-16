@@ -540,8 +540,9 @@ Node (v24) and Python (`py`) are installed; there is no git. The browser checks 
    for a fix, `4.0` for a rebuild (`APP_VERSION` in `js/version.js`). No
    leading zeros, and no third number until there is a fix. Every release also
    raises the hidden `BUILD` counter by one, with `CACHE_NAME` in `sw.js`.
-5. Copy the whole app to `expense-tracker-versions/<version>` (e.g. `3.1.1`)
-   so any version can be restored, and verify the copy.
+5. Copy the app to `expense-tracker-versions/<version>` (e.g. `3.1.1`) so any
+   version can be restored, and verify the copy. Not `media/` (the tour video,
+   kept in `_work` and online): a copy of it in every version fills the disk.
 6. To debug the owner's figures, ask for Settings → "Save diagnostic report"
    (redacted) and load it with `/tests/load-report.html` on localhost. Never ask
    for his GitHub token or passphrase.

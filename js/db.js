@@ -167,6 +167,26 @@ export async function put(storeName, value, { stamp = true, fromSync = false } =
   return value;
 }
 
+/* Several writes to one store that happen together or not at all: a card payment and its bank half, say, so closing the app in
+ * between can never leave one without the other. Same checks and stamps as put(). */
+export async function putMany(storeName, values, { stamp = true, fromSync = false } = {}) {
+  for (const value of values) {
+    tidyRecord(storeName, value);
+    const why = problemWith(storeName, value);
+    if (why) throw new BadRecordError(storeName, value && value.id, why);
+  }
+  const now = Date.now();
+  const s = await store(storeName, 'readwrite');
+  const saved = committed(s.transaction);
+  for (const value of values) {
+    if (stamp) value.updatedAt = now;
+    s.put(value);
+  }
+  await saved;
+  notifyChanged(storeName, fromSync);
+  return values;
+}
+
 export async function get(storeName, id) {
   const s = await store(storeName, 'readonly');
   return reqToPromise(s.get(id));

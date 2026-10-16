@@ -5,6 +5,8 @@
 import { icon } from './icons.js';
 
 export const MIN_PASSPHRASE = 8;
+// Allowed, but worth saying: a stolen backup can be guessed at offline, and longer is far harder.
+export const GOOD_PASSPHRASE = 12;
 
 export function enhancePasswords(root) {
   root.querySelectorAll('input[type="password"]').forEach((input) => {
@@ -51,7 +53,9 @@ export function checkPair(first, again, onChange = () => {}) {
     const short = show(first, (finished || b) && a && a.length < MIN_PASSPHRASE ? `At least ${MIN_PASSPHRASE} characters` : '');
     // Red once the second can no longer become the first.
     const differs = show(again, b && (finished ? a !== b : !a.startsWith(b)) ? "Doesn't match" : '');
-    note.textContent = differs || short;
+    const hint = !differs && !short && a.length >= MIN_PASSPHRASE && a.length < GOOD_PASSPHRASE ? `${GOOD_PASSPHRASE} or more characters is much harder to guess` : '';
+    note.textContent = differs || short || hint;
+    note.classList.toggle('is-hint', Boolean(hint));
     note.hidden = !note.textContent;
     onChange();
   };
