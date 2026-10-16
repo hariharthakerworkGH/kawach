@@ -22,7 +22,6 @@ import { flexReport } from '../js/flex-report.js';
 import { flexCard } from '../js/views/recap.js';
 import { makeRecord, checkPin, waitFor, mustLock, makeKeyText, normaliseKey, formatKey, makeKeyRecord, checkKey } from '../js/lock.js';
 import { comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts, longestAhead, monthStory, weekRecap } from '../js/views/summary-looks.js';
-import { neighbour } from '../js/swipe.js';
 import { festivalOn } from '../js/haven-motion.js';
 import { rupeeWords } from '../js/haven-life.js';
 import { shortRupees } from '../js/format.js';
@@ -2070,14 +2069,6 @@ test('Haven lab 3: the amount in words, short lakhs, the month told back and the
   equal(monthStory({ limit: 0, spendByDay: [] }, 0, 'X').length, 0, 'no budget, no story');
   const w = weekRecap(f([5, 12, 18, 25, 30, 35, 40, 45]));
   ok(w && w.days.length === 7 && w.total === rupees(45 - 5) && w.big.amount === rupees(7), 'a week: its seven days, its total and its biggest');
-});
-test('Swiping between tabs goes round and round in the order of the tab bar', () => {
-  equal(neighbour('summary', 1), 'accounts', 'left from Summary is Accounts');
-  equal(neighbour('accounts', 1), 'add', 'Add is in the middle');
-  equal(neighbour('transactions', 1), 'summary', 'past History comes Summary again');
-  equal(neighbour('summary', -1), 'transactions', 'and before Summary, History');
-  equal(neighbour('coach', 1), null, 'Coach is opened from Plan, not swiped to');
-  equal(neighbour('settings', 1), null, 'a screen that is not a tab does not swipe');
 });
 test('Summary in each style: what is coming up, what is kept back', () => {
   const tracker = [

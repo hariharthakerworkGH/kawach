@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.73',
+    items: [
+      {
+        icon: 'plus',
+        title: "Add is one design, pages are locked",
+        text: "The + sheet has two small chips on top, Paste SMS and Import. Pages no longer slide or swipe: use the tab bar.",
+      },
+    ],
+  },
+  {
     version: '5.72.3',
     items: [
       {

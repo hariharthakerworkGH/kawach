@@ -1,6 +1,5 @@
 import { openDB, getAll, put, onLocalChange, forgetCachedReads, damagedRecords, getSetting, setSetting } from './db.js';
 import { wireExplain } from './explain.js';
-import { wireSwipe } from './swipe.js';
 import { havenHeader } from './haven-ui.js';
 import { initMotion, stretchMark } from './haven-motion.js';
 import { openAddSheet, closeAddSheet } from './haven-sheet.js';
@@ -118,9 +117,8 @@ window.addEventListener('resize', () => {
 });
 
 // fromHistory: shown because of the back button (or on start-up), so it is
-// not added to the trail. scrollY: where to put you on it. slide: 1 or -1
-// when a swipe brought it (js/swipe.js), so it comes in from that side.
-async function showView(name, params = {}, fromHistory = false, scrollY = 0, slide = 0) {
+// not added to the trail. scrollY: where to put you on it. (Screens do not slide: you change screen by the tab bar only.)
+async function showView(name, params = {}, fromHistory = false, scrollY = 0) {
   closeAddSheet();
   const view = views[name];
   if (!fromHistory && name !== currentView) {
@@ -181,10 +179,10 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0, sli
     window.scrollTo(0, scrollY);
   };
   // The browser's own cross-fade between the two screens (5.36): the header and the tab bar stay
-  // put (css "view transitions"), only the screen fades. Not for a swipe, which slides, nor when
+  // put (css "view transitions"), only the screen fades. Not when
   // the phone asks for less motion, nor in a browser without it: those swap at once, as before.
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (typeof document.startViewTransition === 'function' && !slide && !reduced && !document.hidden) {
+  if (typeof document.startViewTransition === 'function' && !reduced && !document.hidden) {
     try {
       const fade = document.startViewTransition(swap);
       // A tap on another tab while one is fading skips the first fade: that is not an error to report.
@@ -200,11 +198,6 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0, sli
   // comes off again so a screen redrawing itself doesn't replay them. The
   // figure counts first and the bars fill under it (design.md section 10).
   next.classList.add('view-enter');
-  if (slide && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
-    const cls = slide > 0 ? 'view-slide-next' : 'view-slide-prev';
-    next.classList.add(cls);
-    setTimeout(() => next.classList.remove(cls), 420);
-  }
   countUpHeroes(next);
   rollFigures(next);
   fillBars(next);
@@ -748,7 +741,6 @@ async function init() {
   window.addEventListener('hv-refresh', () => {
     if (['summary', 'accounts', 'plan', 'transactions'].includes(currentView)) showView(currentView, currentParams, true, window.scrollY);
   });
-  wireSwipe({ current: () => currentView, go: (name, dir) => showView(name, {}, false, 0, dir) });
   wireExplain();
 
   document.addEventListener('navigate', (e) => {
@@ -792,7 +784,10 @@ async function init() {
     // Which screen to open on is the person's choice (js/appearance.js), and
     // only ever a screen that stands on its own: Add and Accounts are fine to
     // land on, the rest are somewhere you go from here.
-    await showView(['summary', 'add', 'accounts', 'plan', 'transactions'].includes(openedAt) ? openedAt : appearance('opening'), {}, true);
+    // In Haven "Add" is a sheet over a screen, never a screen of its own: the home-screen shortcut opens Summary with the sheet up.
+    const sheetShortcut = openedAt === 'add' && haven();
+    await showView(['summary', 'add', 'accounts', 'plan', 'transactions'].includes(openedAt) && !sheetShortcut ? openedAt : appearance('opening'), {}, true);
+    if (sheetShortcut) openAddSheet();
     // After an update, once: what changed, for this person.
     if (!isDemo()) setTimeout(async () => showIfUpdated(APP_VERSION, await moneyProfile(), { isNew: false }), 600);
   }

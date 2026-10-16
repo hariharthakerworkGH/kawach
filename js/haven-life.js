@@ -427,7 +427,7 @@ export function filingSwipe(container, { find, needs, nameOf, apply }) {
     const sub = rowEl.querySelector('.hist-sub');
     if (sub) sub.insertAdjacentHTML('beforeend', ` <span class="hist-guess">Looks like <b>${esc(name)}</b></span>`);
     const line = rowEl.querySelector('.hist-line');
-    // A swipe along this row is for filing, not for moving to the next tab (js/swipe.js).
+    // A swipe along this row is for filing a payment.
     line.classList.add('no-swipe');
     let x0 = null;
     let y0 = 0;

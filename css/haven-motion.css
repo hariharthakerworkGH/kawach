@@ -364,8 +364,6 @@ html.hv-sweeping::view-transition-new(root) { z-index: 2; }
 :root[data-style="haven"] .hv-acctchips { flex-wrap: wrap; }
 
 /* Add: the other ways in, as one quiet line under the main button. */
-.hv-via { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0 6px; margin: 0; font-size: 13px; color: var(--hv-ink-3); }
-.hv-via button { min-height: 44px; padding: 0 4px; border: 0; background: none; font: inherit; font-weight: 600; color: var(--hv-link); }
 
 /* A closed account is its row and nothing else (a one-line warning may stay); the rest opens with a tap. */
 :root[data-style="haven"] .account-block:not(.is-open) > :not(.account-row):not(.account-note) { display: none; }
@@ -474,3 +472,7 @@ html:root[data-style="haven"] .view-container.k { background: transparent; }
 .hv-tank [data-f] { fill: var(--hv-water); opacity: 0.92; }
 .hv-tank.warm [data-f] { fill: var(--hv-amber); }
 .hv-tank { font-size: 12px; }
+
+/* Add (5.73): the page and the + sheet are the same form with the same two small chips on top. The old banner is gone everywhere. */
+:root[data-style="haven"] .k-add-sms { display: none; }
+:root[data-style="haven"] .hv-addways { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 2px; }

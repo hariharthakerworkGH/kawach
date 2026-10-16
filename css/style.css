@@ -5357,8 +5357,6 @@ body::after {
 .look-style input { position: absolute; opacity: 0; pointer-events: none; }
 label.look-style { position: relative; cursor: pointer; }
 
-/* A tab arriving by a swipe (js/swipe.js) slides in from the side it came
-   from, settling with a little give. */
 /* Changing screen fades (5.36) with the browser's view transitions: the screen cross-fades while
    the header and the tab bar stay exactly where they are. Where the browser has no such thing,
    nothing here applies and screens swap as before. */
@@ -5374,10 +5372,6 @@ label.look-style { position: relative; cursor: pointer; }
 @keyframes kv-out { to { opacity: 0; } }
 @keyframes kv-in { from { opacity: 0; } }
 
-@keyframes view-slide-next { from { transform: translateX(34%) scale(.96); opacity: .2; } to { transform: none; opacity: 1; } }
-@keyframes view-slide-prev { from { transform: translateX(-34%) scale(.96); opacity: .2; } to { transform: none; opacity: 1; } }
-.view-slide-next { animation: view-slide-next 360ms cubic-bezier(.16, 1, .3, 1) both; }
-.view-slide-prev { animation: view-slide-prev 360ms cubic-bezier(.16, 1, .3, 1) both; }
 
 /* A card named under a bar or beside it (5.10): its name, then its last four
    digits a shade quieter. Every style uses the same tag. */
@@ -5470,3 +5464,6 @@ label.look-style { position: relative; cursor: pointer; }
 .broken-more { display: flex; gap: var(--space-xs); justify-content: center; flex-wrap: wrap; margin-top: var(--space-sm); }
 .broken-more .btn-secondary { min-height: 44px; }
 .warn-note { color: var(--warn); }
+
+/* Pages are locked: the browser's own sideways overscroll / edge swipe never moves them. */
+html, body { overscroll-behavior-x: none; }

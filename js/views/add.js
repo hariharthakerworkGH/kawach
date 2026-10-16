@@ -910,11 +910,11 @@ function havenArrangeAdd(container) {
   const one = document.createElement('div');
   one.className = 'hv-addstep hv-stack';
   one.dataset.step = '1';
-  // Other ways in than typing: one quiet line under the main button, so the sheet stays about the amount.
-  const via = document.createElement('p');
-  via.className = 'hv-via';
-  via.innerHTML = `Or <button type="button" data-hv-go="inbox">paste a bank message</button> <span aria-hidden="true">·</span> <button type="button" data-hv-go="import">import a statement</button>`;
-  one.append(toggle, wrap.closest('.amount-field') || wrap, pad, next, via);
+  // Other ways in than typing: two small chips on top (the same two as on Summary), here and in the + sheet alike.
+  const ways = document.createElement('div');
+  ways.className = 'hv-addrow hv-addways';
+  ways.innerHTML = `<button type="button" class="hv-chip" data-hv-go="inbox"><span class="hv-ic">${icon('inbox')}</span>Paste SMS</button><button type="button" class="hv-chip" data-hv-go="import"><span class="hv-ic">${icon('upload')}</span>Import</button>`;
+  one.append(ways, toggle, wrap.closest('.amount-field') || wrap, pad, next);
   const two = document.createElement('div');
   two.className = 'hv-addstep hv-stack';
   two.dataset.step = '2';
