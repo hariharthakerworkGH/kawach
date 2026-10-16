@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.74.1',
+    items: [
+      {
+        icon: 'palette',
+        title: "One palette everywhere",
+        text: "Coach, Settings, Categories and the in/out chart now use the same calm teal as the rest, and the chart legend matches its bars.",
+      },
+    ],
+  },
+  {
     version: '5.74',
     items: [
       {

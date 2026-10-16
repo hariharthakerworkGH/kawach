@@ -537,3 +537,12 @@ html, body { touch-action: pan-x pan-y; }
 @supports (view-transition-name: none) {
   ::view-transition-old(kv-header), ::view-transition-old(kv-nav) { display: none; }
 }
+
+/* One palette everywhere (5.74.1): icon tiles are the quiet chip, usage bars and the in / out bars are teal, and a legend always matches its bars. */
+:root[data-style="haven"] .k-icon { background: var(--hv-gem-bg); color: var(--hv-gem-ink); border: 0; box-shadow: inset 0 0 0 1px var(--hv-hair); }
+:root[data-style="haven"] .cat-share-track i { background: var(--hv-L2) !important; }
+:root[data-style="haven"] .bar-in { fill: var(--hv-L1) !important; }
+:root[data-style="haven"] .bar-out { fill: var(--hv-L4) !important; }
+:root[data-style="haven"] .key-in { background: var(--hv-L1) !important; }
+:root[data-style="haven"] .key-out { background: var(--hv-L4) !important; }
+:root[data-style="haven"] .k-icon.coach-q-icon, :root[data-style="haven"] .coach-q-icon { background: var(--hv-gem-bg) !important; background-image: none !important; color: var(--hv-gem-ink) !important; box-shadow: inset 0 0 0 1px var(--hv-hair) !important; }
