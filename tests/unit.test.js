@@ -35,7 +35,7 @@ import { textWidth, wrap, pdfSafe } from '../js/pdf-write.js';
 import { planParts } from '../js/views/plan-looks.js';
 import { looksLikeCardPayment, cashSide, spendMoves, isCardBill } from '../js/transfers.js';
 import { spendingMonthOf, salaryLike, nextMonthKey, countsFor as countsForMonth } from '../js/spending-month.js';
-import { parseAlert, splitAlerts, resolveAccount, findDigits, useLearned } from '../js/alerts.js';
+import { parseAlert, splitAlerts, resolveAccount, findDigits, useLearned, findExisting } from '../js/alerts.js';
 import { teach } from '../js/alert-learning.js';
 import * as hdfcList from '../js/parsers/hdfc-card-current-text.js';
 import * as csvParser from '../js/parsers/csv.js';
@@ -590,6 +590,13 @@ test('HDFC pasted list: two cards, page text ignored, bill payment kept apart fr
   equal(rows[1].description, 'Food Delivery Bengaluru');
   paise(meta.totals.owed, rupees(413 - 49));
   paise(meta.totals.billPayments, rupees(17400));
+});
+
+test('bank alerts: the same spend on another day is a habit, never a copy; only the same day asks', () => {
+  const alert = (day) => parseAlert(`Spent Rs.30.00 On HDFC Bank Card 4321 At METRO On 2026-09-${day}:08:15:01. Not You? Call 18002586161`);
+  const saved = [txn({ accountId: 'a1', date: '2026-09-11', amount: 30, direction: 'debit', source: 'manual' })];
+  equal(findExisting(alert('12'), 'a1', saved), null, 'a fare yesterday does not make a fare today a repeat');
+  equal(findExisting(alert('11'), 'a1', saved)?.kind, 'likely', 'the same day does');
 });
 
 test('bank alerts: an SMS is read and two pasted together are split', () => {

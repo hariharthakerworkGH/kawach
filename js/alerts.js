@@ -438,13 +438,13 @@ export function resolveAccount(p, accounts, transactions) {
   return null;
 }
 
-const daysApart = (a, b) => Math.abs((new Date(a) - new Date(b)) / 86400000);
 
 // Is this alert already in the app? Returns how sure, and what it matched.
 //   same-alert : this exact alert was already added
 //   reference  : the statement row carries the same UPI reference - certain
-//   likely     : same account, amount and direction within 3 days - probably,
-//                but two identical spends a day apart are possible, so ask
+//   likely     : same account, amount and direction on the SAME DAY - probably, but two
+//                identical spends in a day are possible, so ask. A different day is never
+//                a repeat: the same spend each day (a fare, a coffee) is a habit, not a copy.
 export function findExisting(p, accountId, transactions) {
   const key = alertFingerprint(p);
   const sameAlert = transactions.find((t) => t.alertKey === key);
@@ -459,7 +459,7 @@ export function findExisting(p, accountId, transactions) {
   }
 
   if (!p.date) return null;
-  const near = onAccount.filter((t) => daysApart(t.date, p.date) <= 3).sort((a, b) => daysApart(a.date, p.date) - daysApart(b.date, p.date));
+  const near = onAccount.filter((t) => t.date === p.date);
   return near.length ? { kind: 'likely', transaction: near[0] } : null;
 }
 

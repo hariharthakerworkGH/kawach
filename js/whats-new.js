@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.72.1',
+    items: [
+      {
+        icon: 'bell',
+        title: "Repeat spends are no longer flagged",
+        text: "Pasting a bank message warns about a repeat only when the same spend is on the same day, not the day before.",
+      },
+    ],
+  },
+  {
     version: '5.72',
     items: [
       {
