@@ -249,3 +249,11 @@ export async function settleOtherSide(tx, otherId) {
   await put('transactions', { ...tx, settledWith: leg.id });
   return { created: leg };
 }
+
+// The plain word for a transfer row: what it was, not just that it moved.
+export function moveWord(t, account) {
+  if (!t || !t.isTransfer) return '';
+  if (t.direction === 'debit' && (t.paysCardId || looksLikeCardPayment(t, 'bank'))) return 'card bill paid';
+  if (t.direction === 'credit' && account && account.type === 'card') return 'payment received';
+  return 'moved';
+}

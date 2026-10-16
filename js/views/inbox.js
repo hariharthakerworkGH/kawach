@@ -10,6 +10,7 @@ import { showToast } from '../toast.js';
 import { commitmentField, cardPaymentField } from './add.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
 import { sortAccounts, sortCategories } from '../list-order.js';
+import { cardPosition } from '../account-metrics.js';
 import { looksLikeCardPayment } from '../transfers.js';
 import { redraw } from '../redraw.js';
 import { escapeHtml, escapeAttr, sectionHead, invalidField, slidingPill } from '../ui.js';
@@ -36,12 +37,13 @@ let generation = 0;
 export async function render(container) {
   const mine = ++generation;
   await loadLearned(); // wordings taught earlier are read silently; nothing about them is shown
-  const [items, accounts, transactions, categories, recurring] = await Promise.all([
+  const [items, accounts, transactions, categories, recurring, importBatches] = await Promise.all([
     pendingAlerts(),
     getAll('accounts'),
     getAll('transactions'),
     getAll('categories'),
     getAll('recurring'),
+    getAll('importBatches'),
   ]);
 
   const built = [];
@@ -72,7 +74,7 @@ export async function render(container) {
   // A newer render started while this one was reading; it will paint instead.
   if (mine !== generation) return;
   drafts = built;
-  context = { accounts, categories, transactions, commitments: recurring.filter((r) => isLiveCommitment(r)).sort(byYourOrder) };
+  context = { accounts, categories, transactions, importBatches, commitments: recurring.filter((r) => isLiveCommitment(r)).sort(byYourOrder) };
 
   const ready = drafts.filter(isReady);
 
@@ -146,6 +148,18 @@ function guessOther(d) {
   return '';
 }
 
+// A card payment pays either a bill the statement already made, or the spending since it (paying ahead). Guessed from what the card owes.
+function guessWhat(d) {
+  const mine = d.account;
+  if (!mine || mine.type !== 'card') return 'bill';
+  try {
+    const p = cardPosition(mine, context.transactions, context.importBatches || [], new Date().toISOString().slice(0, 10));
+    const billed = p.unpaid + p.billedNotImported;
+    if (billed >= d.parsed.amount * 0.99) return 'bill';
+    return p.owed >= d.parsed.amount * 0.95 ? 'current' : 'bill';
+  } catch { return 'bill'; }
+}
+
 function otherField(d) {
   const guess = guessOther(d);
   const options = sortAccounts(context.accounts.filter((a) => OTHER_TYPES.has(a.type)), undefined, null)
@@ -154,6 +168,10 @@ function otherField(d) {
   return `<label class="field al-other-wrap" hidden>
         <span class="al-other-label">Paid from</span>
         <select class="al-other"><option value="">Choose the account</option>${options}<option value="__none">Somewhere I don't track here</option></select>
+      </label>
+      <label class="field al-what-wrap" hidden>
+        <span>What did it pay?</span>
+        <select class="al-what"><option value="bill" ${guessWhat(d) === 'bill' ? 'selected' : ''}>The last statement's bill</option><option value="current" ${guessWhat(d) === 'current' ? 'selected' : ''}>Spending since the last statement (paying ahead)</option></select>
       </label>`;
 }
 
@@ -168,10 +186,12 @@ function syncOther(card) {
   const atm = draft?.parsed.kind === 'atm-withdrawal';
   const show = Boolean(card.querySelector('.al-transfer').checked && account && !(direction === 'debit' && paysCard) && !atm);
   wrap.hidden = !show;
-  if (!show) return;
+  const what = card.querySelector('.al-what-wrap');
+  if (!show) { if (what) what.hidden = true; return; }
   wrap.querySelector('.al-other-label').textContent = direction === 'credit' ? (account.type === 'card' ? 'Paid from' : 'Came from') : 'Moved to';
   const select = wrap.querySelector('.al-other');
   select.querySelectorAll('option').forEach((o) => { o.hidden = o.value === account.id; });
+  card.querySelector('.al-what-wrap').hidden = !(direction === 'credit' && account.type === 'card');
   if (select.value === account.id) select.value = '';
 }
 
@@ -543,8 +563,11 @@ function readEdits(card, draft, inline = false) {
     if (!v) return refuse('.al-other', direction === 'credit' ? 'Say which account it came from' : 'Say which account it went to');
     otherId = v === '__none' ? null : v;
   }
+  const whatWrap = card.querySelector('.al-what-wrap');
+  const paysCurrent = Boolean(isTransfer && whatWrap && !whatWrap.hidden && whatWrap.querySelector('.al-what').value === 'current');
   return {
     otherId,
+    paysCurrent,
     accountId,
     direction,
     amount,

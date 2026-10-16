@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.76',
+    items: [
+      {
+        icon: 'check',
+        title: "Card payments you can trust",
+        text: "A card payment can now say whether it paid the last bill or the spending since, so the card's figure drops at once. Every payment on Accounts is in time order, says what it was (card bill paid, payment received), and opens to edit.",
+      },
+    ],
+  },
+  {
     version: '5.75',
     items: [
       {

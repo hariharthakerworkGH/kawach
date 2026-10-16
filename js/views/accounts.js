@@ -20,7 +20,8 @@ import { reminderText, updatePerson, shareReminder } from '../people.js';
 import { allocationRing, tickGauge } from '../charts.js';
 import { appearance, setAppearance } from '../appearance.js';
 import { sortAccounts, sortPicker } from '../list-order.js';
-import { displayName } from './transactions.js';
+import { displayName, newestFirst } from './transactions.js';
+import { moveWord } from '../transfers.js';
 import { cushion } from '../goals.js';
 import { limitUse, bestDay, payBy } from '../card-smarts.js';
 import { escapeHtml, escapeAttr, emptyState, hero, moneyTone, shapeLike } from '../ui.js';
@@ -187,6 +188,12 @@ export async function render(container) {
         justOpened = btn.dataset.id;
       }
       redraw(container, () => render(container));
+    })
+  );
+  // Any payment shown on an account opens in History, ready to edit or delete.
+  container.querySelectorAll('.account-recent-row[data-txn]').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'transactions', accountId: btn.dataset.account, open: btn.dataset.txn } }));
     })
   );
   container.querySelectorAll('.account-see-all').forEach((btn) =>
@@ -1189,7 +1196,12 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
                }
                ${fdHint ? `<div class="account-detail"><button type="button" class="k-btn k-btn--ghost account-go-import">Import SBI's statement PDF to see your FDs</button></div>` : ''}
                ${account.type !== 'bank' ? `<div class="account-detail">${rowActions(account, { spendable })}</div>` : ''}`
-            : `${accountRow(account, { meta: `${account.business ? 'business · ' : ''}import a statement to see the balance`, value: '', place })}
+            : `${
+                // No balance yet, but the payments written in still show here, to open and edit.
+                account.type === 'bank'
+                  ? openable(account, acctTxns, accountRow(account, { meta: `${account.business ? 'business · ' : ''}import a statement to see the balance`, value: '', place, canOpen: true }), '', { spendable })
+                  : accountRow(account, { meta: `${account.business ? 'business · ' : ''}import a statement to see the balance`, value: '', place })
+              }
                <div class="account-detail">${rowActions(account, { spendable })}</div>`
         }
       </div>
@@ -1235,7 +1247,7 @@ function openable(account, acctTxns, row, note = '', { spendable = false } = {})
   if (!account) return row;
   const open = opened.has(account.id) || allOpen();
   const recent = open
-    ? [...acctTxns].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)).slice(0, 5)
+    ? [...acctTxns].sort(newestFirst).slice(0, 5)
     : [];
   return `
     ${row}
@@ -1247,13 +1259,13 @@ function openable(account, acctTxns, row, note = '', { spendable = false } = {})
               recent.length
                 ? `<div class="k-rows account-recent-rows">${recent
                     .map(
-                      (t) => `<div class="k-row account-recent-row">
+                      (t) => `<button type="button" class="k-row account-recent-row" data-txn="${t.id}" data-account="${account.id}" aria-label="Open ${escapeAttr(displayName(t.rawDescription))} to edit">
                         <span class="k-row__body">
                           <span class="k-row__title">${escapeHtml(displayName(t.rawDescription))}</span>
-                          <span class="k-row__meta">${formatDateNice(t.date)}${t.isTransfer ? ' · moved' : ''}</span>
+                          <span class="k-row__meta">${formatDateNice(t.date)}${t.time ? ` · ${t.time}` : ''}${t.isTransfer ? ` · ${moveWord(t, account)}` : ''}</span>
                         </span>
                         <span class="k-row__value ${t.isTransfer ? 'muted' : t.direction === 'credit' ? 'in' : 'out'}">${t.direction === 'credit' ? '+' : '−'}${formatRupees(t.amount)}</span>
-                      </div>`
+                      </button>`
                     )
                     .join('')}</div>`
                 : '<p class="muted-note">Nothing on this account yet.</p>'

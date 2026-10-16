@@ -15,7 +15,7 @@ import { askConfirm } from '../dialog.js';
 import { dragToClose } from '../sheet-drag.js';
 import { isLiveCommitment, byYourOrder, salaryDayPayments } from '../commitments.js';
 import { commitmentField, cardPaymentField, isMonthEnd } from './add.js';
-import { looksLikeCardPayment, cashSide, spendMoves } from '../transfers.js';
+import { looksLikeCardPayment, cashSide, spendMoves, moveWord } from '../transfers.js';
 import { bankBalance, balanceAt } from '../account-metrics.js';
 import { isoLocal } from '../frequency.js';
 import { icon } from '../icons.js';
@@ -107,6 +107,13 @@ export async function render(container, params = {}) {
     if (latest && latest.slice(0, 7) < filters.month) filters.month = latest.slice(0, 7);
   }
   filters.shown = PAGE_SIZE;
+  // Opened from a payment on Accounts: that month, with the payment open for editing.
+  const openAfter = params.open || null;
+  if (openAfter) {
+    const hit = transactions.find((x) => x.id === openAfter);
+    if (hit) filters.month = hit.date.slice(0, 7);
+    expanded = openAfter;
+  }
 
   container.classList.add('k');
   container.innerHTML = `
@@ -333,6 +340,7 @@ export async function render(container, params = {}) {
   wireQuick(listEl, container);
 
   renderList(container);
+  if (openAfter) requestAnimationFrame(() => container.querySelector('.hist-row.open')?.scrollIntoView({ block: 'center' }));
 }
 
 // The controls show the filters as they are, so what you are looking at is
@@ -816,7 +824,7 @@ function subHtml(t) {
           ? '<span class="hist-tag hist-tag--in">Paid back by someone</span>'
           : '';
   const bill = cardBill(t);
-  const text = [account ? escapeHtml(account.label) : '', bill ? 'card bill' : t.isTransfer ? 'moved' : '', isSplit(t) ? 'split' : '', cache.cancelled && cache.cancelled.has(t.id) ? (t.direction === 'credit' ? 'cancels a purchase' : 'refunded') : ''].filter(Boolean).join(' · ');
+  const text = [account ? escapeHtml(account.label) : '', bill ? 'card bill paid' : t.isTransfer ? moveWord(t, account) : '', isSplit(t) ? 'split' : '', cache.cancelled && cache.cancelled.has(t.id) ? (t.direction === 'credit' ? 'cancels a purchase' : 'refunded') : ''].filter(Boolean).join(' · ');
   // With a tag, the words go in their own box so that on a narrow screen it is
   // the account name that is cut short, never the tag.
   return workTag ? `<span class="hist-sub-text">${text}</span>${workTag}` : text;

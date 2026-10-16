@@ -324,6 +324,15 @@ test('card: a payment for last month\'s bill never reduces this cycle\'s spendin
   paise(p.billedNotImported, 0);
 });
 
+test('card: a payment said to be paying ahead comes straight off this cycle', () => {
+  const card = { id: 'card', type: 'card', billingCycleDay: 25 };
+  const spend = txn({ accountId: 'card', date: '2026-09-10', amount: 5000, rawDescription: 'Swiggy' });
+  const pay = { accountId: 'card', date: '2026-09-14', amount: rupees(2000), direction: 'credit', rawDescription: 'Payment received', isTransfer: true };
+  paise(cardPosition(card, [spend, { ...pay, id: 'p1' }], [], '2026-09-16').owed, rupees(5000));
+  paise(cardPosition(card, [spend, { ...pay, id: 'p1', paysCurrent: true }], [], '2026-09-16').owed, rupees(3000));
+  paise(cardPosition(card, [spend, { ...pay, id: 'p1', paysCurrent: true, amount: rupees(9000) }], [], '2026-09-16').owed, 0);
+});
+
 test('card: after the statement day this cycle becomes a bill, and the payment clears it', () => {
   const card = { id: 'card', type: 'card', billingCycleDay: 25 };
   const spend = txn({ accountId: 'card', date: '2026-09-10', amount: 5000, rawDescription: 'Swiggy' });

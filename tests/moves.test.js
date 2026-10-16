@@ -2,7 +2,7 @@
 import { test, equal, ok } from './harness.js';
 import { seedBasics, txn, rupees } from './fixtures.js';
 import { put, getAll } from '../js/db.js';
-import { settleOtherSide } from '../js/transfers.js';
+import { settleOtherSide, moveWord } from '../js/transfers.js';
 import { bankBalance } from '../js/account-metrics.js';
 
 // A card alert "payment received" for 13,000, saved on the card and flagged as money moved.
@@ -67,4 +67,12 @@ test('nothing is invented when there is no other end to settle', async () => {
   equal(await settleOtherSide(credit, 'card'), null, 'the same account is not the other end');
   equal(await settleOtherSide({ ...credit, isTransfer: false }, 'bank'), null, 'not a move');
   equal((await getAll('transactions')).length, 1, 'nothing was added');
+});
+
+test('moveWord names a transfer for what it was, never just "moved" for a card bill', () => {
+  const card = { id: 'card', type: 'card' };
+  equal(moveWord({ isTransfer: true, direction: 'credit', rawDescription: 'Payment received' }, card), 'payment received');
+  equal(moveWord({ isTransfer: true, direction: 'debit', paysCardId: 'card', rawDescription: 'x' }, { type: 'bank' }), 'card bill paid');
+  equal(moveWord({ isTransfer: true, direction: 'debit', rawDescription: 'Sent to savings' }, { type: 'bank' }), 'moved');
+  equal(moveWord({ isTransfer: false, direction: 'debit' }, card), '');
 });

@@ -148,6 +148,9 @@ export async function saveAlert(item, edits) {
   if (edits.direction === 'debit' && edits.isReimbursable) transaction.isReimbursable = true;
   if (edits.direction === 'credit' && edits.isSettlement) transaction.isSettlement = true;
   if (edits.paysCardId) transaction.paysCardId = edits.paysCardId;
+  if (edits.paysCurrent) transaction.paysCurrent = true;
+  // "Bank alert" says nothing in a list: a move is named for what it was.
+  if (transaction.isTransfer && /^bank alert$/i.test(String(transaction.rawDescription || '').trim())) transaction.rawDescription = edits.direction === 'credit' ? 'Payment received' : 'Money moved';
   // Your call on transfer-or-not sticks, and automatic detection won't undo it.
   if (edits.transferDecided) transaction.transferManual = true;
 

@@ -285,6 +285,8 @@ export function cardPosition(account, transactions, importBatches, today, extraP
     .sort((a, b) => (a.date < b.date ? -1 : 1));
   let advance = 0;
   for (const p of payments) {
+    // Said to be paying ahead (the spending since the last statement, not a bill): it comes straight off this cycle.
+    if (p.paysCurrent) { advance += p.amount; continue; }
     let amount = p.amount;
     const payable = bills.filter((b) => b.known && b.close < p.date);
     for (const b of payable) {
