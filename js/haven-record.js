@@ -60,7 +60,7 @@ export function startRecording() {
     run.taps.push({ t: now(), at: r1(now() / 1000), view: view(), what: describe(e.target), slow: 0, worst: 0, shift: 0 });
   };
   const onUp = () => { if (run) run.down = false; };
-  const onErr = (e) => run?.errors.push(`${String(e.message || e.reason?.message || e.reason).slice(0, 120)} @${String(e.filename || '').split('/').slice(-2).join('/')}:${e.lineno || ''}`);
+  const onErr = (e) => !/ResizeObserver/.test(e.message || '') && run?.errors.push(`${String(e.message || e.reason?.message || e.reason).slice(0, 120)} @${String(e.filename || '').split('/').slice(-2).join('/')}:${e.lineno || ''}`);
   addEventListener('pointerdown', onDown, true);
   addEventListener('pointerup', onUp, true);
   addEventListener('pointercancel', onUp, true);

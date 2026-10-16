@@ -201,14 +201,30 @@ const glideMs = (from, to) => Math.min(720, 380 + Math.abs(to - from) * 0.35);
 function glide(block, from, to) {
   if (!isLive() || Math.abs(from - to) < 2) return;
   block.style.overflow = 'hidden';
+  block.dataset.gliding = '1';
   const a = block.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: glideMs(from, to), easing: 'cubic-bezier(.3,.7,.2,1)' });
-  const done = () => { block.style.overflow = ''; };
+  const done = () => { block.style.overflow = ''; delete block.dataset.gliding; };
   a.onfinish = done; a.oncancel = done;
 }
 const keyOf = (b) => b.querySelector('.account-row')?.dataset.id;
 
 // Accounts redraws itself when a card or bank is opened or closed (its details are worked out then). Done in plain sight that
 // replays the whole screen's arrival and jumps; this keeps the arrival for the first draw only and glides each card to its new size.
+// A card can still grow a moment after it opened (something worked out late, a picture arriving): glide that too, so nothing
+// below it ever jumps. Watches the card for a second and a half after a tap.
+function watchGrowth(block) {
+  if (typeof ResizeObserver !== 'function' || block._hvWatch) return;
+  block._hvWatch = true;
+  let last = block.getBoundingClientRect().height;
+  const ro = new ResizeObserver(() => {
+    const h = block.getBoundingClientRect().height;
+    if (block.dataset.gliding) return;
+    if (Math.abs(h - last) > 6 && h > 0) glide(block, last, h);
+    last = h;
+  });
+  ro.observe(block);
+  setTimeout(() => { ro.disconnect(); block._hvWatch = false; }, 1600);
+}
 export async function softRedraw(container, run) {
   if (!isHaven() || !isLive()) return run();
   const before = new Map([...container.querySelectorAll('.account-block')].map((b) => [keyOf(b), b.getBoundingClientRect().height]));
@@ -216,7 +232,7 @@ export async function softRedraw(container, run) {
   try { await run(); } finally { container._hvSoft = false; }
   for (const b of container.querySelectorAll('.account-block')) {
     const k = keyOf(b);
-    if (before.has(k)) glide(b, before.get(k), b.getBoundingClientRect().height);
+    if (before.has(k)) { glide(b, before.get(k), b.getBoundingClientRect().height); if (b.classList.contains('is-open') || b.querySelector('.account-open[aria-expanded="true"]')) watchGrowth(b); }
   }
 }
 const FILTERS = { All: null, Cards: ['Cards'], Money: ['Cash', 'Bank', 'Savings and FDs', 'Provident fund'], Loans: ['Loans'] };
@@ -293,6 +309,7 @@ function dressAccounts(container, justOpened) {
       const to = block.getBoundingClientRect().height;
       if (open) {
         glide(block, from, to);
+        watchGrowth(block);
         [...block.children].filter((c) => c !== row && getComputedStyle(c).display !== 'none').forEach((c, i) => c.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 360, delay: 80 + i * 30, easing: 'ease-out', fill: 'backwards' }));
         row.querySelector('.hv-rowwater')?.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { duration: 1100, easing: 'cubic-bezier(.22,1,.36,1)' });
       } else {
