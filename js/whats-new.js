@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.71',
+    items: [
+      {
+        icon: 'accounts',
+        title: "Accounts open calmly",
+        text: "An account's name no longer shrinks when you open it, nothing jumps, and several accounts can stay open. Back closes them all.",
+      },
+    ],
+  },
+  {
     version: '5.70',
     items: [
       {

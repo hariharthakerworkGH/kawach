@@ -67,8 +67,12 @@ let payFrom = [];
 export function onBack() {
   // An account that is open closes first (the same tap that opened it, so it closes the same smooth way).
   if (shownIn && shownIn.isConnected && editing === null && !reordering && !payingBill) {
-    const row = shownIn.querySelector('.account-block.is-open .account-row, .account-open[aria-expanded="true"]');
-    if (row) { row.click(); return true; }
+    // everything that is open closes together: the ones that open on the spot by their own tap, the rest by one redraw
+    const local = [...shownIn.querySelectorAll('.account-block.is-open .account-row[role="button"]:not(.account-open)')];
+    const redrawn = shownIn.querySelector('.account-open[aria-expanded="true"]');
+    local.forEach((r) => r.click());
+    if (redrawn) { opened.clear(); redraw(shownIn, () => render(shownIn)); }
+    if (local.length || redrawn) return true;
   }
   if (!shownIn || !shownIn.isConnected || (editing === null && !reordering && !payingBill)) return false;
   editing = null;
@@ -179,8 +183,6 @@ export async function render(container) {
     btn.addEventListener('click', () => {
       if (opened.has(btn.dataset.id)) opened.delete(btn.dataset.id);
       else {
-        // Haven opens one account at a time, into its own card.
-        if (document.documentElement.dataset.style === 'haven') opened.clear();
         opened.add(btn.dataset.id);
         justOpened = btn.dataset.id;
       }
