@@ -208,11 +208,21 @@ function calendar(scope, vault) {
 
 /* Where it went: the water in a shield, layered by category, biggest at the bottom; touch a layer and the rest dim. */
 const SHIELD_PATH = 'M50 12L80 22V48C80 68 67 82 50 89C33 82 20 68 20 48V22Z';
+// One little shield per budget, filled as far as the budget has left; nearly empty turns amber. (mockups/7.11-colours)
+let tankId = 0;
+function tankShield(t, i) {
+  const id = `hvtk${++tankId}`;
+  const level = clamp(t.left, 0, 1);
+  const warm = t.left < 0.15;
+  return `<div class="hv-tank${warm ? ' warm' : ''}" data-i="${i}"><svg viewBox="16 8 68 86" role="img" aria-label="${esc(t.name)}: ${Math.round(level * 100)}% of the budget left"><defs><clipPath id="${id}"><path d="${SHIELD_PATH}"/></clipPath></defs><path class="hv-tank__bg" d="${SHIELD_PATH}"/><g clip-path="url(#${id})"><rect data-f x="14" y="${(12 + (1 - level) * 77).toFixed(1)}" width="72" height="90"/></g><path class="hv-tank__rim" d="${SHIELD_PATH}"/></svg><span>${esc(t.name)}</span></div>`;
+}
+
 function shieldLayers(layers) {
   const total = layers.reduce((s, c) => s + c.amount, 0) || 1;
   let y = 89;
-  const bands = layers.map((c, i) => { const h = (c.amount / total) * 77 * 0.78; const top = y - h; y = top; return `<rect data-layer="${i}" x="10" y="${top.toFixed(1)}" width="80" height="${h.toFixed(1)}" style="fill:${c.color};transform-box:fill-box;transform-origin:bottom;transition:opacity .3s"/>`; }).join('');
-  const key = layers.map((c, i) => `<button type="button" class="hv-lkey" data-key="${i}"><i style="background:${c.color}"></i><span>${esc(c.name)}</span><b>${rs(c.amount)}</b></button>`).join('');
+  const tone = (c, i) => `var(--hv-L${c.name === 'Other' ? 6 : Math.min(i, 4) + 1})`;
+  const bands = layers.map((c, i) => { const h = (c.amount / total) * 77 * 0.78; const top = y - h; y = top; return `<rect data-layer="${i}" x="10" y="${top.toFixed(1)}" width="80" height="${h.toFixed(1)}" style="fill:${tone(c, i)};transform-box:fill-box;transform-origin:bottom;transition:opacity .3s"/>`; }).join('');
+  const key = layers.map((c, i) => `<button type="button" class="hv-lkey" data-key="${i}"><i style="background:${tone(c, i)}"></i><span>${esc(c.name)}</span><b>${rs(c.amount)}</b></button>`).join('');
   return `<div class="hv-ins__layers"><svg viewBox="16 8 68 86" width="116" height="144" role="img" aria-label="Where this month's money went, by category"><defs><clipPath id="hvL"><path d="${SHIELD_PATH}"/></clipPath></defs><path d="${SHIELD_PATH}" fill="rgba(120,140,170,.12)"/><g clip-path="url(#hvL)">${bands}</g><path d="${SHIELD_PATH}" fill="none" stroke="var(--hv-ink-3)" stroke-width="1.6"/></svg><div class="hv-lkeys">${key}</div></div>`;
 }
 
@@ -243,7 +253,7 @@ function insights(scope, vault) {
     <div class="hv-ins__ring"><svg viewBox="0 0 120 120" width="120" height="120" style="transform:rotate(-90deg)" role="img" aria-label="${over ? rs(-left) + ' over today' : rs(left) + ' left today'}"><circle cx="60" cy="60" r="50" fill="none" stroke="var(--hv-well)" stroke-width="12"/><circle data-ring cx="60" cy="60" r="50" fill="none" stroke="${over ? 'oklch(70% .15 55)' : 'var(--hv-tide-b)'}" stroke-width="12" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314"/></svg><div class="hv-ins__t"><b>${over ? '−' : ''}${rs(Math.abs(left))}</b><span>${over ? 'over today' : 'left today'}</span></div></div>
     ${salary ? `<div class="hv-ins__arc"><svg viewBox="0 0 280 110" width="100%" height="110" aria-hidden="true"><path d="M20 100 Q140 -40 260 100" fill="none" stroke="var(--hv-hair-strong)" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/><path data-arc d="M20 100 Q140 -40 260 100" fill="none" stroke="var(--hv-tide-b)" stroke-width="3" stroke-linecap="round"/><g data-sun><circle r="11" fill="#ffd36a"/><circle r="19" fill="#ffd36a" opacity=".3"/></g><circle cx="260" cy="100" r="6" fill="var(--hv-good)"/></svg><div class="hv-ins__s">${L.toSalary} day${L.toSalary === 1 ? '' : 's'} to salary · ${salary.getDate()} ${MONTH[salary.getMonth()]}</div></div>` : ''}
     ${layers.length ? shieldLayers(layers) : ''}
-    ${tanks.length ? `<div class="hv-ins__tanks" role="group" aria-label="Budgets left">${tanks.map((t, i) => `<div class="hv-tank${t.left < 0.15 ? ' warm' : ''}" data-i="${i}"><span class="hv-tank__v"><i data-f style="height:${(t.left * 100).toFixed(0)}%"></i></span><span>${esc(t.name)}</span></div>`).join('')}</div>` : ''}
+    ${tanks.length ? `<div class="hv-ins__tanks" role="group" aria-label="Budgets left">${tanks.map((t, i) => tankShield(t, i)).join('')}</div>` : ''}
     ${cmp ? `<div class="hv-ins__cmp"><div>${sh(mineLvl)}<b>This month</b><span>${rs(mineSpent)} spent so far</span></div><div>${sh(clamp(1 - cmp.spent / cmp.limit, 0, 1))}<b>Last month</b><span>${rs(cmp.spent)} by this day</span></div><p>${mineSpent <= cmp.spent ? `${rs(cmp.spent - mineSpent)} less than last month so far` : `${rs(mineSpent - cmp.spent)} more than last month so far`}</p></div>` : ''}
   </div></div></div>`;
   const ring = host.querySelector('[data-ring]');
@@ -251,7 +261,7 @@ function insights(scope, vault) {
   const sun = host.querySelector('[data-sun]');
   const play = () => {
     host.querySelectorAll('[data-layer]').forEach((r, i) => r.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: live() ? 700 : 1, delay: live() ? i * 140 : 0, easing: 'cubic-bezier(.34,1.3,.64,1)', fill: 'backwards' }));
-    host.querySelectorAll('.hv-tank [data-f]').forEach((f) => { const to = f.style.height; f.style.transition = 'none'; f.style.height = '0%'; void f.offsetHeight; f.style.transition = live() ? 'height 900ms var(--hv-spring-soft)' : 'none'; requestAnimationFrame(() => requestAnimationFrame(() => { f.style.height = to; })); });
+    if (live()) host.querySelectorAll('.hv-tank [data-f]').forEach((f) => f.animate([{ transform: 'translateY(76px)' }, { transform: 'none' }], { duration: 900, easing: 'cubic-bezier(.22,1,.36,1)' }));
     ring.style.transition = live() ? 'stroke-dashoffset 900ms var(--hv-spring-soft)' : 'none';
     requestAnimationFrame(() => requestAnimationFrame(() => { ring.style.strokeDashoffset = String(314 * (1 - p)); }));
     if (arc) {

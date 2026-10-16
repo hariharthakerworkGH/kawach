@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.72',
+    items: [
+      {
+        icon: 'palette',
+        title: "Calmer colours",
+        text: "One teal for the charts, quiet icon tiles, amber only for warnings, and little shields for each budget.",
+      },
+    ],
+  },
+  {
     version: '5.71',
     items: [
       {

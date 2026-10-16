@@ -67,7 +67,7 @@ export function paintSkyLayer() {
   s.setProperty('--glow-c', isNight ? 'rgba(190,205,255,.7)' : warm > 0.15 ? 'rgba(255,150,70,.85)' : 'rgba(255,225,150,.8)');
   s.setProperty('--glow-o', (isNight ? dusk(18.7, 19.6) * 0.35 : sunUp ? clamp(0.3 + warm * 0.5, 0, 0.85) * (night ? 0.8 : 1) : 0).toFixed(2));
   s.setProperty('--cloud', night ? 'rgba(200,215,255,.5)' : 'rgba(255,255,255,.85)');
-  s.setProperty('--cloud-o', (sunUp ? smooth(6.5, 8, h) * (1 - smooth(17.5, 18.6, h)) * (night ? 0.5 : 0.85) : 0).toFixed(2));
+  s.setProperty('--cloud-o', (sunUp ? smooth(6.5, 8, h) * (1 - smooth(17.5, 18.6, h)) * (night ? 0.28 : 0.85) : 0).toFixed(2));
   s.setProperty('--mote-o', (sunUp ? smooth(7, 9, h) * (1 - smooth(17, 18.6, h)) * 0.8 : 0).toFixed(2));
 }
 
