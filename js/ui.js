@@ -387,8 +387,13 @@ export function slidingPill(toggle) {
     if (!glide) requestAnimationFrame(() => pill.classList.add('is-ready'));
   };
   place(false);
-  new MutationObserver(() => place(true)).observe(toggle, { attributes: true, subtree: true, attributeFilter: ['class', 'aria-selected'] });
-  if (window.ResizeObserver) new ResizeObserver(() => place(false)).observe(toggle);
+  // The observers let go the moment the toggle is no longer on the page, or they keep its whole screen alive.
+  let mo = null;
+  let ro = null;
+  const stop = () => { mo?.disconnect(); ro?.disconnect(); };
+  mo = new MutationObserver(() => (toggle.isConnected ? place(true) : stop()));
+  mo.observe(toggle, { attributes: true, subtree: true, attributeFilter: ['class', 'aria-selected'] });
+  if (window.ResizeObserver) { ro = new ResizeObserver(() => (toggle.isConnected ? place(false) : stop())); ro.observe(toggle); }
 }
 
 /* A short buzz where the phone can (Android; an iPhone does not allow it from a web app). */

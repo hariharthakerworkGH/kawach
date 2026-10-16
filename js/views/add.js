@@ -540,7 +540,9 @@ export async function render(container, params = {}) {
 
   // The browser's own "please fill out this field" bubble is replaced by the app's: the field shakes and says why.
   form.noValidate = true;
-  form.addEventListener('submit', async (e) => {
+  // One save at a time: a second tap while the first is still being written would otherwise save the payment twice.
+  let saving = false;
+  const onSubmit = async (e) => {
     e.preventDefault();
     const amount = Math.round(parseFloat(amountInput.value) * 100);
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -625,6 +627,12 @@ export async function render(container, params = {}) {
     showNextMonthRow();
     // Not back into the amount: that raised the keyboard over the very line that says it was saved.
     if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+  };
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (saving) return;
+    saving = true;
+    try { await onSubmit(e); } finally { saving = false; }
   });
 
   // NEW (5.20): money given to or got from a person. Saved as a payment of

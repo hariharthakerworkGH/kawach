@@ -12,6 +12,18 @@ import { startSky } from './haven-sky.js';
 
 const root = document.documentElement;
 const quiet = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+// An animation on a page element that has been taken off the page (a screen was swapped while a spark or a coin was still flying)
+// is never ticked again, so it never finishes and never lets go of the element: the whole old screen stayed in memory with it.
+// Once its time is up, an animation whose element is no longer on the page is cancelled, which frees it.
+const rawAnimate = Element.prototype.animate;
+Element.prototype.animate = function tidyAnimate(keyframes, options) {
+  const anim = rawAnimate.call(this, keyframes, options);
+  const o = typeof options === 'number' ? { duration: options } : options || {};
+  const total = (Number(o.duration) || 0) * (o.iterations ?? 1) + (Number(o.delay) || 0) + (Number(o.endDelay) || 0);
+  if (Number.isFinite(total)) setTimeout(() => { if (!this.isConnected) anim.cancel(); }, total + 400);
+  return anim;
+};
+
 const isHaven = () => root.dataset.style === 'haven';
 export const level = () => (!isHaven() || quiet.matches ? 'still' : appearance('motion'));
 export const live = () => level() !== 'still';

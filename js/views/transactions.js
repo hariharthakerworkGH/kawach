@@ -757,6 +757,7 @@ function catName(id) {
 
 // A purchase and the refund that undid it. The strike draws itself the first time a row is shown.
 const struck = new Set();
+let offLongPressScroll = null;
 function cancelledClass(t) {
   if (!cache.cancelled || !cache.cancelled.has(t.id)) return '';
   const first = !struck.has(t.id);
@@ -1370,7 +1371,11 @@ function wireQuick(listEl, container) {
     if (timer && Math.hypot(e.clientX - x0, e.clientY - y0) > 8) cancel();
   });
   ['pointerup', 'pointercancel'].forEach((type) => listEl.addEventListener(type, cancel));
+  // One scroll listener on the window for the screen on show: the one from the screen before is taken off, or every visit to
+  // History would keep its whole page in memory for ever.
+  offLongPressScroll?.();
   window.addEventListener('scroll', cancel, { passive: true });
+  offLongPressScroll = () => window.removeEventListener('scroll', cancel);
   listEl.addEventListener('contextmenu', (e) => e.target.closest('.hist-main') && e.preventDefault());
   // Captured, so the row's own click handler never sees the tap that ended a long press.
   listEl.addEventListener(

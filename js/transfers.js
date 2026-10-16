@@ -1,4 +1,4 @@
-import { getAll, put } from './db.js';
+import { getAll, put, newId } from './db.js';
 import { DEPOSIT_MOVE_RE } from './parsers/sbi-savings.js';
 
 const MAX_DAYS_APART = 5;
@@ -196,4 +196,56 @@ function daysApart(dateA, dateB) {
   const a = new Date(dateA);
   const b = new Date(dateB);
   return Math.abs((a - b) / (1000 * 60 * 60 * 24));
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Money that moves leaves one account and arrives in another, and BOTH have to show it (5.75). An alert from the card says
+// "payment received" and says nothing about the bank it came out of; an alert from the bank says "debited" and says nothing
+// of where it went. So when a move is saved and you say where the other end is, the other end is settled here:
+//   - if that account already shows the other half (its own alert or statement came first), the two are linked, nothing added;
+//   - if it does not, the other half is written there, as an ordinary entry you made (source "manual"), so that when the real
+//     alert or statement row for it arrives later, it is recognised as the same money and not counted again.
+// Returns { linked } or { created } (the other half), or null when there was nothing to settle.
+export async function settleOtherSide(tx, otherId) {
+  if (!tx || !tx.isTransfer || !otherId || otherId === tx.accountId) return null;
+  const [accounts, transactions] = await Promise.all([getAll('accounts'), getAll('transactions')]);
+  const me = accounts.find((a) => a.id === tx.accountId);
+  const other = accounts.find((a) => a.id === otherId);
+  if (!me || !other) return null;
+  const opposite = tx.direction === 'debit' ? 'credit' : 'debit';
+  const twin = transactions.find(
+    (t) => t.id !== tx.id && t.accountId === otherId && t.direction === opposite && t.amount === tx.amount && !t.settledWith && daysApart(t.date, tx.date) <= 3
+  );
+  const card = me.type === 'card' ? me : other.type === 'card' ? other : null;
+  if (twin) {
+    const linked = { ...twin, isTransfer: true, transferManual: true, settledWith: tx.id };
+    if (card && opposite === 'debit') linked.paysCardId = card.id;
+    await put('transactions', linked);
+    await put('transactions', { ...tx, settledWith: twin.id });
+    return { linked };
+  }
+  const label = tx.direction === 'credit'
+    ? card ? `Credit card payment · ${card.label}` : `Moved to ${me.label}`
+    : card ? `Payment received · ${card.label}` : `Moved from ${me.label}`;
+  const leg = {
+    id: newId(),
+    accountId: otherId,
+    date: tx.date,
+    rawDescription: label,
+    amount: tx.amount,
+    direction: opposite,
+    categoryId: null,
+    source: 'manual',
+    importBatchId: null,
+    isTransfer: true,
+    transferManual: true,
+    settledWith: tx.id,
+    notes: null,
+    createdAt: tx.createdAt || Date.now(),
+  };
+  if (tx.time) leg.time = tx.time;
+  if (card && opposite === 'debit') leg.paysCardId = card.id;
+  await put('transactions', leg);
+  await put('transactions', { ...tx, settledWith: leg.id });
+  return { created: leg };
 }

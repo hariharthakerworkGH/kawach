@@ -1,3 +1,4 @@
+import { fetchRetry } from './net.js';
 import { get, put, remove } from './db.js';
 import { exportEncrypted, decryptBackup } from './backup.js';
 
@@ -176,7 +177,7 @@ export async function rememberGoogleAccount() {
 async function call(path, options = {}) {
   const token = currentPass();
   if (!token) throw Object.assign(new Error('The Google sign-in pass lasts an hour and has run out. Nothing was lost - sign in again to carry on.'), { needsSignIn: true });
-  const res = await fetch(`${API}${path}`, { ...options, headers: { Authorization: `Bearer ${token}`, ...(options.headers || {}) } });
+  const res = await fetchRetry(`${API}${path}`, { ...options, headers: { Authorization: `Bearer ${token}`, ...(options.headers || {}) } });
   if (res.status === 401) {
     dropPass();
     throw Object.assign(new Error('The Google sign-in pass lasts an hour and has run out. Nothing was lost - sign in again to carry on.'), { needsSignIn: true });

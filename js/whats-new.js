@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.75',
+    items: [
+      {
+        icon: 'bank',
+        title: "Money that moves shows at both ends",
+        text: "Saving a card payment alert now asks which account it was paid from and takes it out of that account. Cards on Accounts show what you owe now and drop when you pay. Save only saves once, and slow connections no longer hang.",
+      },
+    ],
+  },
+  {
     version: '5.74.1',
     items: [
       {

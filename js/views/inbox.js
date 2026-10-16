@@ -72,7 +72,7 @@ export async function render(container) {
   // A newer render started while this one was reading; it will paint instead.
   if (mine !== generation) return;
   drafts = built;
-  context = { accounts, categories, commitments: recurring.filter((r) => isLiveCommitment(r)).sort(byYourOrder) };
+  context = { accounts, categories, transactions, commitments: recurring.filter((r) => isLiveCommitment(r)).sort(byYourOrder) };
 
   const ready = drafts.filter(isReady);
 
@@ -120,7 +120,59 @@ export async function render(container) {
 
 // Safe to save in one tap: fully read, account known, not already in the app.
 function isReady(d) {
-  return d.parsed.ok && (d.parsed.confidence === 'exact' || d.parsed.confidence === 'learned') && d.account && !d.existing && d.parsed.direction;
+  return d.parsed.ok && (d.parsed.confidence === 'exact' || d.parsed.confidence === 'learned') && d.account && !d.existing && d.parsed.direction && !needsOtherEnd(d.parsed);
+}
+
+// Money that moved (a card bill paid, a transfer) leaves one account and reaches another: it is never saved in one tap without
+// saying where the other end is. A bank's debit for a card bill names the card instead; a cash withdrawal's other end is the pocket.
+function needsOtherEnd(parsed) {
+  return Boolean(parsed.suggestTransfer) && parsed.kind !== 'atm-withdrawal' && !(parsed.direction === 'debit' && billPaymentLike(parsed));
+}
+
+// The accounts a move can come from or go to, and the best guess: the account that already shows the other half, else where this
+// card's bills were paid from last time.
+const OTHER_TYPES = new Set(['bank', 'savings', 'cash']);
+function guessOther(d) {
+  const mine = d.account;
+  const amount = d.parsed.amount;
+  const wantDirection = d.parsed.direction === 'credit' ? 'debit' : 'credit';
+  const near = (t) => !t.settledWith && d.parsed.date && Math.abs((new Date(t.date) - new Date(d.parsed.date)) / 86400000) <= 3;
+  const twin = (context.transactions || []).find((t) => t.amount === amount && t.direction === wantDirection && near(t) && OTHER_TYPES.has((context.accounts.find((a) => a.id === t.accountId) || {}).type) && (!mine || t.accountId !== mine.id));
+  if (twin) return twin.accountId;
+  if (mine && mine.type === 'card') {
+    const last = (context.transactions || []).filter((t) => t.paysCardId === mine.id && t.direction === 'debit').sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+    if (last) return last.accountId;
+  }
+  return '';
+}
+
+function otherField(d) {
+  const guess = guessOther(d);
+  const options = sortAccounts(context.accounts.filter((a) => OTHER_TYPES.has(a.type)), undefined, null)
+    .map((a) => `<option value="${a.id}" ${a.id === guess ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
+    .join('');
+  return `<label class="field al-other-wrap" hidden>
+        <span class="al-other-label">Paid from</span>
+        <select class="al-other"><option value="">Choose the account</option>${options}<option value="__none">Somewhere I don't track here</option></select>
+      </label>`;
+}
+
+// Shows the "other end" question when the alert is a move of money, and says which way it ran.
+function syncOther(card) {
+  const wrap = card.querySelector('.al-other-wrap');
+  if (!wrap) return;
+  const draft = drafts.find((x) => x.item.id === card.dataset.id);
+  const account = context.accounts.find((a) => a.id === card.querySelector('.al-account').value);
+  const direction = card.querySelector('.al-direction .dir-btn.active')?.dataset.dir || draft?.parsed.direction;
+  const paysCard = card.querySelector('.al-pays-card')?.value;
+  const atm = draft?.parsed.kind === 'atm-withdrawal';
+  const show = Boolean(card.querySelector('.al-transfer').checked && account && !(direction === 'debit' && paysCard) && !atm);
+  wrap.hidden = !show;
+  if (!show) return;
+  wrap.querySelector('.al-other-label').textContent = direction === 'credit' ? (account.type === 'card' ? 'Paid from' : 'Came from') : 'Moved to';
+  const select = wrap.querySelector('.al-other');
+  select.querySelectorAll('option').forEach((o) => { o.hidden = o.value === account.id; });
+  if (select.value === account.id) select.value = '';
 }
 
 function draftTemplate(d) {
@@ -225,6 +277,7 @@ function draftTemplate(d) {
         <input type="checkbox" class="al-transfer" ${parsed.suggestTransfer ? 'checked' : ''}>
         <span>Not spending - money moved (cash withdrawal, card bill payment)</span>
       </label>
+      ${otherField(d)}
 
       <details class="alert-original">
         <summary>Original message</summary>
@@ -287,6 +340,8 @@ function wire(root, container) {
   // Guards against a double tap saving the same alert twice while the first
   // save is still writing.
   let busy = false;
+  root.addEventListener('change', (e) => { const c = e.target.closest('.alert-card'); if (c) syncOther(c); });
+  root.querySelectorAll('.alert-card').forEach(syncOther);
   root.addEventListener('click', async (e) => {
     if (busy) return;
     const card = e.target.closest('.alert-card');
@@ -294,6 +349,7 @@ function wire(root, container) {
     const dirBtn = e.target.closest('.al-direction .dir-btn');
     if (dirBtn && card) {
       card.querySelectorAll('.al-direction .dir-btn').forEach((b) => b.classList.toggle('active', b === dirBtn));
+      syncOther(card);
       // Switched to Spent: Income is no longer a choice, and is cleared if it was picked.
       const spent = dirBtn.dataset.dir === 'debit';
       const pick = card.querySelector('.al-category');
@@ -479,7 +535,16 @@ function readEdits(card, draft, inline = false) {
   const paysCardId = card.querySelector('.al-pays-card') ? card.querySelector('.al-pays-card').value || null : null;
   // A card bill payment is money moved, not spending.
   const isTransfer = card.querySelector('.al-transfer').checked || Boolean(paysCardId);
+  // Where the other end of a move is: asked, never assumed.
+  const otherWrap = card.querySelector('.al-other-wrap');
+  let otherId = null;
+  if (isTransfer && otherWrap && !otherWrap.hidden) {
+    const v = otherWrap.querySelector('.al-other').value;
+    if (!v) return refuse('.al-other', direction === 'credit' ? 'Say which account it came from' : 'Say which account it went to');
+    otherId = v === '__none' ? null : v;
+  }
   return {
+    otherId,
     accountId,
     direction,
     amount,

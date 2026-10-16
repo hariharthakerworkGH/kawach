@@ -1,3 +1,4 @@
+import { settleOtherSide } from './transfers.js';
 import { get, getAll, put, remove, newId } from './db.js';
 import { splitAlerts, parseAlert, alertFingerprint } from './alerts.js';
 import { learnFromAssignment } from './merchant-rules.js';
@@ -152,6 +153,8 @@ export async function saveAlert(item, edits) {
 
   await put('transactions', transaction);
   markFresh(transaction.id);
+  // A move of money has two ends: the account you said it came from / went to shows it too, so both balances are right.
+  if (transaction.isTransfer && edits.otherId) await settleOtherSide(transaction, edits.otherId);
   if (transaction.categoryId) await learnFromAssignment(transaction.rawDescription, transaction.categoryId, transaction.direction);
 
   // Remember which account this card number belongs to, so the next alert

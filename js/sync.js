@@ -1,3 +1,4 @@
+import { fetchRetry } from './net.js';
 import { getAllRaw, put, remove, get, DIRTY_KEY } from './db.js';
 import { tidyRecord, problemWith } from './records.js';
 import { encryptPayload, decryptPayload } from './backup.js';
@@ -397,7 +398,7 @@ function headers(token) {
 }
 
 async function fetchGist(token, gistId) {
-  const res = await fetch(`${API}/gists/${gistId}`, { headers: headers(token) });
+  const res = await fetchRetry(`${API}/gists/${gistId}`, { headers: headers(token) });
   if (res.status === 404) return null;
   await assertOk(res, 'read the gist');
   const body = await res.json();
@@ -405,7 +406,7 @@ async function fetchGist(token, gistId) {
   if (!file) return { content: null };
   // The API truncates large files inline; fall back to the raw URL.
   if (file.truncated && file.raw_url) {
-    const raw = await fetch(file.raw_url);
+    const raw = await fetchRetry(file.raw_url);
     await assertOk(raw, 'download the gist contents');
     return { content: await raw.text() };
   }
@@ -415,7 +416,7 @@ async function fetchGist(token, gistId) {
 // Looks through your own gists for the one this app already made, so a second
 // device joins the existing sync instead of starting a rival one.
 async function findExistingGist(token) {
-  const res = await fetch(`${API}/gists?per_page=100`, { headers: headers(token) });
+  const res = await fetchRetry(`${API}/gists?per_page=100`, { headers: headers(token) });
   await assertOk(res, 'list your gists');
   const gists = await res.json();
   const match = gists.find((g) => g.files && g.files[GIST_FILENAME]);
@@ -423,7 +424,7 @@ async function findExistingGist(token) {
 }
 
 async function createGist(token, content) {
-  const res = await fetch(`${API}/gists`, {
+  const res = await fetchRetry(`${API}/gists`, {
     method: 'POST',
     headers: { ...headers(token), 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -438,7 +439,7 @@ async function createGist(token, content) {
 }
 
 async function updateGist(token, gistId, content) {
-  const res = await fetch(`${API}/gists/${gistId}`, {
+  const res = await fetchRetry(`${API}/gists/${gistId}`, {
     method: 'PATCH',
     headers: { ...headers(token), 'Content-Type': 'application/json' },
     body: JSON.stringify({ files: { [GIST_FILENAME]: { content } } }),
@@ -468,7 +469,7 @@ async function assertOk(res, action) {
 export class SyncError extends Error {}
 
 export async function testToken(token) {
-  const res = await fetch(`${API}/user`, { headers: headers(token) });
+  const res = await fetchRetry(`${API}/user`, { headers: headers(token) });
   if (res.status === 401) return { ok: false, reason: 'That token was rejected by GitHub.' };
   if (!res.ok) return { ok: false, reason: `GitHub returned error ${res.status}.` };
   const body = await res.json();

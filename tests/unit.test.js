@@ -16,6 +16,7 @@ import { CHOICES, appearance, setAppearance, applyTheme, retireOldLooks } from '
 import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
 import { cardWorkSplit, cushionCard, cardFacts } from '../js/views/accounts.js';
 import { ringSlices } from '../js/haven-ring.js';
+import { fetchRetry } from '../js/net.js';
 import { subscriptionsOf, isSubscription } from '../js/subscriptions.js';
 import { limitUse, bestDay, payBy } from '../js/card-smarts.js';
 import { forecast, costInMonth } from '../js/forecast.js';
@@ -2080,6 +2081,45 @@ test('History ring: the five biggest categories keep their slice, the rest are g
   equal([many[5].name, many[5].amount], ['Other', rupees(30)], 'the rest add up in Other');
   ok(many[5].other === true, 'Other is marked so it is drawn grey');
 });
+// A pretend network: each answer in the list is given in turn ('drop' = the connection fails, 'hang' = no answer ever comes).
+async function withNetwork(answers, run) {
+  const real = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (url, opts) => {
+    const a = answers[Math.min(calls++, answers.length - 1)];
+    if (a === 'drop') return Promise.reject(new TypeError('Failed to fetch'));
+    if (a === 'hang') return new Promise((_, rej) => opts.signal.addEventListener('abort', () => rej(new DOMException('aborted', 'AbortError'))));
+    return Promise.resolve({ status: a, ok: a < 400, headers: { get: () => null } });
+  };
+  try { return await run(() => calls); } finally { globalThis.fetch = real; }
+}
+test('network calls: a dropped or busy answer is tried again and then succeeds', async () => {
+  await withNetwork(['drop', 503, 200], async (calls) => {
+    const res = await fetchRetry('https://x.test/a', {}, { base: 2 });
+    equal([res.status, calls()], [200, 3], 'two bad tries, then the good one');
+  });
+});
+test('network calls: a create (POST) is tried once, so a repeat can never make a second copy', async () => {
+  await withNetwork([503, 200], async (calls) => {
+    const res = await fetchRetry('https://x.test/a', { method: 'POST' }, { base: 2 });
+    equal([res.status, calls()], [503, 1], 'one try, the answer is passed on');
+  });
+});
+test('network calls: a call that never answers is given up on and says so plainly', async () => {
+  await withNetwork(['hang'], async (calls) => {
+    let err = null;
+    try { await fetchRetry('https://x.test/a', {}, { base: 2, timeout: 20, tries: 2 }); } catch (e) { err = e; }
+    ok(err && err.timedOut, 'it gives up instead of waiting for ever');
+    equal(calls(), 2, 'after the second try');
+  });
+});
+test('network calls: a plain "no" (404) is not retried', async () => {
+  await withNetwork([404, 200], async (calls) => {
+    const res = await fetchRetry('https://x.test/a', {}, { base: 2 });
+    equal([res.status, calls()], [404, 1]);
+  });
+});
+
 test('Summary in each style: what is coming up, what is kept back', () => {
   const tracker = [
     { label: 'Phone', due: '2026-10-24', amount: rupees(499), left: rupees(499), status: 'due' },

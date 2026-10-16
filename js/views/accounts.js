@@ -1080,9 +1080,26 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
   if (account.type === 'card') {
     // Same figure as the Summary: spends this cycle less refunds and cashback.
     const day = statementDay(account, importBatches);
-    const position = day ? cardPosition(account, transactions, importBatches, isoLocal(new Date())) : null;
+    // A bill paid from the bank counts against the card at once, even before the card's own "payment received" reaches the app
+    // (the same rule the Summary's figures follow): a bank payment that names this card and has no card-side twin yet.
+    const near = (a, b) => Math.abs((new Date(a) - new Date(b)) / 86400000) <= 5;
+    const bankSide = transactions.filter(
+      (t) =>
+        t.paysCardId === account.id && t.direction === 'debit' && t.isTransfer &&
+        !transactions.some((c) => c.accountId === account.id && c.direction === 'credit' && c.isTransfer && c.amount === t.amount && near(c.date, t.date))
+    );
+    const position = day ? cardPosition(account, transactions, importBatches, isoLocal(new Date()), bankSide) : null;
     const { cycleStart, spend: fallbackSpend } = cardCycleSpend(account, transactions, importBatches);
     const cycleSpend = position ? position.owed : fallbackSpend;
+    // What is owed on the card right now: bills not yet paid plus this cycle's spending. It drops the moment a payment is saved.
+    const billsLeft = position ? position.unpaid + position.billedNotImported : 0;
+    // With no statement day yet there are no cycles to match payments to, so what has been paid since the list began simply comes off.
+    const paidSince = position
+      ? 0
+      : [...transactions.filter((t) => t.accountId === account.id && t.direction === 'credit' && t.isTransfer), ...bankSide]
+          .filter((t) => !cycleStart || t.date > cycleStart)
+          .reduce((sum, t) => sum + t.amount, 0);
+    const owedNow = position ? cycleSpend + billsLeft : fallbackSpend - paidSince;
     const since = position ? position.lastClose : cycleStart;
     const bill = cardBillDue(account);
 
@@ -1093,7 +1110,10 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
           acctTxns,
           accountRow(account, {
             meta: `${
-              position
+              position && billsLeft > 0
+                ? // Something is still owed from a closed cycle: say how it splits, so a payment visibly moves the number.
+                  `${formatRupees(billsLeft)} billed${cycleSpend > 0 ? ` · ${formatRupees(cycleSpend)} this cycle` : ''}`
+                : position
                 ? // The cycle opens the day after the last statement, the same
                   // dates the Summary shows for it.
                   `${formatDateNice(dayAfter(position.lastClose))} to ${formatDateNice(position.cycleClose)}`
@@ -1103,11 +1123,11 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
               // is already on the line, so it said the same thing twice.
               day ? '' : ' · import a statement to set its cycle'
             }`,
-            value: formatRupees(cycleSpend),
-            tone: moneyTone(cycleSpend),
+            value: formatRupees(owedNow),
+            tone: moneyTone(owedNow),
             canOpen: true,
             place,
-            lead: account.creditLimit > 0 ? { t: 'tank', v: Math.min(1, Math.max(0.06, (Math.max(cycleSpend, 0) + (bill && !bill.paid ? bill.amount : 0)) / account.creditLimit)) } : null,
+            lead: account.creditLimit > 0 ? { t: 'tank', v: Math.min(1, Math.max(0.06, Math.max(owedNow, 0) / account.creditLimit)) } : null,
           }),
           // A real amount already billed that the app cannot see yet: a fact
           // the card computes, not a remark invented about it.
