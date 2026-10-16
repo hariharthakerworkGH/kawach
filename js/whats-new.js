@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.72.3',
+    items: [
+      {
+        icon: 'sun',
+        title: "A steadier sky",
+        text: "The sky is quieter (no clouds), and the page can no longer slide sideways.",
+      },
+    ],
+  },
+  {
     version: '5.72.2',
     items: [
       {

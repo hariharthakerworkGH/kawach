@@ -1,6 +1,6 @@
 // Haven's living sky (5.69): a small sun or moon crosses the top edge of every page, a soft glow follows it, and the time of day
-// sets the rest - clouds and drifting specks by day, stars by night (the fireflies are in haven-motion.js). It is one layer
-// behind the page, so it adds no height, covers no text and no button. The page's own colour wash (--hv-sky-live,
+// sets the rest - stars by night, sun and moon by their hour (the fireflies are in haven-motion.js). It is one layer
+// behind the page, so it adds no height, covers no text and no button (and no clouds: they looked like smudges). The page's own colour wash (--hv-sky-live,
 // haven-motion.js) already follows the hour; this adds the things in it.
 //   alive: all of it moves   calm: it is there and still   still: no sky at all.
 // Shown from the shown mockup: mockups/7.10-day-cycle.
@@ -20,18 +20,6 @@ function build() {
     s.className = 'hv-sky__star';
     s.style.cssText = `left:${rnd(3, 97).toFixed(1)}%;top:${rnd(6, 62).toFixed(1)}%;${i % 3 === 0 ? `animation-delay:${rnd(0, 3).toFixed(1)}s` : 'animation:none'}`;
     el.append(s);
-  }
-  for (let i = 0; i < 3; i++) {
-    const c = document.createElement('i');
-    c.className = 'hv-sky__cloud';
-    c.style.cssText = `width:${Math.round(rnd(70, 110))}px;top:${58 + i * 52}px;animation-duration:${70 + i * 35}s;animation-delay:-${Math.round(rnd(0, 70))}s`;
-    el.append(c);
-  }
-  for (let i = 0; i < 6; i++) {
-    const m = document.createElement('i');
-    m.className = 'hv-sky__mote';
-    m.style.cssText = `left:${rnd(5, 92).toFixed(1)}%;top:${rnd(12, 70).toFixed(1)}%;animation-delay:-${rnd(0, 8).toFixed(1)}s`;
-    el.append(m);
   }
   return el;
 }
@@ -66,12 +54,11 @@ export function paintSkyLayer() {
   s.setProperty('--star-o', (dusk(19, 20.3) * (night ? 1 : 0.55)).toFixed(2));
   s.setProperty('--glow-c', isNight ? 'rgba(190,205,255,.7)' : warm > 0.15 ? 'rgba(255,150,70,.85)' : 'rgba(255,225,150,.8)');
   s.setProperty('--glow-o', (isNight ? dusk(18.7, 19.6) * 0.35 : sunUp ? clamp(0.3 + warm * 0.5, 0, 0.85) * (night ? 0.8 : 1) : 0).toFixed(2));
-  s.setProperty('--cloud', night ? 'rgba(200,215,255,.5)' : 'rgba(255,255,255,.85)');
-  s.setProperty('--cloud-o', (sunUp ? smooth(6.5, 8, h) * (1 - smooth(17.5, 18.6, h)) * (night ? 0.28 : 0.85) : 0).toFixed(2));
-  s.setProperty('--mote-o', (sunUp ? smooth(7, 9, h) * (1 - smooth(17, 18.6, h)) * 0.8 : 0).toFixed(2));
 }
 
 export function startSky() {
+  // Whatever happens, the page never sits scrolled sideways: put it back the moment it is.
+  addEventListener('scroll', () => { if (window.scrollX !== 0) window.scrollTo(0, window.scrollY); }, { passive: true });
   paintSkyLayer();
   setInterval(paintSkyLayer, 60 * 1000);
   document.addEventListener('visibilitychange', paintSkyLayer);

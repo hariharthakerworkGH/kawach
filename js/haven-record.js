@@ -26,7 +26,7 @@ export function startRecording() {
   const t0 = performance.now();
   run = {
     t0, started: new Date().toISOString(), frames: [], slow: [], taps: [], marks: [], shifts: [], tasks: [], jumps: [], blanks: [], errors: [], anims: 0, last: t0,
-    lastH: document.scrollingElement.scrollHeight, lastY: scrollY, view: null, viewAt: 0, down: false, raf: 0, timers: [], obs: [], heap0: performance.memory?.usedJSHeapSize || 0,
+    lastH: document.scrollingElement.scrollHeight, lastY: scrollY, view: null, viewAt: 0, sideways: [], down: false, raf: 0, timers: [], obs: [], heap0: performance.memory?.usedJSHeapSize || 0,
   };
   const now = () => performance.now() - t0;
   const tick = (ts) => {
@@ -49,6 +49,14 @@ export function startRecording() {
     const settling = now() - (run.viewAt || 0) < 1000;
     if (!settling && Math.abs(h - run.lastH) > 120) run.jumps.push({ t: r1(now() / 1000), kind: 'height', from: run.lastH, to: h, view: view(), after: run.taps.length ? run.taps[run.taps.length - 1].what : null });
     if (!settling && !run.down && Math.abs(y - run.lastY) > 160) run.jumps.push({ t: r1(now() / 1000), kind: 'scroll', from: Math.round(run.lastY), to: Math.round(y), view: view() });
+    // a page wider than the screen, or scrolled sideways: what is widest, once
+    if (document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 || window.scrollX !== 0) {
+      if (run.sideways.length < 6) {
+        let who = '';
+        document.querySelectorAll('body *').forEach((e) => { const q = e.getBoundingClientRect(); if (!who && q.width && q.right > innerWidth + 1 && getComputedStyle(e).position !== 'fixed') who = describe(e); });
+        run.sideways.push({ t: r1(now() / 1000), pageWidth: document.documentElement.scrollWidth, screenWidth: document.documentElement.clientWidth, scrolledBy: Math.round(window.scrollX), zoom: window.visualViewport ? Math.round(window.visualViewport.scale * 100) / 100 : null, widest: who || null, view: v });
+      }
+    }
     run.lastH = h; run.lastY = y;
     run.raf = requestAnimationFrame(tick);
   };
@@ -125,6 +133,7 @@ function finish() {
     worstAfterTaps: worstTaps.map((t) => ({ at: t.at, view: t.view, tapped: t.what, slowFrames: t.slow, worstMs: t.worst, shift: t.shift })),
     jumps: r.jumps.slice(0, 20),
     blankScreens: r.blanks.slice(0, 10),
+    sidewaysPage: r.sideways,
     layoutShifts: r.shifts.slice(0, 20),
     errors: r.errors.slice(0, 10),
     slowMoments: r.slow.sort((a, b) => b.ms - a.ms).slice(0, 15),
