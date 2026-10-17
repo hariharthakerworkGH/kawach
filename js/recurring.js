@@ -1,6 +1,7 @@
 import { getAll, put } from './db.js';
 import { significantTokens } from './merchant-rules.js';
 import { nextOccurrence } from './frequency.js';
+import { monthKeyOf } from './spending-month.js';
 import { CASH_ENTRY_RE } from './commitments.js';
 import { looksLikeCardPayment } from './transfers.js';
 import { findDuplicates } from './duplicates.js';
@@ -40,7 +41,7 @@ export async function detectRecurring(now = new Date()) {
   // ATM cash: never the same amount twice, so it's judged by the month. Taken
   // out in at least two of the last three whole months -> a spread commitment
   // of about the usual monthly total.
-  const monthNow = isoMonth(now);
+  const monthNow = monthKeyOf(now);
   const cashByAccount = new Map();
   for (const t of debits) {
     if (!bankIds.has(t.accountId) || !CASH_ENTRY_RE.test(t.rawDescription || '')) continue;
@@ -51,7 +52,7 @@ export async function detectRecurring(now = new Date()) {
     months.set(month, (months.get(month) || 0) + t.amount);
   }
   for (const [accountId, months] of cashByAccount) {
-    const recent = [...months.keys()].sort().slice(-3).filter((m) => m >= isoMonth(new Date(now.getFullYear(), now.getMonth() - 3, 1)));
+    const recent = [...months.keys()].sort().slice(-3).filter((m) => m >= monthKeyOf(new Date(now.getFullYear(), now.getMonth() - 3, 1)));
     if (recent.length < 2) continue;
     const average = recent.reduce((s, m) => s + months.get(m), 0) / recent.length;
     const id = recurringIdFor(`${accountId}::atm-cash`);
@@ -129,9 +130,7 @@ function findDuplicatesFree(transactions) {
   return transactions.filter((t) => !extra.has(t.id));
 }
 
-function isoMonth(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
+
 
 // Delegates to the shared helper: the version that lived here let a day the
 // month doesn't have roll into the next month, and treated something due

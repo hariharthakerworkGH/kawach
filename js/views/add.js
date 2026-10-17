@@ -39,7 +39,7 @@ export async function render(container, params = {}) {
   // yesterday until 5:30am - so late-night spends were being dated the day
   // before, and on the 1st of the month, filed under the previous month.
   const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const today = isoLocal(now);
   const initialAccountId = params.accountId && accounts.some((a) => a.id === params.accountId) ? params.accountId : CASH_ACCOUNT_ID;
 
   // The categories live in a sheet now rather than in a wall of twenty
@@ -481,7 +481,7 @@ export async function render(container, params = {}) {
     paintCategory();
   };
   // The mark beside the account name: a real logo if one has been dropped
-  // into icons/brands/, otherwise the monogram. Recognition, not decoration.
+  // the category's icon, otherwise the monogram. Recognition, not decoration.
   const accountMark = container.querySelector('#add-account-mark');
   const paintAccount = () => {
     const chosen = accountSelect.options[accountSelect.selectedIndex];

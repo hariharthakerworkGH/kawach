@@ -72,6 +72,17 @@ export function nextOccurrence(dayOfMonth, from = new Date()) {
   return null;
 }
 
+// A day as text plus or minus whole days, and a day as a date at local midnight (never UTC: that is a day behind in India).
+export function addDays(iso, delta) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return isoLocal(new Date(y, m - 1, d + delta));
+}
+
+export function dateOf(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export function isoLocal(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }

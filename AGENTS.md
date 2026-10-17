@@ -248,7 +248,7 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   renderer) and `js/film/` (`kit.js`: springs, glass panels, text, callouts,
   the mark; `scenes.js`: the timeline). It is one canvas and every frame is
   `drawFrame(ctx, t)`, a pure function of time, so a frame is exact however it
-  is reached. Eight scenes: the opening, then one per screen in the nav's
+  is reached. These files stay in `_work` for rendering and are never published or cached on a phone (`UNPUBLISHED` in tools/release/push.py and static_check.py): the app only plays the video. Eight scenes: the opening, then one per screen in the nav's
   order (Summary, Accounts, Add, Plan, History; Coach is a button on Plan since 5.52), then the close. It
   shows what each screen really does, with example figures that agree with
   each other ("Example figures" is on screen); it makes no claim the app does

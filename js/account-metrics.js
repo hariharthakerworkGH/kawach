@@ -1,5 +1,5 @@
 import { currentCycleStart } from './billing-cycle.js';
-import { nextOccurrence, isoLocal } from './frequency.js';
+import { nextOccurrence, isoLocal, addDays, dateOf } from './frequency.js';
 
 // Which of your accounts you spend from. A bank account is, unless you say
 // otherwise: many people keep a second one only to park savings or pay a loan
@@ -88,13 +88,9 @@ function daysUntil(isoDate) {
 // the day it was taken, not of its newest row: a list holding only a refund
 // dated before the cycle closed still belongs to the cycle it was taken in.
 export function listTakenOn(batch) {
-  const taken = batch.takenOn || (batch.importedAt ? localDate(new Date(batch.importedAt)) : null);
+  const taken = batch.takenOn || (batch.importedAt ? isoLocal(new Date(batch.importedAt)) : null);
   if (!taken) return batch.periodEnd || null;
   return batch.periodEnd && batch.periodEnd > taken ? batch.periodEnd : taken;
-}
-
-function localDate(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // Everything on a card that the imported statements haven't settled, as
@@ -319,16 +315,6 @@ export function cardPosition(account, transactions, importBatches, today, extraP
 }
 
 const DAY_MS = 86400000;
-
-function dateOf(iso) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
-
-function addDays(iso, delta) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return isoLocal(new Date(y, m - 1, d + delta));
-}
 
 // The latest statement day on or before `iso`, clamped to short months.
 function closeOnOrBefore(dayOfMonth, iso) {

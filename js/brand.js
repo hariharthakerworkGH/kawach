@@ -5,11 +5,10 @@
  * scan and a list you decode - but Kawach makes no third-party calls and
  * works offline, so nothing here ever fetches anything.
  *
- * Three steps, in order:
+ * Two steps, in order:
  *
- *   1. a real SVG in icons/brands/   - dropped in, see the README there
- *   2. the category's own icon       - js/category-icons.js
- *   3. a monogram                    - the initials on a tile whose colour
+ *   1. the category's own icon       - js/category-icons.js
+ *   2. a monogram                    - the initials on a tile whose colour
  *                                      comes from the name itself
  *
  * The monogram is not a placeholder for a missing logo. It is the answer for
@@ -18,23 +17,13 @@
  * how a person recognises them in a list anyway.
  *
  * Trademarks belong to their owners. Nothing in this file draws an
- * approximation of one: a brand mark appears only when a real asset has been
- * put in icons/brands/.
+ * approximation of one. (A licensed logo set was planned and never bundled;
+ * add a step here, with the files, if one ever is.)
  */
 
 import { significantTokens } from './merchant-rules.js';
 import { categoryStyle } from './category-style.js';
-
-/* Which brand assets exist. The build has no directory listing at runtime,
- * so a file that has been dropped in is declared here once and everything
- * else follows automatically. Adding a brand is one line in this list plus
- * the SVG; no view changes.
- */
-export const BRAND_ASSETS = [
-  // (empty: no licensed assets are bundled yet - see icons/brands/README.md)
-];
-
-const ASSETS = new Set(BRAND_ASSETS);
+import { escapeHtml, escapeAttr } from './ui.js';
 
 /* Words that identify a payment channel rather than a merchant. A UPI
  * handle's suffix is not who you paid.
@@ -104,25 +93,17 @@ export function brandHue(raw) {
 /* The mark itself.
  *
  *   name      what the bank wrote, or a bank's own name
- *   category  the category's name, if one is known, for step 2
+ *   category  the category's name, if one is known, for step 1
  *   size      'sm' 30px | 'md' 38px | 'lg' 46px
  *
  * Always returns something drawable. There is no state in which this
- * produces a broken image: an asset is only referenced when it is known to
- * have been bundled.
+ * produces a broken image: there is nothing to fetch.
  */
 export function brandMark(name, { category = '', size = 'md' } = {}) {
   const label = String(name || '').trim();
-  const key = brandKey(label);
   const cls = `k-brand k-brand--${size}`;
 
-  // 1 · a real asset, if one has been dropped in for this merchant
-  if (key && ASSETS.has(key)) {
-    return `<span class="${cls}" data-brand="${escapeAttr(key)}" aria-hidden="true"
-      ><img src="./icons/brands/${escapeAttr(key)}.svg" alt="" width="24" height="24" loading="lazy"></span>`;
-  }
-
-  // 2 · the category's own icon, which already has a colour of its own
+  // 1 · the category's own icon, which already has a colour of its own
   if (category) {
     const style = categoryStyle(category);
     if (style && style.icon) {
@@ -130,7 +111,7 @@ export function brandMark(name, { category = '', size = 'md' } = {}) {
     }
   }
 
-  // 3 · the monogram
+  // 2 · the monogram
   if (!label) {
     return `<span class="${cls} k-brand--none" aria-hidden="true"></span>`;
   }
@@ -139,7 +120,3 @@ export function brandMark(name, { category = '', size = 'md' } = {}) {
   return `<span class="${cls} k-brand--mono" style="--k-hue:${brandHue(label)}" aria-hidden="true"
     ><span class="k-brand__text">${glyphs}</span></span>`;
 }
-
-const escapeHtml = (s) =>
-  String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const escapeAttr = escapeHtml;

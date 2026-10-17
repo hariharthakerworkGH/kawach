@@ -1,4 +1,4 @@
-import { nextOccurrence, isoLocal, frequencyOf, toMonthly, monthlyAmountOf } from './frequency.js';
+import { nextOccurrence, isoLocal, frequencyOf, toMonthly, monthlyAmountOf, addDays, dateOf } from './frequency.js';
 
 // Fixed commitments: rent, EMIs, money sent home, cash you take out - anything
 // owed every period however careful you are. They live in the `recurring`
@@ -253,11 +253,6 @@ export function commitmentMatcher(item) {
   return null;
 }
 
-function addDays(iso, delta) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return isoLocal(new Date(y, m - 1, d + delta));
-}
-
 function addMonthsClamped(iso, months) {
   const [y, m, d] = iso.split('-').map(Number);
   const lastDay = new Date(y, m - 1 + months + 1, 0).getDate();
@@ -385,11 +380,6 @@ function isPaymentFor(item, matcher, t) {
 // True when a due date has in effect already been paid.
 export function paidAround(item, due, entries, today) {
   return paidTowards(item, entryMatcher(item), due, entries, today) >= item.amount * 0.9;
-}
-
-function dateOf(iso) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d);
 }
 
 function formatShort(minor) {

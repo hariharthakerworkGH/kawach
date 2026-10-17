@@ -1,3 +1,4 @@
+import { isoLocal } from './frequency.js';
 // A card's billing cycle closes on the same day-of-month every statement
 // (the "billingCycleDay"). Given that, and no more recent real statement,
 // we can still tell which transactions belong to the currently-open cycle
@@ -20,7 +21,7 @@ function computeCycleBoundary(billingCycleDay, today = new Date()) {
   const cutoff = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
   let boundary = closeIn(cutoff.getFullYear(), cutoff.getMonth());
   if (boundary > cutoff) boundary = closeIn(cutoff.getFullYear(), cutoff.getMonth() - 1);
-  return toISODate(boundary);
+  return isoLocal(boundary);
 }
 
 // The open cycle's start date is whichever is later: the last real
@@ -42,6 +43,4 @@ export function currentCycleStart(account, importBatches, today = new Date()) {
   return lastImportBoundary || computedBoundary;
 }
 
-function toISODate(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+

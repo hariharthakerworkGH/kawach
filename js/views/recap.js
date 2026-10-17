@@ -4,7 +4,7 @@ import { categoryStyle } from '../category-style.js';
 import { extractMerchantKey } from '../merchant-rules.js';
 import { categorySlices } from '../splits.js';
 import { categoryBars } from '../charts.js';
-import { spendingMonthOf, accountMap } from '../spending-month.js';
+import { spendingMonthOf, accountMap, monthKeyOf } from '../spending-month.js';
 import { cycleAwareEnabled } from '../budgets.js';
 import { isPutAway } from '../account-metrics.js';
 import { isCardBill } from '../transfers.js';
@@ -123,7 +123,7 @@ function buildCards(transactions, categories, month, prevMonth) {
 
   // 1. The headline
   const today = new Date();
-  const isCurrentMonth = month === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const isCurrentMonth = month === monthKeyOf(today);
 
   let comparison = '';
   if (prevMonth) {
@@ -277,7 +277,7 @@ async function flexFor(month) {
 
 /* NEW (5.32): what was left of each flexible cost, and the month's total. */
 export function flexCard(report, month, now = new Date()) {
-  const current = month === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const current = month === monthKeyOf(now);
   const list = report.rows
     .map(
       (r) => `<li><span class="recap-flex__name">${escapeHtml(r.label)}</span><small>${formatRupees(r.aside)} set aside · ${formatRupees(r.spent)} spent</small><b class="${r.left < 0 ? 'out' : ''}">${r.left < 0 ? `${formatRupees(-r.left)} over` : `${formatRupees(r.left)} left`}</b></li>`

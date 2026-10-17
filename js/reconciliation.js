@@ -3,6 +3,7 @@
 // importing a statement tells you what you missed (or what showed up that you
 // didn't expect) instead of creating duplicates for everything you'd already
 // tracked.
+import { daysApart } from './transfers.js';
 const MAX_DAYS_APART = 3;
 
 export function matchAgainstManualEntries(rows, loggedTxns) {
@@ -54,6 +55,3 @@ function claim(row, match) {
   };
 }
 
-function daysApart(dateA, dateB) {
-  return Math.abs((new Date(dateA) - new Date(dateB)) / (1000 * 60 * 60 * 24));
-}

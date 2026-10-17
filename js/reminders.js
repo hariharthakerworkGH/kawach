@@ -1,7 +1,7 @@
 import { getAll, getSetting, setSetting } from './db.js';
 import { cardBillDue } from './account-metrics.js';
 import { formatCurrency } from './format.js';
-import { frequencyOf, hasDueDate, nextOccurrence } from './frequency.js';
+import { frequencyOf, hasDueDate, nextOccurrence, isoLocal } from './frequency.js';
 import { renews, nextRenewal } from './calendar.js';
 import { isLiveCommitment } from './commitments.js';
 
@@ -172,14 +172,13 @@ export async function runDueReminders() {
 }
 
 function todayISO() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return isoLocal(new Date());
 }
 
 function shiftDays(iso, delta) {
   const d = new Date(iso);
   d.setDate(d.getDate() + delta);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return isoLocal(d);
 }
 
 function niceDate(iso) {

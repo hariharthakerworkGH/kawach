@@ -1,5 +1,6 @@
 import { getAll, getSetting, setSetting, put } from './db.js';
 import { isoLocal, monthlyAmountOf } from './frequency.js';
+import { monthKeyOf } from './spending-month.js';
 import { isDemo } from './demo-flag.js';
 import { isLiveCommitment, commitmentMatcher } from './commitments.js';
 import { bankBalance } from './account-metrics.js';
@@ -329,7 +330,7 @@ export function businessRunway(transactions, accounts, spaceId, today) {
   const [y, m] = today.split('-').map(Number);
   for (let back = 1; back <= 3; back += 1) {
     const d = new Date(y, m - 1 - back, 1);
-    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    months.push(monthKeyOf(d));
   }
   const spent = months.map((key) =>
     transactions

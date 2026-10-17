@@ -15,13 +15,10 @@
  * Plain SVG strings. No library, nothing fetched, nothing to install.
  */
 import { formatRupees } from './format.js';
+import { escapeHtml as esc } from './ui.js';
 
 // Three points is the smallest honest line or set of bars.
 const MIN_POINTS = 3;
-
-function esc(str) {
-  return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
-}
 
 function note(text) {
   return `<p class="chart-note">${text}</p>`;

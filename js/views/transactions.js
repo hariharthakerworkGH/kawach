@@ -1,6 +1,6 @@
 import { getAll, put, remove, getSetting, setSetting } from '../db.js';
 import { holdFocus } from '../overlay.js';
-import { countsFor, nextMonthKey, salaryLike } from '../spending-month.js';
+import { countsFor, nextMonthKey, salaryLike, monthKeyOf } from '../spending-month.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { personNamed } from '../people.js';
 import { learnFromAssignment, fitsDirection, isIncomeCategory } from '../merchant-rules.js';
@@ -1670,7 +1670,7 @@ export function lastSixMonths(transactions, accounts = []) {
   const months = [];
   for (let back = 5; back >= 0; back -= 1) {
     const d = new Date(now.getFullYear(), now.getMonth() - back, 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const key = monthKeyOf(d);
     const rows = transactions.filter((t) => countsFor(t) === key);
     const sum = (side) => rows.filter((t) => cashSide(t, byId.get(t.accountId), moves) === side).reduce((s, t) => s + t.amount, 0);
     months.push({ label: d.toLocaleDateString('en-IN', { month: 'short' }), in: sum('in'), out: sum('out') });

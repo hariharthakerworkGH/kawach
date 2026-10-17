@@ -6,8 +6,8 @@
  * where the text goes after that is their choice. */
 
 import { holdFocus } from './overlay.js';
+import { escapeHtml as esc } from './ui.js';
 
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function frame(inner, label) {
   const backdrop = document.createElement('div');

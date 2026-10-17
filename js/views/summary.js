@@ -2226,19 +2226,17 @@ function getRangeDates() {
   if (currentRange === 'this-month') {
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    return [toISODate(start), toISODate(end)];
+    return [isoLocal(start), isoLocal(end)];
   }
   if (currentRange === 'last-month') {
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const end = new Date(now.getFullYear(), now.getMonth(), 0);
-    return [toISODate(start), toISODate(end)];
+    return [isoLocal(start), isoLocal(end)];
   }
   return null;
 }
 
-function toISODate(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+
 
 // Comparing a month that's only 13 days old against a full previous month
 // reads as a huge drop that isn't real, so compare like with like: this
@@ -2249,12 +2247,12 @@ function comparisonPeriod(now = new Date()) {
     const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
     const prevEnd = new Date(now.getFullYear(), now.getMonth() - 1, Math.min(dayOfMonth, prevMonthEnd));
-    return { from: toISODate(prevStart), to: toISODate(prevEnd), label: 'than the same days last month' };
+    return { from: isoLocal(prevStart), to: isoLocal(prevEnd), label: 'than the same days last month' };
   }
   if (currentRange === 'last-month') {
     const prevStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
     const prevEnd = new Date(now.getFullYear(), now.getMonth() - 1, 0);
-    return { from: toISODate(prevStart), to: toISODate(prevEnd), label: 'than the month before' };
+    return { from: isoLocal(prevStart), to: isoLocal(prevEnd), label: 'than the month before' };
   }
   return null;
 }

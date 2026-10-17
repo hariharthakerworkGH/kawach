@@ -1,22 +1,14 @@
 /* Pieces of the money calculation that stand on their own (5.43.3), moved out of js/free-to-spend.js so each can be
  * read and tested by itself: the day arithmetic, the status of each commitment this cycle, and the by-day series
  * behind the burn drawing. The code is as it was; computeFreeToSpend() calls these. */
-import { isoLocal, frequencyOf, nextOccurrence } from './frequency.js';
+import { isoLocal, frequencyOf, nextOccurrence, addDays, dateOf } from './frequency.js';
+
+export { addDays, dateOf };
 import { isSetAside } from './commitments.js';
 
 export const DAY_MS = 86400000;
 // Fewer days than this into a period and a pace says nothing yet.
 export const MIN_DAYS_FOR_PACE = 5;
-
-export function addDays(iso, delta) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return isoLocal(new Date(y, m - 1, d + delta));
-}
-
-export function dateOf(iso) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
 
 export function daysBetweenInclusive(fromIso, toIso) {
   const [fy, fm, fd] = fromIso.split('-').map(Number);

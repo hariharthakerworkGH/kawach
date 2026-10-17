@@ -1,10 +1,10 @@
+import { escapeHtml as esc } from './ui.js';
 // History's ring (5.74, mockups/7.12-cards-and-ring): the month's spending as a ring, one slice per category with that
 // category's icon sitting on its slice. Tap a slice or an icon and the middle reads it; tap again to clear.
 const R = 105;
 const CIRC = 2 * Math.PI * R;
 const GAP = 3;
 const inr = (paise) => `₹${Math.round(Math.abs(paise) / 100).toLocaleString('en-IN')}`;
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // slices: [{ name, amount (paise), icon (svg markup) }], biggest first; at most five, the rest gathered as "Other".
 export function ringSlices(entries) {

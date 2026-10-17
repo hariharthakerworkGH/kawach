@@ -7,6 +7,7 @@
  * (nothing). A phone set to "reduce motion" is always still. Everything asks level() when it runs, so changing the
  * choice takes effect at once. Haven only. */
 import { appearance } from './appearance.js';
+import { isoLocal } from './frequency.js';
 import { rollOverride } from './ui.js';
 import { startSky } from './haven-sky.js';
 
@@ -30,10 +31,7 @@ export const live = () => level() !== 'still';
 export const alive = () => level() === 'alive';
 const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
 export const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
-const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
+const today = () => isoLocal(new Date());
 const SOFT = 'cubic-bezier(.22,1,.36,1)';
 export const store = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },

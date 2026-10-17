@@ -1,4 +1,5 @@
 import { sortCategories } from '../list-order.js';
+import { monthKeyOf } from '../spending-month.js';
 import { getAll, put, remove, newId } from '../db.js';
 import { categoryStyle, setCustomStyles, categoryIconKey, COLOR_CHOICES } from '../category-style.js';
 import { categoryIcon, PICKABLE_ICONS } from '../category-icons.js';
@@ -481,8 +482,7 @@ function spendThisMonth(transactions, accounts, lane) {
   // Nothing leaving an account you do not spend from is spending (budgets.js).
   const putAway = new Set(accounts.filter(isPutAway).map((a) => a.id));
   const byId = new Map(accounts.map((a) => [a.id, a]));
-  const month = new Date();
-  const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
+  const key = monthKeyOf(new Date());
   const totals = new Map();
   for (const t of transactions) {
     if (t.direction !== 'debit' || t.isTransfer || t.date.slice(0, 7) !== key || putAway.has(t.accountId) || isCardBill(t, byId.get(t.accountId))) continue;

@@ -208,7 +208,7 @@ export function looksLikeCardPayment(t, type) {
   return t.direction === 'debit' && PAYMENT_OUT_RE.test(desc);
 }
 
-function daysApart(dateA, dateB) {
+export function daysApart(dateA, dateB) {
   const a = new Date(dateA);
   const b = new Date(dateB);
   return Math.abs((a - b) / (1000 * 60 * 60 * 24));

@@ -11,6 +11,7 @@ import { commitmentField, cardPaymentField } from './add.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
 import { sortAccounts, sortCategories } from '../list-order.js';
 import { cardStandings, whatItPaid } from '../card-standing.js';
+import { isoLocal } from '../frequency.js';
 import { looksLikeCardPayment } from '../transfers.js';
 import { redraw } from '../redraw.js';
 import { escapeHtml, escapeAttr, sectionHead, invalidField, slidingPill } from '../ui.js';
@@ -355,8 +356,7 @@ function saveLabel(existing) {
 // filed on the day it reached the app, not the day it is checked: alerts shared
 // at night and checked next morning belong to the night before.
 function localDay(ms) {
-  const d = ms ? new Date(ms) : new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return isoLocal(ms ? new Date(ms) : new Date());
 }
 
 function wire(root, container) {

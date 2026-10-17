@@ -6,13 +6,13 @@
  * js/views/summary-looks.js; nothing here reads the database except the daily limit it saves.
  * Same three levels as js/haven-motion.js (alive, calm, still); a phone set to reduce motion is always still. */
 import { live, alive, sparks, store, clamp } from './haven-motion.js';
+import { escapeHtml as esc } from './ui.js';
 import { setSetting } from './db.js';
 import { matchCategoryForDescription } from './merchant-rules.js';
 import { tideSvg } from './views/summary-looks.js';
 
 const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
 const SOFT = 'cubic-bezier(.22,1,.36,1)';
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const rs = (paise) => `₹${Math.round(Math.abs(paise) / 100).toLocaleString('en-IN')}`;
 const parse = (s) => { try { return JSON.parse(s); } catch { return null; } };
 const surfaceOf = (lvl) => 12 + (1 - lvl) * 77;
