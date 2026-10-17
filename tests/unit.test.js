@@ -23,7 +23,7 @@ import { forecast, costInMonth } from '../js/forecast.js';
 import { flexReport } from '../js/flex-report.js';
 import { flexCard } from '../js/views/recap.js';
 import { makeRecord, checkPin, waitFor, mustLock, makeKeyText, normaliseKey, formatKey, makeKeyRecord, checkKey } from '../js/lock.js';
-import { comingUp, keptBack, topFigures, instrumentDial, instrumentTop, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts, longestAhead, monthStory, weekRecap } from '../js/views/summary-looks.js';
+import { comingUp, keptBack, keptItems, keptBlock, topFigures, instrumentDial, instrumentTop, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts, longestAhead, monthStory, weekRecap } from '../js/views/summary-looks.js';
 import { festivalOn } from '../js/haven-motion.js';
 import { rupeeWords } from '../js/haven-life.js';
 import { shortRupees } from '../js/format.js';
@@ -2601,4 +2601,26 @@ test('the demo guide speaks plainly: short sentences, no jargon, every step on a
       ok(!/[\u2013\u2014]/.test(text), `step ${n + 1}: no dashes in what is said`);
     }
   }
+});
+
+test('Kept back opened: one line for each set-aside with something left, most left first; used up ones folded away; the lines add up to the row', () => {
+  const t = (label, amount, left, status, used) => ({ label, setAside: true, amount: rupees(amount), left: rupees(left), used: rupees(used), status });
+  const tracker = [
+    t('Fuel', 4000, 600, 'heading-over', 3400),
+    t('Groceries', 8000, 3200, 'ok', 4800),
+    t('Eating out', 5000, 2600, 'ok', 2400),
+    t('Amazon Pay', 3000, 0, 'ok', 3000),
+    t('Gift <b>', 2000, -200, 'over', 2200),
+    t('Untracked', 1000, 1000, 'untracked', 0),
+    { label: 'Rent', amount: rupees(25000), left: rupees(25000), status: 'due' },
+  ];
+  const { left, usedUp } = keptItems({ tracker });
+  equal(left.map((x) => x.label), ['Groceries', 'Eating out', 'Fuel'], 'most left first; untracked, used up and dated bills are not in it');
+  equal(usedUp.map((x) => x.label), ['Amazon Pay', 'Gift <b>'], 'used up and over are folded');
+  equal(left.reduce((sum, x) => sum + x.left, 0), keptBack({ tracker }), 'the lines add up to the row');
+  const html = keptBlock({ tracker });
+  ok(html.includes('₹6,400') && html.includes('Used up this month (2)'), 'the row says the total and how many are folded');
+  ok(html.includes('is-warn') && html.includes('is-over'), 'running low is amber, over is red');
+  ok(!html.includes('Gift <b>') && html.includes('Gift &lt;b&gt;'), 'a name is escaped');
+  equal(keptBlock({ tracker: [t('Amazon Pay', 3000, 0, 'ok', 3000)] }), '', 'nothing left: no row');
 });

@@ -561,3 +561,27 @@ button.account-recent-row:active { background: var(--hv-hair); }
 /* a payment opened from another screen lights up for a moment so the eye finds it */
 @keyframes hv-found-glow { from { box-shadow: 0 0 0 2px var(--hv-link); } to { box-shadow: 0 0 0 2px transparent; } }
 .hist-row--found { animation: hv-found-glow 1.8s ease-out; border-radius: 16px; }
+
+/* Kept back (Summary, under Left to spend): one slim line, opening in place to a line for each set-aside with a thin bar */
+.hv-kept { margin: calc(8px - var(--hv-s4, 20px)) 4px 0; border-radius: 16px; background: var(--hv-well); box-shadow: 0 0 0 1px var(--hv-hair); }
+.hv-kept__head { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.hv-kept__ic { display: grid; place-items: center; width: 22px; height: 22px; color: var(--hv-link); flex: none; }
+.hv-kept__ic svg { width: 20px; height: 20px; }
+.hv-kept__t { font-weight: 600; font-size: 15px; }
+.hv-kept__v { margin-left: auto; font-weight: 700; font-size: 15px; }
+.hv-kept__chev { color: var(--hv-ink-3); flex: none; transition: transform .3s; }
+.hv-kept.open .hv-kept__chev { transform: rotate(180deg); }
+.hv-kept__list { height: 0; overflow: hidden; }
+.hv-kept__in { padding: 0 14px 10px 46px; }
+.hv-kept__item { padding: 5px 0 6px; }
+.hv-kept__top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; }
+.hv-kept__name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.hv-kept__left { font-size: 13px; opacity: .8; white-space: nowrap; }
+.hv-kept__left b { font-weight: 700; font-size: 14px; }
+.hv-kept__track { height: 4px; border-radius: 99px; background: var(--hv-hair); margin-top: 5px; overflow: hidden; }
+.hv-kept__track i { display: block; height: 100%; border-radius: 99px; background: var(--hv-link); }
+.hv-kept__item.is-warn .hv-kept__track i { background: var(--hv-warn); }
+.hv-kept__item.is-over .hv-kept__track i { background: var(--hv-bad); }
+.hv-kept__used > summary { list-style: none; font-size: 13px; padding: 4px 0 2px; color: var(--hv-link); cursor: pointer; min-height: 44px; display: flex; align-items: center; }
+.hv-kept__used > summary::-webkit-details-marker { display: none; }
+@media (prefers-reduced-motion: reduce) { .hv-kept__chev { transition: none; } }

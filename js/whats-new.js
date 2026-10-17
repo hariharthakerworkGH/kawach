@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.78',
+    items: [
+      {
+        icon: 'piggy',
+        title: "Kept back, on Summary",
+        text: "Summary now says how much of what you set aside is still there, in one slim line under Left to spend. Tap it to see what is left of each.",
+        guide: [{ view: 'summary', target: '.hv-kept', text: "Tap Kept back to see what is left of each thing you set aside." }],
+      },
+    ],
+  },
+  {
     version: '5.77.1',
     items: [
       {

@@ -28,9 +28,34 @@ import { isoLocal } from '../frequency.js';
 /* What is left of the money set aside that Kawach can follow: the same rows
  * free-to-spend.js uses when it works out what is safe to keep spending. */
 export function keptBack(f) {
-  return (f.tracker || [])
-    .filter((t) => t.setAside && !t.skipped && t.left > 0 && ['ok', 'heading-over', 'part'].includes(t.status))
-    .reduce((s, t) => s + t.left, 0);
+  return keptItems(f).left.reduce((s, t) => s + t.left, 0);
+}
+
+/* The set-asides Kawach can follow, split in two: what still has something left (most left first), and what is used up or
+ * over. The first list adds up to keptBack(); the second is folded away. */
+export function keptItems(f) {
+  const rows = (f.tracker || []).filter((t) => t.setAside && !t.skipped && t.status !== 'untracked' && t.amount > 0);
+  const left = rows.filter((t) => t.left > 0 && ['ok', 'heading-over', 'part'].includes(t.status)).sort((a, b) => b.left - a.left);
+  return { left, usedUp: rows.filter((t) => !left.includes(t)) };
+}
+
+const CHEV = '<svg class="hv-kept__chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+
+/* "Kept back" on Haven's Summary, under the Left to spend card: one slim line with the total, opening in place (js/haven-life.js)
+ * to one line for each set-aside with what is left of it and a thin bar of how much is used. Said only while something is left. */
+export function keptBlock(f) {
+  const { left, usedUp } = keptItems(f);
+  const total = left.reduce((s, t) => s + t.left, 0);
+  if (!total) return '';
+  const item = (t) => {
+    const over = t.left < 0;
+    const pct = Math.round(Math.max(0, Math.min(1, t.used / t.amount)) * 100);
+    const tone = over ? ' is-over' : t.status === 'heading-over' ? ' is-warn' : '';
+    const words = over ? `<b class="hv-amt">${formatRupees(-t.left)}</b> over ${formatRupees(t.amount)}` : `<b class="hv-amt">${formatRupees(t.left)}</b> left of ${formatRupees(t.amount)}`;
+    return `<div class="hv-kept__item${tone}"><div class="hv-kept__top"><span class="hv-kept__name">${escapeHtml(t.label)}</span><span class="hv-kept__left">${words}</span></div><div class="hv-kept__track"><i style="width:${pct}%"></i></div></div>`;
+  };
+  const used = usedUp.length ? `<details class="hv-kept__used"><summary>Used up this month (${usedUp.length})</summary>${usedUp.map(item).join('')}</details>` : '';
+  return `<div class="hv-kept"><button type="button" class="hv-kept__head" aria-expanded="false" aria-controls="hv-kept-list"><span class="hv-kept__ic">${categoryIcon('piggy')}</span><span class="hv-kept__t">Kept back</span><span class="hv-kept__v hv-amt">${formatRupees(total)}</span>${CHEV}</button><div class="hv-kept__list" id="hv-kept-list" inert><div class="hv-kept__in">${left.map(item).join('')}${used}</div></div></div>`;
 }
 
 /* Dated commitments still to pay this month, soonest first. */
@@ -457,7 +482,7 @@ export function havenTop(f, status, month, extra = {}) {
     return `<button type="button" class="hv-row hv-goal" data-hv-go="plan"><div class="tide hv-goal__tide" data-mood="calm" data-goal-lvl="${lvl.toFixed(3)}" style="--lvl:${lvl.toFixed(3)}">${tideSvg(lvl, 0)}</div><div><div class="hv-row__t">${escapeHtml(g.label)}</div><div class="hv-row__m">${formatRupees(g.saved)} of ${formatRupees(g.target)}</div><div class="hv-row__m hv-goal__when">${line}</div></div></button>`;
   });
   const goalBlock = goalRows.length ? `<div class="hv-sec"><h2>Saving for</h2><button type="button" class="hv-link" data-hv-go="plan">Plan</button></div><div class="hv-shell"><div class="hv-core flush">${goalRows.join('')}</div></div>` : '';
-  const blocks = [vault, chart, bank, chips, dueRow, goalBlock, latestBlock].filter(Boolean);
+  const blocks = [vault, x.finished ? '' : keptBlock(f), chart, bank, chips, dueRow, goalBlock, latestBlock].filter(Boolean);
   const protoHtml = `<div class="hv-screen ${extra.still ? 'still' : 'enter'} on-screen" data-hv-summary>${peek}${blocks.map((b, i) => rise(i + 1, b)).join('')}</div>`;
   return tactileTop(f, status, '', protoHtml, { noComing: true, noWeek: true });
 }

@@ -323,6 +323,27 @@ function morph(scope) {
   });
 }
 
+/* ---- Kept back opens in place into what is left of each set-aside ------------------------------------------------------------ */
+function kept(scope) {
+  scope.querySelectorAll('.hv-kept').forEach((k) => {
+    if (k.dataset.wired) return;
+    k.dataset.wired = '1';
+    const head = k.querySelector('.hv-kept__head');
+    const list = k.querySelector('.hv-kept__list');
+    head.addEventListener('click', () => {
+      const open = head.getAttribute('aria-expanded') !== 'true';
+      head.setAttribute('aria-expanded', String(open));
+      k.classList.toggle('open', open);
+      list.inert = !open;
+      const to = open ? list.firstElementChild.scrollHeight : 0;
+      const rest = () => { list.style.height = open ? 'auto' : '0px'; };
+      if (!live()) return rest();
+      const a = list.animate([{ height: `${open ? 0 : list.offsetHeight}px` }, { height: `${to}px` }], { duration: 420, easing: 'cubic-bezier(.34,1.3,.64,1)' });
+      a.onfinish = () => { a.cancel(); rest(); };
+    });
+  });
+}
+
 /* ---- a category near its limit trembles (alive) ---------------------------------------------------------------------- */
 let tremor = 0;
 function trembleLoop() {
@@ -481,6 +502,7 @@ export function lifeDraw(scope) {
   }
   stamp(scope);
   morph(scope);
+  kept(scope);
   trembleLoop();
   // generic empty places rest a sleeping shield
   scope.querySelectorAll?.('.empty-state:not([data-slept])').forEach((el) => {
