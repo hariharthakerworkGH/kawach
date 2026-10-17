@@ -13,7 +13,7 @@ import { syncNow, getSyncConfig, getSyncPassphrase, turnOnGoogleSync } from '../
 import { setBackupPassphrase, backUpToDrive, listBackups, SYNC_FILE } from '../js/drive.js';
 import { encryptPayload, decryptPayload, exportEncrypted, decryptBackup, restoreBackup } from '../js/backup.js';
 import { takenHome, categoriesFor } from '../js/business.js';
-import { notesFor } from '../js/whats-new.js';
+import { notesFor, popupNotes, POPUP_MAX } from '../js/whats-new.js';
 import { isSetAside } from '../js/commitments.js';
 import { matchCategoryForDescription, learnFromAssignment, applyLearnedCategories, incomeSpendCount, fixIncomeSpends } from '../js/merchant-rules.js';
 import { APP_VERSION } from '../js/version.js';
@@ -1818,4 +1818,14 @@ test('money paid back by friends counts in the month it arrives, to any account,
   const october = await computeFreeToSpend(day('2026-10-03'));
   paise(october.shareBackThisCycle, rupees(3000));
   paise(october.spentThisCycle, -rupees(3000));
+});
+
+test('the card after an update: only major overhauls, newest first, never more than three; small changes stay in the list', () => {
+  const note = (version, ...items) => ({ version, items: items.map((title, i) => ({ icon: 'check', title, text: 't', ...(title.startsWith('BIG') ? { major: true } : {}) })) });
+  const all = [note('5.9', 'small a', 'BIG nine'), note('5.8', 'small b'), note('5.7', 'BIG seven', 'BIG seven b'), note('5.6', 'BIG six'), note('5.5', 'BIG five')];
+  const card = popupNotes(all);
+  equal(card.length, 1, 'one list, no version headings');
+  equal(card[0].items.map((i) => i.title), ['BIG nine', 'BIG seven', 'BIG seven b'].slice(0, POPUP_MAX), 'newest first, three at most');
+  equal(popupNotes([note('5.8', 'small b'), note('5.9', 'small a')]), [], 'only small changes: no card at all');
+  ok(notesFor({}).some((n) => n.items.some((i) => !i.major)), 'and the small ones are still in the full list (Settings)');
 });

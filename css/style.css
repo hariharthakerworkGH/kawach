@@ -3833,12 +3833,21 @@ details:has(> .muted-note:last-child) + .bank-card,
   width: 100%;
   max-width: 440px;
   max-height: 82vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border-hi);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lift);
   padding: var(--space-md);
+}
+
+/* The list scrolls; the title above it and the button below it stay in view. */
+.notes-body {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 .notes-title {
@@ -3903,6 +3912,7 @@ details:has(> .muted-note:last-child) + .bank-card,
 
 .notes-close {
   margin-top: var(--space-md);
+  flex: none;
 }
 
 /* ---------- A guide on the real screen (js/guide.js) ---------- */

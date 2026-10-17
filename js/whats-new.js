@@ -70,6 +70,7 @@ const NOTES = [
       {
         icon: 'bank',
         title: "Money that moves shows at both ends",
+        major: true,
         text: "Saving a card payment alert now asks which account it was paid from and takes it out of that account. Cards on Accounts show what you owe now and drop when you pay. Save only saves once, and slow connections no longer hang.",
       },
     ],
@@ -90,6 +91,7 @@ const NOTES = [
       {
         icon: 'accounts',
         title: "Swipeable cards, a ring for the month, no zoom",
+        major: true,
         text: "Accounts are a stack of cards: swipe one to see the next, with its details below. History shows the month as a ring with an icon on each slice. The app no longer zooms when you pinch, and titles no longer overlap when you change screen.",
         guide: [{ view: 'accounts', target: '.hv-dk', text: "Swipe the front card sideways to bring the next account forward" }],
       },
@@ -241,6 +243,7 @@ const NOTES = [
       {
         icon: 'sparkle',
         title: "Accounts, rebuilt, and more life",
+        major: true,
         text: "Accounts now shows what you hold and what you owe, filter chips (All, Cards, Money, Loans) and one card for each account: a shield that fills for a card's use, a line for a bank balance. Tap a card and it opens in place. Also: budgets as little tanks and where your money went as layers (under More), the figure rolls digit by digit, a pasted bank message flies into its fields, a statement fills a shield while it is read, and duplicate rows merge.",
         guide: [{ view: 'accounts', target: '.hv-hold', text: "What you hold, what you owe, then one card for each account." }],
       },
@@ -368,6 +371,7 @@ const NOTES = [
       {
         icon: 'summary',
         title: "A new look: Haven",
+        major: true,
         text: "Kawach now opens in Haven, a calm new look in day and night. What is left to spend rises in a shield like water, and it says in words whether you are ahead of pace, behind it or nearly out. Add sits in the middle of the bar, and Coach is now a button at the top of Plan. You can go back to any other look in How it looks.",
         guide: [{ view: 'summary', target: '.tide', text: "The water is what is left to spend. The dashed line is where an even pace would be today." }],
       },
@@ -2198,6 +2202,15 @@ export function notesFor(profile, since = null) {
     .filter((n) => n.items.length);
 }
 
+// What the card shown after an update says: only the major overhauls (an item marked `major`), newest first and never more than
+// three, so it is a short card with its button in view. Everything else is still in Settings, in the full list.
+export const POPUP_MAX = 3;
+export function popupNotes(notes) {
+  const items = notes.flatMap((n) => n.items.filter((i) => i.major).map((i) => ({ item: i, version: n.version })));
+  items.sort((a, b) => (newer(a.version, b.version) ? -1 : newer(b.version, a.version) ? 1 : 0));
+  return items.length ? [{ version: '', items: items.slice(0, POPUP_MAX).map((x) => x.item) }] : [];
+}
+
 // The last version this device showed notes for. Kept on the device, like
 // the other things only this phone needs to remember.
 async function lastSeen() {
@@ -2214,7 +2227,7 @@ async function markSeen(version) {
 export async function showIfUpdated(current, profile, { isNew }) {
   const seen = await lastSeen();
   if (isNew && !seen) return markSeen(current);
-  const notes = notesFor(profile, seen || '1.10');
+  const notes = popupNotes(notesFor(profile, seen || '1.10'));
   await markSeen(current);
   if (notes.length) openNotes(notes, { title: "What's new" });
 }
@@ -2226,10 +2239,10 @@ export function openNotes(notes, { title }) {
   backdrop.innerHTML = `
     <div class="notes-sheet" role="dialog" aria-modal="true" aria-labelledby="notes-title">
       <p class="notes-title" id="notes-title">${title}</p>
-      ${notes
+      <div class="notes-body">${notes
         .map(
           (n) => `
-        <p class="notes-version">Version ${n.version}</p>
+        ${n.version ? `<p class="notes-version">Version ${n.version}</p>` : ''}
         ${n.items
           .map(
             (item, i) => `
@@ -2241,7 +2254,7 @@ export function openNotes(notes, { title }) {
           )
           .join('')}`
         )
-        .join('')}
+        .join('')}</div>
       <button type="button" class="btn-primary notes-close">Got it</button>
     </div>
   `;

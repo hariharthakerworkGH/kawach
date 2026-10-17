@@ -325,7 +325,6 @@ svg.waves:focus-visible:not(.by-pointer) { outline: 2px solid var(--hv-link, cur
 .hv-ins__layers [data-layer] { cursor: pointer; }
 .hv-ins__tanks { display: flex; gap: 12px; align-items: flex-end; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: none; }
 .hv-tank { display: grid; gap: 5px; justify-items: center; font-size: 11px; color: var(--hv-ink-2); flex: none; }
-.hv-tank.warm 
 /* ---- lab 4 (5.62): fireflies, the day-night sweep, today's ring, the way to salary, this month beside last, the chart's flag ---- */
 .hv-flies { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; overflow: clip; contain: paint; }
 .hv-flies i { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #ffe9a8; box-shadow: 0 0 10px 3px rgba(255, 230, 150, 0.45); }

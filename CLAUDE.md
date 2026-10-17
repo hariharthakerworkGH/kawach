@@ -533,9 +533,12 @@ Node (v24) and Python (`py`) are installed; there is no git. The browser checks 
 2. Unregister the service worker and clear caches before re-testing, or stale
    modules are served.
 3. Every release a user would notice gets its lines in `NOTES` in
-   `js/whats-new.js` (shown once after the update, filtered to who they
-   concern), and every new feature a `guide`: the screen, the thing to point
-   at, one line of tip (`js/guide.js`).
+   `js/whats-new.js`, kept in Settings -> What's new, and every new feature a
+   `guide`: the screen, the thing to point at, one line of tip (`js/guide.js`).
+   Only a real overhaul is marked `major` (`ship.py --major`): that alone is
+   shown on the card after an update, at most three items, newest first, so the
+   card is short and its button is never scrolled away. A small change is in the
+   list but never pops up.
 4. Versions on screen read like an app's: `3.0`, `3.1` for features, `3.1.1`
    for a fix, `4.0` for a rebuild (`APP_VERSION` in `js/version.js`). No
    leading zeros, and no third number until there is a fix. Every release also
