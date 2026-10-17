@@ -133,3 +133,14 @@ test('what a card payment most likely paid: the bill when one is billed, else th
   equal(whatItPaid({ unpaid: 0, owed: rupees(100) }, rupees(13000)), 'bill');
   equal(whatItPaid(undefined, rupees(5)), 'bill');
 });
+
+test('a house card paid from a business account is paid on Summary and on Accounts alike', async () => {
+  await seedBasics({});
+  await put('accounts', { id: 'bbank', label: 'Shop Bank', type: 'bank', issuer: 'Test Bank', last4: '7777', business: true, knownBalance: rupees(90000), knownBalanceDate: '2026-09-15' });
+  await put('transactions', txn({ accountId: 'card', date: '2026-09-10', amount: 4000, rawDescription: 'Big purchase' }));
+  await put('transactions', txn({ accountId: 'bbank', date: '2026-10-04', amount: 4000, direction: 'debit', isTransfer: true, paysCardId: 'card', source: 'alert', rawDescription: 'CRED' }));
+  const acc = await standingOf('card', '2026-10-12');
+  const sum = await summaryOf('card', '2026-10-12');
+  equal(acc.unpaid, 0, 'Accounts: the bill is paid');
+  equal([sum.unpaid, sum.owed], [acc.unpaid, acc.owed], 'Summary says the same');
+});

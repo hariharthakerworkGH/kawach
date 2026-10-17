@@ -338,7 +338,12 @@ export async function computeFreeToSpend(now = new Date()) {
 
   // --- Cards --------------------------------------------------------------
   // One calculation, shared with Accounts (js/card-standing.js).
-  const { cards, unassigned: unassignedCardPayments } = cardStandings(accounts, transactions, importBatches, today);
+  // Worked out over every account (a house card may be paid from a business account), then only the house's cards are kept,
+  // so Accounts and Summary pair the same payments.
+  const houseIds = new Set(accounts.map((a) => a.id));
+  const standings = cardStandings(allAccounts, transactions, importBatches, today);
+  const cards = standings.cards.filter((c) => houseIds.has(c.account.id));
+  const unassignedCardPayments = standings.unassigned;
 
   for (const c of cards) {
     if (c.owed === 0 && c.unpaid === 0) continue;

@@ -767,9 +767,13 @@ async function init() {
   for (const g of ['gesturestart', 'gesturechange']) document.addEventListener(g, (e) => e.preventDefault());
 
   document.addEventListener('navigate', (e) => {
-    const { view, ...params } = e.detail;
+    const { view, back, ...params } = e.detail;
     if (view === 'add' && haven()) return openAddSheet(params);
-    if (view !== currentView) {
+    // The round back arrow undoes the tap that brought you here (it forgets the screen you are leaving instead of storing it, or
+    // back would bounce between the two). A guided tour or the demo moving the screens leaves no trail either.
+    const touring = document.body.classList.contains('has-demo') || Boolean(document.querySelector('.guide-layer'));
+    if (back) drillBack.pop();
+    else if (view !== currentView && !touring) {
       drillBack.push({ view: currentView, params: currentParams, scrollY: window.scrollY });
       if (drillBack.length > 8) drillBack.shift();
     }

@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.77.1',
+    items: [
+      {
+        icon: 'check',
+        title: "Back works as it should",
+        text: "The round back arrow on Coach no longer bounces you between two screens, and the inbox opens faster after you paste many alerts.",
+      },
+    ],
+  },
+  {
     version: '5.77',
     items: [
       {

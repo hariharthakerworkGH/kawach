@@ -160,7 +160,7 @@ export function havenHeader(view) {
     back.className = 'hv-round hv-back';
     back.setAttribute('aria-label', 'Back');
     back.innerHTML = icon('back');
-    back.addEventListener('click', () => document.dispatchEvent(new CustomEvent('navigate', { detail: { view: BACK[view] } })));
+    back.addEventListener('click', () => document.dispatchEvent(new CustomEvent('navigate', { detail: { view: BACK[view], back: true } })));
     header.prepend(back);
   }
   holder.addEventListener('click', (e) => {

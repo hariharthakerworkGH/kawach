@@ -149,12 +149,14 @@ function guessOther(d) {
 }
 
 // What a card payment most likely paid (js/card-standing.js), on this phone's own date.
+// The standings are worked out once for the screen (every card alert asks), not once per alert.
+let standingMemo = { for: null, cards: [] };
 function guessWhat(d) {
   const mine = d.account;
   if (!mine || mine.type !== 'card') return 'bill';
   try {
-    const { cards } = cardStandings(context.accounts, context.transactions, context.importBatches || [], localDay());
-    return whatItPaid(cards.find((c) => c.account.id === mine.id), d.parsed.amount);
+    if (standingMemo.for !== context) standingMemo = { for: context, cards: cardStandings(context.accounts, context.transactions, context.importBatches || [], localDay()).cards };
+    return whatItPaid(standingMemo.cards.find((c) => c.account.id === mine.id), d.parsed.amount);
   } catch {
     return 'bill';
   }
@@ -162,6 +164,7 @@ function guessWhat(d) {
 
 function otherField(d) {
   const guess = guessOther(d);
+  const what = guessWhat(d);
   const options = sortAccounts(context.accounts.filter((a) => OTHER_TYPES.has(a.type)), undefined, null)
     .map((a) => `<option value="${a.id}" ${a.id === guess ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
     .join('');
@@ -171,7 +174,7 @@ function otherField(d) {
       </label>
       <label class="field al-what-wrap" hidden>
         <span>What did it pay?</span>
-        <select class="al-what"><option value="bill" ${guessWhat(d) === 'bill' ? 'selected' : ''}>The last statement's bill</option><option value="current" ${guessWhat(d) === 'current' ? 'selected' : ''}>Spending since the last statement (paying ahead)</option></select>
+        <select class="al-what"><option value="bill" ${what === 'bill' ? 'selected' : ''}>The last statement's bill</option><option value="current" ${what === 'current' ? 'selected' : ''}>Spending since the last statement (paying ahead)</option></select>
       </label>`;
 }
 
