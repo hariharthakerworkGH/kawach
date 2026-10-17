@@ -55,6 +55,20 @@
     }
   } catch (e) {}
 
+  // A brand-new install wears Haven's day, whatever colour the phone is in: it is the more inviting first look. The choice is
+  // written down, so it stays until the person changes it. Anyone who was here before has some Kawach setting saved already and
+  // keeps following their phone (the demo keeps its own look, js/demo.js).
+  try {
+    if (!DEMO && !localStorage.getItem('kawach-appearance')) {
+      var seen = false;
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('kawach-') === 0 && k !== 'kawach-welcomed') seen = true;
+      }
+      if (!seen) localStorage.setItem('kawach-appearance', JSON.stringify({ colour: 'haven-day' }));
+    }
+  } catch (e) {}
+
   // The chosen light or dark, put on <html> before the stylesheet paints, so
   // the app never opens in the wrong colour and corrects itself a moment
   // later. js/appearance.js is the same decision, made again once it loads.
