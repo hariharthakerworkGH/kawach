@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.80',
+    items: [
+      {
+        icon: 'piggy',
+        title: "Card spending counts against what you set aside",
+        text: "A set-aside with no account chosen is now used by card purchases too, as well as bank and cash. Kept back and Left to spend now agree, and the same groceries are no longer taken out twice.",
+      },
+    ],
+  },
+  {
     version: '5.78',
     items: [
       {

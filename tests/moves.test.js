@@ -1,6 +1,6 @@
 // Money that moves has two ends (5.75): saving one end with the other named settles both. Made-up data only.
 import { test, equal, ok } from './harness.js';
-import { seedBasics, txn, rupees, day } from './fixtures.js';
+import { seedBasics, txn, rupees, day, commitment } from './fixtures.js';
 import { put, getAll } from '../js/db.js';
 import { settleOtherSide, moveWord } from '../js/transfers.js';
 import { bankBalance, cardPosition } from '../js/account-metrics.js';
@@ -143,4 +143,43 @@ test('a house card paid from a business account is paid on Summary and on Accoun
   const sum = await summaryOf('card', '2026-10-12');
   equal(acc.unpaid, 0, 'Accounts: the bill is paid');
   equal([sum.unpaid, sum.owed], [acc.unpaid, acc.owed], 'Summary says the same');
+});
+
+// --- A set-aside with no account named is drawn down by whatever pays for it (5.80) ---
+const eatingOut = (over = {}) => commitment({ id: 'eat', label: 'Eating out', amount: 5000, spread: true, categoryId: 'food', ...over });
+const aside = async () => {
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  return { f, row: f.tracker.find((x) => x.label === 'Eating out') };
+};
+
+test('a set-aside with no account named: a card purchase is taken from it, not charged to Left to spend as well', async () => {
+  await seedBasics({});
+  await put('recurring', eatingOut());
+  await put('transactions', txn({ accountId: 'card', date: '2026-09-10', amount: 3000, rawDescription: 'ZOMATO', categoryId: 'food' }));
+  const { f, row } = await aside();
+  equal([row.used, row.left], [rupees(3000), rupees(2000)], 'the card spending used the set-aside');
+  equal(f.spentThisCycle, 0, 'and is not spending on top of it');
+});
+
+test('a set-aside with no account named: bank, cash and card payments all draw it down together', async () => {
+  await seedBasics({});
+  await put('recurring', eatingOut());
+  await put('transactions', txn({ accountId: 'card', date: '2026-09-10', amount: 3000, rawDescription: 'ZOMATO', categoryId: 'food' }));
+  await put('transactions', txn({ accountId: 'bank', date: '2026-09-11', amount: 1500, rawDescription: 'CAFE', categoryId: 'food' }));
+  const { row } = await aside();
+  equal([row.used, row.left], [rupees(4500), rupees(500)], 'both counted');
+});
+
+test('a set-aside tied to a named bank account stays on that account; and what goes past the plan is still spending', async () => {
+  await seedBasics({});
+  await put('recurring', eatingOut({ accountId: 'bank' }));
+  await put('transactions', txn({ accountId: 'card', date: '2026-09-10', amount: 3000, rawDescription: 'ZOMATO', categoryId: 'food' }));
+  const tied = await aside();
+  equal(tied.row.used, 0, 'a card purchase does not draw down a plan tied to the bank');
+  await seedBasics({});
+  await put('recurring', eatingOut());
+  await put('transactions', txn({ accountId: 'card', date: '2026-09-10', amount: 8000, rawDescription: 'ZOMATO', categoryId: 'food' }));
+  const over = await aside();
+  equal(over.row.used, rupees(8000), 'all of it shows as used');
+  equal(over.f.spentThisCycle, rupees(3000), 'the part past the ₹5,000 plan is ordinary spending');
 });

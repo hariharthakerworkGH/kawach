@@ -652,7 +652,11 @@ export async function computeFreeToSpend(now = new Date()) {
     const cardPool = transactions.filter(
       (t) => !t.isTransfer && !isWorkCost(t) && !isPersonMoney(t) && notCancelled(t) && (isSetAside(b.item) ? cardIds.has(t.accountId) : t.accountId === b.item.accountId)
     );
-    matchedTo(b, b.paidBy === 'card' ? cardPool : bankPool);
+    // An allowance with no account named is drawn down by whatever pays for it: the bank, cash or any card, in the calendar
+    // month like everything Left to spend counts. (Before, only the bank did: the same groceries bought by card were taken
+    // out of Left to spend as well as set aside, which charged them twice.) One tied to a named bank account stays on it.
+    const anyAccount = isSetAside(b.item) && b.paidBy === 'bank' && !holdingIds.has(b.item.accountId);
+    matchedTo(b, b.paidBy === 'card' ? cardPool : anyAccount ? [...bankPool, ...cardPool] : bankPool);
   }
   // The ATM plan is used up by cash that counts, not by cash taken out; whatever goes past it is spending, like any
   // other plan.
