@@ -238,32 +238,27 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   (`statementDayFixes` corrects a saved day that disagrees).
 - The spending period is the calendar month for everyone, whether or not a
   card has a statement day yet, and never the month the next salary pays for.
-- The tour is a 96-second video, `media/kawach-tour.mp4` (1080 x 1920,
-  60 fps, H.264, silent) with `media/kawach-tour.jpg` as its poster, played
-  over the app from Setup and Settings (`js/tour.js`) and on the welcome page.
-  The service worker never caches `media/`, so it needs a connection. Phones
-  play a video smoothly; drawing the film live made them stutter and drop
-  parts of the picture (4.20), so the film is rendered, never played live.
-  The film's source is `tour.html` with `js/tour-film.js` (player and
-  renderer) and `js/film/` (`kit.js`: springs, glass panels, text, callouts,
-  the mark; `scenes.js`: the timeline). It is one canvas and every frame is
-  `drawFrame(ctx, t)`, a pure function of time, so a frame is exact however it
-  is reached. These files stay in `_work` for rendering and are never published or cached on a phone (`UNPUBLISHED` in tools/release/push.py and static_check.py): the app only plays the video. Eight scenes: the opening, then one per screen in the nav's
-  order (Summary, Accounts, Add, Plan, History; Coach is a button on Plan since 5.52), then the close. It
-  shows what each screen really does, with example figures that agree with
-  each other ("Example figures" is on screen); it makes no claim the app does
-  not keep (Coach is arithmetic, never "AI"). Kawach's mark in it
-  (`drawMark`, `markState`, `drawWord` in kit.js) is the app's opening in
-  index.html (`.boot`): the same paths, colours, weights, glow and timings;
-  change one and the other must follow. No brand logos: the app bundles none
-  (js/brand.js). To re-render after a change, serve `_work` on port 5313 and
-  run `node render-canvas.mjs <out.mp4> <poster.jpg> 60 2600000 13` from
-  `expense-tracker-versions/tools/tour-video` (headless Edge calls
-  `tourFilm.render()`, which encodes each canvas frame with the browser's own
-  H.264 encoder; the script writes the MP4; no ffmpeg needed). `stills.mjs`
-  takes exact frames for checking, `playcheck.mjs` proves the MP4 plays.
-  `tour.html?t=31.4` opens the film on a moment. A first visit in a browser
-  (not installed, nothing set up) goes to `welcome.html` once.
+- The tour is a 58-second video, `media/kawach-tour.mp4` (1080 x 1920, 30 fps,
+  H.264 + AAC, with music and sound), with `media/kawach-tour.jpg` as its
+  poster, played over the app from Setup and Settings (`js/tour.js`) and on the
+  welcome page. The service worker never caches `media/`, so it needs a
+  connection. It is made with the Hyperframes skills (`/brag`): HTML motion
+  graphics with a real 3D phone whose screen is live HTML, a night-to-dawn
+  story (a ₹1,86,000 balance that is mostly spoken for, the shield, the
+  answer, six chapters on the phone, then "Stays on your phone"). Source,
+  plan and the render recipe: `expense-tracker-versions/tools/tour-showreel`
+  (README.md). It needs FFmpeg (winget Gyan.FFmpeg) and takes about 12
+  minutes. It shows what each screen really does, with example figures that
+  agree with each other ("Example figures" is on screen); it makes no claim
+  the app does not keep (Coach is arithmetic, never "AI"). The logo in it is
+  the app's own `icons/kawach.svg` (dark glass shield, cyan edge, light
+  rupee). No brand logos: the app bundles none (js/brand.js). When a screen
+  the film shows changes, change its copy of the screen in the film's
+  index.html and re-render. The old canvas film (`tour.html`, `js/tour-film.js`,
+  `js/film/`) and the screen-recording pipeline (`tools/tour-video`) are
+  superseded in 5.82 and kept only for reference; they are never published.
+  A first visit in a browser (not installed, nothing set up) goes to
+  `welcome.html` once.
 
 - `sw.js` service worker: `CACHE_NAME` must match `APP_VERSION` in
   `js/version.js`, and `APP_SHELL` must list every js file, every stylesheet

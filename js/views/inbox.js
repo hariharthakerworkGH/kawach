@@ -175,7 +175,7 @@ function otherField(d) {
       </label>
       <label class="field al-what-wrap" hidden>
         <span>What did it pay?</span>
-        <select class="al-what"><option value="bill" ${what === 'bill' ? 'selected' : ''}>The last statement's bill</option><option value="current" ${what === 'current' ? 'selected' : ''}>Spending since the last statement (paying ahead)</option></select>
+        <select class="al-what"><option value="bill" ${what === 'bill' ? 'selected' : ''}>The last statement's bill</option><option value="current" ${what === 'current' ? 'selected' : ''}>Paying ahead (spending since)</option></select>
       </label>`;
 }
 

@@ -1,9 +1,8 @@
-// The tour: a minute and a half of what the app is for, played over the app as
-// a video. The film itself is tour.html (js/tour-film.js, js/film/*), drawn on
-// one canvas; media/kawach-tour.mp4 is that film rendered a frame at a time,
-// because drawing it live made phones stutter and drop parts of the picture,
-// and every phone plays a video smoothly with its own decoder. It is served
-// from the app's own address, never a video site, so watching it tells
+// The tour: a minute of what the app is for, played over the app as a video.
+// media/kawach-tour.mp4 is made with the Hyperframes tools (tools/tour-showreel):
+// motion graphics and a 3D phone showing the app's own screens, rendered ahead
+// of time because every phone plays a video smoothly with its own decoder. It is
+// served from the app's own address, never a video site, so watching it tells
 // nobody anything, and it is not kept for offline use: a video is too big to
 // store on every phone for one viewing.
 import { icon } from './icons.js';
@@ -22,8 +21,7 @@ export function playTour() {
       <button type="button" class="icon-btn tour-close" aria-label="Close">${icon('close')}</button>
       <video class="tour-video" src="${TOUR_VIDEO}" poster="${TOUR_POSTER}" controls autoplay playsinline preload="auto"></video>
       <p class="muted-note tour-offline" hidden>The tour needs an internet connection.</p>
-      <!-- The film shows what each screen does, drawn in the look Kawach had
-           when it was made; the screens now come in several styles (5.0), and
+      <!-- The film shows Haven, day and night; the screens come in several styles (5.0), and
            the film is not re-made for each (owner, 2 Oct 2026). -->
       <p class="muted-note tour-look">Your screens may look different. Pick a style you like in Settings.</p>
     </div>
