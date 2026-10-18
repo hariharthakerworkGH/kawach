@@ -534,6 +534,13 @@ Numbers first, one short line, details behind a tap. Whole rupees
 row. Lists are one line per item; `<details>` holds the rest. No explanatory
 paragraphs under headings.
 
+The Summary shield's water is what is left of the month's budget. It has no
+pace line: whether you are ahead is said in words ("8 days ahead", "On track:
+Ahead") and drawn, with its own key, in the month chart below. A saved expense
+shows its exact amount riding the water down (`changeTag`, js/haven-motion.js),
+because a small expense is a thin slice of a big budget and a few pixels of
+water alone are easy to miss.
+
 Comments explain why, in plain English, especially where a rule looks odd.
 
 Control sizes are set once, in `css/compact.css` (loaded last, 5.47): a field 36px, a full-width button 42, a

@@ -74,6 +74,9 @@
   display: grid; place-items: center; font: 700 12px var(--hv-font, inherit); color: #7a4a05;
   background: radial-gradient(circle at 35% 30%, #ffe9a8, #e0a21b); box-shadow: 0 0 0 2px #b9780f inset;
 }
+.hv-drain { position: absolute; left: 50%; top: 0; z-index: 4; padding: 2px 9px; border-radius: 999px; font: 700 13px var(--hv-font, inherit); font-style: normal; white-space: nowrap; pointer-events: none;
+  color: oklch(100% 0 0); background: oklch(30% 0.07 255 / 0.88); box-shadow: 0 0 0 1px oklch(100% 0 0 / 0.25); }
+.hv-drain.is-up { background: oklch(42% 0.12 158 / 0.92); }
 .hv-ring { position: absolute; left: 50%; z-index: 3; width: 14px; height: 14px; margin: -7px; border-radius: 50%; border: 2px solid oklch(100% 0 0 / 0.75); pointer-events: none; }
 .hv-spark { position: absolute; z-index: 3; width: 5px; height: 5px; border-radius: 50%; background: #bff3ff; pointer-events: none; }
 :root[data-style="haven"] .hv-vault.hv-glowing { animation: hv-closed 2400ms ease-in-out; }
@@ -114,8 +117,8 @@
 @keyframes hv-rise2 { from { opacity: 0; transform: translateY(20px) scale(0.985); filter: blur(4px); } to { opacity: 1; transform: none; filter: blur(0); } }
 
 /* "Still", or a phone set to reduce motion: the effects that are drawn by script are not drawn. */
-@media (prefers-reduced-motion: reduce) { .hv-rip, .hv-coin, .hv-ring, .hv-spark, .hv-ptr { display: none; } }
-:root[data-style="haven"][data-motion="still"] :is(.hv-rip, .hv-coin, .hv-ring, .hv-spark, .hv-ptr, .hv-doze) { display: none; }
+@media (prefers-reduced-motion: reduce) { .hv-rip, .hv-coin, .hv-drain, .hv-ring, .hv-spark, .hv-ptr { display: none; } }
+:root[data-style="haven"][data-motion="still"] :is(.hv-rip, .hv-coin, .hv-drain, .hv-ring, .hv-spark, .hv-ptr, .hv-doze) { display: none; }
 
 
 /* ================================================================== lab 2 (5.58) */

@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.85',
+    items: [
+      {
+        icon: 'summary',
+        title: "Spending shows in the shield",
+        text: "When you save an expense, the amount now rides the water down the shield, so even a small one is seen leaving. The dotted line on the shield is gone: whether you are ahead is already said in words and in the month chart.",
+        guide: [{ view: 'summary', target: '.hv-vault .tide', text: "The water is what is left of your month. Save an expense and its amount rides the water down." }],
+      },
+    ],
+  },
+  {
     version: '5.84',
     items: [
       {

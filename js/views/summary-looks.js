@@ -415,7 +415,6 @@ export function havenTop(f, status, month, extra = {}) {
   const x = topFigures(f);
   const [mood, word] = tideMood(x, f.free < 0);
   const lvl = x.limit > 0 ? Math.max(0, Math.min(1, x.left / x.limit)) : 0;
-  const pace = x.finished || !(x.limit > 0) ? 0 : 1 - x.gone;
   const mIcon = mood === 'calm' ? icon('tick') : icon('alert');
   const monthNo = Number(String(f.cycleKey || '').slice(5, 7)) || new Date().getMonth() + 1;
   const monthName = MONTHS_LONG[monthNo - 1];
@@ -440,10 +439,10 @@ export function havenTop(f, status, month, extra = {}) {
   const vaultData = `${life}${recap}${story}${sky} data-cycle="${escapeHtml(String(f.cycleKey || ''))}" data-soon2="${soon2}"${streak >= 3 ? ` data-streak="${streak}"` : ''}${kept > 0 ? ` data-eve="Today you kept ${escapeHtml(formatRupees(kept))}"` : ''}${salary ? ` data-salary="${escapeHtml(String(salary.id))}|${escapeHtml(formatRupees(salary.amount))}"` : ''}`;
   const streakChip = streak >= 3 && !x.finished ? `<span class="hv-streak" title="Days in a row at or under an even pace">${SHIELD_MINI}${streak} days ahead</span>` : '';
   const peek = yest ? `<div class="hv-peek" aria-hidden="true"><span>Yesterday you spent <b>${escapeHtml(formatRupees(yest.spent))}</b></span><span>${yest.under >= 0 ? `${escapeHtml(formatRupees(yest.under))} under pace` : `${escapeHtml(formatRupees(-yest.under))} over pace`}</span></div>` : '';
-  const vault = `<div class="hv-shell"><div class="hv-vault ${f.free < 0 ? 'is-negative' : ''}"${vaultData} data-roll-scope data-limit="${x.limit}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
+  const vault = `<div class="hv-shell"><div class="hv-vault ${f.free < 0 ? 'is-negative' : ''}"${vaultData} data-roll-scope data-limit="${x.limit}" data-left="${x.left}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
       <div class="hv-vault__top"><span class="hv-pill">${monthName}</span>${streakChip}${badges}<span>${x.finished ? 'Final' : `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`}</span></div>
       <div class="hv-vault__main"><div><div class="hv-vault__lab">Left to spend</div><div class="hv-vault__fig hv-amt">${num}</div><div class="hv-vault__sub" data-status>${sub}</div>${more.cap ? `<div class="hv-vault__cap" data-cap>Your own limit: <b>${escapeHtml(formatRupees(more.cap))}</b> a day</div>` : ''}${asleep ? '<div class="hv-vault__sleep">A quiet month so far.</div>' : ''}<div class="hv-vault__eve" data-eve-line aria-live="polite"></div></div>
-      <div class="tide" data-mood="${mood}"${x.finished && x.closedUnder ? ` data-closed="${escapeHtml(String(f.cycleKey || ''))}"` : ''} style="--lvl:${lvl.toFixed(3)}" role="img" aria-label="${word}: ${formatRupees(x.left)} left of ${formatRupees(x.limit)}">${tideSvg(lvl, pace)}</div></div>
+      <div class="tide" data-mood="${mood}"${x.finished && x.closedUnder ? ` data-closed="${escapeHtml(String(f.cycleKey || ''))}"` : ''} style="--lvl:${lvl.toFixed(3)}" role="img" aria-label="${word}: ${formatRupees(x.left)} left of ${formatRupees(x.limit)}">${tideSvg(lvl, 0)}</div></div>
       <div class="hv-vault__stats"><div><span>Spent</span><b class="hv-amt" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div><div><span>Budget</span><b class="hv-amt">${shortRupees(x.limit)}</b></div><div><span>${x.finished ? 'Result' : 'On track'}</span><b class="hv-mood" data-mood="${mood}"><span class="hv-ic" style="width:16px;height:16px;vertical-align:-3px">${mIcon}</span> ${x.finished ? (x.closedUnder ? 'Under' : 'Over') : word}</b></div></div>
       ${closedNote(x)}
     </div></div>`;

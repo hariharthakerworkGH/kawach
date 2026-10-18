@@ -265,6 +265,31 @@ function dropIn(tide, lvl, lvlFrom) {
   };
 }
 
+/* The amount that just went (or came back) rides the water's surface to its new place, then fades: a small expense is a
+ * thin slice of a big budget, and a few pixels of water alone are easy to miss. Only when the level changed with the same
+ * budget (a spend, a refund), never for a new month or a changed budget. */
+function changeTag(tide, from, to, gone, delay = 0) {
+  // `gone` is what left, in paise (negative when money came back); the exact figure, not read back from the water's height.
+  const paise = Math.abs(gone);
+  if (!(paise >= 100)) return;
+  const down = gone > 0;
+  const at = (lvl) => ((surfaceOf(lvl) - 8) / 86) * tide.clientHeight;
+  const tag = document.createElement('i');
+  tag.className = `hv-drain${down ? '' : ' is-up'}`;
+  tag.textContent = `${down ? '−' : '+'}₹${Math.round(paise / 100).toLocaleString('en-IN')}`;
+  tide.append(tag);
+  const a = at(from), c = at(to), dir = down ? 1 : -1;
+  tag.animate(
+    [
+      { transform: `translate(-50%, ${a}px)`, opacity: 0 },
+      { transform: `translate(-50%, ${a + dir * 4}px)`, opacity: 1, offset: 0.18 },
+      { transform: `translate(-50%, ${c + dir * 12}px)`, opacity: 1, offset: 0.7 },
+      { transform: `translate(-50%, ${c + dir * 24}px)`, opacity: 0 },
+    ],
+    { duration: 1700, delay, easing: 'ease-out', fill: 'backwards' }
+  ).onfinish = () => tag.remove();
+}
+
 function settle(tide, lvl) {
   const water = tide.querySelector('.water');
   if (!water) return;
@@ -460,6 +485,7 @@ export function afterDraw(scope) {
     const fresh = Boolean(lastCyc && cyc && lastCyc !== cyc);
     if (cyc) store.set('kawach-cycle', cyc);
     const from = fresh ? 0 : prev ? prev.lvl : 0;
+    if (water && prev && !fresh && prev.key === (vault.dataset.levelKey || '') && Math.abs(from - to) > 0.002) changeTag(tide, from, to, prev.left != null && vault.dataset.left != null ? prev.left - Number(vault.dataset.left) : (from - to) * (Number(vault.dataset.limit) || 0), dropped ? 380 : 0);
     if (water && Math.abs(from - to) > 0.002) {
       // Starts where the water was last seen, then moves on (the stylesheet's spring does the moving).
       water.style.transition = 'none';
@@ -471,7 +497,7 @@ export function afterDraw(scope) {
       else requestAnimationFrame(() => requestAnimationFrame(() => settle(tide, to)));
     } else if (dropped && water) dropIn(tide, to, to);
     sessionStorage.removeItem('kawach-drop');
-    store.set(TIDE_KEY, JSON.stringify({ key: vault.dataset.levelKey || '', lvl: to }));
+    store.set(TIDE_KEY, JSON.stringify({ key: vault.dataset.levelKey || '', lvl: to, left: vault.dataset.left != null ? Number(vault.dataset.left) : null }));
     closedGlow(tide);
     if (vault.dataset.salary) salaryRise(vault, tide);
     streakChip(vault);
