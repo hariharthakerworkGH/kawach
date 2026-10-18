@@ -238,25 +238,36 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   (`statementDayFixes` corrects a saved day that disagrees).
 - The spending period is the calendar month for everyone, whether or not a
   card has a statement day yet, and never the month the next salary pays for.
-- The tour is a 58-second video, `media/kawach-tour.mp4` (1080 x 1920, 30 fps,
-  H.264 + AAC, with music and sound), with `media/kawach-tour.jpg` as its
-  poster, played over the app from Setup and Settings (`js/tour.js`) and on the
-  welcome page. The service worker never caches `media/`, so it needs a
-  connection. It is made with the Hyperframes skills (`/brag`): HTML motion
-  graphics with a real 3D phone whose screen is live HTML, a night-to-dawn
-  story (a ₹1,86,000 balance that is mostly spoken for, the shield, the
-  answer, six chapters on the phone, then "Stays on your phone"). Source,
-  plan and the render recipe: `expense-tracker-versions/tools/tour-showreel`
-  (README.md). It needs FFmpeg (winget Gyan.FFmpeg) and takes about 12
-  minutes. It shows what each screen really does, with example figures that
-  agree with each other ("Example figures" is on screen); it makes no claim
-  the app does not keep (Coach is arithmetic, never "AI"). The logo in it is
-  the app's own `icons/kawach.svg` (dark glass shield, cyan edge, light
-  rupee). No brand logos: the app bundles none (js/brand.js). When a screen
-  the film shows changes, change its copy of the screen in the film's
-  index.html and re-render. The old canvas film (`tour.html`, `js/tour-film.js`,
+- The tour is a 1:52 video, `media/kawach-tour.mp4` (720 x 1280, 30 fps,
+  H.264 + AAC, music only), with `media/kawach-tour.jpg` as its poster, played
+  over the app from Setup and Settings (`js/tour.js`) and on the welcome page.
+  The service worker never caches `media/`, so it needs a connection. It is 720p (9 MB) on purpose: the push uploads each file in one request, and on a slow connection anything over about 10 MB fails with a misleading "Bad credentials"; the 1080p master is rendered by the recipe in `tools/tour-showreel`. It is
+  the "story cut" (5.83), 1:52, made with the Hyperframes skills: midnight blue,
+  gold and ivory, Geist (the app's own typeface), a real 3D phone whose screen
+  is live HTML. It tells a story: a balance that is not what you can spend,
+  salary and the bills, "can I afford it?", the shield and what Kawach is,
+  then seven steps of a month (Plan, paste an SMS or import a statement, one
+  number every day with money moving between your own accounts, History,
+  Coach answering the same question, goals and dates, Home and shop), "And
+  more" (loans, PF, gold, chit funds), a plain privacy scene (what other apps
+  ask for is struck out, then what Kawach does not need), and the shield again
+  with the address. Source, plan and the render recipe:
+  `expense-tracker-versions/tools/tour-showreel` (README.md). It needs FFmpeg
+  (winget Gyan.FFmpeg); the full render takes about an hour on this machine
+  (software GL), a short tail takes a minute and can be spliced on. It shows
+  what each screen really does, with example figures that agree with each
+  other ("Example figures" is on screen); it makes no claim the app does not
+  keep (Coach is arithmetic, never "AI"). The logo is the app's own
+  shield (`icons/kawach.svg` without its black square). No brand logos: the
+  app bundles none (js/brand.js), and the film uses plain names (Bank account,
+  Credit card). Every line is one line and every line is held long enough to
+  read: the owner rejected five cuts for tiny, broken, rushed or unclear type
+  and story. Music is one bundled track played straight through, never looped
+  (a loop with a crossfade sounded jumbled); scene changes land on its beats.
+  When a screen the film shows changes, change its copy of the screen in
+  the film and re-render. The old canvas film (`tour.html`, `js/tour-film.js`,
   `js/film/`) and the screen-recording pipeline (`tools/tour-video`) are
-  superseded in 5.82 and kept only for reference; they are never published.
+  superseded and kept only for reference; they are never published.
   A first visit in a browser (not installed, nothing set up) goes to
   `welcome.html` once.
 

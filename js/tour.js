@@ -1,4 +1,4 @@
-// The tour: a minute of what the app is for, played over the app as a video.
+// The tour: two minutes of what the app is for, a story first and then the features, played over the app as a video.
 // media/kawach-tour.mp4 is made with the Hyperframes tools (tools/tour-showreel):
 // motion graphics and a 3D phone showing the app's own screens, rendered ahead
 // of time because every phone plays a video smoothly with its own decoder. It is
@@ -17,7 +17,7 @@ export function playTour() {
   const backdrop = document.createElement('div');
   backdrop.className = 'dialog-backdrop tour-backdrop';
   backdrop.innerHTML = `
-    <div class="tour-box" role="dialog" aria-modal="true" aria-label="Kawach in one minute">
+    <div class="tour-box" role="dialog" aria-modal="true" aria-label="Kawach in two minutes">
       <button type="button" class="icon-btn tour-close" aria-label="Close">${icon('close')}</button>
       <video class="tour-video" src="${TOUR_VIDEO}" poster="${TOUR_POSTER}" controls autoplay playsinline preload="auto"></video>
       <p class="muted-note tour-offline" hidden>The tour needs an internet connection.</p>

@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.83',
+    items: [
+      {
+        icon: 'play',
+        title: "A tour that tells the story",
+        text: "The tour is a story now: from a balance that is not yours to spend to the one number that is, then each part of the app in order, and what stays private.",
+      },
+    ],
+  },
+  {
     version: '5.82',
     items: [
       {
