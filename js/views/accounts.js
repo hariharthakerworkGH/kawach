@@ -1,7 +1,7 @@
 import { getAll, put, remove, newId } from '../db.js';
 import { computeFreeToSpend } from '../free-to-spend.js';
 import { formatCurrency, formatDateNice, formatMonthYear, formatRupees, ordinal } from '../format.js';
-import { bankBalance, balanceAt, cardBillDue, statementDay, isPutAway } from '../account-metrics.js';
+import { bankBalance, balanceAt, cardBillDue, statementDay, isPutAway, isSweepDeposit } from '../account-metrics.js';
 import { cardStandings } from '../card-standing.js';
 import { loanPosition, loanPayments, paymentsFor, payFasterPlan, loanHistory, isLoanAccount } from '../loans.js';
 import { askConfirm } from '../dialog.js';
@@ -1181,7 +1181,8 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
                        ${fact('Savings', formatRupees(balance))}
                        ${deposits.map((d) => fact(kindOf(d), formatRupees(d.balance))).join('')}
                        ${maturity ? fact('At maturity', `<span class="in">${formatRupees(maturity)}</span>`) : ''}
-                     </dl>`
+                     </dl>
+                     ${deposits.some((d) => isSweepDeposit(d.account)) ? `<p class="acc-state"><i class="bill-dot" aria-hidden="true"></i>The MOD counts as spendable with this account</p>` : ''}`
                    : account.deposit && account.deposit.atMaturity
                    ? `<dl class="loan-lines">${fact('At maturity', `<span class="in">${formatRupees(account.deposit.atMaturity)}</span>`)}</dl>`
                    : ''
@@ -1607,7 +1608,8 @@ export function cushionCard(fts) {
 // Haven's top: what you hold (everything you could name a balance for) and what you owe (cards and loans), as two figures.
 function holdOwe(groups, transactions, fts) {
   const sum = (list) => (list || []).map((a) => bankBalance(a, transactions)).filter((v) => v != null).reduce((s, v) => s + v, 0);
-  const hold = sum(groups.bank) + sum(groups.cash) + sum(groups.savings) + sum(groups.pf);
+  // Deposits shown inside a bank account's card are yours as well; they were not in this sum.
+  const hold = sum(groups.bank) + sum(groups.cash) + sum(groups.savings) + sum(groups.pf) + sum([...depositsOf.values()].flat());
   const owe = Math.max(0, ((fts && fts.totals && fts.totals.owedCards) || 0) + ((fts && fts.totals && fts.totals.unpaidBills) || 0)) + (((fts && fts.loans) || []).reduce((s, l) => s + (l.outstanding || 0), 0));
   return `<div id="hv-hold" data-hold="${hold}" data-owe="${owe}" hidden></div>`;
 }
@@ -1619,7 +1621,16 @@ function accountsTotal(groups, transactions, fts = null) {
     (list || [])
       .map((a) => ({ label: a.label, amount: bankBalance(a, transactions) }))
       .filter((x) => x.amount != null);
-  const spendableRows = [...known(groups.bank), ...known(groups.cash)];
+  // A MOD under a bank account is one pool with it (isSweepDeposit), so the account's row carries it.
+  const knownWithMod = (list) =>
+    (list || [])
+      .map((a) => {
+        const own = bankBalance(a, transactions);
+        const mod = (depositsOf.get(a.id) || []).filter(isSweepDeposit).reduce((s, d) => s + (bankBalance(d, transactions) || 0), 0);
+        return { label: a.label, amount: own == null ? null : own + mod };
+      })
+      .filter((x) => x.amount != null);
+  const spendableRows = [...knownWithMod(groups.bank), ...known(groups.cash)];
   const spendable = spendableRows.map((x) => x.amount);
   if (!spendable.length) return '';
   const total = spendable.reduce((s, v) => s + v, 0);

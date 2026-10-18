@@ -254,6 +254,9 @@ function draftTemplate(d) {
         <select class="al-account">
           <option value="">Pick the account</option>
           ${sortAccounts(context.accounts)
+            // A deposit (savings, such as SBI's MOD), a provident fund or a loan is not where a spend or a receipt happens; the one the alert
+            // was already matched to stays on the list so nothing is taken away from a choice already made.
+            .filter((a) => !['savings', 'pf', 'loan'].includes(a.type) || (d.account && d.account.id === a.id))
             .map((a) => `<option value="${a.id}" ${d.account && d.account.id === a.id ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
             .join('')}
         </select>

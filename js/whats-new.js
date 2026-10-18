@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.87',
+    items: [
+      {
+        icon: 'accounts',
+        title: "SBI alerts, and your MOD",
+        text: "SBI's EMI alerts are read now: the account, the amount, the name and the balance, and they go to your SBI account instead of asking you. A MOD counts with the account it sits under, as one balance you can use as needed.",
+      },
+    ],
+  },
+  {
     version: '5.86',
     items: [
       {

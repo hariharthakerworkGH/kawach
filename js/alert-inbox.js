@@ -130,6 +130,8 @@ export async function saveAlert(item, edits) {
     // alert shared twice is caught.
     alertKey,
     alertRef: parsed.ok ? parsed.ref : null,
+    // The balance printed after it: what tells two payments of one amount on one day apart (js/alerts.js findExisting).
+    alertBalance: parsed.ok && parsed.balanceAfter != null ? parsed.balanceAfter : null,
     // The time of day, shown in Edit and used for History's same-day order: the bank's own
     // time on the alert ("23:23") where it gave one; else the time the message reached the
     // app, when that was the day of the payment (an alert with no time in it is nearly

@@ -1,5 +1,5 @@
 import { getAll, getSetting } from './db.js';
-import { bankBalance, statementDay, afterKnownBalance, isEverydayBank, isPutAway } from './account-metrics.js';
+import { bankBalance, statementDay, afterKnownBalance, isEverydayBank, isPutAway, isSweepDeposit } from './account-metrics.js';
 import { cardStandings } from './card-standing.js';
 import { nextOccurrence, isoLocal, frequencyOf, monthlyAmountOf } from './frequency.js';
 import { isLiveCommitment, commitmentDueInWindow, paidAround, commitmentMatcher, matchWords, isSetAside, isAtmPlan, CASH_ENTRY_RE } from './commitments.js';
@@ -197,7 +197,8 @@ export async function computeFreeToSpend(now = new Date()) {
   // Savings pots, fixed deposits and bank accounts kept for saving: money of
   // yours, but not money to spend. A payment out of one can still settle a
   // commitment (an EMI leaving the loan account), but it is never spending.
-  const savingsAccounts = accounts.filter(isPutAway);
+  // A MOD under a bank account is counted with that account (isSweepDeposit), not here.
+  const savingsAccounts = accounts.filter((a) => isPutAway(a) && !isSweepDeposit(a));
   const pfAccounts = accounts.filter(isPfAccount);
   const loanAccounts = accounts.filter(isLoanAccount);
   const cardAccounts = accounts.filter((a) => a.type === 'card');
@@ -216,7 +217,7 @@ export async function computeFreeToSpend(now = new Date()) {
   const cycleStart = cycleClose ? addDays(paydayOnOrBefore(Math.max(...statementDays), addDays(cycleClose, -1)), 1) : null;
 
   // --- Bank ---------------------------------------------------------------
-  const bankLines = bankAccounts
+  const bankLines = [...bankAccounts, ...accounts.filter(isSweepDeposit)]
     .map((a) => {
       const balance = bankBalance(a, transactions, today);
       if (balance == null) return null;

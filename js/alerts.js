@@ -124,6 +124,13 @@ export function useLearned(list) {
   learned = Array.isArray(list) ? list.filter((f) => f && typeof f.re === 'string') : [];
 }
 
+// "Avl Balance INR 2,11,748.50": what is left after this payment. Two payments of the same amount on the same day (two EMIs of the
+// same size) differ only by it, so it is part of what makes an alert this alert and not the one before.
+function balanceAfterOf(raw) {
+  const m = raw.match(/\bAvl\.?\s*(?:Bal(?:ance)?\.?)\s*:?\s*(?:INR|Rs\.?|₹)?\s*([\d,]+(?:\.\d{1,2})?)/i);
+  return m ? toPaise(m[1]) : null;
+}
+
 function readLearned(raw) {
   // A real alert is a few hundred characters; a huge paste is never matched against taught patterns.
   if (raw.length > 1500) return null;
@@ -139,16 +146,20 @@ function readLearned(raw) {
     const amount = toPaise(g.amount);
     const date = g.date ? findDate(g.date) : null;
     if (!amount || (f.groups.includes('date') && !date)) continue;
+    // Without this, a wording taught from a message whose digits it could not mark (SBI's six printed digits) was read next time with
+    // no account at all.
+    const digits = g.last4 ? null : findDigits(raw);
     return finish({
       kind: f.kind || 'unknown',
       bank: bankName(raw),
-      instrument: f.instrument,
+      instrument: f.instrument || (digits ? digits.instrument : null),
       direction: f.direction,
       amount,
-      last4: g.last4 || null,
+      last4: g.last4 || (digits ? digits.last4 : null),
       party: g.party || null,
       date,
       time: findTime(raw),
+      balanceAfter: balanceAfterOf(raw),
       format: 'learned',
       confidence: 'learned',
       billPayment: Boolean(f.billPayment),
@@ -170,8 +181,20 @@ export function splitAlerts(text) {
   // contain one - the UPI alerts span several lines, but with no gap - so this
   // can't cut an alert in half. It also keeps a message we can't read (an OTP,
   // say) as its own item instead of letting it vanish into its neighbour.
-  return clean.split(/\n[ \t]*\n+/).flatMap(splitBlock);
+  const blocks = clean.split(/\n[ \t]*\n+/);
+  // A bank's greeting on a line of its own ("Greetings from SBI !") is the front of the message under it, not a message: left alone it
+  // became an item that could not be read, one for every alert pasted.
+  const joined = [];
+  for (let i = 0; i < blocks.length; i++) {
+    if (GREETING_ONLY.test(blocks[i].trim()) && i + 1 < blocks.length) {
+      blocks[i + 1] = `${blocks[i].trim()}\n${blocks[i + 1]}`;
+      continue;
+    }
+    joined.push(blocks[i]);
+  }
+  return joined.flatMap(splitBlock);
 }
+const GREETING_ONLY = /^(?:greetings(?:\s+from\s+[A-Za-z .&]{2,30}?)?|dear\s+(?:customer|sir|madam|valued\s+customer))\s*[!,.:]*$/i;
 
 // Within one block, several known alerts run together with no blank line
 // between them; each becomes its own piece.
@@ -272,6 +295,7 @@ function parseGeneric(raw) {
     date: findDate(raw),
     time: findTime(raw),
     ref: ref || null,
+    balanceAfter: balanceAfterOf(raw),
     format: 'generic',
     confidence: 'partial',
     // A payment arriving on a card is the bill being paid, not income.
@@ -307,7 +331,7 @@ function findDirection(raw, amountAt) {
 // candidate that is really the user's own account, a phone number or an amount is skipped
 // ("debited from your A/c XX1234 ... towards UPI/shop@ybl" is about the shop, not the account).
 const PARTY_STOP = String.raw`(?=\s+(?:on|to|from|towards|Avl|Avail|Ref|Refno|SMS|If|Not|Call|has|is|was|using|dated|date)\b|\s*[&,]|\.\s|\.$|\n|$)`;
-const PARTY_LABEL = new RegExp(String.raw`\b(?:refund(?:ed)?\s+by|reversed\s+by|credited\s+by|by|at|to|towards|trf\s+to|from|Info:)\s+([A-Za-z0-9&@.\-*'/ ]{2,60}?)` + PARTY_STOP, 'gi');
+const PARTY_LABEL = new RegExp(String.raw`\b(?:refund(?:ed)?\s+by|reversed\s+by|credited\s+by|by|at|to|towards|trf\s+to|from|Info:)\s+(?:(?:Mr|Mrs|Ms|Miss|Dr|Shri|Smt|Sri)\.?\s+)?([A-Za-z0-9&@.\-*'/ ]{2,60}?)` + PARTY_STOP, 'gi');
 const UPI_NAMED = /\bUPI\/[A-Za-z0-9]+\/\d{6,}\/([A-Za-z0-9&._@' -]{2,40}?)(?=\s+(?:SMS|Not|If|Call|Avl)\b|\s*[,;]|\.\s|\.$|\n|$)/i;
 const AFTER_CLOCK = /\b\d{2}:\d{2}(?::\d{2})?\s+([A-Za-z][A-Za-z0-9&.*' -]{2,40}?)\s+(?:Avl|Avail)\b/i;
 const NOT_A_PARTY = /^(?:your|my|the|a|an)\b|\b(?:a\/c|ac|acct?|account|card|cc|bank)\b|^(?:Rs\.?|INR|₹)|^[\d\s.,/-]{4,}$|\bX{2,}\d|^\d|\b(?:BLOCK|call)\b/i;
@@ -338,7 +362,7 @@ function findTime(raw) {
 // The first label in the message wins, and `instrument` says which kind it
 // was. A bare "ending in 6671" with no label is accepted last.
 const DIGIT_LABEL = String.raw`\b(credit\s+card|debit\s+card|card|cc|dc|a\/c|acct?|account|ac)\b`;
-const DIGIT_TAIL = String.raw`[\s:.\-(#]*(?:(?:no|number|num)\.?[\s:.\-(#]*)?(?:ending(?:\s+(?:in|with))?[\s:.\-(#]*)?(?:\d{0,6}[xX*•]+|[xX*•]*)(\d{4})(?!\d)`;
+const DIGIT_TAIL = String.raw`[\s:.\-(#]*(?:(?:no|number|num)\.?[\s:.\-(#]*)?(?:ending(?:\s+(?:in|with))?[\s:.\-(#]*)?(?:\d{0,6}[xX*•]+\d{0,2}|[xX*•]*)(\d{4})(?!\d)`;
 
 export function findDigits(raw) {
   const text = String(raw || '');
@@ -372,6 +396,7 @@ function finish(p) {
     description: describe(p.kind, party),
     // Moving money is not spending: cash out of an ATM, or paying a card bill.
     suggestTransfer: p.kind === 'atm-withdrawal' || Boolean(p.billPayment),
+    balanceAfter: p.balanceAfter == null ? null : p.balanceAfter,
   };
 }
 
@@ -389,7 +414,7 @@ function describe(kind, party) {
 // Includes the time and reference where the bank gives them, so two genuine
 // ₹50 chai payments on the same card still count as two.
 export function alertFingerprint(p) {
-  return [p.bank || '', p.instrument || '', p.last4 || '', p.direction || '', p.amount, p.date || '', p.time || '', p.ref || ''].join('|');
+  return [p.bank || '', p.instrument || '', p.last4 || '', p.direction || '', p.amount, p.date || '', p.time || '', p.ref || '', p.balanceAfter == null ? '' : p.balanceAfter].join('|');
 }
 
 // Which account an alert belongs to. The order is the point:
@@ -406,11 +431,19 @@ export function resolveAccount(p, accounts, transactions) {
   if (!p.last4) return null;
 
   const wantType = p.instrument === 'card' ? 'card' : p.instrument === 'account' ? 'bank' : null;
-  const byDigits = accounts.filter((a) => a.last4 === p.last4 && (!wantType || a.type === wantType));
+  let byDigits = accounts.filter((a) => a.last4 === p.last4 && (!wantType || a.type === wantType));
+  // A fixed deposit (SBI's MOD) is listed under the savings account's own number, so the two read as the same digits. An alert about a
+  // payment is never about the deposit: of several, the ones money is spent from come first.
+  const spendable = byDigits.filter((a) => a.type === 'bank' || a.type === 'card' || a.type === 'cash');
+  if (byDigits.length > 1 && spendable.length >= 1) byDigits = spendable;
   if (byDigits.length === 1) return byDigits[0];
   if (byDigits.length > 1 && p.bank) {
     const bank = p.bank.toLowerCase();
-    const sameBank = byDigits.filter((a) => `${a.issuer || ''} ${a.label || ''}`.toLowerCase().includes(bank));
+    const named = (a) => {
+      const s = `${a.issuer || ''} ${a.label || ''}`.toLowerCase();
+      return s.includes(bank) || (bank === 'sbi' && s.includes('state bank of india'));
+    };
+    const sameBank = byDigits.filter(named);
     if (sameBank.length === 1) return sameBank[0];
   }
   // Two accounts, same digits, no way to tell: ask rather than guess.
@@ -460,7 +493,8 @@ export function findExisting(p, accountId, transactions) {
   }
 
   if (!p.date) return null;
-  const near = onAccount.filter((t) => t.date === p.date);
+  // Two payments of the same amount on the same day (two EMIs) are different when the balance each alert printed afterwards is.
+  const near = onAccount.filter((t) => t.date === p.date && !(p.balanceAfter != null && t.alertBalance != null && t.alertBalance !== p.balanceAfter));
   return near.length ? { kind: 'likely', transaction: near[0] } : null;
 }
 

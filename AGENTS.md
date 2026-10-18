@@ -225,6 +225,20 @@ result). It is not the lent-and-borrowed ledger: that needs the share logged as 
 only bank and card money, and treats an unexpected payment in as borrowing. Money in is an
 employer paying back (`isSettlement`) or friends, never both.
 
+A MOD (SBI's multi-option deposit) under a bank account (`depositOf`,
+`deposit.kind === 'MOD'`) is one pool with that account (`isSweepDeposit`,
+js/account-metrics.js): SBI breaks it in blocks to pay whatever the account pays
+(an EMI, say), and the owner uses it as needed, so its balance counts with the
+bank's: the bank check, "In your accounts" and the account card's headline. A
+payment that lands on it is still never spending, and an ordinary fixed deposit
+stays money put away. An SBI alert ("Your A/C XXXXX890385 Debited INR ...
+-Transferred to Mr. NAME. Avl Balance ...") is read for its account (six digits
+after the mask), its person (title dropped) and the balance printed after it,
+which tells two EMIs of one size on one day apart. It resolves to the bank
+account, never to the deposit that shares its number, the draft's account list
+offers only accounts money is spent from, and a lone greeting line ("Greetings
+from SBI !") joins the message under it instead of becoming an item.
+
 Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built with
 `isoLocal` - never `toISOString()`, which is a day behind in India.
 
