@@ -53,6 +53,7 @@ const views = {
   inbox: { title: 'Bank alerts', module: null, load: () => import('./views/inbox.js') },
   recap: { title: 'Month in review', module: null, load: () => import('./views/recap.js') },
   policies: { title: 'Policies', module: null, load: () => import('./views/policies.js') },
+  bills: { title: 'One-time bills', module: null, load: () => import('./views/bills.js') },
   categories: { title: 'Categories', module: null, load: () => import('./views/categories.js') },
   import: { title: 'Import Statement', module: null, load: () => import('./views/import.js') },
   settings: { title: 'Backup & Settings', module: null, load: () => import('./views/settings.js') },

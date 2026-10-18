@@ -55,7 +55,8 @@ export function trackCommitments(budgetItems, { periodOf, today, markedPaid }) {
     if (!b.tracked) return { ...row, status: 'untracked' };
     if (!variable) {
       if (b.used >= b.amount * 0.9) return { ...row, status: 'paid' };
-      const due = nextOccurrence(b.item.dayOfMonth, dateOf(p.start));
+      // A one-time bill has its own date, so one still unpaid after it reads late, not due again next month.
+      const due = b.item.once && b.item.once.dueOn ? b.item.once.dueOn : nextOccurrence(b.item.dayOfMonth, dateOf(p.start));
       if (b.used > 0) return { ...row, status: 'part', due };
       return { ...row, status: due < today ? 'late' : 'due', due };
     }

@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.86',
+    items: [
+      {
+        icon: 'bill',
+        title: "Bills that are due once",
+        text: "Add a payment that does not repeat, like a school fee, a repair or a supplier's invoice, with its date. It is held out of Left to spend in the month it is due, shows in the months ahead, and ends by itself when you record the payment.",
+        guide: [{ view: 'plan', target: '#plan-bills', text: "Add a bill that is due once. It is held out of Left to spend in its month, and a reminder comes before it is due." }],
+      },
+    ],
+  },
+  {
     version: '5.85',
     items: [
       {

@@ -278,6 +278,16 @@ const LATE_DAYS = 5;
 // window reaches into: the window ends the day before a payday at the end of
 // a month, and that month's cash still comes out of the salary before it.
 export function commitmentDueInWindow(item, { today, windowEnd, bankEntries, wholeMonths = false }) {
+  // A one-time bill (js/bills.js): what is still owed on it, once, when its date falls on or before the window's end. It
+  // counts while unpaid, however late; a payment found for it (its words, or about its amount) ends it.
+  if (item.once && item.once.dueOn) {
+    const due = item.once.dueOn;
+    if (item.once.paidOn || due > windowEnd) return { amount: 0, detail: '' };
+    const matcher = entryMatcher(item);
+    const paid = bankEntries.filter((t) => t.date >= addDays(due, -45) && t.date <= windowEnd && isPaymentFor(item, matcher, t)).reduce((s, t) => s + t.amount, 0);
+    const owed = paid >= item.amount * 0.9 ? 0 : Math.max(0, item.amount - paid);
+    return { amount: owed, detail: owed ? `due ${shortDate(due)}` : '' };
+  }
   const freq = frequencyOf(item);
   const last = item.endDate && item.endDate < windowEnd ? item.endDate : windowEnd;
   const matcher = entryMatcher(item);

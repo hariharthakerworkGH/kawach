@@ -24,6 +24,7 @@ import { incomeType, incomeWords, businessPlan, isBusinessCategory, businesses, 
 import { subscriptionsOf } from '../subscriptions.js';
 import { forecast, bankAhead } from '../forecast.js';
 import { isPolicy, yearlyPremium, maturitiesAhead } from '../policies.js';
+import { isOneTime, settleBills } from '../bills.js';
 import { escapeHtml, emptyState, sectionHead, hero } from '../ui.js';
 import { askConfirm } from '../dialog.js';
 import { dragToClose } from '../sheet-drag.js';
@@ -47,6 +48,9 @@ let cashRuleOn = false;
 
 export async function render(container) {
   cashRuleOn = Boolean(await getSetting('cashRuleFrom', null));
+  // A one-time bill whose payment has been recorded ends here, so it is not held out of next month as well (js/bills.js). Off the
+  // critical path: the screen is drawn at once, and redrawn only on the rare day a bill was just settled.
+  settleBills().then((n) => { if (n && container.isConnected) redraw(container, () => render(container)); }).catch(() => {});
   const [categories, recurring, transactions, income, budgets] = await Promise.all([
     getAll('categories'),
     getAll('recurring'),
@@ -71,8 +75,11 @@ export async function render(container) {
   // coming next at the top; biggest first shows what dominates the month.
   // Either way it is only the order - nothing is added, hidden or recounted.
   const planOrder = appearance('plan');
-  const fixed = sortCommitments(recurring.filter((r) => inLane(r) && isLiveCommitment(r, todayIso)), planOrder);
-  const finished = recurring.filter((r) => inLane(r) && isFixed(r) && r.active !== false && isFinished(r, todayIso));
+  const liveHere = recurring.filter((r) => inLane(r) && isLiveCommitment(r, todayIso));
+  // One-time bills have their own screen (js/views/bills.js); their month's share is still part of what must go out.
+  const fixed = sortCommitments(liveHere.filter((r) => !isOneTime(r)), planOrder);
+  const onceBills = liveHere.filter(isOneTime);
+  const finished = recurring.filter((r) => inLane(r) && isFixed(r) && r.active !== false && !isOneTime(r) && isFinished(r, todayIso));
   const laneAccounts = accounts.filter(accountInSpace(space));
   const laneCategories = categories.filter((c) => isBusinessCategory(c) === inBusiness);
   // Each commitment is stored the way you entered it ("₹120 a day"); what the
@@ -80,7 +87,7 @@ export async function render(container) {
   // A loan's EMI is set up on the loan account and counted here too, so the
   // plan matches the Summary without it being typed in twice.
   const loanItems = inBusiness ? [] : accounts.filter(isLoanAccount).map(loanCommitment).filter(Boolean);
-  const fixedTotal = [...fixed, ...loanItems].reduce((s, r) => s + monthlyAmountOf(r), 0);
+  const fixedTotal = [...fixed, ...loanItems, ...onceBills].reduce((s, r) => s + monthlyAmountOf(r), 0);
 
   const now = new Date();
   const monthKey = currentMonthKey(now);
@@ -362,7 +369,7 @@ export async function render(container) {
              .join('')}</div></details>`
     }
     ${renewalsList(fixed.filter((f) => renews(f)), todayIso)}
-    ${policiesLine(fixed)}
+    ${moreLines(fixed, recurring.filter((r) => inLane(r) && isOneTime(r) && !r.once.paidOn))}
     ${inBusiness ? '' : subscriptionsList(subscriptionsOf(fixed, new Set(accounts.filter((a) => a.type === 'card').map((a) => a.id)), transactions, todayIso))}
     ${
       finished.length
@@ -652,6 +659,7 @@ export async function render(container) {
     btn.addEventListener('click', () => container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'policies', open: btn.dataset.id } })));
   });
   container.querySelector('#plan-policies')?.addEventListener('click', () => container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'policies' } })));
+  container.querySelector('#plan-bills')?.addEventListener('click', () => container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'bills' } })));
 
   container.querySelectorAll('.fixed-edit').forEach((btn) => {
     btn.addEventListener('click', async () => {
@@ -1087,13 +1095,23 @@ function renewalsList(items, today) {
     </div>`;
 }
 
-/* NEW (5.84): one quiet line to the policies, always there: how many and what they cost a year, or an invitation to add the first. */
-function policiesLine(items) {
+/* NEW (5.84, 5.85): two quiet lines, always there: the insurance policies (how many and what they cost a year, or an invitation to
+ * add the first) and the one-time bills (how many are still to pay and how much, or an invitation). Each opens its own screen. */
+function moreLines(items, unpaidBills) {
   const policies = items.filter(isPolicy);
   const yearly = policies.reduce((t, r) => t + yearlyPremium(r), 0);
+  const owed = unpaidBills.reduce((t, r) => t + r.amount, 0);
+  const next = [...unpaidBills].sort((a, b) => (a.once.dueOn < b.once.dueOn ? -1 : 1))[0];
   return `<div class="totals-card plan-policies-card"><button type="button" class="k-row" id="plan-policies">
       <span class="k-row__body"><span class="k-row__title">Insurance policies</span><span class="k-row__meta">${
         policies.length ? `${policies.length} · ${formatRupees(yearly)} a year · details, due dates, family summary` : 'Health, life, vehicle: add one once, keep every detail in one place'
+      }</span></span>
+      <span class="k-row__value">${icon('forward')}</span>
+    </button><button type="button" class="k-row" id="plan-bills">
+      <span class="k-row__body"><span class="k-row__title">One-time bills</span><span class="k-row__meta">${
+        unpaidBills.length
+          ? `${unpaidBills.length} to pay · ${formatRupees(owed)} · next ${escapeHtml(next.label)} ${formatDateNice(next.once.dueOn)}`
+          : 'A school fee, a repair, a supplier: due once, held out of Left to spend in its month'
       }</span></span>
       <span class="k-row__value">${icon('forward')}</span>
     </button></div>`;

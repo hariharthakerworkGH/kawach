@@ -492,7 +492,7 @@ export async function computeFreeToSpend(now = new Date()) {
   const budgetItems = live
     .filter((item) => paidBy(item) !== 'cash') // cash comes out of the ATM commitment
     .filter((item) => !skipped(item))
-    .map((item) => ({ item, label: item.label, amount: monthlyAmountOf(item), paidBy: paidBy(item) }));
+    .map((item) => ({ item, label: item.label, amount: monthlyAmountOf(item, today), paidBy: paidBy(item) }));
   const skippedItems = live.filter((item) => paidBy(item) !== 'cash' && skipped(item));
   const noCommitments = budgetItems.length === 0 && skippedItems.length === 0;
   const limit = monthlyIncome ? monthlyIncome + businessExtra - sum(budgetItems) - keep : null;
@@ -930,7 +930,7 @@ export async function computeFreeToSpend(now = new Date()) {
     tracker.push({
       id: item.id,
       label: item.label,
-      amount: monthlyAmountOf(item),
+      amount: monthlyAmountOf(item, today),
       paidBy: paidBy(item),
       used: 0,
       matches: [],
@@ -1082,7 +1082,7 @@ export async function computeFreeToSpend(now = new Date()) {
 // before the next one). A spread one counts in full. A dated one counts on
 // each due date in the month, unless it has already been paid early.
 function commitmentForMonth(item, from, to, bankEntries, today) {
-  if (frequencyOf(item) !== 'monthly') return commitmentDueInWindow(item, { today: from, windowEnd: to, bankEntries, wholeMonths: true });
+  if (item.once || frequencyOf(item) !== 'monthly') return commitmentDueInWindow(item, { today: from, windowEnd: to, bankEntries, wholeMonths: true });
   if (item.spread) return { amount: item.amount, detail: 'through the month' };
   let amount = 0;
   const dues = [];

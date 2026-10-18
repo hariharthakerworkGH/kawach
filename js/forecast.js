@@ -14,6 +14,11 @@ const ym = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
 /* What this cost takes out of month `key` (YYYY-MM): { amount, dated } where `dated` says it
  * is a whole renewal landing then, not a monthly slice. */
 export function costInMonth(item, key) {
+  // A one-time bill (js/bills.js) lands in full in the month it is due (or was paid), and in no other.
+  if (item.once && item.once.dueOn) {
+    const month = (item.once.paidOn || item.once.dueOn).slice(0, 7);
+    return month === key ? { amount: item.amount, dated: true } : { amount: 0, dated: false };
+  }
   if (item.endDate && item.endDate.slice(0, 7) < key) return { amount: 0, dated: false };
   const step = RENEWAL_MONTHS[frequencyOf(item)];
   if (step && item.renewsOn) {

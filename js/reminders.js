@@ -102,6 +102,18 @@ export async function refreshSchedule() {
     if (!isLiveCommitment(r)) continue;
     // Reminding you daily that you buy chai daily helps nobody - only things
     // that fall due on a particular date are worth a notification.
+    // A one-time bill is reminded once, before its own date; never again after it.
+    if (r.once && r.once.dueOn) {
+      if (r.once.paidOn || r.once.dueOn < todayISO()) continue;
+      schedule.push({
+        id: `bill-once-${r.id}-${r.once.dueOn}`,
+        title: `${r.label} is due`,
+        body: `${formatCurrency(r.amount)} on ${niceDate(r.once.dueOn)}.`,
+        notifyOn: shiftDays(r.once.dueOn, -daysBefore),
+        dueDate: r.once.dueOn,
+      });
+      continue;
+    }
     if (!hasDueDate(frequencyOf(r)) || r.spread) continue;
     // A renewal (every three, six or twelve months) on its own date, a week
     // ahead at least, as insurance needs time. Without a date it is never

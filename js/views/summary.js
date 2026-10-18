@@ -32,6 +32,7 @@ import { backupStatus } from '../drive.js';
 import { incomeWords, businesses, activeSpace, setCurrentSpace, accountInSpace, businessSpace, businessRunway } from '../business.js';
 import { taxDates, renews, renewalsAhead, renewalAfter } from '../calendar.js';
 import { isPolicy, markPaid } from '../policies.js';
+import { settleBills } from '../bills.js';
 import { escapeHtml, escapeAttr, sectionHead, pill, hero, panel, arrivalNow, slideIn } from '../ui.js';
 import { lateBack, reminderText, shareReminder } from '../people.js';
 import { cashSide, spendMoves, isCardBill } from '../transfers.js';
@@ -97,6 +98,9 @@ export async function render(container) {
     viewMonth = null;
     shownIn = container;
   }
+  // A one-time bill whose payment has been recorded ends here, so it is not held out of next month as well (js/bills.js). Off the
+  // critical path: the screen is drawn at once, and redrawn only on the rare day a bill was just settled.
+  settleBills().then((n) => { if (n && container.isConnected) redraw(container, () => render(container)); }).catch(() => {});
   const list = await businesses();
   space = await activeSpace();
   // Summary is the first screen on the new visual system, the design notes kept on the laptop.

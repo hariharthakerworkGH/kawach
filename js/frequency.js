@@ -31,7 +31,15 @@ export function toMonthly(amount, frequency) {
   return Math.round(amount * f.perMonth);
 }
 
-export function monthlyAmountOf(item) {
+export function monthlyAmountOf(item, today) {
+  // A one-time bill (js/bills.js) takes its whole amount out of ONE month's budget and nothing out of the others: the month it is
+  // due, this month while it is overdue, or the month it was paid in when that is another one.
+  if (item.once && item.once.dueOn) {
+    const now = (today || isoLocal(new Date())).slice(0, 7);
+    const dueMonth = item.once.dueOn.slice(0, 7);
+    const month = item.once.paidOn ? item.once.paidOn.slice(0, 7) : dueMonth >= now ? dueMonth : now;
+    return month === now ? item.amount : 0;
+  }
   return toMonthly(item.amount, frequencyOf(item));
 }
 

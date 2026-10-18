@@ -245,3 +245,11 @@
 :root[data-style="haven"] .hv-plan-forecast .hv-fold .hv-row { padding-inline: 16px; }
 /* "The whole year" is a button like any other: a thumb needs 44 px (the gate's tap-target audit caught 35). */
 :root[data-style="haven"] .hv-plan-forecast .hv-detailsbtn { min-height: 44px; }
+
+/* One-time bills (5.85): the list and its form use Plan's own rows; only the colour of a date that is close or late is new. */
+.bills .bill-meta.is-warn { color: var(--warn); }
+.bills .bill-meta.is-bad { color: var(--out); }
+.bills .btn-tiny, .bills .btn-secondary { min-height: 44px; }
+.bills .btn-primary { margin-top: var(--space-sm); }
+.bills .bill-total .k-row__title { font-weight: 650; }
+.bills .section-fold { margin: var(--space-xs) 0; }

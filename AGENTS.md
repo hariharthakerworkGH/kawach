@@ -94,6 +94,19 @@ contacts. Planned next, not built: a switch-ready planner (what to ask for in
 hand, what to have saved before changing jobs), which reads the payslip's own
 deductions rather than doing tax sums.
 
+**One-time bills** (5.85, `js/bills.js`, `js/views/bills.js`, one quiet line on Plan). A
+payment due on one date that does not repeat: a school fee, a repair, a trip
+balance, a supplier's invoice. It is a commitment with `once: { dueOn, paidOn }`, so
+the trackers, Summary's bills, the bank check, backup and sync already know it.
+It takes its whole amount out of ONE month's budget (`monthlyAmountOf(item,
+today)`): the month it is due, this month while it is overdue, or the month it
+was paid in when that is another one, and nothing out of the others, so Left to
+spend stays steady the rest of the time. The months ahead show it in its own
+month. A payment found for it (tagged to it, its words, or about its amount, from
+45 days before its date) ends it, as does "Mark as paid"; `settleBills()` runs
+when Summary, Plan or the bills screen opens, so it is not held out of next
+month as well. It never shows among the repeating commitments on Plan.
+
 Periods:
 - **Spending is the calendar month**, 1st to last day, for cards and bank alike.
   Nothing before the 1st counts, with one exception: a commitment with a set day
