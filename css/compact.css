@@ -225,3 +225,23 @@
 .plan-coach__go { display: grid; color: var(--k-text-3); }
 .plan-coach__go svg { width: 16px; height: 16px; }
 .plan-coach:active { transform: scale(0.985); }
+
+/* Policies (5.84): the list, one policy's details, its form. The rows are Plan's own (k-row, totals-card); these add only
+   what is new: the colour of a premium date that is close or late, and details that wrap instead of running off the card. */
+.pol .pol-meta.is-soon, .pol .pol-meta.is-warn, .pol .pol-tone.is-soon, .pol .pol-tone.is-warn { color: var(--warn); }
+.pol .pol-meta.is-bad, .pol .pol-tone.is-bad { color: var(--out); }
+.pol .pol-fact { gap: 16px; align-items: flex-start; }
+.pol .pol-fact > span:last-child { text-align: right; max-width: 64%; overflow-wrap: anywhere; white-space: normal; font-weight: 600; }
+.pol .pol-fact a { display: inline-block; padding: 12px 0; margin: -12px 0; color: inherit; text-decoration: underline; }
+.pol .btn-primary { margin-top: var(--space-sm); }
+.pol .btn-tiny { min-height: 44px; }
+.pol .pol-total .k-row__title { font-weight: 650; }
+.pol .section-fold { margin: var(--space-xs) 0; }
+.plan-policies-card .k-row { min-height: 56px; }
+.plan-policies-card .k-row__value svg { width: 16px; height: 16px; }
+.fixed-form .policy-open, #fixed-form .policy-open { min-height: 44px; }
+/* The rest of the year on Plan sits in a fold, and a fold takes the side padding off its rows (it was made for the Add form);
+   these rows are a list like the three above them and keep the same padding. */
+:root[data-style="haven"] .hv-plan-forecast .hv-fold .hv-row { padding-inline: 16px; }
+/* "The whole year" is a button like any other: a thumb needs 44 px (the gate's tap-target audit caught 35). */
+:root[data-style="haven"] .hv-plan-forecast .hv-detailsbtn { min-height: 44px; }

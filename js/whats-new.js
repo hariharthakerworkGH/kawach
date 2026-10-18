@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.84',
+    items: [
+      {
+        icon: 'file',
+        title: "Your insurance, in one place",
+        text: "Add your health, life or vehicle policy once: its number, who is covered, the nominee, the helpline, and a warning before a premium is due. Plan now shows the whole year ahead, and you can send your family a one-page summary.",
+        guide: [{ view: 'plan', target: '#plan-policies', text: "Add a policy once. It keeps its details, tells you when a premium is due, and can make a one-page summary for your family." }],
+      },
+    ],
+  },
+  {
     version: '5.83',
     items: [
       {

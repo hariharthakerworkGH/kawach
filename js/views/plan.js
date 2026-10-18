@@ -23,6 +23,7 @@ import { bankBalance } from '../account-metrics.js';
 import { incomeType, incomeWords, businessPlan, isBusinessCategory, businesses, activeSpace, commitmentInSpace, accountInSpace } from '../business.js';
 import { subscriptionsOf } from '../subscriptions.js';
 import { forecast, bankAhead } from '../forecast.js';
+import { isPolicy, yearlyPremium, maturitiesAhead } from '../policies.js';
 import { escapeHtml, emptyState, sectionHead, hero } from '../ui.js';
 import { askConfirm } from '../dialog.js';
 import { dragToClose } from '../sheet-drag.js';
@@ -361,6 +362,7 @@ export async function render(container) {
              .join('')}</div></details>`
     }
     ${renewalsList(fixed.filter((f) => renews(f)), todayIso)}
+    ${policiesLine(fixed)}
     ${inBusiness ? '' : subscriptionsList(subscriptionsOf(fixed, new Set(accounts.filter((a) => a.type === 'card').map((a) => a.id)), transactions, todayIso))}
     ${
       finished.length
@@ -646,6 +648,11 @@ export async function render(container) {
     });
   });
 
+  container.querySelectorAll('.policy-open').forEach((btn) => {
+    btn.addEventListener('click', () => container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'policies', open: btn.dataset.id } })));
+  });
+  container.querySelector('#plan-policies')?.addEventListener('click', () => container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'policies' } })));
+
   container.querySelectorAll('.fixed-edit').forEach((btn) => {
     btn.addEventListener('click', async () => {
       editingId = btn.dataset.id;
@@ -730,6 +737,8 @@ export async function render(container) {
         // A statement re-import leaves figures you changed by hand alone.
         amountEdited: existing ? existing.amountEdited || amount !== existing.amount : undefined,
         dayEdited: existing ? existing.dayEdited || dayOfMonth !== existing.dayOfMonth : undefined,
+        // A policy's own premium date follows the date typed here, so the two never disagree.
+        ...(existing && existing.policy ? { policy: { ...existing.policy, dueOn: renewsOn || existing.policy.dueOn || null, day: renewsOn ? Number(renewsOn.slice(8, 10)) : existing.policy.day } } : {}),
       });
       adding = false;
       editingId = null;
@@ -1061,7 +1070,7 @@ function renewalsList(items, today) {
     <div class="totals-card renewals">
       ${dated
         .map(
-          ({ item, due, days }) => `<button type="button" class="k-row renewal-row fixed-edit${days <= 7 ? ' is-soon' : ''}" data-id="${item.id}">
+          ({ item, due, days }) => `<button type="button" class="k-row renewal-row ${isPolicy(item) ? 'policy-open' : 'fixed-edit'}${days <= 7 ? ' is-soon' : ''}" data-id="${item.id}">
             <span class="k-row__body"><span class="k-row__title">${escapeHtml(item.label)}</span><span class="k-row__meta">${formatDateNice(due)}${when(days) ? ` · ${when(days)}` : ''}</span></span>
             <span class="k-row__value">${formatRupees(item.amount)}</span>
           </button>`
@@ -1069,7 +1078,7 @@ function renewalsList(items, today) {
         .join('')}
       ${undated
         .map(
-          (item) => `<button type="button" class="k-row renewal-row fixed-edit" data-id="${item.id}">
+          (item) => `<button type="button" class="k-row renewal-row ${isPolicy(item) ? 'policy-open' : 'fixed-edit'}" data-id="${item.id}">
             <span class="k-row__body"><span class="k-row__title">${escapeHtml(item.label)}</span><span class="k-row__meta">Add the date it renews</span></span>
             <span class="k-row__value">${formatRupees(item.amount)}</span>
           </button>`
@@ -1078,17 +1087,29 @@ function renewalsList(items, today) {
     </div>`;
 }
 
+/* NEW (5.84): one quiet line to the policies, always there: how many and what they cost a year, or an invitation to add the first. */
+function policiesLine(items) {
+  const policies = items.filter(isPolicy);
+  const yearly = policies.reduce((t, r) => t + yearlyPremium(r), 0);
+  return `<div class="totals-card plan-policies-card"><button type="button" class="k-row" id="plan-policies">
+      <span class="k-row__body"><span class="k-row__title">Insurance policies</span><span class="k-row__meta">${
+        policies.length ? `${policies.length} · ${formatRupees(yearly)} a year · details, due dates, family summary` : 'Health, life, vehicle: add one once, keep every detail in one place'
+      }</span></span>
+      <span class="k-row__value">${icon('forward')}</span>
+    </button></div>`;
+}
+
 /* NEW (5.32): the three months after this one - what is left of the money coming in once the
  * fixed costs and your saving are out - with the renewals that make a month heavy named.
  * A month that comes up short says so in words and in red. Fixed costs only: everyday
  * spending is what the figure is for (js/forecast.js). */
 /* The coming months. A cost skipped for this month is not in this month's figures but is back in the next, so
  * `skipped` (its items) is counted in every month ahead: skipping once must not hide a short month. */
-export function comingMonths(figures, today, skipped = []) {
+export function comingMonths(figures, today, skipped = [], count = 3) {
   if (!figures || figures.limit == null) return [];
   const income = figures.limit + figures.budgetItems.reduce((t, b) => t + b.amount, 0) + (figures.keep || 0);
   const items = [...figures.budgetItems.map((b) => b.item), ...skipped.filter((s) => !figures.budgetItems.some((b) => b.item.id === s.id))];
-  return forecast({ items, income, keep: figures.keep || 0, today, months: 3 });
+  return forecast({ items, income, keep: figures.keep || 0, today, months: count });
 }
 
 const monthWord = (key) => new Date(`${key}-01T12:00`).toLocaleDateString('en-IN', { month: 'long' });
@@ -1130,19 +1151,34 @@ function havenArrange(container, figures, todayIso, skipped) {
   setDueDot(((figures && figures.tracker) || []).filter((t) => !t.setAside && !t.skipped && (t.status === 'late' || ((t.status === 'due' || t.status === 'part') && t.due && t.due <= in2))).length);
 }
 
+/* The rest of the year (5.84), behind one line: the same calm rows, each month with its year, and the money a policy pays back
+ * (an endowment, a money-back plan) in the month it arrives. That money is shown, never counted, until it is in the bank. */
+function yearFold(rest, figures, today, skipped, row) {
+  const items = [...figures.budgetItems.map((b) => b.item), ...skipped.filter((s) => !figures.budgetItems.some((b) => b.item.id === s.id))];
+  const coming = maturitiesAhead(items, today, 12);
+  const monthYear = (iso) => new Date(`${iso.slice(0, 7)}-01T12:00`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const pays = coming
+    .map((c) => `<div class="hv-row hv-row--month" style="padding-bottom:20px"><div class="hv-row__t">${monthYear(c.on)}</div><div class="hv-row__m">${escapeHtml(c.item.label)} pays back, counted only when it arrives</div><div class="hv-row__v hv-amt">${c.amount ? `+${formatRupees(c.amount)}` : ''}</div></div>`)
+    .join('');
+  return `<button type="button" class="hv-detailsbtn" data-hv-fold aria-expanded="false" style="margin-top:10px"><span>The whole year</span><span class="hv-chev"><span class="hv-ic">${icon('chevdown')}</span></span></button>
+    <div class="hv-fold"><div><div class="hv-shell" style="margin-top:10px"><div class="hv-core flush">${rest.map((m) => row(m, true)).join('')}${pays}</div></div></div></div>`;
+}
+
 function havenForecast(figures, today, skipped) {
-  const months = comingMonths(figures, today, skipped);
+  const whole = comingMonths(figures, today, skipped, 12);
+  const months = whole.slice(0, 3);
+  const rest = whole.slice(3);
   if (!months.length) return '';
   const ahead = bankAhead({ bankAfter: figures.bankAfterBills, freeNow: figures.free, months, keep: figures.keep || 0 });
   const long = (key) => new Date(`${key}-01T12:00`).toLocaleDateString('en-IN', { month: 'long' });
   const keep = figures.keep || 0;
   // One calm row a month: what is left after fixed costs and saving (or how much more they are than what comes in), and a
   // little bar for how much of what comes in they take. No alarm: it is arithmetic, and what to do about it is Plan's own.
-  const row = (m) => {
+  const row = (m, withYear = false) => {
     const income = m.costs + keep + m.free;
     const used = income > 0 ? Math.min(1, (m.costs + keep) / income) : 1;
     const what = m.renewals.length ? `${escapeHtml(m.renewals[0].label)} ${formatRupees(m.renewals[0].amount)} due${m.renewals.length > 1 ? ` and ${m.renewals.length - 1} more` : ''}` : 'a usual month';
-    return `<div class="hv-row hv-row--month" style="padding-bottom:20px"><div class="hv-row__t">${long(m.key)}</div><div class="hv-row__m">${what}</div><div class="hv-row__v hv-amt${m.short ? ' is-over' : ''}">${m.short ? `${formatRupees(-m.free)} over` : `${formatRupees(m.free)} free`}</div><div class="hv-meter${m.short ? ' over' : ''}" style="position:absolute;left:16px;right:16px;bottom:9px;--p:${used.toFixed(3)}"><i></i></div></div>`;
+    return `<div class="hv-row hv-row--month" style="padding-bottom:20px"><div class="hv-row__t">${long(m.key)}${withYear ? ` ${m.key.slice(0, 4)}` : ''}</div><div class="hv-row__m">${what}</div><div class="hv-row__v hv-amt${m.short ? ' is-over' : ''}">${m.short ? `${formatRupees(-m.free)} over` : `${formatRupees(m.free)} free`}</div><div class="hv-meter${m.short ? ' over' : ''}" style="position:absolute;left:16px;right:16px;bottom:9px;--p:${used.toFixed(3)}"><i></i></div></div>`;
   };
   const last = ahead ? ahead.spend[months.length - 1] : null;
   const refund = figures.refundInBankCheck || 0;
@@ -1151,7 +1187,7 @@ function havenForecast(figures, today, skipped) {
     ? `<p class="hv-muted hv-monthnote">${over.length === months.length ? 'Each of these months' : `${over.map((m) => long(m.key)).join(' and ')}`}: fixed costs and saving come to more than comes in. Saving less, or trimming a flexible cost, closes it.</p>`
     : '';
   const bank = ahead && last < 0 ? `<p class="hv-muted hv-monthnote">Your bank by then, if you spend what is free: ${formatRupees(-last)} short${refund > 0 ? `, before the ${formatRupees(refund)} your employer owes you` : ''}.</p>` : '';
-  return `<div class="hv-sec"><h2>Coming months</h2></div><div class="hv-shell" style="margin-top:10px"><div class="hv-core flush">${months.map(row).join('')}${why || bank ? `<div class="hv-notes">${why}${bank}</div>` : ''}</div></div>`;
+  return `<div class="hv-sec"><h2>Coming months</h2></div><div class="hv-shell" style="margin-top:10px"><div class="hv-core flush">${months.map((m) => row(m)).join('')}${why || bank ? `<div class="hv-notes">${why}${bank}</div>` : ''}</div></div>${whole.length > 3 ? yearFold(rest, figures, today, skipped, row) : ''}`;
 }
 
 export function forecastList(figures, today, skipped = []) {
@@ -1268,6 +1304,7 @@ function fixedForm(categories, accounts, item) {
         <span>What is it</span>
         <input type="text" class="ff-label" placeholder="e.g. House loan EMI, Sent to Papa, ATM cash" value="${escapeHtml(v.label || '')}" required>
       </label>
+      ${item && item.policy ? `<p class="muted-note">This is an insurance policy: <button type="button" class="btn-tiny policy-open" data-id="${item.id}">open its details</button></p>` : ''}
       <label class="field">
         <span>Amount each time</span>
         <input type="number" class="ff-amount" inputmode="decimal" step="0.01" min="0.01" placeholder="68000" value="${v.amount ? (v.amount / 100).toFixed(2).replace(/\.00$/, '') : ''}" required>

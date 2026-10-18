@@ -76,7 +76,7 @@ export const RENEWAL_GRACE_DAYS = 3;
 
 // The same day of the month `months` later, the 31st held to a short month's
 // last day without losing it for the months after.
-function monthsOn(fromIso, months) {
+export function monthsOn(fromIso, months) {
   const [y, m, d] = fromIso.split('-').map(Number);
   const last = new Date(y, m - 1 + months + 1, 0).getDate();
   return isoLocal(new Date(y, m - 1 + months, Math.min(d, last)));

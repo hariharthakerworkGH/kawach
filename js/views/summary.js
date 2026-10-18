@@ -31,6 +31,7 @@ import { installCard, wireInstallCard } from '../install.js';
 import { backupStatus } from '../drive.js';
 import { incomeWords, businesses, activeSpace, setCurrentSpace, accountInSpace, businessSpace, businessRunway } from '../business.js';
 import { taxDates, renews, renewalsAhead, renewalAfter } from '../calendar.js';
+import { isPolicy, markPaid } from '../policies.js';
 import { escapeHtml, escapeAttr, sectionHead, pill, hero, panel, arrivalNow, slideIn } from '../ui.js';
 import { lateBack, reminderText, shareReminder } from '../people.js';
 import { cashSide, spendMoves, isCardBill } from '../transfers.js';
@@ -2030,8 +2031,10 @@ async function renderAttention(container, transactions, fts = null) {
     btn.addEventListener('click', async () => {
       const item = recurring.find((r) => r.id === btn.dataset.id);
       if (!item) return;
-      const next = renewalAfter(item, isoLocal(new Date()));
-      await put('recurring', { ...item, renewsOn: next, dayOfMonth: Number(next.slice(8, 10)) });
+      // A policy records the payment and moves on from the date it was due; any other renewal just moves on.
+      const moved = isPolicy(item) ? markPaid(item, isoLocal(new Date())) : null;
+      const next = moved ? moved.renewsOn || moved.policy.dueOn : renewalAfter(item, isoLocal(new Date()));
+      await put('recurring', moved || { ...item, renewsOn: next, dayOfMonth: Number(next.slice(8, 10)) });
       showToast(`Next renewal ${formatDateNice(next)}`);
       btn.closest('.need-row, .todo-row')?.remove();
     })

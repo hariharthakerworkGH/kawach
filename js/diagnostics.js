@@ -1,3 +1,4 @@
+import { redactPolicy } from './policies.js';
 import { getAll } from './db.js';
 import { APP_VERSION, BUILD } from './version.js';
 import { computeFreeToSpend } from './free-to-spend.js';
@@ -149,6 +150,7 @@ export async function buildDiagnosticReport(now = new Date()) {
       matchText: redact(r.matchText),
       notes: undefined,
       emi: r.emi ? { ...r.emi } : undefined,
+      policy: redactPolicy(r.policy),
     })),
     transactions: transactions.map((t) => ({
       id: idFor('t', t.id),

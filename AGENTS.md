@@ -74,6 +74,26 @@ holds goals: an amount, a month, and the savings pots it is counted in, with
 `savingsKind` (PPF, gold, chit fund and the rest) and a value typed in,
 because those have no statement to read.
 
+**Policies** (5.84, `js/policies.js`, `js/views/policies.js`, one quiet line on Plan).
+Health, life (LIC), term and vehicle insurance are typed in once. A policy is a
+fixed cost (yearly, half-yearly, quarterly or monthly) with its details on the
+same record as `policy`: number, who is covered, sum, nominee, helpline, grace
+days, the premium date it is waiting for (`dueOn`), the payments marked paid, and
+what it pays back and when. So the budget (a twelfth set aside each month, the
+whole premium in the month it is due), the months ahead (the whole year, behind
+one line on Plan, with money a policy pays back shown and never counted until
+it arrives), reminders, backup, sync and the app lock already cover it.
+"Premium paid" records a payment and moves the date one period on from the
+date it was due, never from today. A policy past its date says how long its
+grace period still runs (a vehicle policy has none). The family summary is plain
+text the person sends from their own phone. Kawach never checks a policy with
+the insurer and never works out tax: it shows what was recorded as paid in an
+Indian financial year (April to March) for the person's own papers. A
+diagnostic report keeps dates and amounts only, never the number, nominee or
+contacts. Planned next, not built: a switch-ready planner (what to ask for in
+hand, what to have saved before changing jobs), which reads the payslip's own
+deductions rather than doing tax sums.
+
 Periods:
 - **Spending is the calendar month**, 1st to last day, for cards and bank alike.
   Nothing before the 1st counts, with one exception: a commitment with a set day
