@@ -9,6 +9,7 @@ import { getSyncConfig, getSyncPassphrase, syncNow } from './sync.js';
 import { CASH_ACCOUNT_ID } from './config.js';
 import { detectTransfers } from './transfers.js';
 import { statementDayFixes } from './account-metrics.js';
+import { forgetOldUndo } from './import-safety.js';
 import { showToast } from './toast.js';
 import { setCustomStyles } from './category-style.js';
 import { versionStatus, APP_VERSION } from './version.js';
@@ -733,6 +734,7 @@ async function init() {
   // A card's cycle comes from its statements, never from a day typed in.
   const [allAccounts, importBatches] = await Promise.all([getAll('accounts'), getAll('importBatches')]);
   for (const fixed of statementDayFixes(allAccounts, importBatches)) await put('accounts', fixed);
+  await forgetOldUndo();
   // NEW (5.18): the short Summary is for people starting out. Someone who
   // already had payments or commitments when it arrived keeps the full one
   // they know, until they choose otherwise in How it looks.

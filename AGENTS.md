@@ -245,6 +245,12 @@ existed the general reader took the balance for each amount and, with no balance
 payment dated a day apart in two downloads (HDFC NetBanking 1 Oct, its PDF 30 Sep) is one payment when the bank's reference number is on both
 (`sameTransaction`, `findDuplicates` in js/duplicates.js); wording alone never joins two rows of different days.
 
+An import can be checked and taken back (js/import-safety.js). The review shows one "Check before saving" card when the file was read by the
+general reader, would add a new account beside existing ones, or does not add up to the statement's own totals, and a quiet "Looks wrong?
+Download a report" button that saves the usual redacted report plus what was read (`importReading`: reader, each row, redacted). Saving keeps an
+`undo` copy on the import batch (accounts as they were, rows replaced or re-tagged, what was created): "Undo this import" on Done and in
+Settings -> Backup for seven days, after which `forgetOldUndo` drops the copy when the app opens. Nothing is ever sent: the report is a file.
+
 Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built with
 `isoLocal` - never `toISOString()`, which is a day behind in India.
 

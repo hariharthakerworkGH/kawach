@@ -4,7 +4,8 @@ import { isDemo } from '../demo-flag.js';
 import { exportEncrypted, decryptBackup, restoreBackup, undoInfo, undoRestore } from '../backup.js';
 import { formatDateNice } from '../format.js';
 import { remindersEnabled, reminderDaysBefore, permissionState, enableReminders, disableReminders, refreshSchedule } from '../reminders.js';
-import { buildDiagnosticReport } from '../diagnostics.js';
+import { downloadDiagnosticReport } from '../diagnostics.js';
+import { recentImports, undoImport } from '../import-safety.js';
 import { isoLocal } from '../frequency.js';
 import { caPeriods, caReport, toXlsx, toPdf, saveFile } from '../ca-export.js';
 import { showToast } from '../toast.js';
@@ -27,6 +28,8 @@ import { showSecret } from '../secret-sheet.js';
 
 // Loaded each time the screen is drawn: the copy kept before the last restore, if any (js/backup.js).
 let undoCopy = null;
+// The statements saved in the last week that can still be taken back (js/import-safety.js).
+let undoableImports = [];
 
 // Kept while this screen is open, so a redraw doesn't lose them: the Drive
 // backups found for a restore, whether Restore is open, and whether the
@@ -51,6 +54,7 @@ export async function render(container, params = {}) {
   const backup = await backupStatus();
   const profile = await moneyProfile();
   undoCopy = await undoInfo();
+  undoableImports = await recentImports();
   // Records that cannot be read are left out of every screen; looking at all four lists makes sure this
   // count is up to date, and says where they are.
   await Promise.all(['transactions', 'accounts', 'recurring', 'categories'].map((store) => getAll(store)));
@@ -307,16 +311,7 @@ export async function render(container, params = {}) {
   container.querySelector('#diagnostic-btn').addEventListener('click', async () => {
     try {
       showStatus(diagnosticStatus, 'Preparing…', false);
-      const report = await buildDiagnosticReport();
-      const blob = new Blob([JSON.stringify(report, null, 1)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `kawach-diagnostic-v${report.appVersion}-${isoLocal(new Date())}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      const report = await downloadDiagnosticReport();
       showStatus(diagnosticStatus, `Saved: ${report.counts.transactions} payments, ${report.counts.commitments} commitments (plus ${report.counts.suggestions} the app spotted), no names or reference numbers.`, false);
     } catch (err) {
       showStatus(diagnosticStatus, `Couldn't make the report: ${err.message}`, true);
@@ -666,6 +661,15 @@ function backupSection(backup) {
       </button>`
           : ''
       }
+      ${undoableImports
+        .map(
+          (i) => `<button type="button" class="backup-row backup-row-btn undo-import" data-id="${i.id}">
+        ${icon('restore')}
+        <span>Undo the import on ${formatDateNice(isoLocal(new Date(i.importedAt)))}<br><span class="muted-note">${escapeHtml(i.label)}, ${i.count} row${i.count === 1 ? '' : 's'}</span></span>
+        ${icon('forward')}
+      </button>`
+        )
+        .join('')}
       <p id="backup-status" class="status" hidden></p>
     </div>
     ${setUp ? '<p class="muted-note backup-foot">Passphrase set · <button type="button" class="link-btn" id="backup-pass-show">Show</button> · <button type="button" class="link-btn" id="backup-pass-change">Change</button></p>' : ''}
@@ -850,6 +854,24 @@ function wireBackup(container, params) {
       }
     });
   }
+  container.querySelectorAll('.undo-import').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const ok = await askConfirm({
+        title: 'Undo this import?',
+        message: 'Its rows are removed, and what it replaced comes back. Anything you changed on those rows goes with them.',
+        confirmLabel: 'Undo it',
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await undoImport(btn.dataset.id);
+        showToast('Import taken back');
+        again();
+      } catch (err) {
+        showStatus(statusEl, `Couldn't undo: ${err.message}`, true);
+      }
+    });
+  });
   const removeBtn = container.querySelector('#damaged-remove');
   if (removeBtn) {
     removeBtn.addEventListener('click', async () => {

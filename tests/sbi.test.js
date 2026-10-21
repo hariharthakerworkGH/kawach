@@ -199,7 +199,7 @@ test('SBI all-accounts statement: a file with no savings page gives no rows, so 
 });
 
 test('copies a day apart: the same bank reference is one payment, a different one is two', () => {
-  const emi = { accountId: 'bank', amount: rupees(68000), direction: 'debit' };
+  const emi = { accountId: 'bank', amount: 68000, direction: 'debit' };
   const pdf = txn({ ...emi, date: '2026-09-30', importBatchId: 'pdf', updatedAt: 2, rawDescription: 'IMPS-600000000002-01 SBI Savings Home Loan EmI Value Dt 30/09/2026 Ref 600000000002' });
   const netbanking = txn({ ...emi, date: '2026-10-01', importBatchId: 'nb', updatedAt: 1, rawDescription: 'IMPS-600000000002-01 SBI SAVINGS-HOME LOAN EMI' });
   ok(sameTransaction(pdf, netbanking));

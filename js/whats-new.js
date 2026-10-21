@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.88',
+    items: [
+      {
+        icon: 'shield',
+        title: "Check an import, take it back",
+        text: "Before you save a statement, Kawach says if it may have read it wrong and shows a Download a report button. After saving you can undo the import for a week, from the Done screen or Settings.",
+        guide: [{ view: 'import', target: '#import-file', text: "Saved a statement that looks wrong? Undo it on the Done screen, or in Settings, for a week." }],
+      },
+    ],
+  },
+  {
     version: '5.87.1',
     items: [
       {

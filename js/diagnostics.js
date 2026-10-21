@@ -3,6 +3,7 @@ import { getAll } from './db.js';
 import { APP_VERSION, BUILD } from './version.js';
 import { computeFreeToSpend } from './free-to-spend.js';
 import { isFixed } from './commitments.js';
+import { isoLocal } from './frequency.js';
 
 // A diagnostic report: everything needed to reproduce a wrong number on
 // another computer, with what identifies you taken out.
@@ -27,7 +28,8 @@ const BANKING_WORDS = new Set(
   ).split(' ')
 );
 
-export async function buildDiagnosticReport(now = new Date()) {
+// `describe` (optional) adds what an import screen was about to save, written with this report's own redaction: (redact, numberFor) => object.
+export async function buildDiagnosticReport(now = new Date(), describe = null) {
   const [accounts, transactions, categories, recurring, importBatches, settings] = await Promise.all([
     getAll('accounts'),
     getAll('transactions'),
@@ -83,12 +85,15 @@ export async function buildDiagnosticReport(now = new Date()) {
   const settingKeys = new Set(['monthlyIncome', 'salaryDay', 'keepInBank', 'cycleAwareMonths', 'budgets', 'incomeType', 'salaryNextMonth']);
   const figures = await computeFreeToSpend(now);
 
+  const importReading = describe ? describe(redact, numberFor) : undefined;
+
   return {
     kind: 'expense-tracker-diagnostic-report',
     appVersion: APP_VERSION,
     build: BUILD,
     generatedAt: new Date().toISOString(),
     today: figures.today,
+    importReading,
     // Your commitments, and apart from them the repeating payments the app
     // spotted on its own (suggestions, including ones you dismissed).
     counts: {
@@ -235,4 +240,18 @@ export async function buildDiagnosticReport(now = new Date()) {
       nextSalaryFunds: (figures.fundedMonths || []).map((m) => ({ payday: m.payday, salary: m.amount, commitments: m.total })),
     },
   };
+}
+
+// Builds the report and saves it as a file the person can send. Nothing leaves the device by itself.
+export async function downloadDiagnosticReport(describe = null) {
+  const report = await buildDiagnosticReport(new Date(), describe);
+  const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 1)], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `kawach-diagnostic-v${report.appVersion}-${isoLocal(new Date())}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  return report;
 }

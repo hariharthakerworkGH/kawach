@@ -26,6 +26,8 @@ import { enhancePasswords } from '../password-field.js';
 import { categoriesFor, moneyProfile } from '../business.js';
 import { isPfAccount, pfContribution, pfPosition, DEFAULT_PF_RATE } from '../pf.js';
 import { escapeHtml, escapeAttr, sectionHead } from '../ui.js';
+import { importConcerns, newUndo, undoImport } from '../import-safety.js';
+import { downloadDiagnosticReport } from '../diagnostics.js';
 
 // Two kinds of import share this screen:
 //   - statements (PDF): a closed, billed period. Authoritative.
@@ -49,6 +51,8 @@ let lockedFile = null;
 // import changed. Kept across a queue of pasted cards.
 let before = null;
 let savedRows = [];
+// The imports saved on this visit, so Done can take them back.
+let savedBatches = [];
 
 export async function render(container) {
   if (isDemo()) {
@@ -61,6 +65,7 @@ export async function render(container) {
   lockedFile = null;
   before = null;
   savedRows = [];
+  savedBatches = [];
   categoriesCache = await getAll('categories');
   const salaried = (await moneyProfile()).main === 'salary';
 
@@ -176,6 +181,7 @@ function backToChoose() {
   state = null;
   before = null;
   savedRows = [];
+  savedBatches = [];
   lockedFile = null;
   screen.querySelector('#import-results').innerHTML = '';
   screen.querySelector('#import-password-box').hidden = true;
@@ -943,11 +949,6 @@ function renderResults(resultsEl) {
           : ''
       }
       ${
-        parser.general && !pickAccount
-          ? `<p class="muted-note">New bank for Kawach: check a few rows against the statement.</p>`
-          : ''
-      }
-      ${
         pickAccount
           ? `<p class="muted-note">Check a few rows below against the file: dates, and money out vs money in.${
               meta.skippedRows ? ` ${meta.skippedRows} line${meta.skippedRows === 1 ? '' : 's'} without a date or amount (totals, notes) left out.` : ''
@@ -957,6 +958,7 @@ function renderResults(resultsEl) {
       ${renderReconciliation(meta)}
       ${provisional ? '<details class="import-more"><summary>Check it against the bank</summary><div id="import-live-totals"></div></details>' : ''}
     </div>
+    ${renderConcerns(state)}
     ${provisional ? '' : renderDuplicateWarning(state)}
     ${renderSuperseded(state.superseded, provisional)}
     ${renderUnmatchedLogged(state.unmatchedLogged, provisional, state.statementEnd)}
@@ -980,6 +982,7 @@ function renderResults(resultsEl) {
       ${state.queue && state.queue.length ? '<button type="button" id="import-skip-btn" class="btn-tiny btn-block">Skip this card</button>' : ''}
       <p id="import-commit-status" class="status" hidden></p>
       <div id="import-next"></div>
+      <button type="button" id="import-report-btn" class="btn-tiny btn-block">Looks wrong? Download a report</button>
     </div>
   `;
 
@@ -990,6 +993,7 @@ function renderResults(resultsEl) {
   fill('#import-row-attention', attention);
   fill('#import-row-list', others);
   resultsEl.querySelector('#import-commit-btn').addEventListener('click', () => commit(resultsEl));
+  resultsEl.querySelector('#import-report-btn').addEventListener('click', () => sendReport(resultsEl));
 
   const skipBox = resultsEl.querySelector('#skip-duplicates');
   if (skipBox) {
@@ -1111,6 +1115,40 @@ function renderDuplicateWarning({ duplicateCount, priorImport }) {
       </label>
     </div>
   `;
+}
+
+function renderConcerns(st) {
+  const concerns = importConcerns(st);
+  if (!concerns.length) return '';
+  return `<div class="totals-card warn-card">
+    <p class="hero-label" style="margin:0 0 var(--space-2xs)">Check before saving</p>
+    ${concerns.map((c) => `<div class="totals-row"><span>${icon('alert')} ${escapeHtml(c)}</span></div>`).join('')}
+  </div>`;
+}
+
+// What was read, with the same redaction as every report (no names, no numbers), so a wrongly read statement can be looked at without the
+// statement: which reader took it, what it made of each row, and whether it added up.
+async function sendReport(resultsEl) {
+  const statusEl = resultsEl.querySelector('#import-commit-status');
+  try {
+    const { rows, meta, parser, account } = state;
+    await downloadDiagnosticReport((redact, numberFor) => ({
+      reader: parser.id,
+      general: parser.general === true,
+      accountType: parser.accountType,
+      matchedAnAccount: Boolean(account),
+      accountLast4: meta.accountLast4 ? numberFor(meta.accountLast4) : null,
+      reconciled: meta.reconciled ?? null,
+      statedClosingBalance: meta.statedClosingBalance ?? null,
+      computedClosingBalance: meta.computedClosingBalance ?? null,
+      periodStart: meta.periodStart || null,
+      periodEnd: meta.periodEnd || null,
+      rows: rows.filter(Boolean).map((r) => ({ date: r.date, amount: r.amount, direction: r.direction, description: redact(r.description), isTransfer: r.isTransfer === true })),
+    }));
+    showStatus(statusEl, 'Report saved to your downloads. Nothing is sent anywhere: share the file yourself.', false);
+  } catch (err) {
+    showStatus(statusEl, `Couldn't make the report: ${err.message}`, true);
+  }
 }
 
 function renderReconciliation(meta) {
@@ -1389,6 +1427,8 @@ async function commitRows(resultsEl, rows, statusEl) {
   // changed it (a bill marked paid on the other device), and saving the copy
   // from when the review opened would undo that.
   let account = state.account ? (await getAll('accounts')).find((a) => a.id === state.account.id) || state.account : null;
+  const undo = newUndo();
+  if (account) undo.accountsBefore.push(structuredClone(account));
 
   if (provisional) {
     // Digits that belong to this card but aren't its recorded number (a
@@ -1414,6 +1454,7 @@ async function commitRows(resultsEl, rows, statusEl) {
         last4: meta.accountLast4 || null,
         billingCycleDay: null,
       };
+      undo.addedAccounts.push(account.id);
     }
     // An account you confirmed for a statement it didn't match remembers the
     // statement's digits, so the next one from the same account needs no
@@ -1455,7 +1496,12 @@ async function commitRows(resultsEl, rows, statusEl) {
       }
     }
     await put('accounts', account);
-    if (meta.deposit) state.depositSaved = await saveDeposit(account, meta.deposit, periodEnd);
+    if (meta.deposit) {
+      const deposit = (await getAll('accounts')).find((a) => a.type === 'savings' && a.depositOf === account.id);
+      if (deposit) undo.accountsBefore.push(structuredClone(deposit));
+      state.depositSaved = await saveDeposit(account, meta.deposit, periodEnd);
+      if (!deposit) undo.addedAccounts.push(state.depositSaved.id);
+    }
   }
 
   const dates = rows.map((r) => r.date).sort();
@@ -1482,10 +1528,14 @@ async function commitRows(resultsEl, rows, statusEl) {
       // The row now belongs to this list, so undoing an older paste can't take
       // it away, and this list's rows are all in one place.
       const existing = existingById.get(row._matchedManualId);
-      if (existing && existing.importBatchId !== importBatch.id) await put('transactions', { ...existing, importBatchId: importBatch.id });
+      if (existing && existing.importBatchId !== importBatch.id) {
+        undo.retagged.push({ id: existing.id, importBatchId: existing.importBatchId });
+        await put('transactions', { ...existing, importBatchId: importBatch.id });
+      }
       continue;
     }
     if (row._matchedManualId) {
+      if (existingById.has(row._matchedManualId)) undo.removed.push(structuredClone(existingById.get(row._matchedManualId)));
       await remove('transactions', row._matchedManualId);
       matchedCount++;
     }
@@ -1521,6 +1571,7 @@ async function commitRows(resultsEl, rows, statusEl) {
   }
 
   for (const t of superseded || []) {
+    undo.removed.push(structuredClone(t));
     await remove('transactions', t.id);
   }
 
@@ -1534,10 +1585,15 @@ async function commitRows(resultsEl, rows, statusEl) {
     for (const emi of state.emis || []) {
       if (!emi.keep) continue;
       const existing = recurring.find((r) => r.id === emiCommitmentId(account.id, emi));
+      undo.emis.push({ id: emiCommitmentId(account.id, emi), before: existing ? structuredClone(existing) : null });
       await put('recurring', emiCommitment(account.id, emi, existing));
       emiCount++;
     }
   }
+
+  // Kept for a week: every part of it is needed to put things back as they were.
+  await put('importBatches', { ...importBatch, undo });
+  savedBatches.push(importBatch.id);
 
   const saved = rows.length - unchanged;
   const parts = [`Saved ${saved} row${saved === 1 ? '' : 's'}`];
@@ -1609,6 +1665,7 @@ async function saveDeposit(savingsAccount, deposit, asOf) {
 // new spending it turned up, the biggest one, and anything particular to the
 // kind of file (what a loan still owes, what went into the PF).
 async function showDone({ title, lines = [] }) {
+  const doneBatches = savedBatches;
   let after = null;
   try {
     after = await computeFreeToSpend();
@@ -1649,7 +1706,21 @@ async function showDone({ title, lines = [] }) {
     ${biggest ? `<p class="muted-note import-done-note">Biggest new one: ${formatRupees(biggest.amount)}, ${escapeHtml(shortName(biggest.description))}, ${formatDateNice(biggest.date)}</p>` : ''}
     <button type="button" id="import-see-summary" class="btn-primary btn-block">See summary</button>
     <button type="button" id="import-another" class="btn-secondary btn-block">Import another</button>
+    ${doneBatches.length ? `<button type="button" id="import-undo" class="btn-tiny btn-block">Undo ${doneBatches.length === 1 ? 'this import' : 'these imports'}</button><p id="import-undo-status" class="status" hidden></p>` : ''}
   `;
+  const undoBtn = screen.querySelector('#import-undo');
+  if (undoBtn) {
+    undoBtn.addEventListener('click', async () => {
+      const out = screen.querySelector('#import-undo-status');
+      try {
+        for (const id of doneBatches) await undoImport(id);
+        undoBtn.remove();
+        showStatus(out, 'Taken back. Everything is as it was before this import.', false);
+      } catch (err) {
+        showStatus(out, `Couldn't take it back: ${err.message}`, true);
+      }
+    });
+  }
   screen.querySelector('#import-see-summary').addEventListener('click', () => {
     screen.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'summary' } }));
   });
