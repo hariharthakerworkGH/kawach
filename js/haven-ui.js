@@ -145,8 +145,7 @@ export function havenHeader(view) {
   if (view === 'summary') {
     const night = document.documentElement.dataset.theme === 'dark';
     holder.innerHTML = round('Hide the amounts', icon('eye'), ` data-hv-act="cover" aria-pressed="${document.documentElement.classList.contains('hv-covered')}"`)
-      + round('Switch between day and night', icon(night ? 'sun' : 'moon'), ' data-hv-act="theme"')
-      + round('Bank messages', `${icon('bell')}<i class="hv-badge" hidden></i>`, ' data-hv-act="bell"');
+      + round('Switch between day and night', icon(night ? 'sun' : 'moon'), ' data-hv-act="theme"');
   } else if (view === 'plan') {
     holder.innerHTML = `<button type="button" class="hv-pillbtn" data-hv-act="coach"><span class="hv-ic">${icon('coach')}</span>Coach</button>`;
   }
@@ -180,12 +179,24 @@ export function havenHeader(view) {
         b.innerHTML = icon(document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon');
       };
       sweepTheme(swap);
-    } else if (act === 'bell') document.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'inbox' } }));
-    else if (act === 'coach') document.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'coach' } }));
+    } else if (act === 'coach') document.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'coach' } }));
   });
-  // How many bank messages are waiting to be checked, on the bell.
-  const bell = holder.querySelector('[data-hv-act="bell"] .hv-badge');
-  if (bell) Promise.resolve(pendingAlerts()).then((list) => { const n = Array.isArray(list) ? list.length : 0; if (n) { bell.textContent = n; bell.hidden = false; } }).catch(() => {});
+  markWaiting();
+}
+
+// How many bank messages are waiting to be checked: a dot on the + button on every screen, and the number on any Paste SMS chip.
+export async function markWaiting(root = document) {
+  let n = 0;
+  try { n = (await pendingAlerts()).length; } catch { n = 0; }
+  const add = document.querySelector('#tabs .nav-btn[data-view="add"]');
+  if (add) {
+    add.toggleAttribute('data-waiting', n > 0);
+    add.title = n ? `${n} bank message${n === 1 ? '' : 's'} waiting` : '';
+  }
+  root.querySelectorAll('[data-hv-go="inbox"]').forEach((chip) => {
+    chip.querySelector('.hv-count')?.remove();
+    if (n) chip.insertAdjacentHTML('beforeend', `<i class="hv-count">${n}</i>`);
+  });
 }
 
 /* Accounts (5.64): what you hold and what you owe on top, a few filter chips, and one card for each account. Every account
@@ -196,7 +207,6 @@ const GEM_OF_TYPE = { bank: [1, 'accounts'], card: [4, 'card'], cash: [3, 'cash'
 const localOpen = new Set();
 // The account in front of the stack, kept across redraws (an edit, a sync).
 let deckId = null;
-const WIFI = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 10a10 10 0 0 1 14 0M8 13.5a6 6 0 0 1 8 0M11 17a2 2 0 0 1 2 0"/></svg>';
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
 // The accounts as cards stacked like a wallet (mockups/7.12-cards-and-ring): swipe the front card sideways, or press the arrow keys,
@@ -230,9 +240,19 @@ function buildDeck(container, head, groups) {
     const chip = el('b', 'hv-dk__chip');
     chip.innerHTML = ic === 'piggy' || ic === 'loan' ? categoryIcon(ic) : icon(ic);
     name.append(chip, document.createTextNode(row.querySelector('.k-row__title')?.textContent.trim() || ''));
-    const wifi = el('i', 'hv-dk__wifi');
-    wifi.innerHTML = WIFI;
-    top.append(name, wifi);
+    const title = row.querySelector('.k-row__title')?.textContent.trim() || '';
+    const pencil = el('button', 'hv-dk__edit');
+    pencil.type = 'button';
+    pencil.setAttribute('aria-label', `Edit ${title}`);
+    pencil.innerHTML = icon('edit');
+    // A press on this button must not swipe the card or open its payments.
+    for (const t of ['pointerdown', 'pointerup']) pencil.addEventListener(t, (e) => e.stopPropagation());
+    pencil.addEventListener('click', () => {
+      b.querySelector('.account-edit')?.click();
+      // The form opens below the deck; bring it into view, where Delete is at the bottom.
+      setTimeout(() => container.querySelector('.account-delete')?.closest('form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 500);
+    });
+    top.append(name, pencil);
     const bal = el('div', 'hv-dk__bal', row.querySelector('.account-balance')?.textContent.trim() || '');
     const meta = el('div', 'hv-dk__meta');
     meta.append(el('span', '', (row.querySelector('.k-row__meta')?.textContent || '').replace(/\s+/g, ' ').trim()), el('b', '', row.dataset.last4 ? `•••• ${row.dataset.last4}` : ''));
@@ -248,6 +268,8 @@ function buildDeck(container, head, groups) {
       c.style.opacity = rel > 2 ? '0' : String(1 - rel * 0.22);
       c.style.filter = rel ? `brightness(${1 - rel * 0.18})` : 'none';
       c.setAttribute('aria-hidden', rel ? 'true' : 'false');
+      // Only the card in front can be edited; the ones behind it are smaller and not for pressing.
+      c.querySelector('.hv-dk__edit').hidden = rel !== 0;
     });
     dots.innerHTML = n <= 9 ? list.map((_, i) => `<i${i === idx ? ' class="on"' : ''}></i>`).join('') : `<span>${idx + 1} / ${n}</span>`;
   };

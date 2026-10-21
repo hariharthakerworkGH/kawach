@@ -3,7 +3,7 @@ import { sortCommitments, sortAccounts, sortCategories, usageCounts } from '../l
 import { holdFocus } from '../overlay.js';
 import { put, getAll, newId, getSetting } from '../db.js';
 import { icon } from '../icons.js';
-import { wireHaven, saveMorph } from '../haven-ui.js';
+import { wireHaven, saveMorph, markWaiting } from '../haven-ui.js';
 import { keypadLife } from '../haven-life.js';
 import { CASH_ACCOUNT_ID } from '../config.js';
 import { categoryStyle } from '../category-style.js';
@@ -923,6 +923,7 @@ function havenArrangeAdd(container) {
   ways.className = 'hv-addrow hv-addways';
   ways.innerHTML = `<button type="button" class="hv-chip" data-hv-go="inbox"><span class="hv-ic">${icon('inbox')}</span>Paste SMS</button><button type="button" class="hv-chip" data-hv-go="import"><span class="hv-ic">${icon('upload')}</span>Import</button>`;
   one.append(ways, toggle, wrap.closest('.amount-field') || wrap, pad, next);
+  markWaiting(ways);
   const two = document.createElement('div');
   two.className = 'hv-addstep hv-stack';
   two.dataset.step = '2';

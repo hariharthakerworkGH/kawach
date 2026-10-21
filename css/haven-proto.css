@@ -117,7 +117,6 @@
 :root[data-style="haven"] .hv-round::before { content: ""; position: absolute; inset: -2px; }
 :root[data-style="haven"] .hv-round:active { transform: scale(0.92); }
 :root[data-style="haven"] .hv-round[aria-pressed="true"] { background: var(--hv-primary); color: var(--hv-on-primary); }
-:root[data-style="haven"] .hv-round .hv-badge { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--hv-bad); color: var(--hv-on-navy); font: 650 11px/18px var(--hv-font); text-align: center; box-shadow: 0 0 0 2px var(--hv-paper); }
 :root[data-style="haven"] .hv-shell { padding: var(--hv-pad-shell); border-radius: var(--hv-r-shell); background: var(--hv-shell); box-shadow: 0 0 0 1px var(--hv-hair); }
 :root[data-style="haven"] .hv-core { border-radius: var(--hv-r-core); background: linear-gradient(180deg, var(--hv-core), var(--hv-core-2)); box-shadow: inset 0 1px 0 var(--hv-hl), var(--hv-lift); padding: var(--hv-s4); }
 :root[data-style="haven"] .hv-core.flush { padding: 0; overflow: clip; }

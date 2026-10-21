@@ -1964,6 +1964,8 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 }
 
 .k .btn-tiny.danger {
+  color: var(--k-negative);
+  border-color: color-mix(in srgb, var(--k-negative) 45%, transparent);
   white-space: normal;
   height: auto;
   min-height: var(--k-tap);

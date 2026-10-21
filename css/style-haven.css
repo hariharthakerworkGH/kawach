@@ -43,7 +43,6 @@
 :root[data-style="haven"] #settings-btn.hv-round { width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 0; background: var(--hv-shell); box-shadow: 0 0 0 1px var(--hv-hair), inset 0 1px 0 var(--hv-hl); color: var(--hv-ink); }
 :root[data-style="haven"] .hv-pillbtn .icon { width: 18px; height: 18px; }
 :root[data-style="haven"] .hv-round[aria-pressed="true"] { background: var(--hv-primary); color: var(--hv-on-primary); }
-:root[data-style="haven"] .hv-round .hv-badge { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--hv-bad); color: var(--hv-on-navy); font: 650 11px/18px var(--hv-font); text-align: center; box-shadow: 0 0 0 2px var(--hv-paper); font-style: normal; }
 :root[data-style="haven"] .hv-ic .icon,
 :root[data-style="haven"] .hv-gem .icon,
 :root[data-style="haven"] .hv-chip .icon { width: 100%; height: 100%; stroke-width: 1.5; }

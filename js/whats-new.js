@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.88.1',
+    items: [
+      {
+        icon: 'edit',
+        title: "Easier to find: edit an account",
+        text: "Every account card has an Edit pencil that takes you to its form, with Delete in red at the bottom. The bell on Summary is gone: a red dot on + shows when a bank message is waiting, and its number sits on Paste SMS.",
+      },
+    ],
+  },
+  {
     version: '5.88',
     items: [
       {
