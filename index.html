@@ -65,7 +65,7 @@
         var k = localStorage.key(i);
         if (k && k.indexOf('kawach-') === 0 && k !== 'kawach-welcomed') seen = true;
       }
-      if (!seen) localStorage.setItem('kawach-appearance', JSON.stringify({ colour: 'haven-day' }));
+      if (!seen) localStorage.setItem('kawach-appearance', JSON.stringify({ colour: 'sun' }));
     }
   } catch (e) {}
 
@@ -85,12 +85,20 @@
     // Tactile and Charts retired in 5.57: they, and anything unknown, are Haven.
     var st = READY[a.style] ? a.style : 'haven';
     r.setAttribute('data-style', st);
-    var c = a.colour || ({ light: 'flame-light', dark: 'charts' })[a.theme] || 'auto';
+    var c = a.colour || ({ light: 'flame-light', dark: 'charts' })[a.theme] || 'sun';
     // Peaks and Mindora were retired in 5.41: whoever wore them is on Instrument, following the phone.
     if (c === 'peaks' || c === 'mindora' || c === 'tactile') c = 'auto';
     // Haven brings its own day and night: another look's own colouring (the default before 5.52) means "follow the phone" here.
     if (st === 'haven' && (c === 'charts' || c === 'tactile' || c === 'instrument')) c = 'auto';
     var pl = Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
+    // "Follow the sun": js/appearance.js stores whether it is dark and until when; with nothing stored, the hour decides (before 6:30 and after 6:30 pm is night).
+    if (c === 'sun') {
+      var dk = null;
+      try { var sc = JSON.parse(localStorage.getItem('kawach-sun-theme')); if (sc && sc.until > Date.now()) dk = sc.dark; } catch (e) {}
+      if (dk === null) { var hr = new Date().getHours() + new Date().getMinutes() / 60; dk = hr < 6.5 || hr >= 18.5; }
+      pl = !dk;
+      c = 'auto';
+    }
     if (c === 'auto') c = st === 'haven' ? (pl ? 'haven-day' : 'haven-night') : Boolean(LIGHT[st]) === pl ? st : pl ? 'flame-light' : 'charts';
     r.setAttribute('data-colour', c);
     r.setAttribute('data-theme', LIGHT[c] ? 'light' : 'dark');

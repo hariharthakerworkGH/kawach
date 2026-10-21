@@ -1,11 +1,10 @@
 /* Haven's small behaviours (5.52): the header's extra buttons, the shortcuts, and the line you can drag across.
  * Nothing here draws a screen; the screens draw themselves (js/views/summary-looks.js ...) and this wires what they
  * ask for: [data-hv-go="view"] goes to that screen; .hv-chartwrap reads a day when dragged across. */
-import { appearance, setAppearance, applyTheme } from './appearance.js';
 import { icon } from './icons.js';
 import { pendingAlerts } from './alert-inbox.js';
 import { categoryIcon } from './category-icons.js';
-import { afterDraw, paidOut, buzzFor, sweepTheme } from './haven-motion.js';
+import { afterDraw, paidOut, buzzFor } from './haven-motion.js';
 import { lifeDraw } from './haven-life.js';
 import { tideSvg } from './views/summary-looks.js';
 import { shortRupees } from './format.js';
@@ -143,9 +142,8 @@ export function havenHeader(view) {
   holder.className = 'hv-hdr-extra';
   const round = (label, inner, extra = '') => `<button type="button" class="hv-round" aria-label="${label}"${extra}>${inner}</button>`;
   if (view === 'summary') {
-    const night = document.documentElement.dataset.theme === 'dark';
-    holder.innerHTML = round('Hide the amounts', icon('eye'), ` data-hv-act="cover" aria-pressed="${document.documentElement.classList.contains('hv-covered')}"`)
-      + round('Switch between day and night', icon(night ? 'sun' : 'moon'), ' data-hv-act="theme"');
+    // The day/night button is gone: the app follows the sun (js/sun-moon.js), and Settings, How it looks, holds the other choices.
+    holder.innerHTML = round('Hide the amounts', icon('eye'), ` data-hv-act="cover" aria-pressed="${document.documentElement.classList.contains('hv-covered')}"`);
   } else if (view === 'plan') {
     holder.innerHTML = `<button type="button" class="hv-pillbtn" data-hv-act="coach"><span class="hv-ic">${icon('coach')}</span>Coach</button>`;
   }
@@ -172,14 +170,7 @@ export function havenHeader(view) {
       b.setAttribute('aria-label', on ? 'Show the amounts' : 'Hide the amounts');
       try { localStorage.setItem('kawach-covered', on ? '1' : ''); } catch { /* private window */ }
     }
-    else if (act === 'theme') {
-      const swap = () => {
-        setAppearance('colour', document.documentElement.dataset.theme === 'dark' ? 'haven-day' : 'haven-night');
-        applyTheme();
-        b.innerHTML = icon(document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon');
-      };
-      sweepTheme(swap);
-    } else if (act === 'coach') document.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'coach' } }));
+    else if (act === 'coach') document.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'coach' } }));
   });
   markWaiting();
 }

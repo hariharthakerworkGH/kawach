@@ -476,6 +476,8 @@ test('colourings: follow the phone, carry over an old light or dark choice', () 
     localStorage.setItem(key, JSON.stringify({ theme: 'dark' }));
     equal(appearance('colour'), 'charts', 'always dark is Charts');
     localStorage.setItem(key, JSON.stringify({ theme: 'auto' }));
+    equal(appearance('colour'), 'sun', 'nothing chosen is Follow the sun (5.89); someone who chose Follow my phone keeps it');
+    localStorage.setItem(key, JSON.stringify({ colour: 'auto' }));
     equal(appearance('colour'), 'auto');
   } finally {
     if (before === null) localStorage.removeItem(key);

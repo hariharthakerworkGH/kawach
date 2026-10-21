@@ -53,9 +53,10 @@ export const CHOICES = {
   colour: {
     label: 'Colours',
     question: 'Which colours?',
-    fallback: 'auto',
+    fallback: 'sun',
     where: '',
     options: [
+      { value: 'sun', label: 'Follow the sun', note: "Light by day, dark after sunset, wherever you are. The sky behind each screen is the real sun and moon." },
       { value: 'auto', label: 'Follow my phone', note: "The style's own colours (Haven: its day or its night), or burning flame when your phone is light." },
       ...COLOURINGS.map((c) => ({ value: c.id, label: c.name, note: c.mode === 'light' ? 'Light' : 'Dark' })),
     ],
@@ -266,7 +267,7 @@ export function setAppearance(name, value) {
   } catch {
     return false;
   }
-  if (name === 'colour' || name === 'style') applyTheme();
+  if (name === 'colour' || name === 'style') { applyTheme(); window.dispatchEvent(new Event('hv-where')); }
   if (name === 'text' || name === 'density' || name === 'motion' || name === 'liquid') applyDisplay();
   if (name === 'motion') window.dispatchEvent(new Event('hv-motion'));
   return true;

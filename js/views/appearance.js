@@ -18,6 +18,7 @@ import { allocationRing } from '../charts.js';
 import { sixMonthCharts, lastSixMonths } from './transactions.js';
 import { showToast } from '../toast.js';
 import { STYLES, COLOURINGS, AUTO, ownColouring } from '../looks.js';
+import { CITIES, getPlace, setCity, useMyLocation, sunTimes, moonAt, phaseName } from '../sun-moon.js';
 
 // Enough invented money to draw every option honestly, for someone who has
 // not added anything yet. Paise, like everywhere else.
@@ -173,10 +174,34 @@ function lookCard(spec) {
     <h3>${spec.label}</h3>
     <div class="totals-card look-card">
       <div class="look-swatches">
+        ${tile('sun', 'Follow the sun', 'Day by day, night by night', ['#f5f8fc', '#070c19', '#ffb547', '#38c9dc'].map((d) => `<i style="background:${d}"></i>`).join(''))}
         ${tile('auto', 'Follow my phone', style === 'haven' ? 'Haven day or night' : 'Style colours or flame', [auto.bg, auto.dots[1], autoLight.bg, autoLight.dots[1]].map((d) => `<i style="background:${d}"></i>`).join(''))}
         ${COLOURINGS.map((c) => tile(c.id, c.name, c.mode === 'light' ? 'Light' : 'Dark', dots(c))).join('')}
       </div>
       <p class="muted-note look-live">Tap one to see the whole app change.</p>
+    </div>`;
+}
+
+/* Where you are: only so the sun and moon can be put where they really are. A city from the list, or one tap on the phone's own location;
+ * either is kept on this device and nothing is sent. */
+const clock = (ms) => (ms == null ? 'not today' : new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+function whereLine() {
+  const now = Date.now(), p = getPlace(), s = sunTimes(now - 3 * 3600e3, p), m = moonAt(now, p.lat, p.lon);
+  return `Sunrise ${clock(s.rise)}, sunset ${clock(s.set)}. The moon is ${phaseName(m.phase).toLowerCase()}, ${Math.round(m.fraction * 100)}% lit.`;
+}
+function whereCard() {
+  const p = getPlace();
+  return `
+    <h3>Where you are</h3>
+    <div class="totals-card look-card" id="where-card">
+      <p class="group-subtitle look-q">Puts the sun and moon where they really are. Stays on this phone.</p>
+      <label class="field"><span>City</span>
+        <select id="where-city" class="k-select">
+          ${p.device ? '<option value="" selected>My location</option>' : ''}
+          ${Object.keys(CITIES).map((c) => `<option value="${c}"${!p.device && c === p.name ? ' selected' : ''}>${c}</option>`).join('')}
+        </select></label>
+      <button type="button" class="btn-secondary btn-block" id="where-device">Use my location</button>
+      <p class="muted-note look-live" id="where-line" role="status">${whereLine()}</p>
     </div>`;
 }
 
@@ -223,11 +248,31 @@ function draw(container) {
   // Motion is Haven's own (the other looks keep the motion they have).
   container.querySelector('#look-cards').innerHTML = Object.entries(CHOICES)
     .filter(([name]) => !['motion', 'liquid', 'festivals'].includes(name) || appearance('style') === 'haven')
-    .map(([name, spec]) => card(name, spec))
+    .map(([name, spec]) => card(name, spec) + (name === 'colour' && appearance('style') === 'haven' ? whereCard() : ''))
     .join('');
 }
 
 function wire(container) {
+  const line = () => container.querySelector('#where-line');
+  container.addEventListener('change', (e) => {
+    if (e.target.id !== 'where-city' || !e.target.value) return;
+    setCity(e.target.value);
+    line().textContent = whereLine();
+  });
+  container.addEventListener('click', async (e) => {
+    if (!e.target.closest('#where-device')) return;
+    const l = line();
+    l.textContent = 'Asking your phone…';
+    try {
+      await useMyLocation();
+      const sel = container.querySelector('#where-city');
+      if (sel && !sel.querySelector('option[value=""]')) sel.insertAdjacentHTML('afterbegin', '<option value="">My location</option>');
+      if (sel) sel.value = '';
+      l.textContent = whereLine();
+    } catch (err) {
+      l.textContent = err.message;
+    }
+  });
   container.addEventListener('change', (e) => {
     const input = e.target.closest('input[type="radio"]');
     if (!input) return;

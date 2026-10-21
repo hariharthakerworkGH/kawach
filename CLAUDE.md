@@ -251,6 +251,17 @@ Download a report" button that saves the usual redacted report plus what was rea
 `undo` copy on the import batch (accounts as they were, rows replaced or re-tagged, what was created): "Undo this import" on Done and in
 Settings -> Backup for seven days, after which `forgetOldUndo` drops the copy when the app opens. Nothing is ever sent: the report is a file.
 
+The sky behind every Haven screen is the real sun and moon (js/sun-moon.js: almanac formulas, about a degree, nothing looked up or sent).
+The place is this device's own choice (`kawach-where`: a city from a short list, or "Use my location" once, rounded to 0.1 degree; the default
+is the middle of India). "Follow the sun" is the default colour choice (`colour: 'sun'`): Haven's day while the sun's upper edge is above the
+horizon and its night after, swapped at the minute with the same sweep as before (js/haven-sky.js), and remembered as `kawach-sun-theme`
+(dark or light, and until when) so index.html paints the right colours before anything loads. Someone with fixed colours (Haven day or
+night, "follow my phone") gets a sky that agrees with them. `skyState()` settles the one contrast problem a sky has: white title text in the
+twilight gets a veil only as thick as needed (never above .5) to stay above 4.5 : 1, and the test sweeps every five minutes of four days in
+three cities for it. Every screen gets 72px more room at the top (`:root[data-sky-real] .view-container`) so the hills show; the month
+switcher is a chip on the left so the sun and moon have the clear sky on the right; the day/night and bell buttons are gone from the header.
+Shown first as mockups/7.15-dawn-to-dusk-pro.
+
 Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built with
 `isoLocal` - never `toISOString()`, which is a day behind in India.
 

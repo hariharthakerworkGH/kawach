@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.89',
+    items: [
+      {
+        icon: 'sun',
+        title: "The sky is the real sun and moon",
+        text: "Every screen now has the real sun and moon behind its top: the sun rises and sets where you are, the moon has its true shape, and Kawach turns light at sunrise and dark at sunset by itself. Pick your city or use your location in Settings, How it looks.",
+        guide: [{ view: 'appearance', target: '#where-city', text: "Pick your city, or use your location, so the sun and moon sit where they really are." }],
+      },
+    ],
+  },
+  {
     version: '5.88.1',
     items: [
       {

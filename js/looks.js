@@ -37,6 +37,8 @@ export const COLOURINGS = [
 // "Follow my phone": the style's own colouring when it is as light or dark as
 // the phone (each style brings one), otherwise Charts on a dark phone and
 // burning flame light on a light one.
+import { isDay, getPlace, nextChange } from './sun-moon.js';
+
 export const AUTO = { dark: 'charts', light: 'flame-light' };
 const OWN = { instrument: 'instrument', haven: 'haven-night' };
 
@@ -46,7 +48,13 @@ export const ownColouring = (style) => OWN[style] || AUTO.dark;
 const byId = new Map(COLOURINGS.map((c) => [c.id, c]));
 
 /* The colouring actually worn for a choice ('auto' or an id). */
-export function colouringFor(choice, prefersLight, style = 'charts') {
+export function colouringFor(choice, prefersLight, style = 'charts', sunUp = true) {
+  // "Follow the sun": Haven's day while the sun is up and its night after; another look reads the sun as its phone's light or dark.
+  if (choice === 'sun') {
+    if (style === 'haven') return byId.get(sunUp ? 'haven-day' : 'haven-night');
+    choice = 'auto';
+    prefersLight = sunUp;
+  }
   // Haven brings both: its day on a light phone, its night on a dark one. Another look's own colouring (what
   // everyone wore before Haven became the default, 5.52) means "follow the phone" there.
   const own3 = choice === 'charts' || choice === 'instrument';
@@ -69,7 +77,13 @@ function prefersLight() {
  * the phone draws its own bar in. */
 export function applyColouring(choice, styleChoice = 'haven') {
   const style = styleFor(styleChoice);
-  const c = colouringFor(choice, prefersLight(), style);
+  const place = getPlace();
+  const sunUp = choice === 'sun' ? isDay(Date.now(), place) : true;
+  const c = colouringFor(choice, prefersLight(), style, sunUp);
+  // index.html paints the right colours before anything loads, from what the last run learnt: dark or light, and until when.
+  if (choice === 'sun') {
+    try { localStorage.setItem('kawach-sun-theme', JSON.stringify({ dark: !sunUp, until: nextChange(Date.now(), place) })); } catch { /* private window */ }
+  }
   const root = document.documentElement;
   root.setAttribute('data-style', style);
   root.setAttribute('data-colour', c.id);
