@@ -155,3 +155,58 @@ test('a wording taught from an SBI alert still reads the account and the balance
     useLearned([]);
   }
 });
+
+/* --- SBI's all-accounts statement (5.88) ---------------------------------------------------------------------------------------------
+   The owner's Sept 2026 file was read by the general reader: the balance became the amount, there was no balance column to find, "credit card"
+   appears in the bank's warning line, so a new CARD was made and the loan pages' rows were saved on it. */
+import { detectParser } from '../js/parsers/registry.js';
+import * as sbiStatement from '../js/parsers/sbi-statement.js';
+import { sameTransaction, findDuplicates } from '../js/duplicates.js';
+
+const ALL_ACCOUNTS = [
+  'Welcome Mr. A PERSON', 'PLEASE DO NOT SHARE YOUR ATM, DEBIT/CREDIT CARD NUMBER, PIN AND OTP WITH ANYONE ELSE.',
+  'TRANSACTION DETAILS', 'CURRENT ACCOUNT', 'XXXXXXX5555', 'IFSC Code SBIN0060070', 'Multi-Option Deposit Balance 0.00',
+  'TRANSACTION DETAILS', 'SAVING ACCOUNT', 'XXXXXXX1234', 'IFSC Code SBIN0060070', 'Multi-Option Deposit Balance 90000.00',
+  'TRANSACTION OVERVIEW', 'Date Transaction Reference Ref.No./Chq.No. Credit Debit Balance',
+  'Your Opening Balance on 01-09-26:null null 50000.00 null null null null',
+  '08-09-26 FIRDFTFRREF:111111111111111111K580035 - 0 30000.00 20000.00',
+  '09-09-26 UPI/CR/111111111111/SOMEONE/utib/goog-payme/UPI - 1.00 0 20001.00',
+  '15-09-26 SWEEP TRF CREDT - 15000.00 0 35001.00',
+  '15-09-26 DIRECT DR - 0 20000.00 15001.00',
+  '30-09-26 IMPS/222222222222/RE1-XX150-A PERSON /Home Loan - 40000.00 0 55001.00',
+  'Your Closing Balance on 30-09-26: 55001.00',
+  'TRANSACTION DETAILS', 'DL/TL ACCOUNT', 'XXXXXXX9999', 'TRANSACTION OVERVIEW',
+  'Your Opening Balance on 01-09-26:null null 3000000.00 null null null null',
+  '15-09-26 O.S. DEPOSIT TRANSFER - 20000.00 0 2980000.00',
+  'Your Closing Balance on 30-09-26: 2980000.00',
+].join('\n');
+
+test('SBI all-accounts statement: its own reader takes it, from the savings page only, credit column before debit', () => {
+  equal(detectParser(ALL_ACCOUNTS).id, 'sbi-statement');
+  const { rows, meta } = sbiStatement.parse(ALL_ACCOUNTS);
+  equal(rows.length, 5, 'the loan page and the current account add nothing');
+  equal(rows.map((r) => [r.date, r.direction, r.amount]), [
+    ['2026-09-08', 'debit', 3000000], ['2026-09-09', 'credit', 100], ['2026-09-15', 'credit', 1500000], ['2026-09-15', 'debit', 2000000], ['2026-09-30', 'credit', 4000000],
+  ]);
+  equal(meta.accountLast4, '1234');
+  equal([meta.periodStart, meta.periodEnd, meta.reconciled], ['2026-09-01', '2026-09-30', true]);
+  ok(rows[0].isTransfer && rows[2].isTransfer && !rows[3].isTransfer, 'money into and out of its own deposits is a move, an EMI is not');
+});
+
+test('SBI all-accounts statement: a file with no savings page gives no rows, so the import falls back instead of inventing an account', () => {
+  const loanOnly = ALL_ACCOUNTS.split('\n').filter((l) => l !== 'SAVING ACCOUNT').join('\n');
+  equal(sbiStatement.parse(loanOnly).rows.length, 0);
+});
+
+test('copies a day apart: the same bank reference is one payment, a different one is two', () => {
+  const emi = { accountId: 'bank', amount: rupees(68000), direction: 'debit' };
+  const pdf = txn({ ...emi, date: '2026-09-30', importBatchId: 'pdf', updatedAt: 2, rawDescription: 'IMPS-600000000002-01 SBI Savings Home Loan EmI Value Dt 30/09/2026 Ref 600000000002' });
+  const netbanking = txn({ ...emi, date: '2026-10-01', importBatchId: 'nb', updatedAt: 1, rawDescription: 'IMPS-600000000002-01 SBI SAVINGS-HOME LOAN EMI' });
+  ok(sameTransaction(pdf, netbanking));
+  equal(findDuplicates([pdf, netbanking]).map((t) => t.id), [pdf.id], 'the one saved first is kept');
+  const other = txn({ ...emi, date: '2026-10-01', importBatchId: 'nb', rawDescription: 'IMPS-600000000009-01 SBI SAVINGS-HOME LOAN EMI' });
+  ok(!sameTransaction(pdf, other));
+  equal(findDuplicates([pdf, other]).length, 0);
+  const noRef = txn({ ...emi, date: '2026-10-01', importBatchId: 'nb', rawDescription: 'HOME LOAN EMI HOME LOAN EMI HOME LOAN EMI' });
+  ok(!sameTransaction(pdf, noRef), 'without a number on both, a day apart is never enough');
+});

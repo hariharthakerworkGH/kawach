@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.87.1',
+    items: [
+      {
+        icon: 'accounts',
+        title: "SBI statements read right",
+        text: "SBI's all-accounts statement is read properly now: your savings account's payments, with money in and out the right way round, and no extra card made. A payment that two downloads date a day apart is counted once.",
+      },
+    ],
+  },
+  {
     version: '5.87',
     items: [
       {

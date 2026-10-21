@@ -239,6 +239,12 @@ account, never to the deposit that shares its number, the draft's account list
 offers only accounts money is spent from, and a lone greeting line ("Greetings
 from SBI !") joins the message under it instead of becoming an item.
 
+SBI's newer all-accounts statement ("Welcome Mr. ..." on top, a page per account) has its own reader (js/parsers/sbi-statement.js): only the
+savings page is read, credit column before debit; the current account, the deposits and the loans on the other pages are left alone. Before it
+existed the general reader took the balance for each amount and, with no balance column in sight, made the account a credit card. The same
+payment dated a day apart in two downloads (HDFC NetBanking 1 Oct, its PDF 30 Sep) is one payment when the bank's reference number is on both
+(`sameTransaction`, `findDuplicates` in js/duplicates.js); wording alone never joins two rows of different days.
+
 Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built with
 `isoLocal` - never `toISOString()`, which is a day behind in India.
 

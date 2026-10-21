@@ -6,6 +6,7 @@ import * as hdfcCardCurrentText from './hdfc-card-current-text.js';
 import * as iciciCreditCardCurrent from './icici-credit-card-current.js';
 import * as sbiLoan from './sbi-loan.js';
 import * as sbiSavings from './sbi-savings.js';
+import * as sbiStatement from './sbi-statement.js';
 import * as payslip from './payslip.js';
 import * as epfoPassbook from './epfo-passbook.js';
 
@@ -21,6 +22,8 @@ export const parsers = [
   // After the loan reader: a savings statement never has "Loan Term", but
   // checking the loan first keeps the two from ever claiming each other.
   sbiSavings,
+  // The newer all-accounts SBI statement; its savings page is the only list of payments in it.
+  sbiStatement,
   epfoPassbook,
   payslip,
   hdfcBankSavings,

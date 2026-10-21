@@ -46,8 +46,11 @@ function wordsOf(t) {
 }
 
 export function sameTransaction(a, b) {
-  if (a.accountId !== b.accountId || a.date !== b.date || a.amount !== b.amount || a.direction !== b.direction) return false;
+  if (a.accountId !== b.accountId || a.amount !== b.amount || a.direction !== b.direction) return false;
   const shared = shareReference(a, b);
+  // A late-night payment is dated the day it was made in one download and the next day in another (HDFC's NetBanking
+  // against its PDF, 30 Sep vs 1 Oct). Only a reference number the bank printed on both settles it, never the wording.
+  if (a.date !== b.date) return shared === true && Math.abs(Date.parse(a.date) - Date.parse(b.date)) <= 864e5;
   if (shared != null) return shared;
   return wordsOf(a).length >= 6 && wordsOf(a) === wordsOf(b);
 }
@@ -77,7 +80,23 @@ export function findDuplicates(transactions) {
     }
     extra.push(...copiesAcrossImports(kept));
   }
+  // The groups above are one day each, so a copy dated a day off needs its own look.
+  const gone = new Set(extra.map((t) => t.id));
+  extra.push(...nextDayCopies(transactions.filter((t) => t.source !== 'unbilled' && !gone.has(t.id))));
   return extra;
+}
+
+// The later-saved copy of a payment another import saved with the day before or after, on the bank's own reference.
+function nextDayCopies(rows) {
+  const kept = new Map();
+  const copies = [];
+  for (const t of [...rows].sort((a, b) => (a.updatedAt || 0) - (b.updatedAt || 0))) {
+    const key = `${t.accountId}|${t.amount}|${t.direction}`;
+    const list = kept.get(key) || [];
+    if (list.some((k) => k.importBatchId !== t.importBatchId && k.date !== t.date && sameTransaction(k, t))) copies.push(t);
+    else kept.set(key, [...list, t]);
+  }
+  return copies;
 }
 
 // Two statement downloads of the same account can word a payment so
