@@ -20,6 +20,7 @@ export async function redraw(container, draw) {
   still.removeAttribute('id');
   still.classList.add('view-still');
   still.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+  for (const el of [still, ...still.querySelectorAll('*')]) el.style.viewTransitionName = '';
   still.setAttribute('aria-hidden', 'true');
   still.inert = true;
   // Two redraws can overlap; the second copy is made while the screen is
@@ -31,6 +32,7 @@ export async function redraw(container, draw) {
     await draw();
   } finally {
     reopen(container, open);
+    container.querySelectorAll('.hv-screen.enter').forEach((s) => { s.classList.remove('enter'); s.classList.add('still'); });
     container.hidden = false;
     still.remove();
     window.scrollTo(0, y);

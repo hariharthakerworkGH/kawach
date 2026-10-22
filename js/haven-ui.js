@@ -144,7 +144,7 @@ export function havenHeader(view) {
   if (view === 'summary') {
     const h = new Date().getHours();
     if (!hi) { hi = document.createElement('span'); hi.className = 'hv-hdr__hi'; who.prepend(hi); }
-    hi.textContent = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+    hi.textContent = h < 5 || h >= 21 ? 'Good night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
   } else hi?.remove();
   const settings = header.querySelector('#settings-btn');
   settings?.classList.add('hv-round');

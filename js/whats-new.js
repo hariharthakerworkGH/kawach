@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.91',
+    items: [
+      {
+        icon: 'check',
+        title: "Smoother screens, and the right greeting",
+        text: "Changing month or screen no longer shows an empty screen for a moment, and Summary no longer replays its arrival when it redraws. At night Kawach now says Good night, not Good morning.",
+      },
+    ],
+  },
+  {
     version: '5.90',
     items: [
       {

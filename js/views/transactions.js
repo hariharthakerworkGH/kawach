@@ -24,7 +24,7 @@ import { sortCommitments, sortAccounts, sortCategories, usageCounts } from '../l
 import { tidyFlags } from '../reimbursable.js';
 import { inOutBars, cashRiver } from '../charts.js';
 import { appearance } from '../appearance.js';
-import { escapeHtml, escapeAttr, emptyState, slideIn, unfold, foldAway, pop, takeFresh, washRow, slidingPill } from '../ui.js';
+import { escapeHtml, escapeAttr, emptyState, monthSwap, unfold, foldAway, pop, takeFresh, washRow, slidingPill } from '../ui.js';
 import { refundPairs } from '../card-refunds.js';
 
 // History: one month at a time, newest first, grouped by day, one line per
@@ -218,14 +218,15 @@ export async function render(container, params = {}) {
   });
 
   const step = (delta) => {
-    filters.month = shiftMonth(filters.month, delta);
-    expanded = null;
-    splitDraft = null;
-    resetPage(container);
-    // A new month is a new page: start at its top.
-    const top = container.querySelector('#hist-month').getBoundingClientRect().top + window.scrollY - 80;
-    if (window.scrollY > top) window.scrollTo(0, Math.max(0, top));
-    slideIn(['#hist-month', '#hist-net', '#hist-stats', '#hist-days', '#txn-list'].map((q) => container.querySelector(q)), delta);
+    monthSwap(delta, () => ['#hist-month', '#hist-net', '#hist-stats', '#hist-days', '#txn-list'].map((q) => container.querySelector(q)), () => {
+      filters.month = shiftMonth(filters.month, delta);
+      expanded = null;
+      splitDraft = null;
+      resetPage(container);
+      // A new month is a new page: start at its top.
+      const top = container.querySelector('#hist-month').getBoundingClientRect().top + window.scrollY - 80;
+      if (window.scrollY > top) window.scrollTo(0, Math.max(0, top));
+    });
   };
   container.querySelector('#month-prev').addEventListener('click', () => step(-1));
   container.querySelector('#month-next').addEventListener('click', () => step(1));

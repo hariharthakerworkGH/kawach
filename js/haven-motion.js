@@ -473,7 +473,9 @@ export function afterDraw(scope) {
   const page = scope.closest?.('.view-container') || document.getElementById('view-container');
   if (page) page.querySelectorAll(':scope > .hv-peek').forEach((old) => old.remove());
   if (strip && page) page.prepend(strip);
-  if (tide && vault && live()) {
+  // A past month stepped back to is only looked at: its water stands at its level at once. Treating it as "a new month" made the shield
+  // empty and refill on every arrow press, and wrote that month over the real one in kawach-cycle and kawach-tide.
+  if (tide && vault && live() && !vault.hasAttribute('data-finished')) {
     const water = tide.querySelector('.water');
     const to = Number(tide.style.getPropertyValue('--lvl')) || 0;
     let prev = null;

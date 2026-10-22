@@ -190,6 +190,10 @@ async function showView(name, params = {}, fromHistory = false, scrollY = 0) {
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (typeof document.startViewTransition === 'function' && !reduced && !document.hidden) {
     try {
+      // While the browser cross-fades the two screens the blocks of the new one only rise (css hv-rise3): had they also faded in from nothing
+      // the screen would be empty for a few frames between the old one fading out and the new one fading in. The class stays on this screen
+      // for good, so the rise is not swapped for another animation when the cross-fade ends.
+      next.classList.add('hv-vt-screen');
       const fade = document.startViewTransition(swap);
       // A tap on another tab while one is fading skips the first fade: that is not an error to report.
       fade.ready.catch(() => {});

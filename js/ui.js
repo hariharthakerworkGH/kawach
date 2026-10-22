@@ -310,14 +310,23 @@ export function levelWatch(root = document) {
   ring.animate([{ opacity: 0.8, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.16)' }], { duration: 700, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }).onfinish = () => ring.remove();
 }
 
-/* Content arriving from the side the month was stepped towards (5.37): 18 px, well under a third of the
- * screen, 280 ms. Everything handed in moves together, so the name and the figures never part. dir is
- * +1 for a later month (arrives from the right), -1 for an earlier one (from the left). */
-export function slideIn(els, dir) {
-  if (calm()) return;
-  for (const el of els) {
-    if (el && el.animate) el.animate([{ opacity: 0, transform: `translateX(${dir * 18}px)` }, { opacity: 1, transform: 'none' }], { duration: 280, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
-  }
+/* Stepping to another month (5.91): the old month slides out as the new one slides in, one cross-fade the browser draws from a picture of
+ * each (view transitions, named in css/haven-motion.css). It used to hide the old month, draw the new one at opacity 0 and fade it up, which
+ * showed one blank screen in between. `pick()` returns the elements that move together; `swap` changes the page. dir is +1 for a later month
+ * (arrives from the right), -1 for an earlier one. Without view transitions, or with less motion asked for, it simply swaps. */
+export async function monthSwap(dir, pick, swap) {
+  if (calm() || typeof document.startViewTransition !== 'function') { await swap(); return; }
+  const name = () => pick().forEach((el, i) => { if (el) { el.style.viewTransitionName = `kv-month-${i}`; el.style.viewTransitionClass = 'kv-month'; } });
+  const clear = () => pick().forEach((el) => { if (el) { el.style.viewTransitionName = ''; el.style.viewTransitionClass = ''; } });
+  document.documentElement.style.setProperty('--hv-month-dir', String(dir));
+  name();
+  try {
+    const t = document.startViewTransition(async () => { await swap(); name(); });
+    // Another tap while one is moving skips the first: not an error to report.
+    t.ready.catch(() => {});
+    await t.finished;
+  } catch { /* skipped or unsupported: the page is already in its new state */ }
+  clear();
 }
 
 /* A chosen chip gives one small pop (5.37). Used where the list redraws itself on a choice, so the lit chip is new and CSS cannot tell it was just chosen. */

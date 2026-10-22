@@ -53,7 +53,7 @@ import { searchWords, findCandidates } from '../js/category-match.js';
 import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, cashRiver, tickGauge } from '../js/charts.js';
-import { shapeLike, moneyTone, rollFigures, dialAt, fillBars, levelWatch, slidingPill, invalidField, slideIn } from '../js/ui.js';
+import { shapeLike, moneyTone, rollFigures, dialAt, fillBars, levelWatch, slidingPill, invalidField, monthSwap } from '../js/ui.js';
 import { showToast } from '../js/toast.js';
 import { dragRows } from '../js/reorder-drag.js';
 import { goalRing } from '../js/charts.js';
@@ -1882,18 +1882,24 @@ test('a goal that is reached draws its badge; one still short does not', () => {
   ok(!goalRing({ saved: 50000, target: 100000 }).includes('goal-ring__done'), 'short: neither');
 });
 
-test('a month stepped to slides in from the side it came from', () => {
+test('stepping a month swaps the page once, names what moves for the cross-fade, and leaves no name behind', async () => {
   const el = document.createElement('div');
   document.body.append(el);
-  let from = null;
-  el.animate = (kf) => {
-    from = kf[0].transform;
-    return { finished: Promise.resolve() };
+  let swaps = 0;
+  let namedDuring = '';
+  const was = document.startViewTransition;
+  document.startViewTransition = (cb) => {
+    const done = Promise.resolve().then(cb);
+    return { ready: Promise.resolve(), finished: done.then(() => { namedDuring = el.style.viewTransitionName; }) };
   };
-  slideIn([el], -1);
-  equal(from, 'translateX(-18px)', 'an earlier month arrives from the left');
-  slideIn([el], 1);
-  equal(from, 'translateX(18px)', 'a later one from the right');
+  await monthSwap(-1, () => [el], async () => { swaps += 1; });
+  document.startViewTransition = was;
+  equal(swaps, 1, 'the page is changed once');
+  equal(el.style.viewTransitionName, '', 'no transition name is left on the page');
+  if (!document.hidden) {
+    equal(namedDuring, 'kv-month-0', 'the month was named while it moved');
+    equal(document.documentElement.style.getPropertyValue('--hv-month-dir'), '-1', 'an earlier month arrives from the left');
+  }
   el.remove();
 });
 

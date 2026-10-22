@@ -33,7 +33,7 @@ import { incomeWords, businesses, activeSpace, setCurrentSpace, accountInSpace, 
 import { taxDates, renews, renewalsAhead, renewalAfter } from '../calendar.js';
 import { isPolicy, markPaid } from '../policies.js';
 import { settleBills } from '../bills.js';
-import { escapeHtml, escapeAttr, sectionHead, pill, hero, panel, arrivalNow, slideIn } from '../ui.js';
+import { escapeHtml, escapeAttr, sectionHead, pill, hero, panel, arrivalNow, monthSwap } from '../ui.js';
 import { lateBack, reminderText, shareReminder } from '../people.js';
 import { cashSide, spendMoves, isCardBill } from '../transfers.js';
 
@@ -441,7 +441,7 @@ async function renderDashboard(container) {
       viewMonth = next === thisKey ? null : next;
       // The month slides; the blocks inside it do not also rise one by one.
       quiet = true;
-      redraw(container, () => render(container)).then(() => { quiet = false; slideIn([container.querySelector('#dashboard')], delta); });
+      monthSwap(delta, () => [container.querySelector('#dashboard')], () => redraw(container, () => render(container))).then(() => { quiet = false; });
     };
     dashboardEl.querySelector('#sum-month-prev').addEventListener('click', () => step(-1));
     dashboardEl.querySelector('#sum-month-next').addEventListener('click', () => step(1));
