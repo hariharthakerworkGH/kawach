@@ -4,7 +4,7 @@ import { isDemo } from '../demo-flag.js';
 import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
 import { extractPdfText, PdfPasswordError, PdfNoTextError } from '../pdf-text.js';
-import { cleanStatementText, sizeProblem } from '../statement-text.js';
+import { cleanStatementText, sizeProblem, TooBigError } from '../statement-text.js';
 import { MAX_PAISE } from '../records.js';
 import { showToast } from '../toast.js';
 import { detectParser, parsers } from '../parsers/registry.js';
@@ -263,7 +263,8 @@ async function readPdf(file, password) {
     } else if (err instanceof PdfNoTextError) {
       showStatus(status, err.message, true);
     } else {
-      showStatus(status, `Couldn't read this file: ${err.message}`, true);
+      console.error(err);
+      showStatus(status, err instanceof TooBigError ? err.message : "This doesn't look like a statement Kawach can read. Choose the PDF or the spreadsheet (CSV) your bank gave you.", true);
     }
   }
 }
@@ -280,7 +281,8 @@ async function parseCsvFile(file) {
     }
     await startReview({ parser: csvParser, text, queue: [] }, status, resultsEl);
   } catch (err) {
-    showStatus(status, `Couldn't read this file: ${err.message}`, true);
+    console.error(err);
+    showStatus(status, err instanceof TooBigError ? err.message : "This doesn't look like a statement Kawach can read. Choose the PDF or the spreadsheet (CSV) your bank gave you.", true);
   }
 }
 

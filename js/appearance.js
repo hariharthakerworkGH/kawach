@@ -36,6 +36,23 @@ export function retireOldLooks() {
   }
 }
 
+/* 5.89.2: the header's day/night button used to store a fixed Haven day or night, so everyone who ever tapped it was stuck on one look,
+ * and "Follow the sun" never reached them (a phone showing 7 am in the dark). Those two fixed choices move to Follow the sun once;
+ * a colouring picked on purpose in Settings (Ember dusk, Atelier ...) is left alone, and so is anyone who chooses again afterwards. */
+export function moveFixedHavenToSun() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(KEY)) || {};
+    if (stored.sunMigrated) return false;
+    stored.sunMigrated = true;
+    const moved = stored.colour === 'haven-day' || stored.colour === 'haven-night';
+    if (moved) stored.colour = 'sun';
+    localStorage.setItem(KEY, JSON.stringify(stored));
+    return moved;
+  } catch {
+    return false;
+  }
+}
+
 export const CHOICES = {
   // The style screens are built in (js/looks.js): only those that are ready.
   // Haven is the default since 5.52 (the owner's choice; Instrument was from 5.27, Tactile

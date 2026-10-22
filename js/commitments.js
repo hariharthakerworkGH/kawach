@@ -245,6 +245,15 @@ export function salaryDayPayments(transactions, commitments, from, to, accountId
   );
 }
 
+// Does this payment carry the commitment's NAME: the words it was given, or every word of its label ("Netflix")? Amount alone never does.
+// Used where a payment may come from a different account than the one the plan names (a bill set to the bank, paid on a card).
+export function namesCommitment(item, t) {
+  const text = squash(t.rawDescription);
+  if (phraseMatchers(item).some((matches) => matches(text))) return true;
+  const tokens = phraseTokens(item.label);
+  return tokens.length > 0 && tokens.every((w) => text.includes(w));
+}
+
 export function commitmentMatcher(item) {
   const words = entryMatcher(item);
   if (words) return words;

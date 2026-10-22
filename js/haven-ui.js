@@ -4,7 +4,9 @@
 import { icon } from './icons.js';
 import { pendingAlerts } from './alert-inbox.js';
 import { categoryIcon } from './category-icons.js';
-import { afterDraw, paidOut, buzzFor } from './haven-motion.js';
+import { afterDraw, paidOut, buzzFor, sweepTheme } from './haven-motion.js';
+import { appearance, setAppearance, applyTheme } from './appearance.js';
+import { showToast } from './toast.js';
 import { lifeDraw } from './haven-life.js';
 import { tideSvg } from './views/summary-looks.js';
 import { shortRupees } from './format.js';
@@ -113,6 +115,14 @@ function scrub(wrap) {
 // The eye is remembered: someone who hides their amounts in public wants them hidden next time too.
 try { if (localStorage.getItem('kawach-covered')) document.documentElement.classList.add('hv-covered'); } catch { /* private window */ }
 
+// What the colour button says and shows for each choice: the toast, the label, the icon.
+const LOOKS = {
+  sun: ['Following the sun', 'Colours: following the sun. Tap to change', 'sunmoon'],
+  'haven-day': ['Always day', 'Colours: always day. Tap to change', 'sun'],
+  'haven-night': ['Always night', 'Colours: always night. Tap to change', 'moon'],
+};
+const lookNow = () => (LOOKS[appearance('colour')] ? appearance('colour') : 'sun');
+
 export function havenHeader(view) {
   const header = document.querySelector('.app-header');
   if (!header) return;
@@ -142,8 +152,8 @@ export function havenHeader(view) {
   holder.className = 'hv-hdr-extra';
   const round = (label, inner, extra = '') => `<button type="button" class="hv-round" aria-label="${label}"${extra}>${inner}</button>`;
   if (view === 'summary') {
-    // The day/night button is gone: the app follows the sun (js/sun-moon.js), and Settings, How it looks, holds the other choices.
-    holder.innerHTML = round('Hide the amounts', icon('eye'), ` data-hv-act="cover" aria-pressed="${document.documentElement.classList.contains('hv-covered')}"`);
+    holder.innerHTML = round('Hide the amounts', icon('eye'), ` data-hv-act="cover" aria-pressed="${document.documentElement.classList.contains('hv-covered')}"`)
+      + round(LOOKS[lookNow()][1], icon(LOOKS[lookNow()][2]), ' data-hv-act="look"');
   } else if (view === 'plan') {
     holder.innerHTML = `<button type="button" class="hv-pillbtn" data-hv-act="coach"><span class="hv-ic">${icon('coach')}</span>Coach</button>`;
   }
@@ -170,7 +180,17 @@ export function havenHeader(view) {
       b.setAttribute('aria-label', on ? 'Show the amounts' : 'Hide the amounts');
       try { localStorage.setItem('kawach-covered', on ? '1' : ''); } catch { /* private window */ }
     }
-    else if (act === 'coach') document.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'coach' } }));
+    else if (act === 'look') {
+      // follow the sun -> always day -> always night -> follow the sun. Anything else (a colouring chosen in Settings) goes to follow the sun.
+      const next = { sun: 'haven-day', 'haven-day': 'haven-night' }[lookNow()] || 'sun';
+      sweepTheme(() => {
+        setAppearance('colour', next);
+        applyTheme();
+        b.innerHTML = icon(LOOKS[next][2]);
+        b.setAttribute('aria-label', LOOKS[next][1]);
+      });
+      showToast(LOOKS[next][0]);
+    } else if (act === 'coach') document.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'coach' } }));
   });
   markWaiting();
 }

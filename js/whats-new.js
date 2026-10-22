@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.89.2',
+    items: [
+      {
+        icon: 'sun',
+        title: "A colour button, and bills paid on a card",
+        text: "The colour button is back at the top of Summary: follow the sun, always day or always night. Anyone stuck on one look by the old button now follows the sun. A planned bill paid on a credit card, like Netflix, is the plan's money and no longer comes off Left to spend a second time. Also: a broken figure shows a dash, a too-big amount says so, and a file that is not a statement says so plainly.",
+      },
+    ],
+  },
+  {
     version: '5.89',
     items: [
       {

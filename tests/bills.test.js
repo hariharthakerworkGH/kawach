@@ -160,3 +160,33 @@ test('bill: a payment tagged to it counts whatever its words, and one tagged els
   equal(paymentFound(b, [tagged], '2026-09-30'), '2026-09-24');
   equal(paymentFound(b, [other], '2026-09-30'), null);
 });
+
+
+/* --- a planned bill paid on a card is the bill, not spending on top (5.89.3) --------------------------------------------------------- */
+async function leftAfter(plan, payment, more = []) {
+  await seedBasics({ bankBalance: 50000, balanceDate: '2026-09-15' });
+  await putAll('accounts', more);
+  const before = await computeFreeToSpend(day('2026-09-16'));
+  await putAll('recurring', [commitment({ id: 'nf', label: 'Netflix', amount: 499, dayOfMonth: 5, ...plan })]);
+  const planned = await computeFreeToSpend(day('2026-09-16'));
+  await putAll('transactions', [txn({ id: 'nf-pay', accountId: 'card', date: '2026-09-16', amount: 499, source: 'manual', ...payment })]);
+  const after = await computeFreeToSpend(day('2026-09-16'));
+  return { before, planned, after };
+}
+test('a plan for Netflix that names no account: ₹499 paid on a credit card is the plan, and Left to spend does not move', async () => {
+  const { planned, after } = await leftAfter({ accountId: null }, { rawDescription: 'Netflix' });
+  paise(after.spentThisCycle, planned.spentThisCycle);
+  paise(after.free, planned.free);
+});
+test('and it is the same when the card line says NETFLIX.COM, or the plan is set to the bank', async () => {
+  for (const [plan, payment] of [[{ accountId: null }, { rawDescription: 'NETFLIX.COM 866-579' }], [{ accountId: 'bank' }, { rawDescription: 'Netflix' }]]) {
+    const { planned, after } = await leftAfter(plan, payment);
+    paise(after.free, planned.free);
+  }
+});
+test('but the same amount with another name is spending, and a plan tied to a different card keeps to its card', async () => {
+  let r = await leftAfter({ accountId: null }, { rawDescription: 'Pharmacy' });
+  paise(r.after.spentThisCycle, r.planned.spentThisCycle + rupees(499));
+  r = await leftAfter({ accountId: 'card2' }, { rawDescription: 'Netflix' }, [{ id: 'card2', label: 'Other card', type: 'card', issuer: 'Test Bank', last4: '3333', billingCycleDay: 25 }]);
+  paise(r.after.spentThisCycle, r.planned.spentThisCycle + rupees(499));
+});

@@ -2,6 +2,7 @@
 import { test, equal, ok } from './harness.js';
 import { sunAt, moonAt, sunTimes, isDay, nextChange, skyState, moonPathD, phaseName, getPlace, setCity, setPlace, DEFAULT_PLACE, CITIES } from '../js/sun-moon.js';
 import { colouringFor } from '../js/looks.js';
+import { moveFixedHavenToSun, appearance } from '../js/appearance.js';
 
 const RAJKOT = { name: 'Rajkot', lat: 22.3, lon: 70.8 };
 const IST = 5.5 * 3600e3;
@@ -88,5 +89,24 @@ test('where you are: a city or a location is kept and read back, a bad one is ig
   } finally {
     if (had === null) localStorage.removeItem('kawach-where');
     else localStorage.setItem('kawach-where', had);
+  }
+});
+
+test('5.89.2: whoever tapped the old day/night button (a fixed Haven day or night) moves to Follow the sun once; a colouring picked on purpose stays', () => {
+  const key = 'kawach-appearance', had = localStorage.getItem(key);
+  try {
+    localStorage.setItem(key, JSON.stringify({ colour: 'haven-night' }));
+    ok(moveFixedHavenToSun());
+    equal(appearance('colour'), 'sun');
+    ok(!moveFixedHavenToSun(), 'it only ever happens once');
+    localStorage.setItem(key, JSON.stringify({ colour: 'haven-night', sunMigrated: true }));
+    moveFixedHavenToSun();
+    equal(appearance('colour'), 'haven-night', 'a choice made afterwards is kept');
+    localStorage.setItem(key, JSON.stringify({ colour: 'ember-dusk' }));
+    ok(!moveFixedHavenToSun());
+    equal(appearance('colour'), 'ember-dusk');
+  } finally {
+    if (had === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, had);
   }
 });

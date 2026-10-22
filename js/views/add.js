@@ -10,6 +10,7 @@ import { categoryStyle } from '../category-style.js';
 import { showToast } from '../toast.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, toMonthly, toYearly, isoLocal, clockOf } from '../frequency.js';
 import { formatCurrency, formatRupees } from '../format.js';
+import { MAX_PAISE } from '../records.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
 import { isBusinessCategory, isBusinessAccount, activeSpace, accountInSpace } from '../business.js';
 import { escapeHtml, invalidField, markFresh, slidingPill } from '../ui.js';
@@ -549,6 +550,10 @@ export async function render(container, params = {}) {
       invalidField(amountInput, 'Enter an amount');
       return;
     }
+    if (amount > MAX_PAISE) {
+      invalidField(amountInput, 'That amount is too big');
+      return;
+    }
     if (descInput.required && !descInput.value.trim()) {
       invalidField(descInput, 'Say what it was');
       return;
@@ -944,6 +949,7 @@ function havenArrangeAdd(container) {
   next.addEventListener('click', () => {
     const v = parseFloat(input.value);
     if (!(v > 0)) { invalidField(input, 'Enter an amount'); return; }
+    if (v * 100 > MAX_PAISE) { invalidField(input, 'That amount is too big'); return; }
     container.querySelector('#hv-sum-amt').textContent = `₹${v.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
     container.querySelector('#hv-sum-way').textContent = way();
     show(2);

@@ -34,6 +34,7 @@ const SAMPLE_MONTHS = [
 const SAMPLE_F = {
   free: 824000,
   limit: 2820000,
+  perDay: 91500,
   used: 0.708,
   level: 'ok',
   spentThisCycle: 1996000,

@@ -2,7 +2,7 @@ import { getAll, getSetting } from './db.js';
 import { bankBalance, statementDay, afterKnownBalance, isEverydayBank, isPutAway, isSweepDeposit } from './account-metrics.js';
 import { cardStandings } from './card-standing.js';
 import { nextOccurrence, isoLocal, frequencyOf, monthlyAmountOf } from './frequency.js';
-import { isLiveCommitment, commitmentDueInWindow, paidAround, commitmentMatcher, matchWords, isSetAside, isAtmPlan, CASH_ENTRY_RE } from './commitments.js';
+import { isLiveCommitment, commitmentDueInWindow, paidAround, commitmentMatcher, matchWords, isSetAside, isAtmPlan, CASH_ENTRY_RE, namesCommitment } from './commitments.js';
 import { looksLikeCardPayment } from './transfers.js';
 import { findDuplicates } from './duplicates.js';
 import { isLoanAccount, loanCommitment, loanPosition, assignLoanPayments } from './loans.js';
@@ -367,6 +367,13 @@ export async function computeFreeToSpend(now = new Date()) {
     if (item.accountId && cardIds.has(item.accountId)) return 'card';
     return 'bank';
   };
+  // A named bill is paid with whatever you pay it with: ₹499 for Netflix on a credit card IS the bill, so it is the plan's money and not
+  // spending on top of it (it came off Left to spend twice before), whether the plan names a bank account or none. Only a card payment that
+  // carries the bill's name counts here, never one that is merely the same amount; a bill set to a card keeps to that card.
+  const cardNamedFor = (item) =>
+    isSetAside(item) || paidBy(item) !== 'bank'
+      ? []
+      : transactions.filter((t) => cardIds.has(t.accountId) && t.direction === 'debit' && !t.isTransfer && !isWorkCost(t) && !isPersonMoney(t) && notCancelled(t) && namesCommitment(item, t));
   // Your commitments, plus one for each loan's EMI (set up on the loan itself).
   const live = [...recurring.filter((item) => isLiveCommitment(item, today)), ...loanAccounts.map(loanCommitment).filter(Boolean)];
   const bankEntries = transactions.filter((t) => bankIds.has(t.accountId) && t.direction === 'debit');
@@ -434,7 +441,7 @@ export async function computeFreeToSpend(now = new Date()) {
   const bankBeforeSalary = [];
   for (const item of live.filter((i) => paidBy(i) === 'bank' && !markedPaid(i) && !skipped(i))) {
     if (beforeSalaryEnd < today) break;
-    const { amount, detail } = commitmentDueInWindow(item, { today, windowEnd: beforeSalaryEnd, bankEntries });
+    const { amount, detail } = commitmentDueInWindow(item, { today, windowEnd: beforeSalaryEnd, bankEntries: [...bankEntries, ...cardNamedFor(item)] });
     if (amount > 0) bankBeforeSalary.push({ label: item.label, amount, detail });
   }
 
@@ -443,7 +450,7 @@ export async function computeFreeToSpend(now = new Date()) {
     const end = addDays(salary.dayAfter(payday), -1);
     const items = [];
     for (const item of live.filter((i) => paidBy(i) === 'bank')) {
-      const { amount, detail } = commitmentForMonth(item, payday, end, bankEntries, today);
+      const { amount, detail } = commitmentForMonth(item, payday, end, [...bankEntries, ...cardNamedFor(item)], today);
       if (amount > 0) items.push({ label: item.label, amount, detail });
     }
     return { payday, end, amount: monthlyIncome, commitments: items, total: items.reduce((s, c) => s + c.amount, 0) };
@@ -528,7 +535,8 @@ export async function computeFreeToSpend(now = new Date()) {
     const matcher = commitmentMatcher(item);
     const tagged = transactions.filter((t) => t.commitmentId === item.id && t.direction === 'debit' && !isWorkCost(t) && notCancelled(t));
     // A commitment paid from one named bank account only looks at that one.
-    const onItsAccount = holdingIds.has(item.accountId) ? accountPool.filter((t) => t.accountId === item.accountId) : accountPool;
+    // (A card payment that names the bill is let through: the pool only holds one when it does.)
+    const onItsAccount = holdingIds.has(item.accountId) ? accountPool.filter((t) => t.accountId === item.accountId || (!isSetAside(item) && cardIds.has(t.accountId))) : accountPool;
     const pool = [...onItsAccount.filter((t) => !t.commitmentId || t.commitmentId === item.id), ...tagged.filter((t) => !onItsAccount.includes(t))];
     b.tracked = Boolean(matcher) || tagged.length > 0;
     b.used = 0;
@@ -657,7 +665,7 @@ export async function computeFreeToSpend(now = new Date()) {
     // month like everything Left to spend counts. (Before, only the bank did: the same groceries bought by card were taken
     // out of Left to spend as well as set aside, which charged them twice.) One tied to a named bank account stays on it.
     const anyAccount = isSetAside(b.item) && b.paidBy === 'bank' && !holdingIds.has(b.item.accountId);
-    matchedTo(b, b.paidBy === 'card' ? cardPool : anyAccount ? [...bankPool, ...cardPool] : bankPool);
+    matchedTo(b, b.paidBy === 'card' ? cardPool : anyAccount ? [...bankPool, ...cardPool] : [...bankPool, ...cardNamedFor(b.item)]);
   }
   // The ATM plan is used up by cash that counts, not by cash taken out; whatever goes past it is spending, like any
   // other plan.

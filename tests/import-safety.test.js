@@ -65,3 +65,10 @@ test('undo lasts a week: older imports are not offered and lose their copy when 
   try { await undoImport('b1'); } catch { failed = true; }
   ok(failed, 'it says so instead of half-undoing');
 });
+
+/* --- found by the first-time-user sweep (5.89.1) ------------------------------------------------------------------------------------ */
+import { formatRupees, formatCurrency } from '../js/format.js';
+test('a figure that cannot be worked out is a dash, never "NaN" or "undefined" on a screen', () => {
+  equal([formatRupees(NaN), formatRupees(undefined), formatCurrency(NaN), formatCurrency(Infinity)], ['—', '—', '—', '—']);
+  equal([formatRupees(250000), formatCurrency(-123456)], ['₹2,500', '−₹1,234.56']);
+});

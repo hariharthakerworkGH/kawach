@@ -20,7 +20,7 @@ import { keepDataSafe, isInstalled } from './install.js';
 import { signIn, rememberGoogleAccount } from './drive.js';
 import { showIfUpdated } from './whats-new.js';
 import { moneyProfile, businesses, activeSpace, setCurrentSpace, settleSpaces } from './business.js';
-import { applyTheme, applyDisplay, appearance, chosen, setAppearance, retireOldLooks } from './appearance.js';
+import { applyTheme, applyDisplay, appearance, chosen, setAppearance, retireOldLooks, moveFixedHavenToSun } from './appearance.js';
 import { collectSharedAlerts } from './alert-inbox.js';
 import { refreshSchedule, runDueReminders } from './reminders.js';
 import { countUpHeroes, rollFigures, fillBars, levelWatch, beginArrival, emptyState } from './ui.js';
@@ -656,6 +656,7 @@ async function init() {
   // the first paint; this is the same decision made from the one module that
   // owns it, so there is only ever one answer.
   // Peaks and Mindora are gone (5.41): the person who wore one is on Instrument now, and told once.
+  moveFixedHavenToSun();
   const retired = retireOldLooks();
   applyTheme();
   applyDisplay();

@@ -16,12 +16,14 @@ function formatAmount(minorUnits) {
 // Hiding it was the default once, with each screen meant to ask for it, and
 // screens that forgot showed a shortfall as if it were money in hand.
 export function formatCurrency(minorUnits) {
+  if (!Number.isFinite(minorUnits)) return '—';
   const sign = minorUnits < 0 ? '−' : '';
   return `${sign}${CURRENCY_SYMBOL}${formatAmount(Math.abs(minorUnits))}`;
 }
 
 // Rounded to the rupee, for headline figures where paise only get in the way.
 export function formatRupees(minorUnits) {
+  if (!Number.isFinite(minorUnits)) return '—';
   const rupees = Math.round(minorUnits / 100);
   const sign = rupees < 0 ? '−' : '';
   return `${sign}${CURRENCY_SYMBOL}${wholeRupees.format(Math.abs(rupees))}`;

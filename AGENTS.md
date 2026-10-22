@@ -259,8 +259,14 @@ horizon and its night after, swapped at the minute with the same sweep as before
 night, "follow my phone") gets a sky that agrees with them. `skyState()` settles the one contrast problem a sky has: white title text in the
 twilight gets a veil only as thick as needed (never above .5) to stay above 4.5 : 1, and the test sweeps every five minutes of four days in
 three cities for it. Every screen gets 72px more room at the top (`:root[data-sky-real] .view-container`) so the hills show; the month
-switcher is a chip on the left so the sun and moon have the clear sky on the right; the day/night and bell buttons are gone from the header.
+switcher is a chip on the left so the sun and moon have the clear sky on the right; the bell is gone from the header and its colour button cycles
+follow the sun, always day, always night (`LOOKS` in js/haven-ui.js). Anyone whose stored colour was the old button's fixed Haven day or night moves
+to follow the sun once (`moveFixedHavenToSun`, 5.89.2): they had been stuck on one look and never saw the sun.
 Shown first as mockups/7.15-dawn-to-dusk-pro.
+
+A named commitment (not a set-aside) is met by a payment that carries its name on ANY card, whether the plan names a bank account or none: ₹499 for
+Netflix on a credit card is the plan's money, never spending on top of it (`namesCommitment`, `cardNamedFor` in js/free-to-spend.js; 5.89.2). The same
+amount with another name is still spending, and a plan set to a card keeps to that card.
 
 Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built with
 `isoLocal` - never `toISOString()`, which is a day behind in India.
