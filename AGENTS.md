@@ -268,6 +268,14 @@ A named commitment (not a set-aside) is met by a payment that carries its name o
 Netflix on a credit card is the plan's money, never spending on top of it (`namesCommitment`, `cardNamedFor` in js/free-to-spend.js; 5.89.2). The same
 amount with another name is still spending, and a plan set to a card keeps to that card.
 
+Haven is the only look (5.90): Instrument retired like Tactile and Charts before it, its stylesheet is gone, and `styleFor()` returns Haven for
+anything saved. The colours are Follow the sun, Always day and Always night; every other colouring (Instrument's three, Ember dusk, Atelier,
+Follow my phone ...) retired and a saved one now follows the sun (`appearance('colour')` falls back to `sun`). How it looks shows five things:
+Colours, Where you are, Text size, Motion, When Kawach opens, and the order of lists folded away. The layout options (Summary, Accounts, Add,
+History), spacing, what fills the shield and festival touches are no longer offered; they keep their defaults. Some Instrument-only code
+branches in the screens are dead now and can be removed later (`tools/release/deadcode.mjs`). The checks run in Brave (`KH_BROWSER` names
+another Chromium; tools/tour-video/cdp.mjs).
+
 Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built with
 `isoLocal` - never `toISOString()`, which is a day behind in India.
 

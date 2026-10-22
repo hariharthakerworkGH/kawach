@@ -23,9 +23,9 @@ export function retireOldLooks() {
   try {
     const stored = JSON.parse(localStorage.getItem(KEY)) || {};
     const old = (v) => v === 'peaks' || v === 'mindora';
-    const newer = (v) => v === 'tactile' || v === 'charts';
+    const newer = (v) => v === 'tactile' || v === 'charts' || v === 'instrument';
     const styleGone = old(stored.style) || newer(stored.style);
-    const colourGone = old(stored.colour) || stored.colour === 'tactile';
+    const colourGone = old(stored.colour) || stored.colour === 'tactile' || String(stored.colour || '').startsWith('instrument');
     if (!styleGone && !colourGone) return false;
     if (styleGone) delete stored.style;
     if (colourGone) delete stored.colour;
@@ -73,9 +73,9 @@ export const CHOICES = {
     fallback: 'sun',
     where: '',
     options: [
-      { value: 'sun', label: 'Follow the sun', note: "Light by day, dark after sunset, wherever you are. The sky behind each screen is the real sun and moon." },
-      { value: 'auto', label: 'Follow my phone', note: "The style's own colours (Haven: its day or its night), or burning flame when your phone is light." },
-      ...COLOURINGS.map((c) => ({ value: c.id, label: c.name, note: c.mode === 'light' ? 'Light' : 'Dark' })),
+      { value: 'sun', label: 'Follow the sun', note: 'Light by day, dark after sunset, wherever you are. The sky behind each screen is the real sun and moon.' },
+      { value: 'haven-day', label: 'Always day', note: 'Light, whatever the hour.' },
+      { value: 'haven-night', label: 'Always night', note: 'Dark, whatever the hour.' },
     ],
   },
   text: {

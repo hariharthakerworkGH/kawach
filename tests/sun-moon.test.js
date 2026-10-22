@@ -51,7 +51,6 @@ test('follow the sun: the day flips exactly once at sunrise and once at sunset, 
 
 test('follow the sun: Haven wears its day while the sun is up and its night after; another look reads the sun as its phone', () => {
   equal([colouringFor('sun', false, 'haven', true).id, colouringFor('sun', true, 'haven', false).id], ['haven-day', 'haven-night']);
-  equal(colouringFor('sun', true, 'instrument', false).mode, 'dark');
   equal(colouringFor('haven-night', true, 'haven', true).id, 'haven-night', 'a fixed colour is never moved by the sun');
 });
 
@@ -103,8 +102,8 @@ test('5.89.2: whoever tapped the old day/night button (a fixed Haven day or nigh
     moveFixedHavenToSun();
     equal(appearance('colour'), 'haven-night', 'a choice made afterwards is kept');
     localStorage.setItem(key, JSON.stringify({ colour: 'ember-dusk' }));
-    ok(!moveFixedHavenToSun());
-    equal(appearance('colour'), 'ember-dusk');
+    ok(!moveFixedHavenToSun(), 'a retired colouring is not "moved" here: it follows the sun by itself');
+    equal(appearance('colour'), 'sun');
   } finally {
     if (had === null) localStorage.removeItem(key);
     else localStorage.setItem(key, had);

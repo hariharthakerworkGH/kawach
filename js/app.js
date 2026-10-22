@@ -664,7 +664,7 @@ async function init() {
 
   // The tab bar's and header's icons, before anything is drawn below them.
   fillIcons();
-  if (retired) showToast('Tactile and Charts have retired. You are on Haven now; change it in How it looks.', { ms: 7000 });
+  if (retired) showToast('Your old look has retired. You are on Haven now; change the colours in How it looks.', { ms: 7000 });
 
   // Wired first thing, so the banner's Reload works even if startup stalls
   // below - which is exactly when it's needed.

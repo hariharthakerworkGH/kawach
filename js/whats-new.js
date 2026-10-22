@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.90',
+    items: [
+      {
+        icon: 'palette',
+        title: "One look, three colour choices",
+        text: "Kawach now has one look, Haven. How it looks is down to Colours (Follow the sun, Always day, Always night), Where you are, Text size, Motion and When Kawach opens; the old looks, other colour schemes and layout options are gone, and anyone who used them moves to Haven once.",
+      },
+    ],
+  },
+  {
     version: '5.89.3',
     items: [
       {

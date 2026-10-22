@@ -79,8 +79,8 @@
     // it is as light or dark as the phone, else Charts on a dark phone and
     // burning flame light on a light one. READY and LIGHT must match
     // js/looks.js.
-    var READY = { instrument: 1, haven: 1 };
-    var LIGHT = { 'flame-light': 1, 'haven-day': 1 };
+    var READY = { haven: 1 };
+    var LIGHT = { 'haven-day': 1 };
     // Haven unless another style was chosen (the default since 5.52; Instrument was before, Tactile before that).
     // Tactile and Charts retired in 5.57: they, and anything unknown, are Haven.
     var st = READY[a.style] ? a.style : 'haven';
@@ -90,6 +90,8 @@
     if (c === 'peaks' || c === 'mindora' || c === 'tactile') c = 'auto';
     // Haven brings its own day and night: another look's own colouring (the default before 5.52) means "follow the phone" here.
     if (st === 'haven' && (c === 'charts' || c === 'tactile' || c === 'instrument')) c = 'auto';
+    // The other colourings retired in 5.90: only Follow the sun, Always day and Always night are left; an old choice follows the sun.
+    if (c !== 'sun' && c !== 'auto' && c !== 'haven-day' && c !== 'haven-night') c = 'sun';
     var pl = Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
     // "Follow the sun": js/appearance.js stores whether it is dark and until when; with nothing stored, the hour decides (before 6:30 and after 6:30 pm is night).
     if (c === 'sun') {
@@ -143,7 +145,6 @@
 <link rel="stylesheet" href="./css/dna.css">
 <link rel="stylesheet" href="./css/looks.css">
 <link rel="stylesheet" href="./css/style-tactile.css">
-<link rel="stylesheet" href="./css/style-instrument.css">
 <link rel="stylesheet" href="./css/haven-proto.css">
 <link rel="stylesheet" href="./css/style-haven.css">
 <link rel="stylesheet" href="./css/haven-motion.css">

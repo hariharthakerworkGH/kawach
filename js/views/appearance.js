@@ -17,7 +17,6 @@ import { spendingHero } from './summary.js';
 import { allocationRing } from '../charts.js';
 import { sixMonthCharts, lastSixMonths } from './transactions.js';
 import { showToast } from '../toast.js';
-import { STYLES, COLOURINGS, AUTO, ownColouring } from '../looks.js';
 import { CITIES, getPlace, setCity, useMyLocation, sunTimes, moonAt, phaseName } from '../sun-moon.js';
 
 // Enough invented money to draw every option honestly, for someone who has
@@ -146,38 +145,23 @@ function usingSample(name) {
   return false;
 }
 
-/* Style and colours, the first card: the styles as a row (Charts now, the
- * others as they are built), the colourings as swatches. Each swatch is still
- * a radio, so choosing one saves and repaints like every other choice here. */
+/* Colours, the first card: Follow the sun, Always day, Always night. Each is a radio, so choosing one saves and repaints the whole app. */
 function lookCard(spec) {
   const current = appearance('colour');
-  const style = appearance('style');
-  const dots = (c) => c.dots.map((d) => `<i style="background:${d}"></i>`).join('');
-  const auto = COLOURINGS.find((c) => c.id === ownColouring(style));
-  // Haven follows the phone into its own day, the others into burning flame light.
-  const autoLight = COLOURINGS.find((c) => c.id === (style === 'haven' ? 'haven-day' : AUTO.light));
-  const tile = (value, name, sub, swatch) => `
+  const tile = (value, name, sub, dots) => `
         <label class="look-option look-swatch${value === current ? ' chosen' : ''}">
           <input type="radio" name="look-colour" value="${value}"${value === current ? ' checked' : ''}>
-          <span class="look-dots">${swatch}</span>
+          <span class="look-dots">${dots.map((d) => `<i style="background:${d}"></i>`).join('')}</span>
           <span class="look-label">${name}</span>
           <span class="muted-note">${sub}</span>
         </label>`;
   return `
-    <h3>Style</h3>
-    <div class="totals-card look-card look-styles">
-      ${STYLES.map((s) =>
-        s.ready
-          ? `<label class="look-option look-style${s.id === style ? ' chosen' : ''}"><input type="radio" name="look-style" value="${s.id}"${s.id === style ? ' checked' : ''}>${s.name}</label>`
-          : `<span class="look-style soon">${s.name}<small>coming</small></span>`
-      ).join('')}
-    </div>
     <h3>${spec.label}</h3>
     <div class="totals-card look-card">
       <div class="look-swatches">
-        ${tile('sun', 'Follow the sun', 'Day by day, night by night', ['#f5f8fc', '#070c19', '#ffb547', '#38c9dc'].map((d) => `<i style="background:${d}"></i>`).join(''))}
-        ${tile('auto', 'Follow my phone', style === 'haven' ? 'Haven day or night' : 'Style colours or flame', [auto.bg, auto.dots[1], autoLight.bg, autoLight.dots[1]].map((d) => `<i style="background:${d}"></i>`).join(''))}
-        ${COLOURINGS.map((c) => tile(c.id, c.name, c.mode === 'light' ? 'Light' : 'Dark', dots(c))).join('')}
+        ${tile('sun', 'Follow the sun', 'Day by day, night by night', ['#f5f8fc', '#070c19', '#ffb547', '#38c9dc'])}
+        ${tile('haven-day', 'Always day', 'Light', ['#ffffff', '#11234f', '#145ec1', '#0c7a52'])}
+        ${tile('haven-night', 'Always night', 'Dark', ['#10192d', '#1161bb', '#38c9dc', '#5ed99e'])}
       </div>
       <p class="muted-note look-live">Tap one to see the whole app change.</p>
     </div>`;
@@ -208,8 +192,6 @@ function whereCard() {
 
 function card(name, spec) {
   if (name === 'colour') return lookCard(spec);
-  // The style is chosen in the same card as the colours, above them.
-  if (name === 'style') return '';
   const current = appearance(name);
   const preview = previewFor(name, current);
   return `
@@ -245,12 +227,14 @@ function card(name, spec) {
     </div>`;
 }
 
+// What is left to choose (5.90): colours, where you are, text size, motion, the opening screen, and the order of lists folded away. The layouts and
+// the other looks are gone: everyone gets the one the app was designed around.
+const SHOWN = ['colour', 'text', 'motion', 'opening'];
+const ORDERS = ['plan', 'accountOrder', 'categoryOrder'];
 function draw(container) {
-  // Motion is Haven's own (the other looks keep the motion they have).
-  container.querySelector('#look-cards').innerHTML = Object.entries(CHOICES)
-    .filter(([name]) => !['motion', 'liquid', 'festivals'].includes(name) || appearance('style') === 'haven')
-    .map(([name, spec]) => card(name, spec) + (name === 'colour' && appearance('style') === 'haven' ? whereCard() : ''))
-    .join('');
+  const cards = SHOWN.map((name) => card(name, CHOICES[name]) + (name === 'colour' ? whereCard() : '')).join('');
+  const orders = ORDERS.map((name) => card(name, CHOICES[name])).join('');
+  container.querySelector('#look-cards').innerHTML = `${cards}<details class="section-fold look-fold"><summary>Order of lists</summary>${orders}</details>`;
 }
 
 function wire(container) {

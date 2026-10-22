@@ -433,10 +433,11 @@ test('a look is only saved when it is one of the offered options', () => {
   const before = localStorage.getItem(key);
   try {
     localStorage.removeItem(key);
-    ok(setAppearance('colour', 'flame-light'));
-    equal(appearance('colour'), 'flame-light');
+    ok(setAppearance('colour', 'haven-night'));
+    equal(appearance('colour'), 'haven-night');
     ok(!setAppearance('colour', 'purple'));
-    equal(appearance('colour'), 'flame-light', 'a rejected value leaves the old one alone');
+    ok(!setAppearance('colour', 'ember-dusk'), 'a colouring that retired in 5.90 is no longer offered');
+    equal(appearance('colour'), 'haven-night', 'a rejected value leaves the old one alone');
     ok(!setAppearance('no-such-choice', 'light'));
   } finally {
     if (before === null) localStorage.removeItem(key);
@@ -445,40 +446,27 @@ test('a look is only saved when it is one of the offered options', () => {
   }
 });
 
-test('colourings: follow the phone, carry over an old light or dark choice', () => {
-  equal(colouringFor('auto', false).id, 'charts', 'a dark phone gets Charts');
-  equal(colouringFor('auto', true).id, 'flame-light', 'a light phone gets burning flame light');
-  equal(colouringFor('atelier', true).id, 'atelier', 'a chosen colouring is kept whatever the phone');
-  equal(colouringFor('no-such', false).id, 'charts', 'an unknown one falls back');
-  equal(styleFor('tactile'), 'haven', 'Tactile retired in 5.57: it is Haven now');
-  equal(styleFor('charts'), 'haven', 'and so is Charts');
-  ok(!COLOURINGS.some((c) => c.id === 'tactile'), 'Tactile copper is gone');
-  equal(styleFor('mindora'), 'haven', 'a style that was retired (Mindora, Peaks) is Haven now (5.52)');
-  equal(styleFor('peaks'), 'haven', 'Peaks too');
-  equal(styleFor('haven'), 'haven', 'Haven is ready');
-  equal(colouringFor('auto', true, 'haven').id, 'haven-day', 'in Haven, a light phone gets its day');
-  equal(colouringFor('auto', false, 'haven').id, 'haven-night', 'and a dark phone its night');
-  equal(colouringFor('haven-night', true, 'haven').id, 'haven-night', 'a chosen night is kept in daylight');
-  equal(colouringFor('instrument', true, 'haven').id, 'haven-day', 'the colouring everyone wore before 5.52 follows the phone in Haven');
-  equal(colouringFor('ember-dusk', false, 'haven').id, 'ember-dusk', 'a colouring chosen on purpose is kept');
-  equal(colouringFor('peaks', false, 'instrument').id, 'instrument', 'and a retired colouring is the style\'s own');
-  equal(styleFor('instrument'), 'instrument', 'Instrument is ready');
-  equal(colouringFor('auto', false, 'instrument').id, 'instrument', 'in Instrument, a dark phone gets Instrument amber');
-  equal(colouringFor('auto', true, 'instrument').id, 'flame-light', 'and a light phone burning flame light, as Instrument is dark');
-  ok(['instrument', 'instrument-ice', 'instrument-lime'].every((id) => COLOURINGS.some((c) => c.id === id && c.mode === 'dark')), 'Instrument comes in amber, ice and lime');
-  equal(styleFor('no-such'), 'haven', 'a style that does not exist is drawn as Haven, the default');
+test('colourings: Haven day and night only; an old choice follows the phone, a fixed one is kept, and every style is Haven', () => {
+  equal(COLOURINGS.map((c) => c.id), ['haven-day', 'haven-night'], 'only Haven day and night are left (5.90)');
+  equal(colouringFor('auto', true).id, 'haven-day', 'a light phone gets Haven day');
+  equal(colouringFor('auto', false).id, 'haven-night', 'and a dark phone Haven night');
+  equal(colouringFor('haven-night', true).id, 'haven-night', 'a chosen night is kept in daylight');
+  equal(colouringFor('haven-day', false).id, 'haven-day', 'and a chosen day in the dark');
+  equal(colouringFor('ember-dusk', false).id, 'haven-night', 'a colouring that retired follows the phone');
+  equal(colouringFor('instrument', true).id, 'haven-day', 'so does an Instrument one');
+  for (const old of ['tactile', 'charts', 'mindora', 'peaks', 'instrument', 'no-such', 'haven']) equal(styleFor(old), 'haven', `${old} is drawn as Haven`);
   ok(COLOURINGS.every((c) => c.mode === 'light' || c.mode === 'dark'));
   const key = 'kawach-appearance';
   const before = localStorage.getItem(key);
   try {
     localStorage.setItem(key, JSON.stringify({ theme: 'light' }));
-    equal(appearance('colour'), 'flame-light', 'always light before 4.29 is burning flame light now');
-    localStorage.setItem(key, JSON.stringify({ theme: 'dark' }));
-    equal(appearance('colour'), 'charts', 'always dark is Charts');
+    equal(appearance('colour'), 'sun', 'always light before 4.29 was a colouring that has retired: it follows the sun now');
+    localStorage.setItem(key, JSON.stringify({ colour: 'ember-dusk' }));
+    equal(appearance('colour'), 'sun', 'and so does any other retired colouring');
     localStorage.setItem(key, JSON.stringify({ theme: 'auto' }));
     equal(appearance('colour'), 'sun', 'nothing chosen is Follow the sun (5.89); someone who chose Follow my phone keeps it');
     localStorage.setItem(key, JSON.stringify({ colour: 'auto' }));
-    equal(appearance('colour'), 'auto');
+    equal(appearance('colour'), 'sun', 'Follow my phone retired too (5.90)');
   } finally {
     if (before === null) localStorage.removeItem(key);
     else localStorage.setItem(key, before);
@@ -488,7 +476,7 @@ test('colourings: follow the phone, carry over an old light or dark choice', () 
 
 test('every look offers options, a fallback among them, and no repeats', () => {
   for (const [name, spec] of Object.entries(CHOICES)) {
-    ok(spec.options.length >= 2, `${name} needs a choice to be a choice`);
+    ok(spec.options.length >= 2 || name === 'style', `${name} needs a choice to be a choice`); // Haven is the only style since 5.90
     const values = spec.options.map((o) => o.value);
     equal(new Set(values).size, values.length, `${name} repeats a value`);
     ok(values.includes(spec.fallback), `${name} falls back to something it does not offer`);
@@ -1851,7 +1839,7 @@ test('a month that closed under budget says so on every look, and an over one sa
   }
 });
 
-test('Peaks, Mindora, Tactile and Charts were retired: a saved choice of any becomes Haven, following the phone, once', () => {
+test('Peaks, Mindora, Tactile, Charts and Instrument were retired: a saved choice of any becomes Haven, following the phone, once', () => {
   const store = {};
   globalThis.__ls = store;
   const real = globalThis.localStorage;
@@ -1862,14 +1850,15 @@ test('Peaks, Mindora, Tactile and Charts were retired: a saved choice of any bec
     ok(retireOldLooks(), 'a Peaks wearer is moved');
     equal(JSON.parse(store['kawach-appearance']), { text: 'large' }, 'the style and colour are dropped, the rest is kept');
     ok(!retireOldLooks(), 'and it is only ever done once');
-    store['kawach-appearance'] = JSON.stringify({ style: 'instrument', colour: 'mindora' });
-    ok(retireOldLooks() && JSON.parse(store['kawach-appearance']).style === 'instrument', 'a retired colouring under a style that stays: only the colouring goes');
+    store['kawach-appearance'] = JSON.stringify({ style: 'instrument', colour: 'instrument-ice', text: 'large' });
+    ok(retireOldLooks(), 'an Instrument wearer is moved (5.90)');
+    equal(JSON.parse(store['kawach-appearance']), { text: 'large' }, 'the style and colour go, the rest stays');
     store['kawach-appearance'] = JSON.stringify({ style: 'tactile', colour: 'tactile', motion: 'calm' });
     ok(retireOldLooks(), 'a Tactile wearer is moved');
     equal(JSON.parse(store['kawach-appearance']), { motion: 'calm' }, 'the style and colour go, the rest stays');
     store['kawach-appearance'] = JSON.stringify({ style: 'charts' });
     ok(retireOldLooks() && !('style' in JSON.parse(store['kawach-appearance'])), 'and a Charts wearer');
-    store['kawach-appearance'] = JSON.stringify({ style: 'instrument', colour: 'instrument-ice' });
+    store['kawach-appearance'] = JSON.stringify({ style: 'haven', colour: 'haven-night' });
     ok(!retireOldLooks(), 'anyone else is left alone');
   } finally {
     Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: real });
