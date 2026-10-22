@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.89.3',
+    items: [
+      {
+        icon: 'file',
+        title: "Statements from any bank read better",
+        text: "A bank statement Kawach has no special reader for is now read more reliably: credit, debit and balance columns are told apart even when an empty column prints as a 0 or a dash, and a statement with a balance column is never mistaken for a credit card.",
+      },
+    ],
+  },
+  {
     version: '5.89.2',
     items: [
       {

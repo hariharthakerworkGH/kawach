@@ -119,7 +119,9 @@ function iso(y, m, d) {
 
 // One amount at the very end of a line: "1,234.50", "-1,234.50", "(1,234.50)",
 // "₹1,234.50", "1,234.50 Cr", or a lone "-" for an empty column.
-const TAIL_RE = /(?:^|\s)(-|[-+]?(?:(?:₹|Rs\.?|INR)\s?)?\(?\d[\d,]*\.\d{2}\)?(?:\s?\(?(?:Cr|Dr|CR|DR|cr|dr)\)?\.?)?)$/;
+// An empty column prints as a lone "-" or a bare "0" (SBI's credit and debit columns do both), so neither is an amount.
+const EMPTY = (t) => t === '-' || t === '0';
+const TAIL_RE = /(?:^|\s)(-|0|[-+]?(?:(?:₹|Rs\.?|INR)\s?)?\(?\d[\d,]*\.\d{2}\)?(?:\s?\(?(?:Cr|Dr|CR|DR|cr|dr)\)?\.?)?)$/;
 
 // Takes the amounts off the end of a line, left to right.
 function tailAmounts(text, stripped = false) {
@@ -131,15 +133,12 @@ function tailAmounts(text, stripped = false) {
     found.unshift(m[1]);
     rest = rest.slice(0, m.index).trim();
   }
-  // A lone "-" is an empty column only in a row of columns (an amount and a
-  // balance beside it); otherwise it is a dash in the description.
-  if (found.filter((t) => t !== '-').length < 2) {
-    while (found.length && found[0] === '-') {
-      found.shift();
-      rest = `${rest} -`.trim();
-    }
+  // A lone "-" or "0" is an empty column only in a row of columns (an amount and a
+  // balance beside it); otherwise it is part of the description.
+  if (found.filter((t) => !EMPTY(t)).length < 2) {
+    while (found.length && EMPTY(found[0])) rest = `${rest} ${found.shift()}`.trim();
   }
-  if (!found.some((t) => t !== '-')) {
+  if (!found.some((t) => !EMPTY(t))) {
     // Some banks print a branch code after the balance ("... 12,550.00 2345").
     const code = /\s\d{1,6}$/.exec(text);
     if (code && !stripped) return tailAmounts(text.slice(0, code.index), true);
@@ -149,7 +148,7 @@ function tailAmounts(text, stripped = false) {
 }
 
 function readAmount(token) {
-  if (token === '-') return { paise: 0, empty: true };
+  if (EMPTY(token)) return { paise: 0, empty: true };
   const mark = /cr\)?\.?$/i.test(token) ? 'cr' : /dr\)?\.?$/i.test(token) ? 'dr' : null;
   const negative = /^-|^\(|\(\s*[\d₹]/.test(token.trim()) && !/^\(?(cr|dr)/i.test(token.trim());
   const digits = token.match(/\d[\d,]*\.\d{2}/)[0].replace(/,/g, '');

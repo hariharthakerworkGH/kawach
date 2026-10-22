@@ -210,3 +210,13 @@ test('copies a day apart: the same bank reference is one payment, a different on
   const noRef = txn({ ...emi, date: '2026-10-01', importBatchId: 'nb', rawDescription: 'HOME LOAN EMI HOME LOAN EMI HOME LOAN EMI' });
   ok(!sameTransaction(pdf, noRef), 'without a number on both, a day apart is never enough');
 });
+
+test('the general reader, with no bank reader to help, still gets credit, debit and balance right when empty columns print as 0 or a dash', async () => {
+  const { readerFor, parse } = await import('../js/parsers/any-bank.js');
+  equal(readerFor(ALL_ACCOUNTS).accountType, 'bank', 'a balance column makes it a bank account, never a card');
+  const { rows } = parse(ALL_ACCOUNTS);
+  equal(rows.slice(0, 5).map((r) => [r.date, r.direction, r.amount]), [
+    ['2026-09-08', 'debit', 3000000], ['2026-09-09', 'credit', 100], ['2026-09-15', 'credit', 1500000], ['2026-09-15', 'debit', 2000000], ['2026-09-30', 'credit', 4000000],
+  ]);
+  ok(!rows.some((r) => /\s0$|\s-$/.test(r.description)), 'the empty columns are not left in the description');
+});
