@@ -1,4 +1,6 @@
 import { getSetting, setSetting } from './db.js';
+import { icon } from './icons.js';
+import { categoryIcon } from './category-icons.js';
 
 // Installing Kawach, and keeping its data safe on the phone.
 //
@@ -58,35 +60,34 @@ export async function install() {
 
 const SNOOZE_DAYS = 14;
 
-// A card for the top of Summary while the app runs in a browser tab: an
-// Install button where Chrome offers one, the steps where it doesn't
-// (iPhone, or Chrome before it has decided). "Not now" hides it for two weeks.
+// A slim card for the foot of Summary while the app runs in a browser tab: an Install button where Chrome offers one, a "How" that shows
+// the steps where it doesn't (iPhone, or Chrome before it has decided). The cross hides it for two weeks.
 export async function installCard() {
   if (isInstalled()) return '';
   const snoozed = await getSetting('installSnoozedUntil', 0);
   if (snoozed && Date.now() < snoozed) return '';
-  const how = offer
-    ? '<button type="button" class="btn-primary install-now">Install Kawach</button>'
-    : isIPhone()
-      ? '<p class="muted-note install-steps">In Safari, tap Share, then <strong>Add to Home Screen</strong>.</p>'
-      : '<p class="muted-note install-steps">In Chrome, tap the three dots at the top right, then <strong>Install app</strong> or <strong>Add to Home screen</strong>.</p>';
+  const steps = isIPhone()
+    ? 'In Safari, tap Share, then <strong>Add to Home Screen</strong>.'
+    : 'In Chrome, tap the three dots at the top right, then <strong>Install app</strong> or <strong>Add to Home screen</strong>.';
   return `
-    <div class="totals-card install-card">
-      <div class="install-head">
-        <img class="install-logo" src="./icons/kawach.svg" alt="" width="40" height="40">
-        <div>
-          <p class="install-title">Put Kawach on your home screen</p>
-          <p class="muted-note">Opens like an app, works offline, and your data is kept safe on this phone.</p>
-        </div>
-      </div>
-      ${how}
-      <button type="button" class="link-btn install-later">Not now</button>
+    <div class="lg-card lg-install install-card">
+      <span class="lg-ico t1">${categoryIcon('shield')}</span>
+      <span class="lg-install__t">Add Kawach to home screen</span>
+      ${offer ? '<button type="button" class="lg-btn sm p install-now">Install</button>' : '<button type="button" class="lg-btn sm p install-how" aria-expanded="false">How</button>'}
+      <button type="button" class="lg-x install-later" aria-label="Not now">${icon('close')}</button>
+      ${offer ? '' : `<p class="muted-note install-steps" hidden>${steps}</p>`}
     </div>`;
 }
 
 export function wireInstallCard(root, onChange) {
   const now = root.querySelector('.install-now');
   if (now) now.addEventListener('click', async () => onChange(await install()));
+  root.querySelector('.install-how')?.addEventListener('click', (e) => {
+    const steps = root.querySelector('.install-steps');
+    if (!steps) return;
+    steps.hidden = !steps.hidden;
+    e.currentTarget.setAttribute('aria-expanded', String(!steps.hidden));
+  });
   const later = root.querySelector('.install-later');
   if (later) {
     later.addEventListener('click', async () => {

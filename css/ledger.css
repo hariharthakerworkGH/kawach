@@ -1,0 +1,721 @@
+/* Kawach 7.0, "Ledger": the look shown in mockups/7.0-ledger (index.html, sky.html, orbs.html), built from those files' own values.
+ *
+ * Haven is still the only style; this sheet is the last one loaded and gives it the Ledger palette, header, sky, tab bar and parts
+ * (buttons, grouped tools, segmented controls, tags, rows, steppers). Everything is written under :root[data-style="haven"] and takes its
+ * colours from the --lg-* tokens below, which also re-point the older --hv-*, --k-* and base tokens so the screens the mockups do not show
+ * (Settings, Import, Coach ...) wear the same colours.
+ */
+
+/* ---------------------------------------------------------------- tokens: night and day */
+html:root[data-style="haven"][data-colour="haven-night"] {
+  --lg-bg: #0A0F1A; --lg-dock: #0D1320; --lg-s1: #111827; --lg-s2: #182236; --lg-s3: #243350; --lg-line: rgba(255, 255, 255, 0.08);
+  --lg-ink: #EAF0FA; --lg-ink2: #A8B4CC; --lg-ink3: #8392AD;
+  --lg-tide: #3FD8C6; --lg-tide-ink: #04231F; --lg-tide-soft: rgba(63, 216, 198, 0.14);
+  --lg-amber: #F4B541; --lg-amber-soft: rgba(244, 181, 65, 0.16); --lg-coral: #FF8080; --lg-coral-soft: rgba(255, 128, 128, 0.14);
+  --lg-ok: #62E3A5; --lg-ok-soft: rgba(98, 227, 165, 0.14); --lg-hero1: #18366A; --lg-hero2: #0E2249; --lg-scrim: rgba(4, 8, 16, 0.62);
+  --lg-blue: #9DB4FF; --lg-seg-on-line: rgba(255, 255, 255, 0.07);
+}
+html:root[data-style="haven"][data-colour="haven-day"] {
+  --lg-bg: #F2F0EA; --lg-dock: #FBFAF7; --lg-s1: #FFFFFF; --lg-s2: #ECE9E1; --lg-s3: #FFFFFF; --lg-line: rgba(16, 24, 40, 0.10);
+  --lg-ink: #101828; --lg-ink2: #475467; --lg-ink3: #5A6578;
+  --lg-tide: #08695F; --lg-tide-ink: #FFFFFF; --lg-tide-soft: rgba(8, 105, 95, 0.12);
+  --lg-amber: #8F5300; --lg-amber-soft: rgba(190, 120, 0, 0.15); --lg-coral: #BB2D2D; --lg-coral-soft: rgba(187, 45, 45, 0.10);
+  --lg-ok: #0D7446; --lg-ok-soft: rgba(13, 116, 70, 0.12); --lg-hero1: #18366A; --lg-hero2: #0E2249; --lg-scrim: rgba(16, 24, 40, 0.40);
+  --lg-blue: #3453C8; --lg-seg-on-line: rgba(16, 24, 40, 0.10);
+}
+
+/* The older token families take the Ledger colours, so every screen is on the same palette. */
+html:root[data-style="haven"][data-colour] {
+  --hv-paper: var(--lg-bg); --hv-sky: var(--lg-bg); --hv-core: var(--lg-s1); --hv-core-2: var(--lg-s1); --hv-shell: transparent; --hv-well: var(--lg-s2);
+  --hv-hair: var(--lg-line); --hv-hair-strong: color-mix(in srgb, var(--lg-ink) 16%, transparent);
+  --hv-ink: var(--lg-ink); --hv-ink-2: var(--lg-ink2); --hv-ink-3: var(--lg-ink3);
+  --hv-link: var(--lg-tide); --hv-good: var(--lg-ok); --hv-good-tile: var(--lg-ok-soft); --hv-bad: var(--lg-coral); --hv-bad-tile: var(--lg-coral-soft);
+  --hv-warn: var(--lg-amber); --hv-warn-tile: var(--lg-amber-soft);
+  --hv-primary: var(--lg-tide); --hv-on-primary: var(--lg-tide-ink); --hv-tab-on: var(--lg-tide); --hv-bar-bg: var(--lg-dock);
+  --hv-fab: var(--lg-tide); --hv-on-fab: var(--lg-tide-ink); --hv-scrim: var(--lg-scrim); --hv-stage: var(--lg-bg);
+  --hv-toast-bg: var(--lg-s3); --hv-blob: var(--lg-tide-soft); --hv-grain-op: 0;
+  --hv-tide-a: var(--lg-tide); --hv-tide-b: color-mix(in srgb, var(--lg-tide) 70%, #fff);
+  --hv-lift: none; --hv-lift-hero: none; --hv-card-edge: transparent;
+  --k-bg: var(--lg-bg); --k-bg-elev: var(--lg-dock); --k-surface: var(--lg-s1); --k-surface-elev: var(--lg-s2); --k-surface-hero: var(--lg-s1); --k-surface-press: var(--lg-s2);
+  --k-text: var(--lg-ink); --k-text-2: var(--lg-ink2); --k-text-3: var(--lg-ink3);
+  --k-hairline: var(--lg-line); --k-border-subtle: var(--lg-line); --k-border: color-mix(in srgb, var(--lg-ink) 14%, transparent);
+  --k-border-emphasis: color-mix(in srgb, var(--lg-ink) 24%, transparent);
+  --k-accent-text: var(--lg-tide); --k-accent-ink: var(--lg-tide-ink); --k-positive: var(--lg-ok); --k-negative: var(--lg-coral); --k-warning: var(--lg-amber);
+  --bg: var(--lg-bg); --bg-elevated: var(--lg-dock); --surface: var(--lg-s1); --surface-alt: var(--lg-s2); --surface-hi: var(--lg-s3);
+  --text: var(--lg-ink); --text-muted: var(--lg-ink2); --text-dim: var(--lg-ink3); --border: var(--lg-line); --border-hi: color-mix(in srgb, var(--lg-ink) 20%, transparent);
+  --accent: var(--lg-tide); --accent-text: var(--lg-tide); --accent-ink: var(--lg-tide-ink); --accent-soft: var(--lg-tide-soft);
+  --in: var(--lg-ok); --out: var(--lg-coral); --warn: var(--lg-amber); --emerald: var(--lg-ok);
+}
+
+/* ---------------------------------------------------------------- the page */
+html:root[data-style="haven"] body { background: var(--lg-bg); color: var(--lg-ink); }
+html:root[data-style="haven"] body::before, html:root[data-style="haven"] body::after { display: none; }
+html:root[data-style="haven"] .view-container.k { padding-inline: 14px; }
+/* the hills reach 42px under the header, and the first card sits on them */
+html:root[data-style="haven"][data-sky-real] .view-container { padding-top: 38px; }
+html:root[data-style="haven"] body { padding-bottom: calc(56px + env(safe-area-inset-bottom) + 28px); }
+
+/* ---------------------------------------------------------------- the header and the sky behind it */
+html:root[data-style="haven"] .app-header,
+html:root[data-style="haven"] body:has(#view-container.k) .app-header {
+  position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  height: calc(62px + env(safe-area-inset-top)); padding: calc(6px + env(safe-area-inset-top)) 14px 0; background: none; border: 0; box-shadow: none; transition: none;
+}
+html:root[data-style="haven"] .app-header.is-scrolled, html:root[data-style="haven"] body:has(#view-container.k) .app-header.is-scrolled { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+html:root[data-style="haven"] .app-header::after { display: none; }
+html:root[data-style="haven"] .hv-hdr__who { margin-right: auto; display: grid; line-height: 1.1; min-width: 0; }
+html:root[data-style="haven"] .hv-hdr__hi { font-size: 12px; color: var(--lg-ink2); line-height: 1.1; }
+html:root[data-style="haven"] body .app-header #view-title, html:root[data-style="haven"] body .app-header h1 { margin: 6px 0 2px; flex: none; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; color: var(--lg-ink); transform: none; }
+html:root[data-style="haven"] .app-header .lg-right { display: flex; align-items: center; gap: 8px; flex: none; }
+/* while the sky is up, the header's words and buttons are the sky's ink: white at night, deep navy by day */
+html:root[data-style="haven"][data-sky-real] .app-header { --lg-skyink: #FFFFFF; }
+html:root[data-style="haven"][data-sky-real][data-theme="light"] .app-header { --lg-skyink: #11234F; }
+html:root[data-style="haven"][data-sky-real] body .app-header #view-title, html:root[data-style="haven"][data-sky-real] body .app-header .hv-hdr__hi { color: var(--lg-skyink); }
+html:root[data-style="haven"][data-sky-real] .app-header .hv-hdr__hi { opacity: 0.92; }
+
+.hv-sky { position: absolute; left: 0; right: 0; top: 0; height: calc(104px + env(safe-area-inset-top)); z-index: -1; pointer-events: none; overflow: hidden; contain: paint; max-width: 100%;
+  background: radial-gradient(ellipse 62% 70% at var(--gx, 50%) var(--gy, 80px), var(--glow, transparent), transparent 72%), linear-gradient(180deg, var(--sky-top, transparent), var(--sky-mid, transparent) 64%, var(--sky-hz, transparent));
+  background-size: 100% calc(120px + env(safe-area-inset-top)); background-repeat: no-repeat; transition: height 260ms cubic-bezier(0.22, 1, 0.36, 1); }
+.hv-sky i, .hv-sky svg, .hv-sky canvas { position: absolute; display: block; }
+.hv-sky i { border-radius: 50%; }
+.hv-sky__scrim { left: 0; right: 0; top: 0; height: 100%; border-radius: 0 !important; background: linear-gradient(180deg, rgba(8, 14, 40, 0.92) 0, rgba(8, 14, 40, 0.92) 68%, transparent 100%); opacity: var(--sky-veil, 0); transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+.hv-sky__art { position: absolute; left: 0; right: 0; top: env(safe-area-inset-top); height: 120px; transition: opacity 200ms ease; }
+.hv-sky__stars { position: absolute; inset: 0; }
+.hv-sky__star { background: #fff; }
+.hv-sky__ridge { left: 0; bottom: -16px; width: 100%; height: 44px; transition: height 260ms cubic-bezier(0.22, 1, 0.36, 1), bottom 260ms cubic-bezier(0.22, 1, 0.36, 1); }
+.hv-sky__far { fill: color-mix(in srgb, var(--sky-mid, #888) 50%, var(--ridge-far, #6080b0)); }
+.hv-sky__near { fill: var(--lg-bg); }
+/* folded: the sun, the moon and the stars go, a slim ridge stays */
+.app-header.lg-fold .hv-sky { height: calc(62px + env(safe-area-inset-top)); }
+.app-header.lg-fold .hv-sky__ridge { bottom: -1px; height: 22px; }
+.app-header.lg-fold .hv-orb { opacity: 0 !important; }
+.app-header.lg-fold .hv-sky__stars { opacity: 0.5; }
+
+/* the sun (option C): a bloom of light with rays, a streak and faint ghosts; a disc shows only when it is low and warm */
+.hv-orb { position: absolute; width: 0; height: 0; }
+.hv-orb i, .hv-orb canvas { position: absolute; }
+.hv-sun .rays { width: 330px; height: 330px; left: -165px; top: -165px; mix-blend-mode: screen;
+  background: repeating-conic-gradient(from 8deg, rgba(var(--cr), 0.16) 0 1.6deg, transparent 1.6deg 9deg), repeating-conic-gradient(from 3deg, rgba(255, 255, 255, 0.10) 0 2.4deg, transparent 2.4deg 16deg);
+  -webkit-mask: radial-gradient(circle, #000 0, rgba(0, 0, 0, 0.55) 35%, transparent 68%); mask: radial-gradient(circle, #000 0, rgba(0, 0, 0, 0.55) 35%, transparent 68%); }
+.hv-sun .bloom { width: 230px; height: 230px; left: -115px; top: -115px; mix-blend-mode: screen;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.98) 0 4%, rgba(255, 246, 222, 0.7) 9%, rgba(var(--cr), 0.4) 20%, rgba(var(--cr), 0.15) 40%, transparent 68%); }
+.hv-sun .streak { width: 340px; height: 2px; left: -170px; top: -1px; border-radius: 2px !important; mix-blend-mode: screen;
+  background: linear-gradient(90deg, transparent, rgba(var(--cr), 0.45) 30%, rgba(255, 255, 255, 0.9) 50%, rgba(var(--cr), 0.45) 70%, transparent); }
+.hv-sun .core { width: 12px; height: 12px; left: -6px; top: -6px; background: #fff; box-shadow: 0 0 8px 3px #fff, 0 0 26px 11px rgba(var(--cr), 0.6); }
+.hv-sun .disc { width: 34px; height: 32px; left: -17px; top: -16px; background: radial-gradient(circle at 46% 42%, #FFF4D8, rgb(var(--cr)) 64%); box-shadow: 0 0 30px 10px rgba(var(--cr), 0.55); }
+.hv-sun .ghost { background: radial-gradient(circle, rgba(var(--cr), 0.3), rgba(var(--cr), 0.06) 70%, transparent); border: 1px solid rgba(255, 255, 255, 0.14); }
+.hv-sun .g1 { width: 22px; height: 22px; left: 30px; top: 20px; }
+.hv-sun .g2 { width: 12px; height: 12px; left: 58px; top: 40px; }
+.hv-sun .g3 { width: 30px; height: 30px; left: -62px; top: -34px; opacity: 0.7; }
+/* the moon (option A): its real surface and phase, with a soft light round it */
+.hv-moon .moonglow { width: 110px; height: 110px; left: -55px; top: -55px; background: radial-gradient(circle, rgba(190, 205, 255, 0.34), transparent 68%); }
+.hv-moon .tex { left: -23px; top: -23px; width: 46px; height: 46px; border-radius: 50%; }
+
+/* ---------------------------------------------------------------- grouped tools in the header */
+.lg-tools { display: flex; height: 36px; border-radius: 10px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); flex: none; }
+.lg-tools > button, .lg-tools > .lg-tool { position: relative; width: 40px; height: 36px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; display: grid; place-items: center; color: var(--lg-ink2); }
+.lg-tools > button:first-child { border-radius: 10px 0 0 10px; }
+.lg-tools > button:last-child { border-radius: 0 10px 10px 0; }
+.lg-tools > button:only-child { border-radius: 10px; }
+.lg-tools > button + button::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 1px; background: var(--lg-line); }
+.lg-tools > button::after { content: ""; position: absolute; inset: -4px -2px; }
+.lg-tools > button[aria-pressed="true"] { color: var(--lg-tide); }
+.lg-tools > button:active { background: var(--lg-s3); transform: none; }
+.lg-tools .icon, .lg-tool .icon { width: 18px; height: 18px; stroke-width: 1.5; }
+.lg-tools svg.hv-ic, .lg-tools .icon { display: block; }
+.lg-back { position: relative; width: 40px; height: 36px; border-radius: 10px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); border: 0; display: grid; place-items: center; color: var(--lg-ink2); margin-right: 4px; flex: none; }
+.lg-back::after { content: ""; position: absolute; inset: -4px -2px; }
+.lg-coach { position: relative; height: 36px; padding: 0 12px; border-radius: 10px; border: 0; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 14px; font-weight: 600; color: var(--lg-ink); }
+.lg-coach::after { content: ""; position: absolute; inset: -4px -2px; }
+.lg-coach .hv-ic { width: 18px; height: 18px; }
+html:root[data-style="haven"] #sync-indicator { flex: none; }
+html:root[data-style="haven"] #space-chip { flex: none; }
+
+/* ---------------------------------------------------------------- the tab bar: one flat bar, the + part of it */
+html:root[data-style="haven"] #tabs.bottom-nav {
+  left: 0; right: 0; bottom: 0; height: calc(56px + env(safe-area-inset-bottom)); margin: 0; padding: 0 0 env(safe-area-inset-bottom); border: 0; border-radius: 0; overflow: visible;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) 64px repeat(2, minmax(0, 1fr)); align-items: stretch;
+  background: var(--lg-dock); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 -1px 0 var(--lg-line);
+}
+html:root[data-style="haven"] #tabs .nav-btn { height: 56px; padding: 0; gap: 2px; align-content: center; color: var(--lg-ink3); font-size: 11px; font-weight: 600; letter-spacing: 0; }
+html:root[data-style="haven"] #tabs .nav-btn > span:not(.nav-icon) { font-size: 11px; font-weight: 600; letter-spacing: 0; }
+html:root[data-style="haven"] #tabs .nav-btn.active { color: var(--lg-tide); }
+html:root[data-style="haven"] #tabs .nav-btn .nav-icon { width: 22px; height: 22px; }
+html:root[data-style="haven"] #tabs .nav-btn.active .nav-icon { transform: none; }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"] { align-self: stretch; margin-top: 0; min-height: 56px; align-content: center; }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"] .nav-icon {
+  width: 46px; height: 38px; margin-top: 0; border-radius: 12px; background: var(--lg-tide); color: var(--lg-tide-ink); box-shadow: none;
+}
+html:root[data-style="haven"][data-theme="dark"] #tabs .nav-btn[data-view="add"] .nav-icon { box-shadow: none; }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"] .nav-icon svg { width: 22px; height: 22px; stroke-width: 2.2; }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"][data-waiting] .nav-icon::after { top: -5px; right: -5px; }
+/* the lit tab is a short bar on the top edge of the bar, not a pill behind it */
+html:root[data-style="haven"] #tabs .nav-ind {
+  display: block; position: absolute; z-index: 0; left: 0; top: 0; width: 22px; height: 3px; border-radius: 0 0 3px 3px;
+  transform: translateX(calc(var(--bx, 0px) + (var(--bw, 0px) - 22px) / 2)); background: var(--lg-tide); box-shadow: none;
+}
+html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease; }
+@media (max-width: 359px) {
+  html:root[data-style="haven"] #tabs.bottom-nav { left: 0; right: 0; }
+}
+
+/* ================================================================ the parts (mockups/7.0-ledger, css.mjs) ================================================== */
+/* buttons: 44px to touch, a smaller 36px with the same reach */
+:root[data-style=haven] .lg-btn { position: relative; height: 44px; padding: 0 16px; border: 0; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-size: 15px; font-weight: 600; white-space: nowrap; color: var(--lg-ink); background: none; cursor: pointer; }
+:root[data-style=haven] .lg-btn.sm { height: 36px; padding: 0 12px; font-size: 14px; }
+:root[data-style=haven] .lg-btn.sm::after { content: ""; position: absolute; inset: -4px -2px; }
+:root[data-style=haven] .lg-btn.p { background: var(--lg-tide); color: var(--lg-tide-ink); }
+:root[data-style=haven] .lg-btn.s { background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); color: var(--lg-ink); }
+:root[data-style=haven] .lg-btn.q { color: var(--lg-tide); padding: 0 8px; }
+:root[data-style=haven] .lg-btn.d { background: var(--lg-coral-soft); color: var(--lg-coral); }
+:root[data-style=haven] .lg-btn .icon { width: 18px; height: 18px; }
+:root[data-style=haven] .lg-btn:active { filter: brightness(0.88); transform: translateY(1px); }
+:root[data-style=haven] .lg-btn:disabled { opacity: 0.4; pointer-events: none; }
+:root[data-style=haven] .lg-x { position: relative; width: 36px; height: 36px; padding: 0; border: 0; background: none; border-radius: 10px; display: grid; place-items: center; color: var(--lg-ink2); flex: none; }
+:root[data-style=haven] .lg-x::after { content: ""; position: absolute; inset: -4px -4px; }
+:root[data-style=haven] .lg-x .icon { width: 18px; height: 18px; }
+
+/* segmented controls and the count on a tab */
+:root[data-style=haven] .lg-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 3px; height: 42px; border-radius: 11px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); }
+:root[data-style=haven] .lg-seg > button, :root[data-style=haven] .lg-seg > b { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0; border: 0; border-radius: 8px; background: none; font: inherit; font-size: 14px; font-weight: 600; color: var(--lg-ink2); cursor: pointer; }
+:root[data-style=haven] .lg-seg > button::after { content: ""; position: absolute; inset: -4px 0; }
+:root[data-style=haven] .lg-seg > .on { background: var(--lg-s3); color: var(--lg-ink); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 1px 3px rgba(0, 0, 0, 0.28); }
+:root[data-style=haven][data-theme="light"] .lg-seg > .on { box-shadow: 0 0 0 1px var(--lg-line), 0 1px 2px rgba(16, 24, 40, 0.12); }
+:root[data-style=haven] .lg-count { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 6px; background: var(--lg-amber); color: #2A1A00; font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; }
+:root[data-style=haven][data-theme="light"] .lg-count { color: #fff; }
+:root[data-style=haven] .lg-count[hidden] { display: none; }
+
+/* tags say one state in one word */
+:root[data-style=haven] .lg-tag { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px; border-radius: 6px; font-size: 12px; font-weight: 600; background: var(--lg-s2); color: var(--lg-ink2); white-space: nowrap; }
+:root[data-style=haven] .lg-tag .icon, :root[data-style=haven] .lg-tag svg { width: 12px; height: 12px; }
+:root[data-style=haven] .lg-tag.ok { background: var(--lg-ok-soft); color: var(--lg-ok); }
+:root[data-style=haven] .lg-tag.warn { background: var(--lg-amber-soft); color: var(--lg-amber); }
+:root[data-style=haven] .lg-tag.bad { background: var(--lg-coral-soft); color: var(--lg-coral); }
+:root[data-style=haven] .lg-tag.tide { background: var(--lg-tide-soft); color: var(--lg-tide); }
+
+/* the month stepper (in the hero it is translucent; elsewhere it is a flat control) */
+:root[data-style=haven] .lg-stepper { display: flex; align-items: center; height: 32px; margin: 0; padding: 0; border-radius: 9px; background: rgba(255, 255, 255, 0.10); color: #fff; width: auto; max-width: none; grid-template-columns: none; box-shadow: none; }
+:root[data-style=haven] .lg-stepper > button { position: relative; width: 30px; height: 32px; min-height: 0; padding: 0; border: 0; background: none; border-radius: 0; display: grid; place-items: center; color: rgba(255, 255, 255, 0.85); cursor: pointer; }
+:root[data-style=haven] .lg-stepper > button::after { content: ""; position: absolute; inset: -6px -7px; }
+:root[data-style=haven] .lg-stepper > button:disabled { opacity: 0.3; pointer-events: none; }
+:root[data-style=haven] .lg-stepper > button .icon { width: 18px; height: 18px; }
+:root[data-style=haven] .lg-stepper > span { font-size: 13px; font-weight: 600; padding: 0 2px; white-space: nowrap; color: inherit; }
+:root[data-style=haven] .lg-stepper.flat { background: var(--lg-s2); color: var(--lg-ink); box-shadow: inset 0 0 0 1px var(--lg-line); }
+:root[data-style=haven] .lg-stepper.flat > button { color: var(--lg-ink2); }
+
+/* cards, rows, tiles */
+:root[data-style=haven] .lg-card { margin: 10px 0 0; background: var(--lg-s1); border-radius: 14px; box-shadow: 0 0 0 1px var(--lg-line); position: relative; color: var(--lg-ink); }
+:root[data-style=haven] .lg-pad { padding: 0 8px; }
+:root[data-style=haven] .lg-ico { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--lg-s2); color: var(--lg-ink2); flex: none; }
+:root[data-style=haven] .lg-ico svg { width: 16px; height: 16px; }
+:root[data-style=haven] .lg-ico.t1 { background: rgba(63, 216, 198, 0.14); color: var(--lg-tide); }
+:root[data-style=haven] .lg-ico.t2 { background: rgba(244, 181, 65, 0.16); color: var(--lg-amber); }
+:root[data-style=haven] .lg-ico.t3 { background: rgba(120, 150, 255, 0.16); color: var(--lg-blue); }
+:root[data-style=haven] .lg-ico.t4 { background: rgba(255, 128, 128, 0.14); color: var(--lg-coral); }
+:root[data-style=haven] .lg-ico.t5 { background: rgba(98, 227, 165, 0.14); color: var(--lg-ok); }
+:root[data-style=haven][data-theme="light"] .lg-ico.t1 { background: rgba(8, 105, 95, 0.12); }
+:root[data-style=haven][data-theme="light"] .lg-ico.t3 { background: rgba(52, 83, 200, 0.10); }
+:root[data-style=haven][data-theme="light"] .lg-ico.t4 { background: rgba(187, 45, 45, 0.10); }
+:root[data-style=haven][data-theme="light"] .lg-ico.t5 { background: rgba(13, 116, 70, 0.12); }
+:root[data-style=haven] .lg-row { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; min-height: 44px; padding: 0 12px; border: 0; background: none; font: inherit; text-align: left; color: var(--lg-ink); cursor: pointer; }
+:root[data-style=haven] .lg-row .n { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root[data-style=haven] .lg-row .n i { font-style: normal; font-weight: 400; font-size: 13px; color: var(--lg-ink3); margin-left: 6px; }
+:root[data-style=haven] .lg-row .amt { font-weight: 650; }
+:root[data-style=haven] .lg-row .amt.in { color: var(--lg-ok); }
+:root[data-style=haven] .hv-lp + .hv-lp .lg-row::before { content: ""; position: absolute; left: 50px; right: 0; top: 0; height: 1px; background: var(--lg-line); }
+:root[data-style=haven] .lg-more { display: flex; align-items: center; justify-content: space-between; width: 100%; height: 44px; padding: 0 14px; border: 0; background: none; font: inherit; font-weight: 600; color: var(--lg-ink2); text-align: left; cursor: pointer; }
+:root[data-style=haven] .lg-more .icon, :root[data-style=haven] .lg-more svg { width: 16px; height: 16px; }
+:root[data-style=haven] .lg-more--link { height: 40px; color: var(--lg-tide); }
+:root[data-style=haven] .lg-pbar { display: block; height: 5px; border-radius: 3px; background: var(--lg-s2); overflow: hidden; flex: 1; }
+:root[data-style=haven] .lg-pbar > i { display: block; height: 100%; border-radius: 3px; background: var(--lg-tide); }
+:root[data-style=haven] .lg-calm { margin: 0; padding: 12px 14px; font-size: 14px; color: var(--lg-ink2); }
+
+/* ================================================================ Summary ================================================================== */
+:root[data-style=haven] .lg-screen, :root[data-style=haven] .k details.sum-more, :root[data-style=haven] .lg-install, :root[data-style=haven] .app-header { line-height: 1.3; }
+:root[data-style=haven] .lg-screen.hv-screen { display: block; padding: 0; margin: 0; gap: 0; }
+:root[data-style=haven] .lg-screen > .hv-rise { margin: 10px 0 0; }
+:root[data-style=haven] .lg-screen > .hv-rise:first-child, :root[data-style=haven] .lg-screen > .hv-peek + .hv-rise { margin-top: 4px; }
+:root[data-style=haven] .lg-screen > .hv-rise > .lg-card { margin-top: 0; }
+:root[data-style=haven] .k #dashboard > * { margin-bottom: 0; }
+:root[data-style=haven] .k #dashboard > details.sum-more, :root[data-style=haven] .k #dashboard > .lg-install { margin-top: 10px; }
+
+:root[data-style=haven] .lg-hero { margin: 0; padding: 10px 14px 12px; border-radius: 18px; background: linear-gradient(165deg, var(--lg-hero1), var(--lg-hero2)); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09); }
+:root[data-style=haven] .lg-hero .r1 { display: flex; align-items: center; justify-content: space-between; height: 34px; }
+:root[data-style=haven] .lg-hero .lab { font-size: 13px; color: rgba(255, 255, 255, 0.74); display: inline-flex; align-items: center; gap: 6px; }
+:root[data-style=haven] .lg-hero .figrow { display: flex; align-items: center; justify-content: space-between; margin-top: 0; }
+:root[data-style=haven] .lg-hero .hv-vault__fig { font-size: 48px; line-height: 1.02; margin: 0; }
+:root[data-style=haven] .lg-hero .hv-fig { font-size: 48px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.02; }
+:root[data-style=haven] .lg-hero .hv-fig .hv-cur { font-size: 28px; font-weight: 600; opacity: 0.8; margin-right: 2px; letter-spacing: 0; vertical-align: baseline; }
+:root[data-style=haven] .lg-hero.is-negative .hv-num, :root[data-style=haven] .lg-hero.is-negative .hv-cur { color: #ffb4ad; }
+:root[data-style=haven] .lg-hero .tide { width: 38px; height: 45px; flex: none; cursor: default; }
+:root[data-style=haven] .lg-hero .tide:not([data-mood="watch"]):not([data-mood="low"]) { --hv-tide-a: #3FD8C6; --hv-tide-b: #7FEBDD; }
+:root[data-style=haven][data-theme="dark"] .lg-hero .tide svg { filter: none; }
+:root[data-style=haven] .lg-hero .sub { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: rgba(255, 255, 255, 0.76); margin-top: 4px; min-height: 22px; }
+:root[data-style=haven] .lg-hero .sub b { color: #fff; font-weight: 650; }
+:root[data-style=haven] .lg-hero .lg-tag { flex: none; background: rgba(255, 255, 255, 0.14); color: #fff; }
+:root[data-style=haven] .lg-hero .lg-tag.ok { background: rgba(98, 227, 165, 0.18); color: #7DF0B8; }
+:root[data-style=haven] .lg-hero .lg-tag.warn { background: rgba(244, 181, 65, 0.2); color: #FFD27A; }
+:root[data-style=haven] .lg-hero .lg-tag.bad { background: rgba(255, 128, 128, 0.2); color: #FFB4AD; }
+:root[data-style=haven] .lg-hero .hv-vault__cap, :root[data-style=haven] .lg-hero .hv-vault__sleep { margin-top: 3px; font-size: 13px; color: rgba(255, 255, 255, 0.76); }
+:root[data-style=haven] .lg-hero .hv-vault__eve { display: none; }
+:root[data-style=haven] .lg-hero svg.lg-chart { display: block; width: 100%; height: 58px; margin-top: 8px; }
+:root[data-style=haven] .lg-hero .hv-kept { margin: 0; padding: 0; border-radius: 0; background: none; box-shadow: none; }
+:root[data-style=haven] .lg-hero .stats { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.13); }
+:root[data-style=haven] .lg-hero .stats > div { padding: 0 10px; min-width: 0; }
+:root[data-style=haven] .lg-hero .stats > div:first-child { padding-left: 0; }
+:root[data-style=haven] .lg-hero .stats > div + div { border-left: 1px solid rgba(255, 255, 255, 0.13); }
+:root[data-style=haven] .lg-hero .stats span { display: flex; align-items: center; gap: 3px; font-size: 12px; color: rgba(255, 255, 255, 0.7); }
+:root[data-style=haven] .lg-hero .stats b { display: block; font-size: 16px; font-weight: 650; letter-spacing: -0.01em; color: #fff; }
+:root[data-style=haven] .lg-hero .hv-kept__cell { padding: 0; }
+:root[data-style=haven] .lg-hero .hv-kept__head { position: relative; display: block; width: 100%; min-height: 0; padding: 0; text-align: left; color: inherit; }
+:root[data-style=haven] .lg-hero .hv-kept__head::after { content: ""; position: absolute; inset: -8px -6px; }
+:root[data-style=haven] .lg-hero .hv-kept__head > span { display: flex; align-items: center; gap: 3px; }
+:root[data-style=haven] .lg-hero .hv-kept__chev { width: 12px; height: 12px; color: rgba(255, 255, 255, 0.7); }
+:root[data-style=haven] .lg-hero .hv-kept__in { padding: 8px 0 2px; }
+:root[data-style=haven] .lg-hero .hv-kept__item { padding: 6px 0 4px; }
+:root[data-style=haven] .lg-hero .hv-kept__top { color: #fff; }
+:root[data-style=haven] .lg-hero .hv-kept__left { color: rgba(255, 255, 255, 0.8); opacity: 1; }
+:root[data-style=haven] .lg-hero .hv-kept__track { background: rgba(255, 255, 255, 0.16); }
+:root[data-style=haven] .lg-hero .hv-kept__track i { background: #5BE6D5; }
+:root[data-style=haven] .lg-hero .hv-kept__item.is-warn .hv-kept__track i { background: #FFD27A; }
+:root[data-style=haven] .lg-hero .hv-kept__item.is-over .hv-kept__track i { background: #FFB4AD; }
+:root[data-style=haven] .lg-hero .hv-kept__used > summary { color: #7FEBDD; }
+:root[data-style=haven] .lg-hero .closed-note { margin: 8px 0 0; font-size: 13px; color: rgba(255, 255, 255, 0.8); }
+:root[data-style=haven] .lg-hero .hv-medal { display: inline-grid; place-items: center; width: 16px; height: 16px; }
+:root[data-style=haven] .lg-hero .hv-streak { background: rgba(98, 227, 165, 0.18); color: #7DF0B8; height: 22px; padding: 0 7px; font-size: 12px; }
+
+/* the goal strip */
+:root[data-style=haven] .lg-goal { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px 11px; border: 0; font: inherit; text-align: left; cursor: pointer; }
+:root[data-style=haven] .lg-goal .lg-ico { width: 30px; height: 30px; }
+:root[data-style=haven] .lg-goal__body { flex: 1; min-width: 0; display: block; }
+:root[data-style=haven] .lg-goal__top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-goal__top > b { font-weight: 600; font-size: 15px; color: var(--lg-ink); }
+:root[data-style=haven] .lg-goal__top > b > span { font-weight: 500; color: var(--lg-ink3); font-size: 13px; }
+:root[data-style=haven] .lg-goal__top > span b { color: var(--lg-ink); font-weight: 650; }
+:root[data-style=haven] .lg-goal__bar { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--lg-ink2); }
+
+/* Latest and To do: one card, two tabs */
+:root[data-style=haven] .lg-act { padding: 6px 0 0; overflow: hidden; }
+:root[data-style=haven] .lg-act [data-lg-panel][hidden] { display: none; }
+:root[data-style=haven] .hv-lp__d { height: 0; overflow: hidden; }
+:root[data-style=haven] .hv-lp__in { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 12px 10px 50px; font-size: 13px; color: var(--lg-ink2); }
+:root[data-style=haven] .hv-lp__in b { color: var(--lg-ink); font-weight: 600; }
+:root[data-style=haven] .lg-todo { padding: 0; }
+:root[data-style=haven] .lg-todo .todo-row, :root[data-style=haven] .lg-todo .need-row { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; min-height: 44px; padding: 2px 12px; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; text-align: left; font: inherit; color: var(--lg-ink); }
+:root[data-style=haven] .lg-todo .todo-row + .todo-row::before, :root[data-style=haven] .lg-todo .need-row + .need-row::before { content: ""; position: absolute; left: 50px; right: 0; top: 0; height: 1px; background: var(--lg-line); }
+:root[data-style=haven] .lg-todo .todo-icon, :root[data-style=haven] .lg-todo .need-row__ic { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--lg-amber-soft); color: var(--lg-amber); }
+:root[data-style=haven] .lg-todo .todo-row.is-alert .todo-icon, :root[data-style=haven] .lg-todo .todo-row.bill-overdue .todo-icon { background: var(--lg-coral-soft); color: var(--lg-coral); }
+:root[data-style=haven] .lg-todo .todo-icon svg, :root[data-style=haven] .lg-todo .need-row__ic svg { width: 16px; height: 16px; }
+:root[data-style=haven] .lg-todo .todo-text, :root[data-style=haven] .lg-todo .need-row__t { display: block; min-width: 0; font-size: 14px; font-weight: 600; }
+:root[data-style=haven] .lg-todo .todo-text > span:first-child { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root[data-style=haven] .lg-todo .todo-text .muted-note { display: none; margin: 0; font-size: 12px; font-weight: 400; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-todo .todo-row.is-alert .muted-note, :root[data-style=haven] .lg-todo .todo-row.is-soon .muted-note, :root[data-style=haven] .lg-todo .todo-row.bill-overdue .muted-note, :root[data-style=haven] .lg-todo .todo-row.bill-urgent .muted-note { display: block; }
+:root[data-style=haven] .lg-todo .attention-actions { display: flex; align-items: center; gap: 6px; }
+:root[data-style=haven] .lg-todo .btn-tiny, :root[data-style=haven] .lg-todo select.assign-card, :root[data-style=haven] .lg-todo .btn-secondary { position: relative; height: 36px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); color: var(--lg-ink); font: inherit; font-size: 14px; font-weight: 600; }
+:root[data-style=haven] .lg-todo .btn-tiny.primary { background: var(--lg-s2); color: var(--lg-ink); }
+:root[data-style=haven] .lg-todo .btn-tiny::after { content: ""; position: absolute; inset: -4px -2px; }
+:root[data-style=haven] .lg-todo select.assign-card { appearance: none; -webkit-appearance: none; padding-right: 12px; }
+:root[data-style=haven] .lg-todo .lg-todo-pre { width: 100%; cursor: pointer; }
+:root[data-style=haven] .lg-todo .lg-todo-go { color: var(--lg-ink3); display: grid; }
+:root[data-style=haven] .lg-todo .lg-todo-go svg { width: 16px; height: 16px; }
+:root[data-style=haven] .lg-todo .todo-more { grid-column: 1 / -1; }
+:root[data-style=haven] .lg-todo .todo-more > summary { display: flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 600; color: var(--lg-ink2); cursor: pointer; list-style: none; }
+:root[data-style=haven] .lg-todo .todo-more > summary::-webkit-details-marker { display: none; }
+:root[data-style=haven] .lg-todo .sum-needs { padding: 0; }
+:root[data-style=haven] .lg-todo .sum-needs__head, :root[data-style=haven] .lg-todo .section-head { display: none; }
+:root[data-style=haven] .lg-todo .sum-calm { margin: 0; padding: 12px 14px; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-todo #attention-section { display: block; }
+
+/* More about this month, and the install card */
+:root[data-style=haven] .k details.sum-more { margin: 10px 0 0; background: var(--lg-s1); border: 0; border-radius: 14px; box-shadow: 0 0 0 1px var(--lg-line); }
+:root[data-style=haven] .k details.sum-more > summary { display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 14px; gap: 0; list-style: none; cursor: pointer; font-weight: 600; color: var(--lg-ink2); background: none; }
+:root[data-style=haven] .k details.sum-more > summary::-webkit-details-marker { display: none; }
+:root[data-style=haven] .k details.sum-more > summary::after, :root[data-style=haven] .k details.sum-more[open] > summary::after { content: none; }
+:root[data-style=haven] .k details.sum-more > summary .sum-more__t { font-size: 15px; font-weight: 600; color: var(--lg-ink2); }
+:root[data-style=haven] details.sum-more .lg-plus { display: grid; width: 16px; height: 16px; transition: transform 200ms ease; }
+:root[data-style=haven] details.sum-more .lg-plus svg { width: 16px; height: 16px; }
+:root[data-style=haven] details.sum-more[open] .lg-plus { transform: rotate(45deg); }
+:root[data-style=haven] .k details.sum-more > .sum-more__body { padding: 0 10px 12px; display: grid; gap: 12px; }
+:root[data-style=haven] .lg-link { position: relative; display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; padding: 0 4px; border: 0; background: none; font: inherit; color: var(--lg-ink); text-align: left; cursor: pointer; }
+:root[data-style=haven] .lg-link .n { font-weight: 600; }
+:root[data-style=haven] .lg-link .n i { font-style: normal; font-weight: 400; font-size: 13px; color: var(--lg-ink3); margin-left: 6px; }
+:root[data-style=haven] .lg-link svg { width: 16px; height: 16px; color: var(--lg-ink3); }
+:root[data-style=haven] .lg-install { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 8px 8px 8px 12px; margin: 10px 0 0; }
+:root[data-style=haven] .lg-install .lg-ico { width: 30px; height: 30px; }
+:root[data-style=haven] .lg-install__t { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; }
+:root[data-style=haven] .lg-install .install-steps { flex-basis: 100%; margin: 0 0 4px; padding: 0 4px; font-size: 13px; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-install .install-steps[hidden] { display: none; }
+
+/* ================================================================ Accounts ================================================================== */
+:root[data-style=haven] .lg-hold-wrap { display: block; margin: 0; }
+:root[data-style=haven] .lg-hold { margin: 4px 0 0; padding: 10px 14px 12px; }
+:root[data-style=haven] .lg-hold__row { display: flex; justify-content: space-between; align-items: flex-end; }
+:root[data-style=haven] .lg-hold__row small { display: block; font-size: 12px; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-hold__row b { display: block; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; font-variant-numeric: tabular-nums; }
+:root[data-style=haven] .lg-hold__row .r { text-align: right; }
+:root[data-style=haven] .lg-mbar { display: flex; gap: 3px; height: 8px; margin-top: 8px; }
+:root[data-style=haven] .lg-mbar > i { display: block; border-radius: 4px; min-width: 6px; background: var(--lg-tide); }
+:root[data-style=haven] .lg-mbar > i.owe { background: var(--lg-amber); }
+:root[data-style=haven] .hv-filter.lg-seg { display: grid; grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 1fr; gap: 2px; margin: 10px 0 0; padding: 3px; overflow: visible; }
+:root[data-style=haven] .hv-filter.lg-seg > [data-f] { position: relative; flex: none; width: auto; min-height: 0; height: 36px; padding: 0; margin: 0; border: 0; border-radius: 8px; background: none; box-shadow: none; transform: none; font: inherit; font-size: 14px; font-weight: 600; color: var(--lg-ink2); display: flex; align-items: center; justify-content: center; }
+:root[data-style=haven] .hv-filter.lg-seg > [data-f]::after { content: ""; position: absolute; inset: -4px 0; }
+:root[data-style=haven] .hv-filter.lg-seg > [data-f].on { background: var(--lg-s3); color: var(--lg-ink); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 1px 3px rgba(0, 0, 0, 0.28); transform: none; }
+:root[data-style=haven][data-theme="light"] .hv-filter.lg-seg > [data-f].on { box-shadow: 0 0 0 1px var(--lg-line), 0 1px 2px rgba(16, 24, 40, 0.12); }
+
+:root[data-style=haven] .lg-acclist { margin: 10px 0 0; padding: 0; overflow: hidden; }
+:root[data-style=haven] .lg-acclist .account-group-sec { margin: 0; padding: 0; }
+:root[data-style=haven] .lg-acclist .account-group-label { display: none; }
+:root[data-style=haven] .lg-acclist .account-group.k-pane, :root[data-style=haven] .k .lg-acclist .account-group { display: block; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+:root[data-style=haven] .lg-acclist .account-block { position: relative; margin: 0; border-radius: 0; background: none; box-shadow: none; border: 0; overflow-anchor: none; }
+:root[data-style=haven] .lg-acclist .account-block::before { content: ""; position: absolute; left: 50px; right: 0; top: 0; height: 1px; background: var(--lg-line); z-index: 1; pointer-events: none; }
+:root[data-style=haven] .lg-acclist .account-block.lg-first::before { display: none; }
+:root[data-style=haven] .lg-acclist .account-block .k-row.account-row, :root[data-style=haven] .lg-acclist .account-block .account-row { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; min-height: 56px; padding: 6px 12px 7px; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--lg-ink); font: inherit; text-align: left; transition: none; }
+:root[data-style=haven] .lg-acclist .account-block.is-open .account-row { background: none; color: var(--lg-ink); }
+:root[data-style=haven] .lg-acclist .account-block.is-open .account-row :is(.k-row__title, .k-row__value, .account-balance) { color: var(--lg-ink); }
+:root[data-style=haven] .lg-acclist .account-block.is-open .account-row .k-row__meta { color: var(--lg-ink2); }
+:root[data-style=haven] .lg-acclist .account-row .k-row__body { display: block; min-width: 0; }
+:root[data-style=haven] .lg-acclist .account-row .k-row__title { display: block; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--lg-ink); }
+:root[data-style=haven] .lg-acclist .account-row .k-row__meta { display: block; margin-top: 1px; font-size: 12px; color: var(--lg-ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root[data-style=haven] .lg-acclist .account-row .account-balance, :root[data-style=haven] .lg-acclist .account-row .k-row__value { font-weight: 650; font-size: 15px; color: var(--lg-ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+:root[data-style=haven] .lg-acclist .account-row .account-row__chev { display: none; }
+:root[data-style=haven] .lg-acclist .account-row[role="button"]:focus-visible, :root[data-style=haven] .lg-acclist .account-row.account-open:focus-visible { outline: 2px solid var(--lg-tide); outline-offset: -2px; }
+:root[data-style=haven] .lg-edge { position: absolute; left: 12px; right: 12px; bottom: 0; height: 3px; border-radius: 3px; background: var(--lg-s2); }
+:root[data-style=haven] .lg-edge > i { display: block; height: 100%; border-radius: 3px; background: var(--lg-tide); }
+:root[data-style=haven] .lg-edge.warn > i { background: var(--lg-amber); }
+:root[data-style=haven] .lg-acclist .account-note { margin: 0; padding: 6px 12px 8px 50px; border: 0; border-radius: 0; background: var(--lg-amber-soft); color: var(--lg-amber); font-size: 12.5px; line-height: 1.3; }
+:root[data-style=haven] .lg-acclist .account-block > .account-detail { margin: 0; padding: 2px 12px 8px 50px; background: var(--lg-s2); }
+:root[data-style=haven] .lg-acclist .account-block > :not(.account-row):not(.account-detail):not(.account-note) { padding-inline: 12px 12px; }
+:root[data-style=haven] .lg-acclist .account-detail.account-recent { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; }
+:root[data-style=haven] .lg-acclist .account-recent-rows { flex: 1 0 100%; display: block; }
+:root[data-style=haven] .lg-acclist .account-recent-row { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; min-height: 40px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; font: inherit; text-align: left; color: var(--lg-ink); }
+:root[data-style=haven] .lg-acclist .account-recent-row + .account-recent-row::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: var(--lg-line); }
+:root[data-style=haven] .lg-acclist .account-recent-row .k-row__body { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+:root[data-style=haven] .lg-acclist .account-recent-row .k-row__title { flex: 0 1 auto; font-size: 14px; font-weight: 600; min-width: 0; }
+:root[data-style=haven] .lg-acclist .account-recent-row .k-row__meta { flex: none; margin: 0; font-size: 13px; color: var(--lg-ink3); }
+:root[data-style=haven] .lg-acclist .account-recent-row .k-row__value { font-size: 14px; }
+:root[data-style=haven] .lg-acclist .account-recent-row .k-row__value.in { color: var(--lg-ok); }
+:root[data-style=haven] .lg-acclist .account-see-all { position: relative; display: inline-flex; align-items: center; flex: 1 1 auto; width: auto; min-height: 36px; margin: 2px 0 0; padding: 0; border: 0; background: none; color: var(--lg-tide); font: inherit; font-size: 14px; font-weight: 600; text-align: left; }
+:root[data-style=haven] .lg-acclist .account-see-all::after { content: ""; position: absolute; inset: -4px -2px; }
+:root[data-style=haven] .lg-acclist .account-actions-inline { display: flex; gap: 6px; flex: none; margin: 2px 0 0; padding: 0; }
+:root[data-style=haven] .lg-acclist .account-actions-inline .k-btn, :root[data-style=haven] .lg-acclist .account-detail .account-actions-inline .k-btn { position: relative; height: 36px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--lg-s1); box-shadow: inset 0 0 0 1px var(--lg-line); color: var(--lg-ink); font: inherit; font-size: 14px; font-weight: 600; }
+:root[data-style=haven] .lg-acclist .account-actions-inline .k-btn::after { content: ""; position: absolute; inset: -4px -2px; }
+:root[data-style=haven] .lg-acclist .account-detail > .totals-row, :root[data-style=haven] .lg-acclist .account-detail .totals-row { padding-block: 6px; font-size: 14px; }
+:root[data-style=haven] .lg-accbtns { display: flex; gap: 8px; margin: 10px 0 0; }
+:root[data-style=haven] .lg-accbtns > .lg-btn { flex: 1; }
+:root[data-style=haven] .lg-accquiet { display: flex; align-items: center; flex-wrap: wrap; gap: 0 12px; margin: 4px 0 0; }
+:root[data-style=haven] .lg-accquiet select.hv-sortsel { height: 36px; min-height: 36px; padding: 0 22px 0 4px; border: 0; background-color: transparent; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A8B4CC' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>"); background-repeat: no-repeat; background-position: right 4px center; color: var(--lg-ink2); font: inherit; font-size: 14px; font-weight: 600; appearance: none; -webkit-appearance: none; box-shadow: none; border-radius: 8px; }
+:root[data-style=haven][data-theme="light"] .lg-accquiet select.hv-sortsel { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23475467' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>"); }
+:root[data-style=haven] .lg-accquiet .lg-btn.q { padding: 0 4px; }
+:root[data-style=haven] .people-sec .account-group-label { display: block; margin: 14px 4px 6px; font-size: 13px; font-weight: 600; color: var(--lg-ink2); }
+
+/* ================================================================ every card the app draws wears the ledger skin =========================== */
+:root[data-style=haven] .k .totals-card, :root[data-style=haven] .k .tl-card, :root[data-style=haven] .k .tl-list, :root[data-style=haven] .k .k-pane, :root[data-style=haven] .k .add-card,
+:root[data-style=haven] .k .account-group, :root[data-style=haven] .k .hist-day-card, :root[data-style=haven] .k .hist-days-card, :root[data-style=haven] .k .setup-card,
+:root[data-style=haven] .k .sum-needs, :root[data-style=haven] .k .owed-list, :root[data-style=haven] .k .hero, :root[data-style=haven] .k .empty-state, :root[data-style=haven] .k .pl-top, :root[data-style=haven] .k .coach-q {
+  background: var(--lg-s1); border: 0; border-radius: 14px; box-shadow: 0 0 0 1px var(--lg-line); margin-inline: 0; color: var(--lg-ink);
+}
+:root[data-style=haven] .k .totals-card .totals-card { box-shadow: none; background: none; margin-inline: 0; }
+:root[data-style=haven] .k .totals-card.plan-month { background: none; box-shadow: none; padding: 0; margin-inline: 0; }
+:root[data-style=haven] .k-icon, :root[data-style=haven] .tl-ibox, :root[data-style=haven] .k .need-row__ic, :root[data-style=haven] .k .add-row > .add-row-ic, :root[data-style=haven] .k .k-context__mark {
+  width: 32px; height: 32px; border-radius: 8px; box-shadow: none; color: var(--k-tint, var(--lg-tide)); background: color-mix(in srgb, var(--k-tint, var(--lg-tide)) 16%, transparent);
+}
+:root[data-style=haven] .k-icon svg, :root[data-style=haven] .tl-ibox svg, :root[data-style=haven] .k .need-row__ic svg { width: 16px; height: 16px; }
+:root[data-style=haven] .k .k-context, :root[data-style=haven] .k .warn-card, :root[data-style=haven] .k .attention-row { border-radius: 14px; background: var(--lg-amber-soft); }
+:root[data-style=haven] .k .k-context--alert { background: var(--lg-coral-soft); }
+/* section headings: a small quiet line, with its action on the right */
+:root[data-style=haven] .k .section-head, :root[data-style=haven] .lg-sec { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 14px 2px 6px; min-height: 0; }
+:root[data-style=haven] .k .section-head h3, :root[data-style=haven] .lg-sec h2, :root[data-style=haven] #view-container .section-head h3 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-addlink, :root[data-style=haven] .lg-linkbtn { position: relative; display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 600; color: var(--lg-tide); cursor: pointer; white-space: nowrap; }
+:root[data-style=haven] .lg-addlink::after, :root[data-style=haven] .lg-linkbtn::after { content: ""; position: absolute; inset: -4px -6px; }
+:root[data-style=haven] .lg-addlink .icon, :root[data-style=haven] .lg-linkbtn .icon { width: 14px; height: 14px; }
+:root[data-style=haven] .lg-btn.block { width: 100%; }
+/* the order of a list: a small tag that opens the choices */
+
+/* ================================================================ Plan ===================================================================== */
+:root[data-style=haven] .lg-monthbox.hv-screen { display: block; margin: 0; padding: 0; }
+:root[data-style=haven] .lg-monthbox .hv-sum { margin: 10px 0 0; padding: 12px 14px; }
+:root[data-style=haven] .lg-month__h { display: flex; justify-content: space-between; align-items: baseline; }
+:root[data-style=haven] .lg-month__h h2 { margin: 0; font-size: 15px; font-weight: 700; color: var(--lg-ink); letter-spacing: 0; }
+:root[data-style=haven] .lg-month__h span { font-size: 12px; color: var(--lg-ink3); }
+:root[data-style=haven] .hv-sum__bar { display: flex; gap: 3px; height: 12px; margin-top: 8px; border-radius: 0; background: none; box-shadow: none; overflow: visible; }
+:root[data-style=haven] .hv-sum__bar > i { display: block; height: 100%; border-radius: 4px; min-width: 6px; background: var(--lg-ok); }
+:root[data-style=haven] .hv-sum__bar > i.b { background: var(--lg-amber); }
+:root[data-style=haven] .hv-sum__bar > i.c { background: var(--lg-tide); }
+:root[data-style=haven] .hv-sum__keys { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 10px; gap: 0; }
+:root[data-style=haven] .hv-sum__keys > button { position: relative; display: block; min-width: 0; padding: 0 10px; border: 0; border-radius: 0; background: none; box-shadow: none; text-align: left; font: inherit; color: var(--lg-ink); cursor: pointer; }
+:root[data-style=haven] .hv-sum__keys > button:first-child { padding-left: 0; }
+:root[data-style=haven] .hv-sum__keys > button::after { content: ""; position: absolute; inset: -6px -2px; }
+:root[data-style=haven] .hv-sum__keys > button > span { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--lg-ink2); }
+:root[data-style=haven] .hv-sum__keys > button > span > i { width: 8px; height: 8px; border-radius: 3px; flex: none; background: var(--lg-ok); }
+:root[data-style=haven] .hv-sum__keys > button > span > i.b { background: var(--lg-amber); }
+:root[data-style=haven] .hv-sum__keys > button > span > i.c { background: var(--lg-tide); }
+:root[data-style=haven] .hv-sum__keys > button > b { display: block; margin-top: 1px; font-size: 16px; font-weight: 650; letter-spacing: -0.01em; }
+:root[data-style=haven] .hv-sum__keys > button.on { box-shadow: none; }
+:root[data-style=haven] .hv-sum__keys > button.on > b { text-decoration: underline; text-decoration-color: var(--lg-tide); text-underline-offset: 4px; text-decoration-thickness: 2px; }
+
+:root[data-style=haven] .lg-clist { margin: 0; padding: 0; overflow: hidden; }
+:root[data-style=haven] .lg-clist .hv-clabel { margin: 0; padding: 6px 14px 2px; font-size: 12px; font-weight: 600; color: var(--lg-ink3); background: var(--lg-s2); }
+:root[data-style=haven] .lg-clist .hv-clabel[data-g="bills"] { display: none; }
+:root[data-style=haven] .lg-clist .hv-clabel[hidden] { display: none; }
+:root[data-style=haven] .lg-clist .hv-bill { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+:root[data-style=haven] .lg-clist .hv-bill::before { content: ""; position: absolute; left: 50px; right: 0; top: 0; height: 1px; background: var(--lg-line); pointer-events: none; z-index: 1; }
+:root[data-style=haven] .lg-clist .hv-clabel + .hv-bill::before, :root[data-style=haven] .lg-clist > .hv-bill:first-child::before { display: none; }
+:root[data-style=haven] .lg-clist .hv-bill[hidden] { display: none; }
+:root[data-style=haven] .lg-clist .hv-bill__open.lg-row { grid-template-columns: 28px minmax(0, 1fr) auto auto; min-height: 44px; padding: 0 12px; color: var(--lg-ink); }
+:root[data-style=haven] .lg-clist .hv-bill__open.lg-row.two { grid-template-columns: 28px minmax(0, 1fr) auto; min-height: 56px; padding: 6px 12px 7px; }
+:root[data-style=haven] .lg-clist .hv-bill__open .amt { min-width: 58px; text-align: right; font-weight: 650; }
+:root[data-style=haven] .lg-clist .hv-bill__open .nm { display: block; min-width: 0; }
+:root[data-style=haven] .lg-clist .hv-bill__open .nm .n { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root[data-style=haven] .lg-clist .hv-bill__open .nm .m { display: block; margin-top: 1px; font-size: 12px; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-clist .hv-bill__open .nm .m.bad { color: var(--lg-coral); }
+:root[data-style=haven] .lg-tag .lg-tick { display: inline-grid; width: 12px; height: 12px; }
+:root[data-style=haven] .lg-tag .lg-tick svg { width: 12px; height: 12px; }
+:root[data-style=haven] .lg-clist .hv-paycheck { position: relative; display: grid; place-items: center; width: 36px; height: 36px; margin: 0 8px 0 0; padding: 0; border: 0; border-radius: 10px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); color: var(--lg-tide); }
+:root[data-style=haven] .lg-clist .hv-paycheck::after { content: ""; position: absolute; inset: -4px -4px; }
+:root[data-style=haven] .lg-clist .hv-paycheck .hv-ic { width: 18px; height: 18px; }
+:root[data-style=haven] .lg-clist .hv-paycheck-gap { display: none; width: 44px; }
+:root[data-style=haven] .lg-clist:has(.hv-paycheck) .hv-paycheck-gap { display: block; }
+:root[data-style=haven] .lg-clist .hv-bill--aside .lg-edge { left: 12px; right: 12px; bottom: 0; }
+:root[data-style=haven] .lg-clist .hv-bill--aside .hv-paycheck-gap { display: none !important; }
+:root[data-style=haven] .lg-clist .hv-bill--aside { grid-template-columns: minmax(0, 1fr); }
+:root[data-style=haven] .lg-clist .hv-bill--aside .lg-edge > i { background: var(--lg-tide); }
+:root[data-style=haven] .lg-clist .hv-bill--aside .lg-edge.warn > i { background: var(--lg-coral); }
+:root[data-style=haven] .lg-clist .hv-usedline { height: 3px; margin: 0; }
+:root[data-style=haven] #plan-add-btn { margin-top: 10px; }
+:root[data-style=haven] .k .plan-common { margin: 4px 0 0; }
+
+:root[data-style=haven] .lg-months { margin: 0; padding: 12px 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+:root[data-style=haven] .lg-m { min-width: 0; }
+:root[data-style=haven] .lg-m .mn { display: block; font-size: 12px; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-m b { display: block; margin: 1px 0 6px; font-size: 16px; font-weight: 650; }
+:root[data-style=haven] .lg-m.over b { color: var(--lg-coral); }
+:root[data-style=haven] .lg-m.over .lg-pbar > i { background: var(--lg-coral); }
+:root[data-style=haven] .lg-m .cap { display: block; margin-top: 4px; font-size: 12px; color: var(--lg-ink3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root[data-style=haven] .hv-plan-forecast.hv-screen { display: block; margin: 0; padding: 0; }
+:root[data-style=haven] .hv-plan-forecast .lg-sec { margin-top: 14px; }
+:root[data-style=haven] .hv-plan-forecast .hv-notes { margin: 8px 2px 0; }
+:root[data-style=haven] .hv-plan-forecast .hv-monthnote { margin: 0 0 6px; font-size: 13px; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-yearlist { margin: 10px 0 0; padding: 0; overflow: hidden; }
+:root[data-style=haven] .lg-yrow { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 12px 11px; }
+:root[data-style=haven] .lg-yrow + .lg-yrow::before { content: ""; position: absolute; left: 12px; right: 0; top: 0; height: 1px; background: var(--lg-line); }
+:root[data-style=haven] .lg-yrow .n { font-weight: 600; font-size: 14px; }
+:root[data-style=haven] .lg-yrow .n i { display: block; font-style: normal; font-weight: 400; font-size: 12px; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-yrow b { font-weight: 650; font-size: 14px; }
+:root[data-style=haven] .lg-yrow.over b { color: var(--lg-coral); }
+:root[data-style=haven] .lg-yrow .lg-edge > i { background: var(--lg-tide); }
+:root[data-style=haven] .lg-yrow.over .lg-edge > i { background: var(--lg-coral); }
+
+/* the budget each month */
+:root[data-style=haven] .k .pl-top { margin: 10px 0 0; padding: 12px 14px; }
+:root[data-style=haven] .pl-top .tl-top { display: flex; justify-content: space-between; align-items: baseline; margin: 0; }
+:root[data-style=haven] .pl-top .tl-k { font-size: 15px; font-weight: 700; color: var(--lg-ink); }
+:root[data-style=haven] .pl-top .tl-period { font-size: 12px; color: var(--lg-ink3); }
+:root[data-style=haven] .pl-top .tl-big { font-size: 34px; font-weight: 700; letter-spacing: -0.03em; margin: 2px 0 8px; line-height: 1.2; color: var(--lg-ink); }
+:root[data-style=haven] .pl-top .tl-big .is-negative { color: var(--lg-coral); }
+:root[data-style=haven] .pl-top .pl-seg { display: flex; gap: 3px; height: 12px; border-radius: 0; background: none; box-shadow: none; overflow: visible; }
+:root[data-style=haven] .pl-top .pl-seg > i { display: block; height: 100%; border-radius: 4px; min-width: 6px; background: #4B7BE5; }
+:root[data-style=haven] .pl-top .pl-seg > i.is-flex, :root[data-style=haven] .pl-legend i.is-flex { background: var(--lg-amber); }
+:root[data-style=haven] .pl-top .pl-seg > i.is-free, :root[data-style=haven] .pl-legend i.is-free { background: var(--lg-tide); }
+:root[data-style=haven] .pl-top .pl-seg > i.is-saved, :root[data-style=haven] .pl-legend i.is-saved { background: var(--lg-ok); }
+:root[data-style=haven] .pl-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); margin-top: 10px; gap: 0; }
+:root[data-style=haven] .pl-legend > span { display: block; min-width: 0; padding: 0 10px; font-size: 12px; color: var(--lg-ink2); }
+:root[data-style=haven] .pl-legend > span:first-child { padding-left: 0; }
+:root[data-style=haven] .pl-legend > span > i { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 3px; background: #4B7BE5; }
+:root[data-style=haven] .pl-legend em { display: block; font-style: normal; }
+:root[data-style=haven] .pl-legend em b { display: block; margin-top: 1px; font-size: 16px; font-weight: 650; color: var(--lg-ink); }
+:root[data-style=haven] .pl-top .tl-line { display: none; }
+:root[data-style=haven] .k .plan-sums { margin: 10px 0 0; padding: 4px 14px 10px; }
+:root[data-style=haven] .plan-sums__head { margin: 10px 0 4px; font-size: 15px; font-weight: 700; color: var(--lg-ink); }
+
+/* goals and insurance */
+:root[data-style=haven] .plan-goals .section-head, :root[data-style=haven] .plan-ins .section-head { margin-top: 14px; }
+:root[data-style=haven] .plan-goals .goals-list { display: grid; gap: 8px; }
+:root[data-style=haven] .lg-card.goal-card { display: flex; align-items: center; gap: 10px; margin: 0; padding: 10px 12px; }
+:root[data-style=haven] .goal-card .lg-ico { width: 30px; height: 30px; }
+:root[data-style=haven] .goal-card .goal-text { flex: 1; min-width: 0; display: block; }
+:root[data-style=haven] .goal-card .goal-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; color: var(--lg-ink2); }
+:root[data-style=haven] .goal-card .goal-name { font-weight: 600; font-size: 15px; color: var(--lg-ink); }
+:root[data-style=haven] .goal-card .lg-pbar { margin-top: 6px; }
+:root[data-style=haven] .goal-card .muted-note { display: block; margin-top: 4px; font-size: 12px; color: var(--lg-ink2); }
+:root[data-style=haven] .goal-card .goal-delete { position: relative; width: 36px; height: 36px; flex: none; border: 0; background: none; color: var(--lg-ink3); display: grid; place-items: center; }
+:root[data-style=haven] .goal-card .goal-delete::after { content: ""; position: absolute; inset: -4px -2px; }
+:root[data-style=haven] .plan-ins .lg-card { margin: 0; overflow: hidden; }
+:root[data-style=haven] .plan-ins .lg-card + .lg-card { margin-top: 10px; }
+:root[data-style=haven] .plan-ins .lg-row.two { min-height: 56px; padding: 6px 12px 7px; }
+:root[data-style=haven] .lg-row .nm { display: block; min-width: 0; }
+:root[data-style=haven] .lg-row .nm .n { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root[data-style=haven] .lg-row .nm .m { display: block; margin-top: 1px; font-size: 12px; color: var(--lg-ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root[data-style=haven] .plan-ins .lg-calm { padding: 0 2px 8px; }
+:root[data-style=haven] .lg-card, :root[data-style=haven] .lg-sec, :root[data-style=haven] .lg-months, :root[data-style=haven] .hv-notes { line-height: 1.3; }
+:root[data-style=haven] .lg-clist .hv-bill, :root[data-style=haven] .lg-clist.hv-clist .hv-bill + .hv-bill, :root[data-style=haven] .lg-clist .hv-clabel + .hv-bill { min-height: 0; max-height: none; box-shadow: none; padding: 0; gap: 0; }
+:root[data-style=haven] .lg-clist .hv-bill--aside { padding: 0; }
+:root[data-style=haven] .lg-clist .hv-bill .hv-bill__open { display: grid; }
+.lg-pick { position: relative; display: inline-flex; align-items: center; height: 22px; border-radius: 7px; background: var(--lg-s2); }
+.lg-pick::after { content: ""; position: absolute; right: 8px; top: 50%; width: 5px; height: 5px; margin-top: -4px; border: solid var(--lg-ink2); border-width: 0 1.6px 1.6px 0; transform: rotate(45deg); pointer-events: none; }
+:root[data-style=haven] .lg-pick select.sort-pick, :root[data-style=haven] .lg-pick select#plan-sort { position: relative; height: 36px; min-height: 36px; width: auto; margin: -7px 0; padding: 0 24px 0 10px; border: 0; border-radius: 7px; box-shadow: none; background: transparent; background-image: none; font: inherit; font-size: 12px; font-weight: 600; color: var(--lg-ink2); appearance: none; -webkit-appearance: none; }
+:root[data-style=haven] .lg-accquiet select.hv-sortsel { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A8B4CC' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>"); background-size: 12px; background-position: right 4px center; padding: 0 22px 0 4px; }
+:root[data-style=haven][data-theme="light"] .lg-accquiet select.hv-sortsel { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23475467' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>"); }
+:root[data-style=haven] .lg-monthbox .hv-sum { display: block; gap: 0; }
+:root[data-style=haven] .lg-monthbox .hv-sum__keys > button { margin: 0; }
+:root[data-style=haven] .k .section-head { min-height: 22px; }
+:root[data-style=haven] .pl-top .explainable, :root[data-style=haven] .plan-sums .explainable { text-decoration: none; cursor: default; }
+:root[data-style=haven] .pl-top .pl-seg { padding: 0; margin: 0; }
+:root[data-style=haven] .pl-legend > span, :root[data-style=haven] .pl-legend em { text-align: left; padding-block: 0; }
+:root[data-style=haven] .pl-legend em { padding-inline: 0; }
+:root[data-style=haven] #view-container .plan-sums .plan-sums__head { margin: 10px 0 4px; font-size: 15px; font-weight: 700; letter-spacing: 0; color: var(--lg-ink); }
+
+/* ================================================================ History ================================================================== */
+/* the month stepper is drawn in the header's group (js/haven-ui.js puts it there) */
+:root[data-style=haven] .app-header #hist-month.hist-month { display: flex; align-items: center; height: 32px; width: auto; margin: 0; padding: 0; border-radius: 9px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); color: var(--lg-ink); }
+:root[data-style=haven] .app-header #hist-month .hist-month-name { height: 32px; display: grid; place-items: center; padding: 0 2px; font-size: 13px; font-weight: 600; color: var(--lg-ink); background: none; box-shadow: none; white-space: nowrap; }
+:root[data-style=haven] .app-header #hist-month > button { position: relative; width: 30px; height: 32px; min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; display: grid; place-items: center; color: var(--lg-ink2); }
+:root[data-style=haven] .app-header #hist-month > button::after { content: ""; position: absolute; inset: -6px -7px; }
+:root[data-style=haven] .app-header #hist-month > button:disabled { opacity: 0.3; }
+:root[data-style=haven] .app-header #hist-month > button .icon { width: 18px; height: 18px; }
+
+:root[data-style=haven] .lg-ringcard { margin: 10px 0 0; padding: 12px 14px; display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 14px; align-items: center; line-height: 1.3; }
+:root[data-style=haven] .lg-ringcard[hidden] { display: none; }
+:root[data-style=haven] .lg-ringcard .hv-ring__wrap { position: relative; width: 104px; height: 104px; }
+:root[data-style=haven] .lg-ringcard .hv-ring__svg { display: block; width: 104px; height: 104px; transform: none; }
+:root[data-style=haven] .lg-ringcard .hv-ring__arc { stroke-width: 12; }
+:root[data-style=haven] .lg-ringcard .hv-ring__arc.on { stroke-width: 14; }
+:root[data-style=haven] .lg-ringcard .hv-ring__arc { cursor: pointer; transition: opacity 200ms; }
+:root[data-style=haven] .lg-ringcard .hv-ring__arc.dim { opacity: 0.3; }
+:root[data-style=haven] .lg-ringcard .hv-ring__mid { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 0; pointer-events: none; }
+:root[data-style=haven] .lg-ringcard .hv-ring__mid b { font-size: 16px; font-weight: 700; color: var(--lg-ink); letter-spacing: -0.01em; }
+:root[data-style=haven] .lg-ringcard .hv-ring__mid span { max-width: 62px; margin: 0 auto; font-size: 11px; line-height: 1.15; color: var(--lg-ink2); overflow-wrap: anywhere; }
+:root[data-style=haven] .lg-legend { display: grid; gap: 6px; font-size: 13px; min-width: 0; }
+:root[data-style=haven] .lg-legend .hv-ring__badge { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; padding: 0; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; text-align: left; font: inherit; font-size: 13px; color: var(--lg-ink2); cursor: pointer; transition: opacity 200ms; }
+:root[data-style=haven] .lg-legend .hv-ring__badge::after { content: ""; position: absolute; inset: -11px -4px; }
+:root[data-style=haven] .lg-legend .hv-ring__badge > i { width: 8px; height: 8px; border-radius: 3px; flex: none; }
+:root[data-style=haven] .lg-legend .hv-ring__badge > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+:root[data-style=haven] .lg-legend .hv-ring__badge > b { font-weight: 650; color: var(--lg-ink); }
+:root[data-style=haven] .lg-legend .hv-ring__badge.dim { opacity: 0.4; }
+:root[data-style=haven] .lg-legend .hv-ring__badge.on > span { color: var(--lg-ink); }
+:root[data-style=haven] .lg-lin { display: flex; justify-content: space-between; border-top: 1px solid var(--lg-line); padding-top: 6px; }
+:root[data-style=haven] .lg-lin span { color: var(--lg-ink2); }
+:root[data-style=haven] .lg-lin b { color: var(--lg-ok); font-weight: 650; }
+
+:root[data-style=haven] .k .hist-top { display: flex; gap: 8px; margin: 10px 0 0; align-items: center; }
+:root[data-style=haven] .lg-search { position: relative; flex: 1; min-width: 0; height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 10px; background: var(--lg-s1); box-shadow: inset 0 0 0 1px var(--lg-line); color: var(--lg-ink3); }
+:root[data-style=haven] .lg-search .icon { width: 18px; height: 18px; flex: none; }
+:root[data-style=haven] .lg-search input.hist-search { flex: 1; min-width: 0; height: 36px; min-height: 36px; padding: 0; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--lg-ink); font: inherit; font-size: 15px; outline: none; }
+:root[data-style=haven] .lg-search input.hist-search::placeholder { color: var(--lg-ink3); }
+:root[data-style=haven] .lg-search:focus-within { box-shadow: inset 0 0 0 1.5px var(--lg-tide); }
+:root[data-style=haven] .lg-ib { position: relative; width: 40px; height: 40px; flex: none; padding: 0; border: 0; border-radius: 10px; display: grid; place-items: center; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); color: var(--lg-ink2); cursor: pointer; }
+:root[data-style=haven] .lg-ib::after { content: ""; position: absolute; inset: -2px; }
+:root[data-style=haven] .lg-ib .icon { width: 18px; height: 18px; }
+:root[data-style=haven] .lg-ib[aria-pressed="true"] { color: var(--lg-tide); box-shadow: inset 0 0 0 1.5px var(--lg-tide); }
+:root[data-style=haven] .k .hist-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; align-items: center; }
+:root[data-style=haven] .hist-chips .lg-tag { position: relative; height: 26px; padding: 0 9px; border: 0; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+:root[data-style=haven] .hist-chips .lg-tag::after { content: ""; position: absolute; inset: -9px -2px; }
+:root[data-style=haven] .hist-chips .lg-tag[hidden] { display: none; }
+:root[data-style=haven] .hist-chips .hist-needs.on { box-shadow: inset 0 0 0 1.5px var(--lg-amber); }
+:root[data-style=haven] .hist-charts .icon { width: 12px; height: 12px; transition: transform 200ms; }
+:root[data-style=haven] .hist-charts[aria-expanded="true"] .icon { transform: rotate(180deg); }
+:root[data-style=haven] .hist-chips .lg-pick { height: 26px; border-radius: 6px; }
+:root[data-style=haven] .hist-chips .lg-pick select { position: relative; height: 36px; min-height: 36px; width: auto; margin: -5px 0; padding: 0 22px 0 9px; border: 0; border-radius: 6px; box-shadow: none; background: transparent; font: inherit; font-size: 12px; font-weight: 600; color: var(--lg-ink2); appearance: none; -webkit-appearance: none; max-width: 150px; }
+:root[data-style=haven] .hist-chips .lg-pick::after { right: 8px; }
+:root[data-style=haven] .k .hv-histfold { margin: 8px 0 0; }
+
+:root[data-style=haven] .k #txn-list.hist-list { margin: 6px 0 0; background: var(--lg-s1); border-radius: 14px; box-shadow: 0 0 0 1px var(--lg-line); overflow: hidden; padding: 0; }
+:root[data-style=haven] .k #txn-list.hist-list:empty { display: none; }
+:root[data-style=haven] .k .hist-day { margin: 0; }
+:root[data-style=haven] .k .hist-day-head { display: flex; justify-content: space-between; align-items: baseline; margin: 0; padding: 10px 16px 4px; font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--lg-ink2); }
+:root[data-style=haven] .k .hist-day-head .in, :root[data-style=haven] .k .hist-day-head .out { color: var(--lg-ink2); }
+:root[data-style=haven] .k .hist-day-card { margin: 0; padding: 0; background: none; border-radius: 0; box-shadow: none; }
+:root[data-style=haven] .k .hist-month-head { margin: 10px 16px 0; font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--lg-ink2); }
+:root[data-style=haven] .hist-row { position: relative; padding: 0; background: none; }
+:root[data-style=haven] .hist-row + .hist-row::before { content: ""; position: absolute; left: 50px; right: 0; top: 0; height: 1px; background: var(--lg-line); pointer-events: none; z-index: 1; }
+:root[data-style=haven] .hist-row .hist-line { padding: 0; }
+:root[data-style=haven] .hist-row .hist-main { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; min-height: 44px; padding: 0 12px; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; text-align: left; font: inherit; color: var(--lg-ink); }
+:root[data-style=haven] .hist-row .hist-text { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+:root[data-style=haven] .hist-row .hist-name { flex: 0 1 auto; min-width: 0; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--lg-ink); }
+:root[data-style=haven] .hist-row .hist-sub { flex: 1 1 0; min-width: 0; margin: 0; font-size: 13px; font-weight: 400; color: var(--lg-ink3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root[data-style=haven] .hist-row .hist-sub-text { overflow: hidden; text-overflow: ellipsis; }
+:root[data-style=haven] .hist-row .txn-amount { font-weight: 650; font-size: 15px; color: var(--lg-ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+:root[data-style=haven] .hist-row .txn-amount.in { color: var(--lg-ok); }
+:root[data-style=haven] .hist-row .txn-amount.muted { color: var(--lg-ink3); }
+:root[data-style=haven] .hist-row .lg-ico { width: 28px; height: 28px; }
+:root[data-style=haven] .hist-row.open { background: var(--lg-s2); }
+:root[data-style=haven] .hist-row.open .hist-sub { white-space: normal; }
+:root[data-style=haven] .hist-row .hist-text { flex-direction: row; }
+:root[data-style=haven] .lg-legend .hv-ring__badge { min-height: 0; height: 22px; }
+:root[data-style=haven] .app-header #hist-month > button { min-width: 0; }
+:root[data-style=haven] .hv-histfold > summary { display: none; }
+:root[data-style=haven] .lg-ringcard { margin-top: 3px; }
+
+/* ================================================================ the + sheet ============================================================== */
+:root[data-style=haven] .hv-scrim { background: var(--lg-scrim); }
+:root[data-style=haven] .hv-sheet { left: 0; right: 0; bottom: 0; max-height: calc(100dvh - 24px); overflow: auto; border-radius: 22px 22px 0 0; background: var(--lg-bg); box-shadow: 0 -1px 0 var(--lg-line); padding: 0; color: var(--lg-ink); line-height: 1.3; }
+:root[data-style=haven] .hv-sheet .hv-shell { padding: 0; border-radius: inherit; background: none; box-shadow: none; }
+:root[data-style=haven] .hv-sheet .hv-core { padding: 8px 14px calc(14px + env(safe-area-inset-bottom)); border-radius: inherit; background: none; box-shadow: none; }
+:root[data-style=haven] .hv-sheet .hv-grip { display: block; width: 36px; height: 4px; margin: 0 auto 10px; border-radius: 2px; background: var(--lg-ink3); opacity: 0.5; }
+:root[data-style=haven] .hv-sheet__head { position: static; height: 0; margin: 0; padding: 0; }
+:root[data-style=haven] .hv-sheet__head h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+:root[data-style=haven] .hv-sheet #hv-close { position: absolute; top: 8px; right: 10px; width: 32px; height: 32px; border: 0; border-radius: 10px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); color: var(--lg-ink2); z-index: 2; }
+:root[data-style=haven] .hv-sheet #hv-close::before { inset: -6px; }
+:root[data-style=haven] .hv-sheet .hv-core { padding-top: 34px; }
+:root[data-style=haven] .hv-sheet .hv-grip { position: absolute; top: 8px; left: 50%; margin: 0 0 0 -18px; }
+:root[data-style=haven] .hv-sheet .hv-addform { gap: 10px; }
+:root[data-style=haven] .hv-addrow.hv-addways { display: flex; gap: 8px; }
+:root[data-style=haven] .hv-addways .lg-btn { flex: 1; padding: 0 6px; }
+:root[data-style=haven] .hv-addways .lg-btn .icon { width: 16px; height: 16px; }
+:root[data-style=haven] .hv-addways .hv-count { margin-left: 4px; }
+
+/* which way the money went: a segmented control */
+:root[data-style=haven] .hv-addform .direction-toggle { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 3px; height: 42px; border-radius: 11px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); }
+:root[data-style=haven] .hv-addform .direction-toggle .dir-btn { position: relative; z-index: 1; min-height: 0; height: 36px; padding: 0; border: 0; border-radius: 8px; background: none; box-shadow: none; font: inherit; font-size: 14px; font-weight: 600; color: var(--lg-ink2); }
+:root[data-style=haven] .hv-addform .direction-toggle .dir-btn::after { content: ""; position: absolute; inset: -3px 0; }
+:root[data-style=haven] .hv-addform .direction-toggle .dir-btn.active { color: var(--lg-ink); background: none; box-shadow: none; }
+:root[data-style=haven] .hv-addform .direction-toggle .seg-pill, :root[data-style=haven] .k .has-pill .seg-pill { background: var(--lg-s3); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 1px 3px rgba(0, 0, 0, 0.28); border: 0; border-radius: 8px; }
+:root[data-style=haven][data-theme="light"] .hv-addform .direction-toggle .seg-pill { box-shadow: 0 0 0 1px var(--lg-line), 0 1px 2px rgba(16, 24, 40, 0.12); }
+
+/* the amount, plain and big */
+:root[data-style=haven] .hv-addform .hv-amountbig { min-height: 0; height: auto; padding: 10px 0 8px; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; justify-content: center; align-items: baseline; gap: 4px; }
+:root[data-style=haven] .hv-addform .hv-amountbig .val { font-size: 52px; font-weight: 700; letter-spacing: -0.03em; color: var(--lg-ink); caret-color: var(--lg-tide); }
+:root[data-style=haven] .hv-addform .hv-amountbig .hv-cur { font-size: 28px; font-weight: 600; color: var(--lg-ink2); }
+:root[data-style=haven] .hv-addform .hv-words { min-height: 0; text-align: center; font-size: 12px; color: var(--lg-ink3); }
+:root[data-style=haven] .hv-addform .hv-words:empty { display: none; }
+
+/* the categories used lately, as tags */
+:root[data-style=haven] .hv-addform .k-quick.hv-chips { display: flex; gap: 6px; margin: 0; padding: 0; overflow-x: auto; scrollbar-width: none; }
+:root[data-style=haven] .hv-addform .k-quick__chip.hv-chip { position: relative; display: inline-flex; align-items: center; gap: 4px; height: 28px; min-height: 0; padding: 0 10px; border: 0; border-radius: 6px; background: var(--lg-s2); box-shadow: none; color: var(--lg-ink2); font: inherit; font-size: 12px; font-weight: 600; flex: none; }
+:root[data-style=haven] .hv-addform .k-quick__chip.hv-chip::after { content: ""; position: absolute; inset: -8px -2px; }
+:root[data-style=haven] .hv-addform .k-quick__chip.hv-chip svg { width: 14px; height: 14px; }
+:root[data-style=haven] .hv-addform .k-quick__chip.hv-chip.on, :root[data-style=haven] .hv-addform .k-quick__chip.hv-chip[aria-pressed="true"] { background: var(--lg-tide-soft); color: var(--lg-tide); }
+
+/* the keypad */
+:root[data-style=haven] .hv-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0; padding: 0; }
+:root[data-style=haven] .hv-keypad .hv-key { height: 46px; min-height: 0; border: 0; border-radius: 10px; background: var(--lg-s1); box-shadow: inset 0 0 0 1px var(--lg-line); color: var(--lg-ink); font: inherit; font-size: 20px; font-weight: 600; display: grid; place-items: center; }
+:root[data-style=haven] .hv-keypad .hv-key.alt { color: var(--lg-ink2); }
+:root[data-style=haven] .hv-keypad .hv-key:active { background: var(--lg-s2); }
+
+/* Details and Save, in one row */
+:root[data-style=haven] .lg-addbar { display: flex; gap: 8px; margin-top: 0; }
+:root[data-style=haven] .lg-addbar .lg-details { width: 104px; flex: none; }
+:root[data-style=haven] .lg-addbar .lg-details .icon { width: 16px; height: 16px; transition: transform 200ms; }
+:root[data-style=haven] .lg-addbar .lg-details[aria-expanded="true"] .icon { transform: rotate(180deg); }
+:root[data-style=haven] .hv-addform .hv-btn.lg-save { flex: 1; width: auto; height: 44px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--lg-tide); color: var(--lg-tide-ink); box-shadow: none; font: inherit; font-size: 15px; font-weight: 600; justify-content: center; }
+:root[data-style=haven] .hv-addform .hv-btn.lg-save .lbl { padding-left: 0; }
+:root[data-style=haven] .hv-addform .hv-btn.lg-save .nest { position: absolute; right: 8px; top: 50%; margin-top: -15px; opacity: 0; background: rgba(255, 255, 255, 0.2); transition: opacity 160ms; }
+:root[data-style=haven] .hv-addform .hv-btn.lg-save.saving .nest, :root[data-style=haven] .hv-addform .hv-btn.lg-save.saved .nest { opacity: 1; }
+:root[data-style=haven] .hv-addform .hv-btn.lg-save.saved { background: var(--lg-ok); color: #04231F; }
+:root[data-style=haven] .hv-addform .add-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+:root[data-style=haven] .hv-addform .hv-addstep { display: grid; gap: 10px; align-content: start; }
+:root[data-style=haven] .hv-addform .hv-addstep > * { margin: 0; min-width: 0; }
+:root[data-style=haven] .hv-addform .amount-field { min-height: 0; padding: 0; margin: 0; }
+:root[data-style=haven] .hv-addform .hv-amountbig .field-error { margin: 0 0 4px; }
+/* a short line that does not fit says all of itself on a second line instead of being cut */
+:root[data-style=haven] .lg-more--link { position: relative; }
+:root[data-style=haven] .lg-more--link::after { content: ""; position: absolute; inset: -2px 0; }
+:root[data-style=haven] .hist-row .hist-text { flex-wrap: wrap; row-gap: 0; }
+:root[data-style=haven] .hist-row .hist-name { white-space: normal; overflow-wrap: anywhere; }
+:root[data-style=haven] .hist-row .hist-sub { flex: 1 1 auto; white-space: normal; overflow: visible; text-overflow: clip; }
+:root[data-style=haven] .lg-row .nm .m, :root[data-style=haven] .lg-acclist .account-row .k-row__meta { white-space: normal; overflow: visible; text-overflow: clip; }
+:root[data-style=haven] .k .attention-row .muted-note, :root[data-style=haven] .k .attention-row small { color: var(--lg-ink2); }
+/* 320 wide at the largest text: names wrap instead of being cut with an ellipsis */
+@media (max-width: 360px) {
+  :root[data-style=haven] .lg-row .n, :root[data-style=haven] .lg-row .nm .n, :root[data-style=haven] .lg-months .n, :root[data-style=haven] .lg-m .cap { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+}
+:root[data-style=haven] .hv-recrow button, :root[data-style=haven] .hv-rec button, :root[data-style=haven] .hv-recdlg button { background: var(--lg-tide); color: var(--lg-tide-ink); }

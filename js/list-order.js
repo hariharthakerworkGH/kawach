@@ -52,7 +52,8 @@ export function usageCounts(transactions) {
 /* The little control: <select> with the ways on offer, the chosen one picked. */
 export function sortPicker(id, name, label) {
   const now = appearance(name);
-  return `<select id="${id}" class="sort-pick" data-order="${name}" aria-label="${label}">${Object.entries(ORDER_WORDS[name])
+  // The tag is drawn by the wrapper (22px, as the Ledger shows it); the select inside is taller, so a finger lands on it (css/ledger.css).
+  return `<span class="lg-pick"><select id="${id}" class="sort-pick" data-order="${name}" aria-label="${label}">${Object.entries(ORDER_WORDS[name])
     .map(([value, words]) => `<option value="${value}" ${value === now ? 'selected' : ''}>${words}</option>`)
-    .join('')}</select>`;
+    .join('')}</select></span>`;
 }

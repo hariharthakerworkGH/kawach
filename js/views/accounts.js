@@ -67,7 +67,7 @@ let payFrom = [];
 // panel) first, before it leaves the screen.
 export function onBack() {
   // An account that is open closes first (the same tap that opened it, so it closes the same smooth way).
-  if (!allOpen() && shownIn && shownIn.isConnected && editing === null && !reordering && !payingBill) {
+  if (shownIn && shownIn.isConnected && editing === null && !reordering && !payingBill) {
     // everything that is open closes together: the ones that open on the spot by their own tap, the rest by one redraw
     const local = [...shownIn.querySelectorAll('.account-block.is-open .account-row[role="button"]:not(.account-open)')];
     const redrawn = shownIn.querySelector('.account-open[aria-expanded="true"]');
@@ -126,9 +126,9 @@ export async function render(container) {
       ${
         showEmpty
           ? ''
-          : `<button type="button" id="add-account-btn" class="k-btn k-btn--secondary">${editing === 'new' ? 'Cancel' : 'Add an account'}</button>`
+          : `<button type="button" id="add-account-btn" class="k-btn k-btn--secondary">${editing === 'new' ? 'Cancel' : 'Add account'}</button>`
       }
-      <button type="button" id="go-import-btn" class="k-btn k-btn--ghost">Import a statement</button>
+      <button type="button" id="go-import-btn" class="k-btn k-btn--ghost">Import</button>
       ${appearance('accounts') === 'private' ? `<button type="button" id="accounts-reveal" class="k-btn k-btn--ghost">${balancesShown ? 'Hide' : 'Show'} balances</button>` : ''}
       ${accounts.length > 1 ? sortPicker('accounts-sort', 'accountOrder', 'Order of your accounts') : ''}
       ${accounts.length > 1 && accountOrder === 'yours' ? `<button type="button" id="accounts-reorder" class="k-btn k-btn--ghost">${reordering ? 'Done' : 'Reorder'}</button>` : ''}
@@ -147,10 +147,10 @@ export async function render(container) {
         : ''
     }
     ${renderGroup('Cards', groups.card, transactions, importBatches, editingAccount, accounts)}
-    ${renderGroup('Cash', groups.cash, transactions, importBatches, editingAccount, accounts)}
     ${renderGroup('Bank', groups.bank, transactions, importBatches, editingAccount, accounts)}
-    ${renderGroup('Loans', groups.loan, transactions, importBatches, editingAccount, accounts)}
     ${renderGroup('Savings and FDs', groups.savings, transactions, importBatches, editingAccount, accounts)}
+    ${renderGroup('Cash', groups.cash, transactions, importBatches, editingAccount, accounts)}
+    ${renderGroup('Loans', groups.loan, transactions, importBatches, editingAccount, accounts)}
     ${renderGroup('Provident fund', groups.pf, transactions, importBatches, editingAccount, accounts)}
     ${homeFigures ? peopleGroup(homeFigures.people || [], accounts) : ''}
 
@@ -918,13 +918,11 @@ function balanceLine(account, transactions) {
   return pts.some((v) => v !== pts[0]) ? { t: 'line', pts } : null;
 }
 
-// Haven shows the accounts as a stack of cards; the one in front is open, so every block is drawn open and the stack picks which shows.
-const allOpen = () => document.documentElement.dataset.style === 'haven' && !reordering;
 
 function accountRow(account, { meta = '', value = '', tone = '', canOpen = false, place = {}, lead = null }) {
   const leadAttr = (lead ? ` data-lead='${escapeAttr(JSON.stringify(lead))}'` : '') + (account.last4 ? ` data-last4="${escapeAttr(String(account.last4))}"` : '');
   value = cover(value);
-  const open = opened.has(account.id) || allOpen();
+  const open = opened.has(account.id);
   // The bank's own name if we know it, otherwise what the account is called.
   // brandMark() is the resolver from phase 9C: a licensed file, a category
   // icon, or a monogram. Nothing here draws a bank's logo.
@@ -1242,9 +1240,9 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
  */
 function openable(account, acctTxns, row, note = '', { spendable = false } = {}) {
   if (!account) return row;
-  const open = opened.has(account.id) || allOpen();
+  const open = opened.has(account.id);
   const recent = open
-    ? [...acctTxns].sort(newestFirst).slice(0, 5)
+    ? [...acctTxns].sort(newestFirst).slice(0, 3)
     : [];
   return `
     ${row}

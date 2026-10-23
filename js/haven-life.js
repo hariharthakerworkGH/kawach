@@ -298,7 +298,7 @@ function stamp(scope) {
   const first = rows[0];
   first.animate([{ transform: 'translateY(-30px) scale(1.06)', opacity: 0 }, { transform: 'translateY(2px) scale(.99)', opacity: 1, offset: 0.55 }, { transform: 'none' }], { duration: 560, delay: 500, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'backwards' });
   rows.slice(1).forEach((r) => r.animate([{ transform: 'translateY(-2px)' }, { transform: 'translateY(2px)', offset: 0.5 }, { transform: 'none' }], { duration: 520, delay: 620 }));
-  first.querySelector('.hv-gem')?.animate([{ transform: 'scale(1.5)' }, { transform: 'scale(.9)', offset: 0.6 }, { transform: 'scale(1)' }], { duration: 560, delay: 640, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'backwards' });
+  first.querySelector('.hv-gem, .lg-ico')?.animate([{ transform: 'scale(1.5)' }, { transform: 'scale(.9)', offset: 0.6 }, { transform: 'scale(1)' }], { duration: 560, delay: 640, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'backwards' });
   first.animate([{ background: 'color-mix(in oklab, var(--hv-glow) 28%, var(--hv-core))' }, { background: 'transparent' }], { duration: 1600, delay: 600, fill: 'backwards' });
 }
 
@@ -315,7 +315,7 @@ function morph(scope) {
       const to = open ? d.firstElementChild.scrollHeight : 0;
       if (!live()) { d.style.height = `${to}px`; return; }
       d.animate([{ height: `${open ? 0 : d.offsetHeight}px` }, { height: `${to}px` }], { duration: 520, easing: 'cubic-bezier(.34,1.3,.64,1)', fill: 'forwards' }).onfinish = () => { d.style.height = `${to}px`; };
-      lp.querySelector('.hv-gem')?.animate([{ transform: 'scale(1)' }, { transform: `scale(${open ? 1.12 : 1})` }], { duration: 520, fill: 'forwards', easing: 'cubic-bezier(.34,1.3,.64,1)' });
+      lp.querySelector('.hv-gem, .lg-ico')?.animate([{ transform: 'scale(1)' }, { transform: `scale(${open ? 1.12 : 1})` }], { duration: 520, fill: 'forwards', easing: 'cubic-bezier(.34,1.3,.64,1)' });
     });
     lp.querySelector('[data-open-hist]')?.addEventListener('click', (e) => {
       lp.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'transactions', search: e.currentTarget.dataset.openHist } }));
@@ -330,6 +330,8 @@ function kept(scope) {
     k.dataset.wired = '1';
     const head = k.querySelector('.hv-kept__head');
     const list = k.querySelector('.hv-kept__list');
+    // the hero's figures sit in this wrapper even when nothing is kept back: then there is nothing to open
+    if (!head || !list) return;
     head.addEventListener('click', () => {
       const open = head.getAttribute('aria-expanded') !== 'true';
       head.setAttribute('aria-expanded', String(open));
@@ -350,7 +352,7 @@ function trembleLoop() {
   if (tremor) return;
   tremor = setInterval(() => {
     if (!alive() || document.hidden) return;
-    $$('.hv-bill[data-near] .hv-gem').forEach((g) => {
+    $$('.hv-bill[data-near] .lg-ico').forEach((g) => {
       const k = 0.45;
       g.animate([{ transform: 'rotate(0)' }, { transform: `rotate(${-9 * k}deg) translateX(${-2 * k}px)` }, { transform: `rotate(${8 * k}deg) translateX(${2 * k}px)` }, { transform: `rotate(${-5 * k}deg)` }, { transform: `rotate(${3 * k}deg)` }, { transform: 'rotate(0)' }], { duration: 640, easing: 'ease-out' });
       const ring = document.createElement('i');

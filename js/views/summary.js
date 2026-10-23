@@ -1,5 +1,5 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
-import { havenTop, keptBack, chartsComing, chartsCards, tideSvg, monthStory } from './summary-looks.js';
+import { havenTop, keptBack, chartsComing, chartsCards, tideSvg, monthStory, syncTodo } from './summary-looks.js';
 import { isDemo } from '../demo-flag.js';
 import { displayName } from './transactions.js';
 import { wireHaven } from '../haven-ui.js';
@@ -84,10 +84,10 @@ export function endOfMonthNoon(key) {
 function monthNav(key, months) {
   const at = months.indexOf(key);
   const [y, m] = key.split('-').map(Number);
-  return `<nav class="hist-month summary-month" aria-label="Month on screen">
-      <button type="button" class="icon-btn hist-step" id="sum-month-prev" aria-label="Month before" ${at <= 0 ? 'disabled' : ''}>${icon('back')}</button>
+  return `<nav class="lg-stepper summary-month" aria-label="Month on screen">
+      <button type="button" id="sum-month-prev" aria-label="Month before" ${at <= 0 ? 'disabled' : ''}>${icon('back')}</button>
       <span class="hist-month-name" aria-live="polite">${MONTH_NAMES[m - 1]} ${y}</span>
-      <button type="button" class="icon-btn hist-step" id="sum-month-next" aria-label="Month after" ${at >= months.length - 1 ? 'disabled' : ''}>${icon('forward')}</button>
+      <button type="button" id="sum-month-next" aria-label="Month after" ${at >= months.length - 1 ? 'disabled' : ''}>${icon('forward')}</button>
     </nav>`;
 }
 
@@ -452,7 +452,7 @@ async function renderDashboard(container) {
     // were true when it closed, payments of the 30th and 31st included.
     const past = { key: viewMonth, name: MONTH_NAMES[Number(viewMonth.slice(5, 7)) - 1] };
     const done = await computeFreeToSpend(endOfMonthNoon(viewMonth));
-    dashboardEl.innerHTML = `${monthNav(viewMonth, months)}${renderSpendingLimit(done, { past })}
+    dashboardEl.innerHTML = `${renderSpendingLimit(done, { past, nav: monthNav(viewMonth, months) })}
       <button type="button" class="btn-secondary btn-block" id="sum-month-payments">See ${past.name}'s payments</button>`;
     wireMonthNav();
     wireCharts(dashboardEl);
@@ -485,16 +485,14 @@ async function renderDashboard(container) {
     }
     // The figure and its answer; what needs you; the month; then the rest,
     // folded. The parts are marked where the top is drawn.
-    const [answer, afterAnswer = ''] = renderSpendingLimit(fts, { short: !haven, latest, more }).split('<!--k:answer-->');
+    const [answer, afterAnswer = ''] = renderSpendingLimit(fts, { short: !haven, latest, more, nav: monthNav(thisKey, months) }).split('<!--k:answer-->');
     const [month, rest = ''] = afterAnswer.split('<!--k:month-->');
     dashboardEl.innerHTML = [
       setup.payments ? '' : setupStrip(),
-      monthNav(thisKey, months),
       answerFirst(answer),
-      '<div id="attention-section"></div>',
       month,
       `<details class="sum-more" id="sum-more">
-        <summary><span class="sum-more__t">More about this month</span><span class="sum-more__s">This week, your cards, what is coming up, where it went</span></summary>
+        <summary><span class="sum-more__t">More about this month</span><span class="lg-plus" aria-hidden="true">${icon('add')}</span></summary>
         <div class="sum-more__body">
           ${haven ? `<div id="hv-ins" class="hv-cal-host" data-extra='${more ? escapeAttr(JSON.stringify({ layers: more.layers, tanks: more.tanks })) : ''}'></div><div id="hv-cal" class="hv-cal-host"></div>` : ''}
           ${rest}
@@ -624,6 +622,7 @@ async function renderDashboard(container) {
   });
 
   await renderAttention(container, transactions, fts);
+  syncTodo(dashboardEl);
   await renderUpcoming(container, fts);
   notifySpendingLevel(fts);
 }
@@ -1244,7 +1243,7 @@ function renderCardsHero(f, opts = {}) {
   const lookTop = ['full', 'short'].includes(appearance('summary')) && f.limit != null && LOOK_TOPS[style];
   const drawn = past ? { ...shown, finished: true } : f;
   const top = lookTop
-    ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), '', { latest: opts.latest, more: opts.more, still: Boolean(past) || quiet, chart: monthWaves(drawn) })
+    ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), '', { latest: opts.latest, more: opts.more, still: Boolean(past) || quiet, chart: monthWaves(drawn), nav: opts.nav })
     : spendingHero(shown, short ? 'full' : appearance('summary'), past ? `Final for ${past.name}` : null, short ? shortStatus(f) : null) + `<!--k:answer-->
     ${past ? '' : monthWaves(f)}<!--k:month-->
     ${past ? '' : weekPills(f)}

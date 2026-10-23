@@ -7,6 +7,10 @@ import { learnFromAssignment, fitsDirection, isIncomeCategory } from '../merchan
 import { filingSwipe } from '../haven-life.js';
 import { formatCurrency, formatRupees, formatMonthYear, formatDateNice } from '../format.js';
 import { categoryStyle } from '../category-style.js';
+import { lgIco } from './summary-looks.js';
+
+// The month stepper is drawn in the header (js/haven-ui.js moves it there once the screen is on show); until then it is in the screen.
+const navEl = (container, selector) => container.querySelector(selector) || document.querySelector(`.app-header ${selector}`);
 import { ringSlices, ringHtml, wireRing } from '../haven-ring.js';
 import { categoryIcon } from '../category-icons.js';
 import { isSplit, categorySlices, needsCategory, splitTotal } from '../splits.js';
@@ -124,10 +128,10 @@ export async function render(container, params = {}) {
 
   container.classList.add('k');
   container.innerHTML = `
-    <div class="hist-month" id="hist-month">
-      <button type="button" class="icon-btn hist-step" id="month-prev" aria-label="Month before">${icon('back')}</button>
+    <div class="hist-month lg-stepper flat" id="hist-month">
+      <button type="button" id="month-prev" aria-label="Month before">${icon('back')}</button>
       <span class="hist-month-name" id="month-name"></span>
-      <button type="button" class="icon-btn hist-step" id="month-next" aria-label="Month after">${icon('forward')}</button>
+      <button type="button" id="month-next" aria-label="Month after">${icon('forward')}</button>
     </div>
     <div id="hist-salary"></div>
     <section class="hero" id="hist-hero">
@@ -140,20 +144,21 @@ export async function render(container, params = {}) {
     <div class="hero-under" id="hist-stats"></div>
     <div id="hist-days"></div>
     <div class="hist-top">
-      <input type="search" id="txn-search" class="hist-search" placeholder="Name or amount" value="${escapeAttr(filters.search)}" aria-label="Search all months">
-      <button type="button" id="txn-select" class="btn-secondary hist-select-btn">Change many</button>
+      <label class="lg-search">${icon('history')}<input type="search" id="txn-search" class="hist-search" placeholder="Name or amount" value="${escapeAttr(filters.search)}" aria-label="Search all months"></label>
+      <button type="button" id="txn-select" class="lg-ib hist-select-btn" aria-label="Change many" title="Change many" aria-pressed="false">${icon('settings')}</button>
     </div>
     <div class="hist-chips">
-      <select id="txn-account" class="hist-chip" aria-label="Account">
+      <button type="button" id="txn-needs" class="hist-chip hist-needs lg-tag warn" hidden></button>
+      <span class="lg-pick"><select id="txn-account" class="hist-chip" aria-label="Account">
         <option value="">All accounts</option>
         ${sortAccounts(accounts, undefined, null).map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}
-      </select>
-      <select id="txn-category" class="hist-chip" aria-label="Category">
+      </select></span>
+      <span class="lg-pick"><select id="txn-category" class="hist-chip" aria-label="Category">
         <option value="">All categories</option>
         <option value="uncategorized">Need a category</option>
         ${categoryOptions(null)}
-      </select>
-      <button type="button" id="txn-needs" class="hist-chip hist-needs" hidden></button>
+      </select></span>
+      <button type="button" id="hist-charts" class="lg-tag hist-charts" aria-expanded="false">Charts ${icon('chevdown')}</button>
     </div>
     <div class="txn-summary-row" id="select-row" hidden>
       <span id="select-note"></span>
@@ -173,6 +178,8 @@ export async function render(container, params = {}) {
     </div>
   `;
   if (document.documentElement.dataset.style === 'haven') arrangeHistory(container);
+  const shownNav = document.querySelector('.app-header #hist-month');
+  if (shownNav) shownNav.replaceWith(container.querySelector('#hist-month'));
   // NEW (5.15): in Tactile and Instrument, In and Out sit on the net's
   // own card, as their mockups have them, and the day chart gets a card of
   // its own. The elements move with their ids, so filling them in later is
@@ -218,18 +225,18 @@ export async function render(container, params = {}) {
   });
 
   const step = (delta) => {
-    monthSwap(delta, () => ['#hist-month', '#hist-net', '#hist-stats', '#hist-days', '#txn-list'].map((q) => container.querySelector(q)), () => {
+    monthSwap(delta, () => ['#hist-month', '#hist-net', '#hist-stats', '#hist-days', '#txn-list'].map((q) => navEl(container, q)), () => {
       filters.month = shiftMonth(filters.month, delta);
       expanded = null;
       splitDraft = null;
       resetPage(container);
       // A new month is a new page: start at its top.
-      const top = container.querySelector('#hist-month').getBoundingClientRect().top + window.scrollY - 80;
+      const top = container.querySelector('#hist-ring').getBoundingClientRect().top + window.scrollY - 120;
       if (window.scrollY > top) window.scrollTo(0, Math.max(0, top));
     });
   };
-  container.querySelector('#month-prev').addEventListener('click', () => step(-1));
-  container.querySelector('#month-next').addEventListener('click', () => step(1));
+  navEl(container, '#month-prev').addEventListener('click', () => step(-1));
+  navEl(container, '#month-next').addEventListener('click', () => step(1));
   container.querySelector('#month-older').addEventListener('click', () => step(-1));
 
   container.querySelector('#txn-select').addEventListener('click', () => {
@@ -502,39 +509,38 @@ function arrangeHistory(container) {
   if (!hero || !days || container.querySelector('#hist-ring')) return;
   const ring = document.createElement('section');
   ring.id = 'hist-ring';
-  ring.className = 'hv-ringcard';
-  const tiles = document.createElement('div');
-  tiles.id = 'hist-tiles';
-  tiles.className = 'hv-pair';
+  ring.className = 'lg-card lg-ringcard';
   const fold = document.createElement('details');
   fold.className = 'section-fold hv-histfold';
+  fold.id = 'hist-fold';
   fold.innerHTML = '<summary>Day by day, and month by month</summary>';
   hero.before(ring);
-  ring.after(tiles);
-  tiles.after(fold);
   fold.append(hero, days);
+  // the charts wait behind a small tag among the chips, under the chips themselves
+  container.querySelector('.hist-chips').after(fold);
+  const chip = container.querySelector('#hist-charts');
+  const sync = () => chip.setAttribute('aria-expanded', String(fold.open));
+  chip.addEventListener('click', () => { fold.open = !fold.open; sync(); });
+  fold.addEventListener('toggle', sync);
   container.querySelector('#hist-stats')?.setAttribute('hidden', '');
 }
 
-// What the ring and the tiles say for the rows shown.
+// What the ring and its legend say for the rows shown.
 function drawRing(container, rows, sum, across) {
   const ring = container.querySelector('#hist-ring');
-  const tiles = container.querySelector('#hist-tiles');
-  if (!ring || !tiles) return;
+  if (!ring) return;
   ring.hidden = across;
-  tiles.hidden = across;
   if (across) return;
   const byName = new Map();
   for (const x of rows.filter((r) => sideOf(r) === 'out')) {
-    const name = catName(x.categoryId) || 'Needs a category';
+    const name = catName(x.categoryId) || 'No category';
     const cur = byName.get(name) || { name, amount: 0, icon: categoryStyle(catName(x.categoryId)).icon };
     cur.amount += x.amount;
     byName.set(name, cur);
   }
   const slices = ringSlices([...byName.values()]);
-  ring.innerHTML = ringHtml(slices);
+  ring.innerHTML = ringHtml(slices, sum.in);
   wireRing(ring, slices);
-  tiles.innerHTML = `<div class="hv-pair__t"><i class="in"></i><div><small>In</small><b>+${formatRupees(sum.in)}</b></div></div><div class="hv-pair__t"><i class="out"></i><div><small>Out</small><b>−${formatRupees(sum.out)}</b></div></div>`;
 }
 
 function totals(rows) {
@@ -556,9 +562,13 @@ function renderList(container) {
   const hasOlder = Boolean(earliest && earliest.slice(0, 7) < filters.month);
 
   // The month bar steps between months; while searching it says what is shown.
-  container.querySelector('#month-name').textContent = across ? 'All months' : formatMonthYear(`${filters.month}-01`);
-  container.querySelector('#month-prev').disabled = across || !hasOlder;
-  container.querySelector('#month-next').disabled = across || filters.month >= thisMonth();
+  // (the stepper is in the header while History is on show; a save finishing after you have left finds none, and that is fine)
+  const nameEl = navEl(container, '#month-name');
+  if (nameEl) {
+    nameEl.textContent = across ? 'All months' : formatMonthYear(`${filters.month}-01`);
+    navEl(container, '#month-prev').disabled = across || !hasOlder;
+    navEl(container, '#month-next').disabled = across || filters.month >= thisMonth();
+  }
 
   // What the month came to. Net is the one answer: in minus out. A month
   // that kept money reads in the ordinary ink, a month that ate into savings
@@ -620,7 +630,7 @@ function renderList(container) {
   needsChip.textContent = filters.categoryId === 'uncategorized' ? 'Showing: need a category' : `${needing} need a category`;
   needsChip.classList.toggle('on', filters.categoryId === 'uncategorized');
 
-  container.querySelector('#txn-select').textContent = selecting ? 'Done' : 'Change many';
+  container.querySelector('#txn-select').setAttribute('aria-pressed', String(selecting));
   container.querySelector('#select-row').hidden = !selecting || rows.length === 0;
   container.querySelector('#select-note').textContent = selected.size ? `${selected.size} ticked` : 'Tick payments to categorise or delete together';
   container.querySelector('#txn-select-all').textContent = selected.size === rows.length && rows.length ? 'Clear' : `Select all ${rows.length}`;
@@ -806,7 +816,7 @@ function rowTemplate(t) {
       <div class="hist-line">
         ${selecting ? `<input type="checkbox" class="txn-check" ${selected.has(t.id) ? 'checked' : ''} aria-label="Select">` : ''}
         <button type="button" class="txn-main hist-main" aria-expanded="${isOpen}">
-          <span class="cat-chip hist-cat" style="--chip-color:${style.color}">${style.icon}</span>
+          ${t.categoryId && !split ? lgIco(catName(t.categoryId), style.icon) : `<span class="lg-ico">${style.icon}</span>`}
           <span class="hist-text">
             <span class="hist-name">${escapeHtml(displayName(t.rawDescription))}</span>
             <span class="hist-sub">${sub}</span>

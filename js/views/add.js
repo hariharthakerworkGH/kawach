@@ -830,8 +830,8 @@ function havenArrangeAdd(container) {
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
   keypadLife(pad, input, wrap);
-  // Two steps, as a person thinks of it: first how much (and which way), then what it was. Step one is the amount and the
-  // keypad and nothing else; "Next" takes the amount over to step two, where the rest of the form is.
+  // One sheet (the Ledger mockup): the ways in on top, which way the money went, the amount, the categories used lately, the keypad, and one
+  // row at the foot: "Details" opens everything else (merchant, account, date, the category list, repeats, work costs), Save saves.
   const person = container.querySelector('#add-person');
   const submit = form.querySelector('button[type="submit"]');
   const field = (id) => container.querySelector(`#${id}`).closest('.k-field, .field, .k-switch-row');
@@ -841,7 +841,6 @@ function havenArrangeAdd(container) {
   pair.className = 'add-pair';
   pair.append(acct, date);
   const rest = [...form.children].filter((n) => ![hero, person, submit, toggle].includes(n) && ![desc, acct, date, catField].some((f) => n === f || n.contains(f)));
-  // what is left (repeats, work costs, the commitment it pays) sits behind one line, in the order it was built
   const fold = document.createElement('div');
   fold.className = 'hv-fold';
   fold.id = 'hv-details';
@@ -849,66 +848,46 @@ function havenArrangeAdd(container) {
   const more = document.createElement('div');
   more.className = 'hv-stack';
   more.style.padding = '2px 0 4px';
-  more.append(...rest);
+  more.append(...(person ? [person] : []), desc, catField, pair, ...rest);
   inner.append(more);
   fold.append(inner);
   const det = document.createElement('button');
   det.type = 'button';
-  det.className = 'hv-detailsbtn';
-  det.setAttribute('data-hv-fold', '');
+  det.className = 'lg-btn s lg-details';
+  det.setAttribute('data-hv-fold', 'hv-details');
   det.setAttribute('aria-expanded', 'false');
-  det.innerHTML = `<span>More: repeats, work cost</span><span class="hv-chev"><span class="hv-ic">${icon('chevdown')}</span></span>`;
-  // The buttons as the prototype draws them: a label and a small circle with a tick that turns while it works.
-  const nestOf = (name) => `<span class="lbl"><span class="go">${name}</span></span><span class="nest"><span class="hv-ic">${icon('tick')}</span></span>`;
-  submit.className = 'hv-btn full';
-  submit.innerHTML = nestOf('Save');
-  const next = document.createElement('button');
-  next.type = 'button';
-  next.className = 'hv-btn full';
-  next.id = 'hv-next';
-  next.innerHTML = `<span class="lbl"><span class="go">Next</span></span><span class="nest"><span class="hv-ic">${icon('forward')}</span></span>`;
-  const back = document.createElement('div');
-  back.className = 'hv-addback';
-  back.innerHTML = `<button type="button" class="hv-round" id="hv-back" aria-label="Back to the amount"><span class="hv-ic">${icon('back')}</span></button><div class="hv-addback__sum"><b id="hv-sum-amt">₹0</b><span id="hv-sum-way" class="hv-muted">Spent</span></div>`;
+  det.innerHTML = `Details ${icon('chevdown')}`;
+  // Save is a label and a small circle with a tick that turns while it works; the label carries the amount.
+  submit.className = 'hv-btn full lg-save';
+  submit.innerHTML = '<span class="lbl"><span class="go">Save</span></span><span class="nest"><span class="hv-ic">' + icon('tick') + '</span></span>';
+  const saying = () => {
+    const v = parseFloat(input.value);
+    const go = submit.querySelector('.go'); // the form may have swapped the button's words (saving, saved)
+    if (go) go.textContent = v > 0 ? `Save ₹${v.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : 'Save';
+  };
+  input.addEventListener('input', saying);
   const one = document.createElement('div');
   one.className = 'hv-addstep hv-stack';
   one.dataset.step = '1';
-  // Other ways in than typing: two small chips on top (the same two as on Summary), here and in the + sheet alike.
+  // Other ways in than typing: a bank message, a statement, a cash spend (the same three as before on Summary).
   const ways = document.createElement('div');
   ways.className = 'hv-addrow hv-addways';
-  ways.innerHTML = `<button type="button" class="hv-chip" data-hv-go="inbox"><span class="hv-ic">${icon('inbox')}</span>Paste SMS</button><button type="button" class="hv-chip" data-hv-go="import"><span class="hv-ic">${icon('upload')}</span>Import</button>`;
-  one.append(ways, toggle, wrap.closest('.amount-field') || wrap, pad, next);
-  markWaiting(ways);
-  const two = document.createElement('div');
-  two.className = 'hv-addstep hv-stack';
-  two.dataset.step = '2';
-  two.hidden = true;
-  two.append(back, ...(person ? [person] : []), desc, catField, pair, det, fold, submit);
-  hero.replaceWith(one);
-  form.append(two);
-  const show = (n) => {
-    const to = n === 1 ? one : two;
-    (n === 1 ? two : one).hidden = true;
-    to.hidden = false;
-    to.classList.remove('hv-stepin');
-    void to.offsetWidth;
-    to.classList.add('hv-stepin');
-    form.dataset.hvStep = String(n);
-  };
-  const way = () => (container.querySelector('.dir-btn.active')?.textContent.trim() || 'Spent');
-  next.addEventListener('click', () => {
-    const v = parseFloat(input.value);
-    if (!(v > 0)) { invalidField(input, 'Enter an amount'); return; }
-    if (v * 100 > MAX_PAISE) { invalidField(input, 'That amount is too big'); return; }
-    container.querySelector('#hv-sum-amt').textContent = `₹${v.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
-    container.querySelector('#hv-sum-way').textContent = way();
-    show(2);
+  ways.innerHTML = `<button type="button" class="lg-btn sm s" data-hv-go="inbox">${icon('inbox')} Paste SMS</button><button type="button" class="lg-btn sm s" data-hv-go="import">${icon('upload')} Import</button><button type="button" class="lg-btn sm s" id="add-cash-way">${icon('cash')} Cash spend</button>`;
+  ways.querySelector('#add-cash-way').addEventListener('click', () => {
+    const select = container.querySelector('#add-account');
+    select.value = CASH_ACCOUNT_ID;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    showToast('Cash');
   });
-  back.querySelector('#hv-back').addEventListener('click', () => show(1));
-  // A field in the folded part that cannot be left empty opens it, so the message is never out of sight.
-  form.addEventListener('invalid', () => { det.setAttribute('aria-expanded', 'true'); fold.classList.add('open'); }, true);
+  const bar = document.createElement('div');
+  bar.className = 'lg-addbar';
+  bar.append(det, submit);
+  one.append(ways, toggle, wrap.closest('.amount-field') || wrap, quick, pad, fold, bar);
+  markWaiting(ways);
+  hero.replaceWith(one);
   form.classList.add('hv-addform');
   form.classList.add('hv-stack');
   form.dataset.hvStep = '1';
+  saying();
   wireHaven(container);
 }

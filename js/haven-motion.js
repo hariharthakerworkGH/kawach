@@ -206,17 +206,10 @@ function onUp() {
 
 /* ---- the tab pill stretches towards the next tab like a drop of water ----------------------------------------- */
 export function stretchMark(mark, from, to) {
-  if (!live() || !from || !to || from.x === to.x || !mark.animate) return;
-  const dist = Math.abs(to.x - from.x);
-  const unit = Math.max(1, to.w);
-  const wide = to.w * (1 + 0.8 * Math.min(dist / unit, 3) * 0.6);
-  const midX = (from.x + to.x) / 2 + to.w / 2 - wide / 2;
-  mark.animate(
-    [{ transform: `translateX(${from.x}px)`, width: `${from.w}px` }, { transform: `translateX(${midX}px)`, width: `${wide}px`, offset: 0.45 }, { transform: `translateX(${to.x}px)`, width: `${to.w}px` }],
-    { duration: 400, easing: SOFT }
-  );
+  // The lit tab's mark is a short bar on the top edge of the tab bar (css/ledger.css); it glides by its own transition. Only the icon hops.
+  if (!live() || !from || !to || from.x === to.x) return;
   const svg = document.querySelector('#tabs .nav-btn.active .nav-icon svg');
-  svg?.animate?.([{ transform: 'translateY(0)' }, { transform: 'translateY(-6px) scale(1.1)' }, { transform: 'translateY(-1px) scale(1.08)' }], { duration: 400, easing: 'ease-out' });
+  svg?.animate?.([{ transform: 'translateY(0)' }, { transform: 'translateY(-6px) scale(1.1)' }, { transform: 'translateY(0) scale(1)' }], { duration: 400, easing: 'ease-out' });
 }
 
 /* ---- marking a bill paid: the row fades away and the bar above slides across ------------------------------------- */

@@ -408,24 +408,6 @@ html.hv-sweeping::view-transition-new(root) { z-index: 2; }
 :root[data-style="haven"] .dupe-fold .totals-card { margin-top: 6px; }
 :root[data-style="haven"] .dupe-pair .btn-tiny { min-height: 44px; }
 
-/* ---- the living sky (js/haven-sky.js, js/sun-moon.js): the real sun and moon behind the top of every screen. One layer behind the page; transforms and opacity only ---- */
-.hv-sky { position: absolute; top: 0; left: 0; right: 0; height: 190px; max-width: 100%; z-index: -1; pointer-events: none; overflow: hidden; overflow: clip; contain: paint; background: radial-gradient(ellipse 62% 70% at var(--gx, 50%) var(--gy, 120px), var(--glow, transparent), transparent 72%), linear-gradient(180deg, var(--sky-top, transparent) 0, var(--sky-mid, transparent) 64%, var(--sky-hz, transparent) 100%); }
-.hv-sky i, .hv-sky svg { position: absolute; display: block; }
-.hv-sky i { border-radius: 50%; }
-.hv-sky__scrim { left: 0; right: 0; top: 0; height: 150px; border-radius: 0 !important; background: linear-gradient(180deg, rgba(8, 14, 40, 0.92) 0, rgba(8, 14, 40, 0.92) 68%, transparent 100%); opacity: var(--sky-veil, 0); transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-.hv-sky__stars { position: absolute; inset: 0; }
-.hv-sky__star { background: #fff; }
-.hv-sky__sun { width: 40px; height: 40px; margin: -20px 0 0 -20px; background: radial-gradient(circle at 40% 36%, #fff, var(--sun, #ffd25e) 62%); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2), 0 0 var(--sun-r, 28px) calc(var(--sun-r, 28px) / 3) var(--sun-glow, rgba(255, 200, 90, 0.5)); }
-.hv-sky__moon { width: 38px; height: 38px; margin: -19px 0 0 -19px; overflow: visible; }
-.hv-sky__ridge { left: 0; bottom: -1px; width: 100%; height: 80px; }
-.hv-sky__far { fill: color-mix(in srgb, var(--sky-mid, #888) 50%, var(--ridge-far, #6080b0)); }
-.hv-sky__near { fill: var(--hv-paper); }
-/* the sky paints its own morning, so the page's old colour wash goes, and every screen gets the room for the hills to show */
-:root[data-sky-real] body::before { display: none; }
-:root[data-sky-real] .view-container { padding-top: 88px; }
-/* the month switcher is a chip on the left, so the sun and moon have the clear sky on the right */
-:root[data-sky-real][data-style="haven"] .k .hist-month { width: max-content; max-width: 100%; grid-template-columns: 44px auto 44px; }
-
 /* ---- record a run (5.69, js/haven-record.js): hidden until the version is tapped five times ---- */
 .hv-recrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0; padding: 10px 14px; border-radius: 16px; background: var(--hv-core); box-shadow: 0 0 0 1px var(--hv-hair); color: var(--hv-ink); }
 .hv-recrow small { display: block; color: var(--hv-ink-2); font-size: 12.5px; }

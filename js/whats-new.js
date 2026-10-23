@@ -13,6 +13,18 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.0',
+    items: [
+      {
+        icon: 'sunmoon',
+        title: "A new look: Ledger",
+        major: true,
+        text: "Every screen redrawn: a living sky with a real sun and moon behind the title, one calm card per job, a flat dock with Add in the middle, and a single-step Add sheet.",
+        guide: [{ view: 'summary', target: '.lg-hero', text: "The sky follows your real time of day; tap a row below to see what is left, due or done." }],
+      },
+    ],
+  },
+  {
     version: '5.93',
     items: [
       {

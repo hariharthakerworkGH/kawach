@@ -24,6 +24,7 @@ import { icon } from '../icons.js';
 import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
 import { isoLocal } from '../frequency.js';
+import { getPlace, moonAt, moonPathD } from '../sun-moon.js';
 
 /* What is left of the money set aside that Kawach can follow: the same rows
  * free-to-spend.js uses when it works out what is safe to keep spending. */
@@ -56,6 +57,27 @@ export function keptBlock(f) {
   };
   const used = usedUp.length ? `<details class="hv-kept__used"><summary>Used up this month (${usedUp.length})</summary>${usedUp.map(item).join('')}</details>` : '';
   return `<div class="hv-kept"><button type="button" class="hv-kept__head" aria-expanded="false" aria-controls="hv-kept-list"><span class="hv-kept__ic">${categoryIcon('piggy')}</span><span class="hv-kept__t">Kept back</span><span class="hv-kept__v hv-amt">${formatRupees(total)}</span>${CHEV}</button><div class="hv-kept__list" id="hv-kept-list" inert><div class="hv-kept__in">${left.map(item).join('')}${used}</div></div></div>`;
+}
+
+/* Kept back, for the Ledger hero: the third figure in its row (a button that opens the list) and the list itself, which opens in place under
+ * the row (js/haven-life.js). Null while nothing is left. */
+export function keptParts(f) {
+  const { left, usedUp } = keptItems(f);
+  const total = left.reduce((s, t) => s + t.left, 0);
+  if (!total) return null;
+  const item = (t) => {
+    const over = t.left < 0;
+    const pct = Math.round(Math.max(0, Math.min(1, t.used / t.amount)) * 100);
+    const tone = over ? ' is-over' : t.status === 'heading-over' ? ' is-warn' : '';
+    const words = over ? `<b class="hv-amt">${formatRupees(-t.left)}</b> over ${formatRupees(t.amount)}` : `<b class="hv-amt">${formatRupees(t.left)}</b> left of ${formatRupees(t.amount)}`;
+    return `<div class="hv-kept__item${tone}"><div class="hv-kept__top"><span class="hv-kept__name">${escapeHtml(t.label)}</span><span class="hv-kept__left">${words}</span></div><div class="hv-kept__track"><i style="width:${pct}%"></i></div></div>`;
+  };
+  const used = usedUp.length ? `<details class="hv-kept__used"><summary>Used up this month (${usedUp.length})</summary>${usedUp.map(item).join('')}</details>` : '';
+  return {
+    total,
+    head: `<button type="button" class="hv-kept__head" aria-expanded="false" aria-controls="hv-kept-list"><span>Kept back ${CHEV}</span><b class="hv-amt">${formatRupees(total)}</b></button>`,
+    list: `<div class="hv-kept__list" id="hv-kept-list" inert><div class="hv-kept__in">${left.map(item).join('')}${used}</div></div>`,
+  };
 }
 
 /* Dated commitments still to pay this month, soonest first. */
@@ -303,7 +325,6 @@ export function yesterdayFacts(f) {
 }
 
 const BADGE = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 2l8 3v7c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V5z" fill="#ffd36a" stroke="#c98a13" stroke-width="1.4"/><path d="M8 12.5l3 3 5-6" fill="none" stroke="#7a4a05" stroke-width="2" stroke-linecap="round"/></svg>';
-const SHIELD_MINI = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 2.5V12c0 4.2-3 7.2-7 9-4-1.8-7-4.8-7-9V5.5z"/></svg>';
 
 /* Lab 3 (5.60): the month told back, and the facts the motion needs. Pure, so they can be tested. */
 // The longest run of days, in a finished or running month, at or under an even pace.
@@ -355,15 +376,93 @@ export function weekRecap(f) {
   return { total, under: Math.round((f.limit * by.length) / D) - total, days: by.map((d) => d.amount || 0), big: { date: big.date, amount: big.amount || 0 }, from: by[0].date, to: by[by.length - 1].date };
 }
 
+/* The month as a small chart inside the hero (mockups/7.0-ledger): what was spent so far, the even pace, and today as the sun by day or the moon,
+ * in its real phase, by night. Pure: it is drawn from figures free-to-spend.js already worked out. Exported for a test. */
+export function heroChart(f, dark = document.documentElement.dataset.theme === 'dark') {
+  const tot = f.spendDays || [];
+  const days = monthLen(f);
+  if (!(f.limit > 0) || !tot.length || !(days > 0)) return '';
+  const W = 334, H = 58, top = 4;
+  const x = (d) => (d / days) * W;
+  const y = (v) => H - 2 - (Math.min(Math.max(0, v), f.limit * 1.08) / f.limit) * (H - 2 - top);
+  const pts = tot.map((v, i) => [x(i + 1), y(v)]);
+  const line = pts.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)} ${b.toFixed(1)}`).join(' ');
+  const [tx, ty] = pts[pts.length - 1];
+  const area = `${line} L${tx.toFixed(1)} ${H} L${pts[0][0].toFixed(1)} ${H} Z`;
+  let dot;
+  if (!dark) {
+    dot = `<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="10" fill="rgba(255,210,94,.22)"/><circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="5.2" fill="#FFD25E" stroke="#fff" stroke-opacity=".7" stroke-width="1"/>`;
+  } else {
+    const place = getPlace();
+    const sh = moonPathD(moonAt(Date.now(), place.lat, place.lon).phase);
+    dot = `<g transform="translate(${tx.toFixed(1)} ${ty.toFixed(1)}) scale(.3)${sh.flip ? ' scale(-1 1)' : ''}"><circle r="22" fill="rgba(188,204,255,.18)"/><circle r="20" fill="#27305a"/><path d="${sh.d}" fill="#EEF2FF"/></g>`;
+  }
+  return `<svg class="lg-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(`Spent so far this month, against an even pace`)}">
+    <line x1="0" y1="${top}" x2="${W}" y2="${top}" stroke="rgba(255,255,255,.16)" stroke-dasharray="2 4"/>
+    <line x1="0" y1="${H - 2}" x2="${W}" y2="${top}" stroke="rgba(255,255,255,.55)" stroke-width="1.4" stroke-dasharray="4 4"/>
+    <path d="${area}" fill="rgba(63,216,198,.2)"/><path d="${line}" fill="none" stroke="#5BE6D5" stroke-width="2" stroke-linejoin="round"/>
+    <line x1="${tx.toFixed(1)}" y1="${ty.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${H}" stroke="rgba(255,255,255,.35)"/>${dot}</svg>`;
+}
+
+// What a payment's tile is tinted: the gem number of its category, in the Ledger's five tones.
+const TONE_OF_GEM = { 1: 't3', 2: 't1', 3: 't2', 4: 't4', 5: 't3', 6: 't5' };
+// Bills and categories are tinted by what they are, so the same thing is the same colour on every screen; anything else takes its category's gem.
+const TONES = [
+  ['t4', /health|medic|insur|doctor|pharm|hospital/i],
+  ['t2', /electric|power|fuel|petrol|diesel|transport|travel|loan|emi|\bgas\b|cab|taxi|metro|bus/i],
+  ['t3', /internet|wifi|broadband|phone|mobile|recharge|shop|bag|subscri|netflix|stream|online/i],
+  ['t5', /saving|invest|sip|income|salary|\bfd\b|deposit|interest/i],
+  ['t1', /rent|house|home|grocer|food|dining|restaurant|vegetable|milk/i],
+];
+export const lgTone = (label) => (TONES.find(([, re]) => re.test(String(label))) || [])[0] || TONE_OF_GEM[gemNo(label)] || 't1';
+export const lgIco = (label, svg = categoryStyle(label).icon) => `<span class="lg-ico ${lgTone(label)}">${svg}</span>`;
+const money = (paise) => `₹${Math.round(Math.abs(paise) / 100).toLocaleString('en-IN')}`;
+
+/* A row of the "To do" list that this file draws itself (the bank running short, payments due): the same look as the rows renderAttention draws. */
+const todoLine = ({ ico, tone = '', title, sub = '', go = '', right = '' }) =>
+  `<${go ? 'button type="button"' : 'div'} class="todo-row lg-todo-pre ${tone}"${go ? ` data-hv-go="${go}"` : ''}><span class="todo-icon" aria-hidden="true">${ico}</span><span class="todo-text"><span>${title}</span>${sub ? `<span class="muted-note ${tone}">${sub}</span>` : ''}</span>${right ? `<span class="attention-actions">${right}</span>` : ''}${go ? `<span class="lg-todo-go">${icon('forward')}</span>` : ''}</${go ? 'button' : 'div'}>`;
+
+/* The Latest / To do card's tabs: one handler for every card on the page. Called when a screen is drawn (js/haven-ui.js wireHaven). */
+export function wireTabs(root) {
+  root.querySelectorAll('.lg-act:not([data-wired])').forEach((card) => {
+    card.dataset.wired = '1';
+    const open = (name) => {
+      card.dataset.tab = name;
+      card.querySelectorAll('[data-lg-tab]').forEach((t) => { const on = t.dataset.lgTab === name; t.classList.toggle('on', on); t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
+      card.querySelectorAll('[data-lg-panel]').forEach((p) => { p.hidden = p.dataset.lgPanel !== name; });
+    };
+    card.querySelectorAll('[data-lg-tab]').forEach((t) => t.addEventListener('click', () => open(t.dataset.lgTab)));
+    card.addEventListener('keydown', (e) => {
+      if (!['ArrowLeft', 'ArrowRight'].includes(e.key) || !e.target.matches('[data-lg-tab]')) return;
+      e.preventDefault();
+      const tabs = [...card.querySelectorAll('[data-lg-tab]')];
+      const next = tabs[(tabs.indexOf(e.target) + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+      open(next.dataset.lgTab);
+      next.focus();
+    });
+  });
+}
+
+/* The To do tab says how many things wait, and says so plainly when none does. Called once the list under it has been drawn. */
+export function syncTodo(root) {
+  const card = root.querySelector?.('.lg-act');
+  if (!card) return;
+  const panel = card.querySelector('[data-lg-panel="todo"]');
+  const n = panel.querySelectorAll('.todo-row, .need-row').length;
+  const badge = card.querySelector('[data-lg-count]');
+  if (badge) { badge.textContent = String(n); badge.hidden = n === 0; }
+  let calm = panel.querySelector('.lg-calm');
+  if (!n && !calm) { calm = document.createElement('p'); calm.className = 'lg-calm'; calm.textContent = 'Nothing needs you today.'; panel.append(calm); }
+  else if (n && calm) calm.remove();
+}
+
 export function havenTop(f, status, month, extra = {}) {
   const x = topFigures(f);
   const [mood, word] = tideMood(x, f.free < 0);
   const lvl = x.limit > 0 ? Math.max(0, Math.min(1, x.left / x.limit)) : 0;
-  const mIcon = mood === 'calm' ? icon('tick') : icon('alert');
-  const monthNo = Number(String(f.cycleKey || '').slice(5, 7)) || new Date().getMonth() + 1;
-  const monthName = MONTHS_LONG[monthNo - 1];
   // One line under the figure: what a day can take. (Anything else the status says is on the screen where it belongs.)
-  const sub = !x.finished && x.perDay > 0 && f.free >= 0 ? `<b class="hv-amt">${rupee(x.perDay)}</b> a day until ${formatDateNice(f.cycleKey)}` : escapeHtml(status);
+  const days = `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`;
+  const sub = !x.finished && x.perDay > 0 && f.free >= 0 ? `<b class="hv-amt">${money(x.perDay)}</b> a day · ${days}` : escapeHtml(status);
   const num = `<span class="hv-fig"><span class="hv-cur">${f.free < 0 ? '−₹' : '₹'}</span><span class="hv-num" data-roll-kind="left" data-roll="${x.left}" data-roll-key="${x.rollKey}:left">${Math.round(Math.abs(x.left) / 100).toLocaleString('en-IN')}</span></span>`;
   // Facts the motion reads (js/haven-motion.js): the days ahead, today's evening note, what is due within two days, a salary just in.
   const streak = aheadStreak(f);
@@ -381,51 +480,69 @@ export function havenTop(f, status, month, extra = {}) {
   const asleep = !x.finished && x.spent === 0 && (f.spendDays || []).every((v) => !v);
   const sky = `${asleep ? ' data-sleeping' : ''}`;
   const vaultData = `${life}${recap}${story}${sky} data-cycle="${escapeHtml(String(f.cycleKey || ''))}" data-soon2="${soon2}"${streak >= 3 ? ` data-streak="${streak}"` : ''}${kept > 0 ? ` data-eve="Today you kept ${escapeHtml(formatRupees(kept))}"` : ''}${salary ? ` data-salary="${escapeHtml(String(salary.id))}|${escapeHtml(formatRupees(salary.amount))}"` : ''}`;
-  const streakChip = streak >= 3 && !x.finished ? `<span class="hv-streak" title="Days in a row at or under an even pace">${SHIELD_MINI}${streak} days ahead</span>` : '';
+  // One tag says how the month stands, in words (never colour alone).
+  const tag = x.finished
+    ? `<span class="lg-tag ${x.closedUnder ? 'ok' : 'bad'}">${icon(x.closedUnder ? 'tick' : 'alert')} ${escapeHtml(word)}</span>`
+    : streak >= 3
+      ? `<span class="lg-tag ok hv-streak" title="Days in a row at or under an even pace">${icon('tick')} ${streak} days ahead</span>`
+      : `<span class="lg-tag ${mood === 'calm' ? 'ok' : mood === 'watch' ? 'warn' : 'bad'}">${icon(mood === 'calm' ? 'tick' : 'alert')} ${escapeHtml(word)}</span>`;
   const peek = yest ? `<div class="hv-peek" aria-hidden="true"><span>Yesterday you spent <b>${escapeHtml(formatRupees(yest.spent))}</b></span><span>${yest.under >= 0 ? `${escapeHtml(formatRupees(yest.under))} under pace` : `${escapeHtml(formatRupees(-yest.under))} over pace`}</span></div>` : '';
-  const vault = `<div class="hv-shell"><div class="hv-vault ${f.free < 0 ? 'is-negative' : ''}"${x.finished ? ' data-finished' : ''}${vaultData} data-roll-scope data-limit="${x.limit}" data-left="${x.left}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
-      <div class="hv-vault__top"><span class="hv-pill">${monthName}</span>${streakChip}${badges}<span>${x.finished ? 'Final' : `${x.daysLeft} day${x.daysLeft === 1 ? '' : 's'} left`}</span></div>
-      <div class="hv-vault__main"><div><div class="hv-vault__lab">Left to spend</div><div class="hv-vault__fig hv-amt">${num}</div><div class="hv-vault__sub" data-status>${sub}</div>${more.cap ? `<div class="hv-vault__cap" data-cap>Your own limit: <b>${escapeHtml(formatRupees(more.cap))}</b> a day</div>` : ''}${asleep ? '<div class="hv-vault__sleep">A quiet month so far.</div>' : ''}<div class="hv-vault__eve" data-eve-line aria-live="polite"></div></div>
-      <div class="tide" data-mood="${mood}"${x.finished && x.closedUnder ? ` data-closed="${escapeHtml(String(f.cycleKey || ''))}"` : ''} style="--lvl:${lvl.toFixed(3)}" role="img" aria-label="${word}: ${formatRupees(x.left)} left of ${formatRupees(x.limit)}">${tideSvg(lvl, 0)}</div></div>
-      <div class="hv-vault__stats"><div><span>Spent</span><b class="hv-amt" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div><div><span>Budget</span><b class="hv-amt">${shortRupees(x.limit)}</b></div><div><span>${x.finished ? 'Result' : 'On track'}</span><b class="hv-mood" data-mood="${mood}"><span class="hv-ic" style="width:16px;height:16px;vertical-align:-3px">${mIcon}</span> ${x.finished ? (x.closedUnder ? 'Under' : 'Over') : word}</b></div></div>
+  // The third figure is Kept back (opening the list in place) while something is kept back; otherwise what a day can take.
+  const kp = x.finished ? null : keptParts(f);
+  const third = x.finished
+    ? `<div><span>Result</span><b>${x.closedUnder ? 'Under' : 'Over'}</b></div>`
+    : kp
+      ? `<div class="hv-kept__cell">${kp.head}</div>`
+      : x.perDay > 0
+        ? `<div><span>A day</span><b class="hv-amt">${formatRupees(x.perDay)}</b></div>`
+        : `<div><span>Days left</span><b>${x.daysLeft}</b></div>`;
+  const hero = `<div class="lg-hero hv-vault ${f.free < 0 ? 'is-negative' : ''}"${x.finished ? ' data-finished' : ''}${vaultData} data-roll-scope data-limit="${x.limit}" data-left="${x.left}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
+      <div class="r1"><span class="lab hv-vault__lab">Left to spend${badges}</span>${extra.nav || ''}</div>
+      <div class="figrow"><div class="hv-vault__fig hv-amt">${num}</div><div class="tide" data-mood="${mood}"${x.finished && x.closedUnder ? ` data-closed="${escapeHtml(String(f.cycleKey || ''))}"` : ''} style="--lvl:${lvl.toFixed(3)}" role="img" aria-label="${word}: ${formatRupees(x.left)} left of ${formatRupees(x.limit)}">${tideSvg(lvl, 0)}</div></div>
+      <div class="sub"><span data-status>${sub}</span>${tag}</div>
+      ${more.cap ? `<div class="hv-vault__cap" data-cap>Your own limit: <b>${escapeHtml(formatRupees(more.cap))}</b> a day</div>` : ''}${asleep ? '<div class="hv-vault__sleep">A quiet month so far.</div>' : ''}<div class="hv-vault__eve" data-eve-line aria-live="polite"></div>
+      ${heroChart(f)}
+      <div class="hv-kept"><div class="stats"><div><span>Spent</span><b class="hv-amt" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div><div><span>Budget</span><b class="hv-amt">${formatRupees(x.limit)}</b></div>${third}</div>${kp ? kp.list : ''}</div>
       ${closedNote(x)}
-    </div></div>`;
+    </div>`;
 
-  // The month: the app's own chart (bars for each day, what was spent outside the budget hatched, the line against the
-  // budget's pace, the three figures under it), drawn in summary.js and given a Haven card here.
-  const chart = extra.chart || '';
+  // The month's chart and the way into "where it went" wait in the fold at the foot of the screen (the app's own chart, drawn in summary.js).
+  const chartBlock = `${x.spent > 0 && !x.finished ? `<button type="button" class="lg-link" data-hv-go="recap"><span class="n">Where it went<i>by category</i></span>${icon('forward')}</button>` : ''}${extra.chart || ''}`;
 
-  // Said once, and only when it matters: the bank will not cover the card bills and fixed costs before money comes in.
+  // Said once, and only when it matters: the bank will not cover the card bills and fixed costs before money comes in. It is the first thing on the To do list.
   const short = f.bankAfterBills != null && f.bankAfterBills < 0 && !x.finished;
-  const bank = short
-    ? `<button type="button" class="hv-note bad hv-notice" data-hv-go="accounts"><span class="hv-ic">${icon('alert')}</span><div><b>Your bank is ${formatRupees(-f.bankAfterBills)} short</b><span class="hv-muted">for card bills and fixed costs before money comes in</span></div></button>`
-    : '';
-
-  // Three ways in, in one row (a bank message, a statement, a cash spend).
-  const chips = x.finished ? '' : `<div class="hv-addrow"><button type="button" class="hv-chip" data-hv-go="inbox"><span class="hv-ic">${icon('inbox')}</span>Paste SMS</button><button type="button" class="hv-chip" data-hv-go="import"><span class="hv-ic">${icon('upload')}</span>Import</button><button type="button" class="hv-chip" data-hv-go="add"><span class="hv-ic">${icon('cash')}</span>Cash spend</button></div>`;
-
-  // Due soon: one line, only when something is late or due this week (so a payment is not missed), tap for Plan.
+  const pre = [];
+  if (short) pre.push(todoLine({ ico: icon('alert'), tone: 'is-alert', title: `Your bank is <b>${formatRupees(-f.bankAfterBills)}</b> short`, sub: 'for card bills and fixed costs before money comes in', go: 'accounts' }));
+  // Due soon: only when something is late or due this week (so a payment is not missed), tap for Plan.
   const soonEnd = isoLocal(new Date(Date.now() + 7 * 86400000));
   const soon = x.finished ? [] : x.coming.filter((c) => c.late || c.due <= soonEnd);
-  const dueRow = soon.length
-    ? `<div class="hv-shell"><button type="button" class="hv-core flush hv-row hv-due" data-hv-go="plan">${gem(soon[0].label)}<div><div class="hv-row__t">${soon.length === 1 ? escapeHtml(soon[0].label) : `${soon.length} payments due`}</div><div class="hv-row__m">${soon.length === 1 ? `${soon[0].late ? 'Late · was due' : 'Due'} ${formatDateNice(soon[0].due)}` : escapeHtml(soon.slice(0, 2).map((c) => c.label).join(', ')) + (soon.length > 2 ? ` and ${soon.length - 2} more` : '')}${soon.some((c) => c.late) && soon.length > 1 ? ' · one is late' : ''}</div></div><div class="hv-row__v hv-amt">${formatRupees(soon.reduce((s, c) => s + c.amount, 0))}</div></button></div>`
-    : '';
+  if (soon.length) {
+    pre.push(todoLine({
+      ico: categoryStyle(soon[0].label).icon,
+      tone: soon.some((c) => c.late) ? 'is-alert' : 'is-soon',
+      title: soon.length === 1 ? escapeHtml(soon[0].label) : `${soon.length} payments due`,
+      sub: soon.length === 1 ? `${soon[0].late ? 'Late · was due' : 'Due'} ${formatDateNice(soon[0].due)}` : escapeHtml(soon.slice(0, 2).map((c) => c.label).join(', ')) + (soon.length > 2 ? ` and ${soon.length - 2} more` : ''),
+      go: 'plan',
+      right: `<b class="hv-amt">${formatRupees(soon.reduce((s, c) => s + c.amount, 0))}</b>`,
+    }));
+  }
 
   const latest = (extra.latest || []).slice(0, 3);
   // A row opens in place into its details (js/haven-life.js); "See in History" is the way on.
-  const payRow = (p) => `<div class="hv-lp"><button type="button" class="hv-row" data-morph aria-expanded="false">${gem(p.category || p.title)}<div><div class="hv-row__t">${escapeHtml(p.title)}</div><div class="hv-row__m">${escapeHtml(p.meta)}</div></div><div class="hv-row__v hv-amt">${p.credit ? '+' : '−'}₹${Math.round(p.amount / 100).toLocaleString('en-IN')}</div></button><div class="hv-lp__d"><div class="hv-lp__in"><span>${p.credit ? 'Paid into' : 'Paid from'} <b>${escapeHtml(p.account || 'an account')}</b></span><span>${escapeHtml(p.category)}</span><button type="button" class="hv-pillbtn" data-open-hist="${escapeHtml(p.title)}">See in History</button></div></div></div>`;
-  const latestBlock = latest.length && !x.finished
-    ? `<div class="hv-sec"><h2>Latest payments</h2><button type="button" class="hv-link" data-hv-go="transactions">See all</button></div><div class="hv-shell"><div class="hv-core flush">${latest.map(payRow).join('')}${x.spent > 0 ? `<button type="button" class="hv-row hv-row--link" data-hv-go="recap"><span class="hv-row__t">Where it went</span><span class="hv-muted">by category</span><span class="hv-ic">${icon('forward')}</span></button>` : ''}</div></div>`
-    : '';
-  // Saving for something: one small shield for each goal (up to two), filled as far as what is set aside has got.
+  const payRow = (p) => `<div class="hv-lp"><button type="button" class="lg-row" data-morph aria-expanded="false">${lgIco(p.category || p.title)}<span class="n">${escapeHtml(p.title)}<i>${escapeHtml(p.category)}</i></span><span class="amt hv-amt${p.credit ? ' in' : ''}">${p.credit ? '+' : '−'}${money(p.amount)}</span></button><div class="hv-lp__d"><div class="hv-lp__in"><span>${p.credit ? 'Paid into' : 'Paid from'} <b>${escapeHtml(p.account || 'an account')}</b> · ${escapeHtml(p.meta.replace(/^[^·]*· /, ''))}</span><button type="button" class="lg-btn sm s" data-open-hist="${escapeHtml(p.title)}">See in History</button></div></div></div>`;
+  const tabOn = short ? 'todo' : 'latest';
+  const activity = x.finished ? '' : `<div class="lg-card lg-act" data-tab="${tabOn}">
+      <div class="lg-pad"><div class="lg-seg" role="tablist" aria-label="Payments or things to do"><button type="button" role="tab" class="${tabOn === 'latest' ? 'on' : ''}" aria-selected="${tabOn === 'latest'}" data-lg-tab="latest">Latest</button><button type="button" role="tab" class="${tabOn === 'todo' ? 'on' : ''}" aria-selected="${tabOn === 'todo'}" data-lg-tab="todo">To do <span class="lg-count" data-lg-count${pre.length ? '' : ' hidden'}>${pre.length}</span></button></div></div>
+      <div role="tabpanel" data-lg-panel="latest"${tabOn === 'latest' ? '' : ' hidden'}>${latest.length ? latest.map(payRow).join('') : '<p class="lg-calm">No payments yet. Add one with the + button.</p>'}<button type="button" class="lg-more lg-more--link" data-hv-go="transactions"><span>See all payments</span>${icon('forward')}</button></div>
+      <div role="tabpanel" class="lg-todo" data-lg-panel="todo"${tabOn === 'todo' ? '' : ' hidden'}>${pre.join('')}<div id="attention-section"></div></div>
+    </div>`;
+  // Saving for something: a strip for each goal (up to two), filled as far as what is set aside has got.
   const goals = !x.finished && extra.more && extra.more.goals ? extra.more.goals.slice(0, 2) : [];
-  const goalRows = goals.map((g) => {
-    const lvl = g.target > 0 ? Math.max(0, Math.min(1, g.saved / g.target)) : 0;
-    const line = g.done ? 'Reached' : `${formatRupees(g.monthly)} a month gets there by ${escapeHtml(g.byName)}`;
-    return `<button type="button" class="hv-row hv-goal" data-hv-go="plan"><div class="tide hv-goal__tide" data-mood="calm" data-goal-lvl="${lvl.toFixed(3)}" style="--lvl:${lvl.toFixed(3)}">${tideSvg(lvl, 0)}</div><div><div class="hv-row__t">${escapeHtml(g.label)}</div><div class="hv-row__m">${formatRupees(g.saved)} of ${formatRupees(g.target)}</div><div class="hv-row__m hv-goal__when">${line}</div></div></button>`;
+  const goalCards = goals.map((g) => {
+    const share = g.target > 0 ? Math.max(0, Math.min(1, g.saved / g.target)) : 0;
+    return `<button type="button" class="lg-card lg-goal hv-goal" data-hv-go="plan" aria-label="${escapeHtml(`${g.label}: ${formatRupees(g.saved)} of ${formatRupees(g.target)}`)}"><span class="lg-ico t1">${categoryIcon('shield')}</span><span class="lg-goal__body"><span class="lg-goal__top"><b>${escapeHtml(g.label)} <span>${Math.round(share * 100)}%</span></b><span>${g.done ? 'Reached' : `<b class="hv-amt">${formatRupees(g.monthly)}</b> a month`}</span></span><span class="lg-goal__bar"><span class="lg-pbar"><i style="width:${(share * 100).toFixed(0)}%"></i></span><span>${escapeHtml(g.byName)}</span></span></span></button>`;
   });
-  const goalBlock = goalRows.length ? `<div class="hv-sec"><h2>Saving for</h2><button type="button" class="hv-link" data-hv-go="plan">Plan</button></div><div class="hv-shell"><div class="hv-core flush">${goalRows.join('')}</div></div>` : '';
-  const blocks = [vault, x.finished ? '' : keptBlock(f), chart, bank, chips, dueRow, goalBlock, latestBlock].filter(Boolean);
-  const protoHtml = `<div class="hv-screen ${extra.still ? 'still' : 'enter'} on-screen" data-hv-summary>${peek}${blocks.map((b, i) => rise(i + 1, b)).join('')}</div>`;
-  return tactileTop(f, status, '', protoHtml, { noComing: true, noWeek: true });
+  const blocks = [hero, ...goalCards, activity].filter(Boolean);
+  const protoHtml = `<div class="hv-screen lg-screen ${extra.still ? 'still' : 'enter'} on-screen" data-hv-summary>${peek}${blocks.map((b, i) => rise(i + 1, b)).join('')}</div>`;
+  return tactileTop(f, status, '', protoHtml, { noComing: true, noWeek: true }).replace('<!--k:month-->', `<!--k:month-->${chartBlock}`);
 }

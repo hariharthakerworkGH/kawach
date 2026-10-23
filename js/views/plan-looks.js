@@ -13,7 +13,7 @@ import { formatRupees, ordinal } from '../format.js';
 import { escapeHtml } from '../ui.js';
 import { icon } from '../icons.js';
 import { categoryStyle } from '../category-style.js';
-import { gemNo } from './summary-looks.js';
+import { lgIco } from './summary-looks.js';
 
 const share = (v, of) => (of > 0 ? Math.max(0, Math.min(1, v / of)) : 0);
 
@@ -38,7 +38,7 @@ export function planTop(f) {
       <div class="tl-top"><span class="tl-k">Budget each month</span><span class="tl-period">comes in ${formatRupees(f.income)}</span></div>
       <div class="tl-big">${amount}</div>
       ${bar('pl-seg')}
-      <div class="pl-legend">${parts.map((p) => `<span><i class="is-${p.id}"></i>${p.label}<em><b>${formatRupees(p.amount)}</b></em></span>`).join('')}</div>
+      <div class="pl-legend">${parts.filter((p) => p.amount > 0).map((p) => `<span><i class="is-${p.id}"></i>${p.label}<em><b>${formatRupees(p.amount)}</b></em></span>`).join('')}</div>
       <p class="tl-line">${escapeHtml(f.status)}</p>
     </section>`;
 }
@@ -63,18 +63,27 @@ export function havenCommitments(tracker, { order = new Map(), dayOf = () => nul
   const unpaid = bills.filter((t) => UNPAID.has(t.status)).sort(byOrder);
   const done = bills.filter((t) => !UNPAID.has(t.status)).sort(byOrder);
   const money = (p) => `₹${Math.round(Math.abs(p) / 100).toLocaleString('en-IN')}`;
-  const gem = (label) => `<span class="hv-gem hv-g${gemNo(label)}"><span class="hv-ic">${categoryStyle(label).icon}</span></span>`;
   const day = (t) => (dayOf(t.id) ? ordinal(dayOf(t.id)) : '');
   const word = (t) => {
     const d = day(t);
-    if (t.status === 'paid') return { cls: 'paid', text: `${d ? `${d} · ` : ''}Paid`, tick: true };
-    if (t.status === 'late') return { cls: 'late', text: `${d ? `${d} · ` : ''}Late` };
-    if (t.status === 'due') return { cls: 'due', text: d ? `Due ${d}` : 'Due' };
-    if (t.status === 'part') return { cls: 'due', text: `${d ? `${d} · ` : ''}${money(t.left)} to go` };
-    if (t.skipped || t.status === 'skipped') return { cls: 'due', text: 'Skipped this month' };
-    return { cls: 'due', text: d };
+    if (t.status === 'paid') return `${d ? `${d} · ` : ''}Paid`;
+    if (t.status === 'late') return `${d ? `${d} · ` : ''}Late`;
+    if (t.status === 'due') return d ? `Due ${d}` : 'Due';
+    if (t.status === 'part') return `${d ? `${d} · ` : ''}${money(t.left)} to go`;
+    if (t.skipped || t.status === 'skipped') return 'Skipped this month';
+    return d;
   };
-  const said = (t, w) => `${t.label}, ${formatRupees(t.amount)}${w.text ? `: ${w.text}` : ''}. Tap for more.`;
+  // The state of a bill is one tag in one word, never colour alone (the Ledger's tags).
+  const tag = (t) => {
+    const d = day(t);
+    if (t.status === 'paid') return `<span class="lg-tag ok"><span class="lg-tick">${icon('tick')}</span>${d || 'Paid'}</span>`;
+    if (t.status === 'late') return `<span class="lg-tag bad">${d ? `Late · ${d}` : 'Late'}</span>`;
+    if (t.status === 'due') return `<span class="lg-tag warn">${d ? `Due ${d}` : 'Due'}</span>`;
+    if (t.status === 'part') return `<span class="lg-tag warn">${money(t.left)} to go</span>`;
+    if (t.skipped || t.status === 'skipped') return '<span class="lg-tag">Skipped</span>';
+    return d ? `<span class="lg-tag">${d}</span>` : '<span></span>';
+  };
+  const said = (t, w) => `${t.label}, ${formatRupees(t.amount)}${w ? `: ${w}` : ''}. Tap for more.`;
   const bill = (t) => {
     if (editingId === t.id) return form(t.id);
     const w = word(t);
@@ -83,7 +92,7 @@ export function havenCommitments(tracker, { order = new Map(), dayOf = () => nul
       ? `<button type="button" class="hv-paycheck" data-pay-step="${escapeHtml(t.id)}" aria-label="Mark ${escapeHtml(t.label)} paid" title="Mark paid"><span class="nest"><span class="hv-ic">${icon('tick')}</span></span></button>`
       : '<span class="hv-paycheck-gap"></span>';
     return `<div class="hv-bill${t.status === 'late' ? ' late' : ''}${kind === 'topay' ? ' no-swipe' : ''}" data-kind="${kind}" data-step="${escapeHtml(t.id)}" data-amt="${t.status === 'part' ? Math.max(0, t.left) : t.amount}" data-can-pay="${check.includes('data-pay-step') ? 1 : 0}">
-      <button type="button" class="hv-bill__open" data-month-item="${escapeHtml(t.id)}" aria-label="${escapeHtml(said(t, w))}">${gem(t.label)}<span class="hv-bill__name"><b>${escapeHtml(t.label)}</b><span class="hv-row__m hv-st-${w.cls}">${w.tick ? `<span class="hv-tick">${icon('tick')}</span>` : ''}${w.text}</span></span><span class="hv-bill__amt hv-amt">${money(t.amount)}</span></button>${check}</div>`;
+      <button type="button" class="hv-bill__open lg-row" data-month-item="${escapeHtml(t.id)}" aria-label="${escapeHtml(said(t, w))}">${lgIco(t.label)}<span class="n">${escapeHtml(t.label)}</span>${tag(t)}<span class="amt hv-amt">${money(t.amount)}</span></button>${check}</div>`;
   };
   const aside = (t) => {
     if (editingId === t.id) return form(t.id);
@@ -92,8 +101,8 @@ export function havenCommitments(tracker, { order = new Map(), dayOf = () => nul
     const extra = note(t.id);
     const text = (over ? `${money(t.left)} over` : t.left > 0 ? `${money(t.left)} left` : 'Used up') + (extra ? ` · ${extra}` : '');
     return `<div class="hv-bill hv-bill--aside" data-kind="aside" data-step="${escapeHtml(t.id)}"${t.left > 0 && used >= 0.9 ? ' data-near' : ''}>
-      <button type="button" class="hv-bill__open" data-month-item="${escapeHtml(t.id)}" aria-label="${escapeHtml(`${t.label}, ${money(t.amount)} set aside, ${text}. Tap for more.`)}">${gem(t.label)}<span class="hv-bill__name"><b>${escapeHtml(t.label)}</b><span class="hv-row__m${over ? ' hv-st-late' : ''}">${text}</span></span><span class="hv-bill__amt hv-amt">${money(t.amount)}</span></button><span class="hv-paycheck-gap"></span>
-      <div class="hv-usedline${t.left <= 0 ? ' full' : ''}" aria-hidden="true"><i style="width:${(used * 100).toFixed(0)}%"></i></div></div>`;
+      <button type="button" class="hv-bill__open lg-row two" data-month-item="${escapeHtml(t.id)}" aria-label="${escapeHtml(`${t.label}, ${money(t.amount)} set aside, ${text}. Tap for more.`)}">${lgIco(t.label)}<span class="nm"><span class="n">${escapeHtml(t.label)}</span><span class="m${over ? ' bad' : ''}">${text}</span></span><span class="amt hv-amt">${money(t.amount)}</span></button><span class="hv-paycheck-gap"></span>
+      <div class="lg-edge hv-usedline${t.left <= 0 ? ' full' : ''}${over ? ' warn' : ''}" aria-hidden="true"><i style="width:${(used * 100).toFixed(0)}%"></i></div></div>`;
   };
   const paid = done.filter((t) => t.status === 'paid').reduce((s, t) => s + t.amount, 0);
   const toPay = unpaid.reduce((s, t) => s + (t.status === 'part' ? Math.max(0, t.left) : t.amount), 0);
@@ -101,9 +110,9 @@ export function havenCommitments(tracker, { order = new Map(), dayOf = () => nul
   const key = (f, cls, label, v) => `<button type="button" data-f="${f}"><span><i class="${cls}"></i>${label}</span><b class="hv-amt">${money(v)}</b></button>`;
   const seg = (v, cls) => (v > 0 ? `<i class="${cls}" style="flex:${v}"></i>` : '');
   const box = paid + toPay + kept > 0
-    ? `<div class="hv-screen" data-hv-box><div class="hv-sec"><h2>This month</h2><span class="hv-muted">tap a figure to filter</span></div><div class="hv-shell"><div class="hv-core hv-sum"><div class="hv-sum__bar" role="img" aria-label="Paid ${money(paid)}, to pay ${money(toPay)}, kept aside ${money(kept)}">${seg(paid, 'a')}${seg(toPay, 'b')}${seg(kept, 'c')}</div><div class="hv-sum__keys">${key('paid', 'a', 'Paid', paid)}${key('topay', 'b', 'To pay', toPay)}${key('aside', 'c', 'Kept aside', kept)}</div></div></div></div>`
+    ? `<div class="hv-screen lg-monthbox" data-hv-box><div class="lg-card hv-sum"><div class="lg-month__h"><h2>This month</h2><span>tap a figure to filter</span></div><div class="hv-sum__bar" role="img" aria-label="Paid ${money(paid)}, to pay ${money(toPay)}, kept aside ${money(kept)}">${seg(paid, 'a')}${seg(toPay, 'b')}${seg(kept, 'c')}</div><div class="hv-sum__keys">${key('paid', 'a', 'Paid', paid)}${key('topay', 'b', 'To pay', toPay)}${key('aside', 'c', 'Kept aside', kept)}</div></div></div>`
     : '';
   const bills_ = [...unpaid, ...done];
-  const list = `<div class="hv-shell"><div class="hv-core flush hv-clist">${bills_.length ? `<div class="hv-clabel" data-g="bills">Bills</div>${bills_.map(bill).join('')}` : ''}${progress.length ? `<div class="hv-clabel" data-g="aside">Set aside this month</div>${progress.map(aside).join('')}` : ''}</div></div>`;
+  const list = `<div class="lg-card lg-clist hv-clist">${bills_.length ? `<div class="hv-clabel" data-g="bills">Bills</div>${bills_.map(bill).join('')}` : ''}${progress.length ? `<div class="hv-clabel" data-g="aside">Set aside this month</div>${progress.map(aside).join('')}` : ''}</div>`;
   return { box, list };
 }
