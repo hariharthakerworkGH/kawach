@@ -8,6 +8,7 @@
 // The EMI actually leaving the account can be more than the EMI the bank
 // prints (paying a round ₹23,000 against an EMI of ₹22,256 shortens the loan),
 // so the payment rows are read too and the larger, most recent amount wins.
+import { matchedPaise } from '../format.js';
 export const id = 'sbi-loan';
 export const accountType = 'loan';
 export const issuerLabel = 'SBI';
@@ -43,7 +44,7 @@ const LEDGER_RE = /^(\d{2})\/(\d{2})\/(\d{4})\s+\d{2}\/\d{2}\/\d{4}\s*(.*?)\s*(-
 // lines either side are read to tell a release from anything else.
 function readLedger(text) {
   const lines = text.split('\n').map((l) => l.trim());
-  const amount = (s) => (s === '-' ? 0 : Math.round(Number(s.replace(/,/g, '')) * 100));
+  const amount = (s) => (s === '-' ? 0 : matchedPaise(s));
   const ledger = [];
   lines.forEach((line, i) => {
     const m = LEDGER_RE.exec(line);
@@ -79,7 +80,7 @@ export function detect(text) {
 export function parse(text) {
   const money = (label) => {
     const m = text.match(FIELD(label)) || text.match(FIELD_ABOVE(label));
-    return m ? Math.round(Number(m[1].replace(/,/g, '')) * 100) : null;
+    return m ? matchedPaise(m[1]) : null;
   };
   const months = (label) => {
     const m = text.match(new RegExp(`${label}\\s*:?\\s*(\\d+)\\s*Months`, 'i'));
@@ -97,7 +98,7 @@ export function parse(text) {
   for (const line of text.split('\n')) {
     const m = ROW_RE.exec(line.trim());
     if (!m || !/TRANSFER|EMI|INSTAL/i.test(m[4])) continue;
-    payments.push({ date: `${m[3]}-${m[2]}-${m[1]}`, amount: Math.round(Number(m[5].replace(/,/g, '')) * 100) });
+    payments.push({ date: `${m[3]}-${m[2]}-${m[1]}`, amount: matchedPaise(m[5]) });
   }
   payments.sort((a, b) => (a.date < b.date ? 1 : -1));
   const printedEmi = money('EMI');

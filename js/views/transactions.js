@@ -13,7 +13,7 @@ import { isSplit, categorySlices, needsCategory, splitTotal } from '../splits.js
 import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
 import { dragToClose } from '../sheet-drag.js';
-import { isLiveCommitment, byYourOrder, salaryDayPayments } from '../commitments.js';
+import { isLiveCommitment, salaryDayPayments } from '../commitments.js';
 import { commitmentField, cardPaymentField, isMonthEnd } from './add.js';
 import { looksLikeCardPayment, cashSide, spendMoves, moveWord } from '../transfers.js';
 import { bankBalance, balanceAt } from '../account-metrics.js';
@@ -24,7 +24,7 @@ import { sortCommitments, sortAccounts, sortCategories, usageCounts } from '../l
 import { tidyFlags } from '../reimbursable.js';
 import { inOutBars, cashRiver } from '../charts.js';
 import { appearance } from '../appearance.js';
-import { escapeHtml, escapeAttr, emptyState, monthSwap, unfold, foldAway, pop, takeFresh, washRow, slidingPill } from '../ui.js';
+import { escapeHtml, escapeAttr, emptyState, monthSwap, unfold, foldAway, takeFresh, washRow, slidingPill } from '../ui.js';
 import { refundPairs } from '../card-refunds.js';
 
 // History: one month at a time, newest first, grouped by day, one line per

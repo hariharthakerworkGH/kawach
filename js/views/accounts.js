@@ -8,7 +8,6 @@ import { askConfirm } from '../dialog.js';
 import { pfPosition, pfContribution, DEFAULT_PF_RATE } from '../pf.js';
 import { isoLocal } from '../frequency.js';
 import { findDuplicates } from '../duplicates.js';
-import { byYourOrder } from '../commitments.js';
 import { redraw as plainRedraw } from '../redraw.js';
 // Haven: a redraw after a tap keeps the screen still and glides the cards that changed size.
 const redraw = (container, draw) => softRedraw(container, () => plainRedraw(container, draw));

@@ -11,7 +11,7 @@ import { showToast } from '../toast.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, toMonthly, toYearly, isoLocal, clockOf } from '../frequency.js';
 import { formatCurrency, formatRupees } from '../format.js';
 import { MAX_PAISE } from '../records.js';
-import { isLiveCommitment, byYourOrder } from '../commitments.js';
+import { isLiveCommitment } from '../commitments.js';
 import { isBusinessCategory, isBusinessAccount, activeSpace, accountInSpace } from '../business.js';
 import { escapeHtml, invalidField, markFresh, slidingPill } from '../ui.js';
 import { dragToClose } from '../sheet-drag.js';
@@ -228,8 +228,7 @@ export async function render(container, params = {}) {
     </div>
   `;
 
-  arrangeAdd(container);
-  // Charts keeps its own order of the form, but its Spent / Received toggle glides like the others.
+  havenArrangeAdd(container);
   slidingPill(container.querySelector('.direction-toggle'));
 
   container.querySelector('#add-from-alert').addEventListener('click', () => {
@@ -790,55 +789,6 @@ function byRecentUse(categories, transactions) {
   }
   if (!counts.size) return categories;
   return [...categories].sort((a, b) => (counts.get(b.id) || 0) - (counts.get(a.id) || 0));
-}
-
-/* NEW (5.12): Instrument (and Tactile, until 5.57) group the form as their mockups do
- * (mockups/5.0): the direction first, the amount and the merchant together on
- * one card, the category, then account, date and repeats as rows, and the
- * bank SMS last. The same elements move - ids, values and listeners go with
- * them - so what the form asks and does is the same in every style. */
-function arrangeAdd(container) {
-  const style = document.documentElement.dataset.style;
-  if (style === 'haven') return havenArrangeAdd(container);
-  if (style !== 'instrument') return;
-  const form = container.querySelector('#add-form');
-  const hero = form.querySelector('.amount-hero');
-  const toggle = hero.querySelector('.direction-toggle');
-  slidingPill(toggle);
-  const field = (id) => container.querySelector(`#${id}`).closest('.k-field, .field, .k-switch-row');
-  const card = document.createElement('div');
-  card.className = 'add-card add-card--amount';
-  const head = document.createElement('div');
-  head.className = 'add-card add-card--category';
-  const rows = document.createElement('div');
-  rows.className = 'add-card add-rows';
-  form.prepend(toggle);
-  // Account and date sit side by side under the merchant: they are what is checked on every payment, so they are
-  // never behind a fold, and one row of two fields costs less height than two rows of one.
-  const pair = document.createElement('div');
-  pair.className = 'add-pair';
-  pair.append(field('add-account'), field('add-date'));
-  card.append(hero.querySelector('.amount-field'), field('add-desc'), pair, container.querySelector('#add-cash-note'));
-  head.append(container.querySelector('#add-cat-open').closest('.k-field'), field('add-reimb'), field('add-settle'), field('add-shareback'));
-  const repeats = container.querySelector('#add-repeats-toggle').closest('.k-switch-row');
-  const fold = repeats.closest('details');
-  if (fold) rows.append(fold);
-  else {
-    const ic = document.createElement('span');
-    ic.className = 'add-row-ic';
-    ic.innerHTML = icon('sync');
-    repeats.prepend(ic);
-    repeats.classList.add('add-row');
-    rows.append(repeats, container.querySelector('#add-repeat-options'));
-  }
-  hero.replaceWith(card);
-  // Order: what and how much, where and when, repeats, then the category.
-  card.after(rows);
-  rows.after(head);
-  const person = container.querySelector('#add-person');
-  person.classList.add('add-card', 'add-card--person');
-  card.after(person);
-  // The paste-a-message banner stays where it was built: first on the page.
 }
 
 /* Haven (5.52): Add as the prototype draws it (mockups/7.1-haven, "Add a payment"): the direction, the amount big, the

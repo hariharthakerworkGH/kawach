@@ -8,6 +8,7 @@
 // and every other extractor decode as a literal "C" - so "C 377.00" means
 // Rs. 377.00, not a currency code. A trailing "+" marks credits (cashback,
 // refunds, bill payments); its absence means a debit (purchase).
+import { toNumber } from '../format.js';
 export const id = 'hdfc-credit-card';
 export const accountType = 'card';
 export const issuerLabel = 'HDFC Bank';
@@ -122,8 +123,4 @@ function parseLongDate(str) {
   const [, dd, mon, yyyy] = m;
   const mm = MONTHS[mon] || '01';
   return `${yyyy}-${mm}-${dd.padStart(2, '0')}`;
-}
-
-function toNumber(str) {
-  return parseFloat(str.replace(/,/g, ''));
 }

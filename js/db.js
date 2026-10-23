@@ -170,6 +170,7 @@ export async function put(storeName, value, { stamp = true, fromSync = false } =
 /* Several writes to one store that happen together or not at all: a card payment and its bank half, say, so closing the app in
  * between can never leave one without the other. Same checks and stamp as put(). */
 export async function putMany(storeName, values) {
+  if (!values.length) return values;
   for (const value of values) {
     tidyRecord(storeName, value);
     const why = problemWith(storeName, value);
@@ -185,6 +186,26 @@ export async function putMany(storeName, values) {
   await saved;
   notifyChanged(storeName);
   return values;
+}
+
+/* Several deletes that happen together or not at all, each leaving its tombstone like remove(). */
+export async function removeMany(storeName, ids) {
+  if (!ids.length) return;
+  const db = await openDB();
+  const leaves = storeName !== 'deletions' && storeName !== 'syncMeta';
+  const tx = db.transaction(leaves ? [storeName, 'deletions'] : [storeName], 'readwrite');
+  const saved = committed(tx);
+  const now = Date.now();
+  for (const id of ids) {
+    tx.objectStore(storeName).delete(id);
+    if (leaves) tx.objectStore('deletions').put({ id: `${storeName}:${id}`, store: storeName, recordId: id, deletedAt: now });
+  }
+  await saved;
+  if (leaves) {
+    readCache.delete('deletions');
+    screenCache.delete('deletions');
+  }
+  notifyChanged(storeName);
 }
 
 export async function get(storeName, id) {

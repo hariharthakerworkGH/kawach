@@ -54,7 +54,6 @@
 .k .hist-edit { display: grid; gap: var(--k-2); margin-top: var(--k-2); }
 .k .hist-edit__top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--k-2); align-items: stretch; }
 .k .hist-amount { display: flex; align-items: center; gap: var(--k-1); min-width: 0; padding: 0 var(--k-3); min-height: var(--k-ctl-md); border: 1px solid var(--k-border-subtle); border-radius: var(--k-r-md); background: var(--k-glass-1); color: var(--k-text-2); font-size: 18px; }
-:root[data-style="instrument"] .k .hist-amount { border-radius: var(--in-r-sm); border-color: var(--in-rule-hi); }
 .k .hist-amount:focus-within { border-color: var(--k-accent); box-shadow: 0 0 0 1px var(--k-accent); }
 .k .hist-amount .rv-amount-input { flex: 1; min-width: 0; width: 100%; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; color: var(--k-text); font: inherit; font-weight: 600; font-variant-numeric: tabular-nums; }
 .k .hist-amount .rv-amount-input:focus-visible { outline: none; box-shadow: none; }
@@ -78,12 +77,9 @@
 /* Date and time look like the other fields. */
 .k .hist-edit input[type="date"],
 .k .hist-edit input[type="time"] { border: 1px solid var(--k-border-subtle); border-radius: var(--k-r-md); background-color: var(--k-glass-1); background-image: var(--k-sheen); color: var(--k-text); font-family: inherit; }
-:root[data-style="instrument"] .k .hist-edit input[type="date"],
-:root[data-style="instrument"] .k .hist-edit input[type="time"] { border-radius: var(--in-r-sm); border-color: var(--in-rule-hi); }
 .k .hist-actions { gap: var(--k-2) var(--k-3); }
 .k .hist-actions .hist-save { padding: 0 var(--k-5); }
 :root[data-style] .k .hist-edit select.hist-catsel { border-radius: var(--k-r-md); height: var(--k-ctl-md); }
-:root[data-style="instrument"] .k .hist-edit select.hist-catsel { border-radius: var(--in-r-sm); }
 .k .hist-actions { gap: var(--k-2) var(--k-3); }
 .k .hist-actions .link-btn { padding-inline: var(--k-1); }
 /* The Spent / Received pair is as tall as the amount beside it, not taller. */
@@ -156,7 +152,6 @@
 /* A card inside a card is a second frame round the same figures: the figures keep a hairline, not a box. */
 :root[data-style] .k .tl-hero .tl-list,
 :root[data-style] .k .hero .tl-list { border: 0; background: none; box-shadow: none; padding: 0; }
-:root[data-style="instrument"] .k .tl-big { font-size: 40px; margin-top: 6px; }
 
 .k .account-actions-inline { justify-content: flex-start; }
 :root[data-style] .k .hero-under { border: 0; background: none; box-shadow: none; padding: 0; margin: 12px 0 0; }
@@ -212,7 +207,6 @@
 
 /* --- 5.51: how a list is ordered -------------------------------------------------------------------- */
 .k .sort-pick { height: var(--k-ctl-md); min-height: var(--k-ctl-md); padding: 0 var(--k-6) 0 var(--k-3); border-radius: var(--k-r-pill); border: 1px solid var(--k-border-subtle); background-color: var(--k-glass-1); color: var(--k-text-2); font: inherit; font-size: 12px; font-weight: 600; width: auto; }
-:root[data-style="instrument"] .k .sort-pick { border-radius: var(--in-r-sm); }
 .k .accounts-actions--top .sort-pick { margin-left: auto; }
 
 /* Coach is a button at the top of Plan since 5.52 (it left the tab bar so Add can sit in the middle). */

@@ -1,4 +1,4 @@
-import { getAll, put, remove } from './db.js';
+import { getAll, put, putMany, remove, removeMany } from './db.js';
 
 // Two things that keep a wrongly read statement from hurting: what to double-check before saving, and a way to take a saved import back.
 // (Kawach has no server, so nobody can see a bad import for you - the screen has to say so, and an undo has to be one tap.)
@@ -39,13 +39,12 @@ export async function undoImport(id) {
   const u = batch.undo;
   const kept = new Set(u.retagged.map((r) => r.id));
   const rows = await getAll('transactions');
-  for (const t of rows) if (t.importBatchId === id && !kept.has(t.id)) await remove('transactions', t.id);
-  for (const r of u.retagged) {
-    const t = rows.find((x) => x.id === r.id);
-    if (t) await put('transactions', { ...t, importBatchId: r.importBatchId });
-  }
-  for (const t of u.removed) await put('transactions', t);
-  for (const a of u.accountsBefore) await put('accounts', a);
+  const byId = new Map(rows.map((t) => [t.id, t]));
+  // One transaction for the rows that go, one for the rows that return: a thousand rows is not a thousand saves, and stopping
+  // half way cannot leave the rows gone and the accounts not restored.
+  await removeMany('transactions', rows.filter((t) => t.importBatchId === id && !kept.has(t.id)).map((t) => t.id));
+  await putMany('transactions', [...u.retagged.filter((r) => byId.has(r.id)).map((r) => ({ ...byId.get(r.id), importBatchId: r.importBatchId })), ...u.removed]);
+  await putMany('accounts', u.accountsBefore);
   // An account this import started goes only if nothing else was saved on it since.
   const left = await getAll('transactions');
   for (const accountId of u.addedAccounts) if (!left.some((t) => t.accountId === accountId)) await remove('accounts', accountId);

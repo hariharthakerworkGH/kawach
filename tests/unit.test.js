@@ -13,7 +13,7 @@ import { versionStatus } from '../js/version.js';
 import { cardPosition, bankBalance, statementDayFixes, balanceAt } from '../js/account-metrics.js';
 import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance, applyTheme, retireOldLooks } from '../js/appearance.js';
-import { colouringFor, COLOURINGS, styleFor } from '../js/looks.js';
+import { colouringFor, COLOURINGS } from '../js/looks.js';
 import { cardWorkSplit, cushionCard, cardFacts } from '../js/views/accounts.js';
 import { ringSlices } from '../js/haven-ring.js';
 import { fetchRetry } from '../js/net.js';
@@ -23,7 +23,7 @@ import { forecast, costInMonth } from '../js/forecast.js';
 import { flexReport } from '../js/flex-report.js';
 import { flexCard } from '../js/views/recap.js';
 import { makeRecord, checkPin, waitFor, mustLock, makeKeyText, normaliseKey, formatKey, makeKeyRecord, checkKey } from '../js/lock.js';
-import { comingUp, keptBack, keptItems, keptBlock, topFigures, instrumentDial, instrumentTop, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts, longestAhead, monthStory, weekRecap } from '../js/views/summary-looks.js';
+import { comingUp, keptBack, keptItems, keptBlock, topFigures, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts, longestAhead, monthStory, weekRecap } from '../js/views/summary-looks.js';
 import { festivalOn } from '../js/haven-motion.js';
 import { rupeeWords } from '../js/haven-life.js';
 import { shortRupees } from '../js/format.js';
@@ -41,7 +41,6 @@ import { teach } from '../js/alert-learning.js';
 import * as hdfcList from '../js/parsers/hdfc-card-current-text.js';
 import * as csvParser from '../js/parsers/csv.js';
 import { dataSafety } from '../js/views/settings.js';
-import { monthStrip, flexBars } from '../js/views/plan.js';
 import { loanPayments, payFasterPlan, loanPosition, assignLoanPayments, loanHistory } from '../js/loans.js';
 import * as sbiLoan from '../js/parsers/sbi-loan.js';
 import * as sbiSavings from '../js/parsers/sbi-savings.js';
@@ -53,13 +52,13 @@ import { searchWords, findCandidates } from '../js/category-match.js';
 import { acceptSignIn, hasGooglePass } from '../js/drive.js';
 import { businessRunway } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, cashRiver, tickGauge } from '../js/charts.js';
-import { shapeLike, moneyTone, rollFigures, dialAt, fillBars, levelWatch, slidingPill, invalidField, monthSwap } from '../js/ui.js';
+import { shapeLike, moneyTone, rollFigures, fillBars, levelWatch, slidingPill, invalidField, monthSwap } from '../js/ui.js';
 import { showToast } from '../js/toast.js';
 import { dragRows } from '../js/reorder-drag.js';
 import { goalRing } from '../js/charts.js';
 import { askConfirm } from '../js/dialog.js';
 import { dragToClose } from '../js/sheet-drag.js';
-import { shortStatus, spentLine, spendingHero, monthWaves, monthScale, chartReadout, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
+import { shortStatus, spentLine, spendingHero, monthWaves, chartReadout, weekPills, cashSplit, monthsWithData, endOfMonthNoon, spendingStatus, billedOnCards, ifRefunded, upcomingCommitments } from '../js/views/summary.js';
 
 test('a statement day typed in by hand is corrected by the card\'s own statements', () => {
   const typed = { id: 'c1', type: 'card', billingCycleDay: 26 };
@@ -421,7 +420,6 @@ test('a look that was never offered falls back to the one that was', () => {
     equal(appearance('nothing-by-this-name'), null);
     localStorage.removeItem(key);
     for (const name of Object.keys(CHOICES)) equal(appearance(name), CHOICES[name].fallback, name);
-    equal(appearance('style'), 'haven', 'with nothing chosen, Kawach opens in Haven (5.52; Instrument before, Tactile before that)');
   } finally {
     if (before === null) localStorage.removeItem(key);
     else localStorage.setItem(key, before);
@@ -454,7 +452,6 @@ test('colourings: Haven day and night only; an old choice follows the phone, a f
   equal(colouringFor('haven-day', false).id, 'haven-day', 'and a chosen day in the dark');
   equal(colouringFor('ember-dusk', false).id, 'haven-night', 'a colouring that retired follows the phone');
   equal(colouringFor('instrument', true).id, 'haven-day', 'so does an Instrument one');
-  for (const old of ['tactile', 'charts', 'mindora', 'peaks', 'instrument', 'no-such', 'haven']) equal(styleFor(old), 'haven', `${old} is drawn as Haven`);
   ok(COLOURINGS.every((c) => c.mode === 'light' || c.mode === 'dark'));
   const key = 'kawach-appearance';
   const before = localStorage.getItem(key);
@@ -476,7 +473,7 @@ test('colourings: Haven day and night only; an old choice follows the phone, a f
 
 test('every look offers options, a fallback among them, and no repeats', () => {
   for (const [name, spec] of Object.entries(CHOICES)) {
-    ok(spec.options.length >= 2 || name === 'style', `${name} needs a choice to be a choice`); // Haven is the only style since 5.90
+    ok(spec.options.length >= 2, `${name} needs a choice to be a choice`);
     const values = spec.options.map((o) => o.value);
     equal(new Set(values).size, values.length, `${name} repeats a value`);
     ok(values.includes(spec.fallback), `${name} falls back to something it does not offer`);
@@ -1573,37 +1570,6 @@ test('the Summary tracking card: rings for budget spent, month gone and set-asid
   ok(!spendingHero({ ...base, tracker: [] }, 'full').includes('set aside used'), 'no set-asides followed, no third ring');
 });
 
-test('Month scale: a day bar is as tall as its rupees read against the marks down the side', () => {
-  const days = ['2026-10-01', '2026-10-02', '2026-10-03'];
-  const daily = [rupees(2000), rupees(1000), 0];
-  let run = 0;
-  const f = { limit: rupees(9000), spentThisCycle: rupees(3000), daysIntoCycle: 3, daysToClose: 28, spendDays: daily.map((d) => (run += d)), spendByDay: days.map((date, i) => ({ date, amount: daily[i] })) };
-  const bars = [...monthScale(f).matchAll(/<rect class="waves__bar[^"]*"[^>]*height="([\d.]+)"/g)].map((m) => Number(m[1]));
-  equal(bars.length, 2, 'a bar for each day with spending');
-  ok(Math.abs(bars[0] / bars[1] - 2) < 0.02, 'twice the rupees, twice the height');
-  const two = monthScale(f).match(/y1="([\d.]+)" y2="[\d.]+"\/><text class="scale__lab"[^>]*>₹2K/);
-  ok(two, 'the ₹2K mark is there to read the bar against');
-});
-
-test('Month scale: spending outside the budget is hatched on its day, a huge day cut with a zigzag, and said when read', () => {
-  const days = ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04'];
-  const daily = [rupees(500), 0, rupees(300), 0];
-  const other = [0, rupees(1200), rupees(400), rupees(40000)];
-  let run = 0;
-  const f = {
-    limit: rupees(9000), spentThisCycle: rupees(800), daysIntoCycle: 4, daysToClose: 27,
-    spendDays: daily.map((d) => (run += d)), spendByDay: days.map((date, i) => ({ date, amount: daily[i], other: other[i] })),
-  };
-  const scale = monthScale(f);
-  equal((scale.match(/class="waves__other"/g) || []).length, 3, 'a hatched block on each day with outside spending, a day with no budget spending included');
-  equal((scale.match(/class="waves__bar/g) || []).length, 2, 'the solid bars are still only what the budget counts');
-  equal((scale.match(/ L[\d.]+ [\d.]+ L[\d.]+ [\d.]+ L[\d.]+ [\d.]+ L[\d.]+ [\d.]+ L/g) || []).length >= 1, true, 'the ₹40,000 day has a zigzag top');
-  ok(scale.includes('Hatched: spent, but not from your budget') && scale.includes('A zigzag top'), 'the key says both');
-  ok(!monthScale({ ...f, spendByDay: f.spendByDay.map((d) => ({ ...d, other: 0 })) }).includes('Hatched'), 'nothing hatched, nothing said');
-  ok(chartReadout(['2026-10-02', 0, rupees(500), rupees(1000), 0, 0, rupees(1200)], 'Fri 2 Oct').includes('and ₹1,200 more that is not from your budget'), 'the readout names it');
-  ok(!chartReadout(['2026-10-01', rupees(500), rupees(500), rupees(1000), 0, 0, 0], 'x').includes('not from your budget'), 'and says nothing on a day without it');
-});
-
 test('This week: a day with spending outside the budget gets a hatched part above its bar, a huge one cut', () => {
   const days = Array.from({ length: 7 }, (_, i) => `2026-10-0${i + 1}`);
   const f = {
@@ -1677,43 +1643,6 @@ test('a figure that changed since it was last shown rolls to its new value; the 
   first.remove();
   second.remove();
   third.remove();
-});
-
-test('the dial rolls with its figure: marks and needle follow the money frame by frame', async () => {
-  const f = {
-    limit: rupees(10000), free: rupees(7000), spentThisCycle: rupees(3000), level: 'ok', daysIntoCycle: 10, daysToClose: 21,
-    spendDays: [rupees(3000)], spendByDay: [{ date: '2026-10-10', amount: rupees(3000) }], cycleStart: '2026-10-01', cycleKey: '2026-10-31', perDay: rupees(300),
-    cardBills: [], cards: [], tracker: [], totals: {},
-  };
-  const draw = (free, spent) => instrumentDial({ ...topFigures({ ...f, free, spentThisCycle: spent }), rollKey: 'dial-sync' }, false);
-  const mount = (html) => {
-    const el = document.createElement('div');
-    el.innerHTML = html;
-    document.body.append(el);
-    return el;
-  };
-  const lit = (el) => el.querySelectorAll('.in-dial__m--on, .in-dial__m--ahead').length;
-  const before = mount(draw(rupees(7000), rupees(3000)));
-  rollFigures(before);
-  const litBefore = lit(before);
-  const after = mount(draw(rupees(4000), rupees(6000)));
-  rollFigures(after);
-  equal(lit(after), litBefore, 'it starts from the marks it had');
-  const needle = after.querySelector('.in-dial__needle');
-  ok(after.querySelector('svg').classList.contains('is-rolling'), 'and says it is rolling, so no power-up plays over it');
-  await wait(330);
-  const mid = lit(after);
-  ok(mid > litBefore && mid < 61 * 0.6 + 1, 'part way, the marks are part way');
-  const midAngle = Number(needle.style.transform.match(/rotate\((-?[\d.]+)deg\)/)[1]);
-  ok(midAngle < 0 && midAngle > -((0.6 - 0.3) * 240) - 1, 'and the needle is part way back from where it ends');
-  await wait(1100);
-  equal(lit(after), Math.round(0.6 * 60) + 1, 'it ends on the marks the figure says');
-  equal(Number(needle.style.transform.match(/rotate\((-?[\d.]+)deg\)/)[1]), 0, 'with the needle where it was drawn');
-  ok(!after.querySelector('svg').classList.contains('is-rolling'), 'and is let go');
-  equal(lit(mount(draw(rupees(4000), rupees(6000)))), lit(after), 'the same marks as a dial drawn fresh');
-  document.querySelectorAll('[data-roll-key="dial-sync"]').forEach((n) => n.closest('div').remove());
-  dialAt(after.querySelector('svg'), rupees(10000));
-  equal(lit(after), 1, 'a dial with all of the budget left has only its zero mark lit, as drawn fresh');
 });
 
 test('a bar and the figure beside it fill together, and end on the real figure', async () => {
@@ -1826,10 +1755,10 @@ test('a month that closed under budget says so on every look, and an over one sa
     spendDays: [rupees(22580)], spendByDay: [{ date: '2026-09-30', amount: rupees(22580) }], cycleStart: '2026-09-01', cycleKey: '2026-09-30', perDay: 0,
     cardBills: [], cards: [], tracker: [], totals: {},
   };
-  for (const [name, top] of [['tactile', tactileTop], ['instrument', instrumentTop]]) {
+  for (const [name, top] of [['tactile', tactileTop]]) {
     const html = top(f, 'x', '');
-    ok(html.includes('under budget') && (html.includes('closed-note') || html.includes('in-legend--closed')), `${name}: Closed ₹8,920 under budget`);
-    ok(html.includes('is-closed-under') || html.includes('in-dial--closed'), `${name}: the card carries the glow`);
+    ok(html.includes('under budget') && html.includes('closed-note'), `${name}: Closed ₹8,920 under budget`);
+    ok(html.includes('is-closed-under'), `${name}: the card carries the glow`);
     const over = top({ ...f, spentThisCycle: rupees(40000), free: -rupees(8500) }, 'x', '');
     ok(!over.includes('under budget'), `${name}: a month that went over says nothing of the kind`);
   }
@@ -1890,7 +1819,7 @@ test('stepping a month swaps the page once, names what moves for the cross-fade,
   const was = document.startViewTransition;
   document.startViewTransition = (cb) => {
     const done = Promise.resolve().then(cb);
-    return { ready: Promise.resolve(), finished: done.then(() => { namedDuring = el.style.viewTransitionName; }) };
+    return { ready: Promise.resolve(), updateCallbackDone: done, finished: done.then(() => { namedDuring = el.style.viewTransitionName; }) };
   };
   await monthSwap(-1, () => [el], async () => { swaps += 1; });
   document.startViewTransition = was;
@@ -1900,6 +1829,22 @@ test('stepping a month swaps the page once, names what moves for the cross-fade,
     equal(namedDuring, 'kv-month-0', 'the month was named while it moved');
     equal(document.documentElement.style.getPropertyValue('--hv-month-dir'), '-1', 'an earlier month arrives from the left');
   }
+  el.remove();
+});
+
+test('a month change whose redraw fails is reported, and leaves no name behind', async () => {
+  const el = document.createElement('div');
+  document.body.append(el);
+  const was = document.startViewTransition;
+  document.startViewTransition = (cb) => {
+    const done = Promise.resolve().then(cb);
+    return { ready: Promise.resolve(), updateCallbackDone: done, finished: done };
+  };
+  let said = '';
+  try { await monthSwap(1, () => [el], async () => { throw new Error('draw failed'); }); } catch (e) { said = e.message; }
+  document.startViewTransition = was;
+  equal(said, 'draw failed', 'the failure comes out, it is not swallowed');
+  equal(el.style.viewTransitionName, '');
   el.remove();
 });
 
@@ -1924,42 +1869,6 @@ test('a sheet is pulled down to close, and settles back when let go early', asyn
   await wait(400);
   equal(closed, 1, 'a long pull closes it');
   host.remove();
-});
-
-test('Instrument: the dial lights up to what is spent, red past an even pace; the chart is a ruled scale of the whole month', () => {
-  const days = Array.from({ length: 12 }, (_, i) => `2026-10-${String(i + 1).padStart(2, '0')}`);
-  const daily = [800, 2400, 600, 1900, 5200, 900, 1500, 700, 3100, 1200, 2600, 840].map(rupees);
-  let run = 0;
-  const f = {
-    limit: rupees(31500), free: rupees(8920), spentThisCycle: rupees(22580), used: 22580 / 31500, level: 'warning', daysIntoCycle: 12, daysToClose: 20,
-    spendDays: daily.map((d) => (run += d)), spendByDay: days.map((date, i) => ({ date, amount: daily[i] })),
-    cardBills: [], cards: [], tracker: [], totals: {}, cycleStart: '2026-10-01', cycleKey: '2026-10-31', perDay: rupees(446),
-  };
-  const x = topFigures(f);
-  const dial = instrumentDial(x, false);
-  equal((dial.match(/<line class="in-dial__m /g) || []).length, 61, 'sixty-one marks on a scale of sixty steps');
-  const on = (dial.match(/in-dial__m--on/g) || []).length;
-  const ahead = (dial.match(/in-dial__m--ahead/g) || []).length;
-  const off = (dial.match(/in-dial__m--off/g) || []).length;
-  equal(on + ahead + off, 61, 'every mark is lit, ahead of pace or dark');
-  ok(ahead > 0 && on > 0 && off > 0, 'spent ₹22,580 of ₹31,500 on day 12 is past an even pace: some red, some amber, some unlit');
-  ok(!dial.includes('in-dial__flag') && !dial.includes('EVEN PACE') && dial.includes('₹8,920') && dial.includes('₹22,580 spent of ₹31,500'), 'no triangle (the red marks already say ahead of pace), the figure and the words under it');
-  const legend = instrumentTop(f, 'x', '').match(/<p class="in-legend">.*?<\/p>/);
-  ok(legend && legend[0].includes('Even pace by today') && legend[0].includes('₹12,194'), 'what an even pace is, in words under the dial, never on it (the words ran into the marks near the start)');
-  const done = instrumentDial(topFigures({ ...f, finished: true }), false);
-  const closed = instrumentTop({ ...f, finished: true }, 'x', '');
-  ok(!done.includes('in-dial__flag') && !done.includes('in-dial__m--ahead') && !closed.includes('Even pace'), 'a finished month has no pace: no red, no even-pace line');
-  ok(closed.includes('in-legend--closed') && closed.includes('under budget') && closed.includes('in-dial--closed'), 'one that closed with money to spare says so, and its dial glows once');
-  ok(!instrumentTop({ ...f, finished: true, spentThisCycle: rupees(40000), free: -rupees(8500) }, 'x', '').includes('in-legend--closed'), 'and one that went over says nothing of the kind');
-  ok(instrumentDial(x, true).includes('in-dial__fig is-negative'), 'a negative figure is red');
-  const top = instrumentTop(f, 'Over pace.', '<!--m-->');
-  ok(top.includes('<!--k:answer-->') && top.includes('<!--k:month-->') && top.includes('Over pace.') && top.includes('in-hero'), 'the same hooks every style leaves for the month and the answer');
-  const scale = monthScale(f);
-  equal((scale.match(/class="scale__tick/g) || []).length, 31, 'a tick for every day of the month, those to come included');
-  ok(scale.includes('data-chart-days') && scale.includes('Most in one day') && scale.includes('BUDGET ₹31,500'), 'readable day by day, with the budget marked');
-  ok(/₹10K|₹20K|₹30K/.test(scale) && scale.includes('scale__rule'), 'a ruled scale with rupee marks down the side');
-  ok(scale.includes('waves__bar is-top'), 'the biggest day is marked');
-  equal(monthScale({ ...f, spendDays: [rupees(500)] }), '', 'one day is not yet a picture');
 });
 
 test('Summary waves and week: from the 1st to today, the biggest day marked, owed per card as Owed on cards adds it up', () => {
@@ -2142,30 +2051,6 @@ test('Summary in each style: what is coming up, what is kept back', () => {
   const x = topFigures({ tracker, cards: [{ account: { label: 'Card 1' }, owed: rupees(500), unpaid: rupees(2000) }, { account: { label: 'Card 2' }, owed: 0, unpaid: 0 }], totals: { owedCards: rupees(500), unpaidBills: rupees(2000) }, cardBills: [{}], spendByDay: [] });
   ok(x.owedCards === rupees(2500) && x.cards.length === 1 && x.bills === 1, 'owed on cards as the Charts row adds it, cards with nothing owed left out');
 });
-test("Plan's month: must-go-outs on their days by state, and what is left of each set-aside", () => {
-  const items = [{ id: 'rent', dayOfMonth: 5 }, { id: 'emi', dayOfMonth: 10 }, { id: 'phone', dayOfMonth: 20 }, { id: 'loan-a', dayOfMonth: 2 }];
-  const tracker = [
-    { id: 'rent', label: 'Rent', amount: rupees(12000), used: rupees(12000), left: 0, status: 'paid' },
-    { id: 'emi', label: 'Car EMI', amount: rupees(8000), used: 0, left: rupees(8000), status: 'late' },
-    { id: 'phone', label: 'Phone', amount: rupees(500), used: 0, left: rupees(500), status: 'due' },
-    { id: 'loan-a', label: 'Home loan', amount: rupees(20000), used: 0, left: 0, status: 'untracked' },
-    { id: 'food', label: 'Groceries', amount: rupees(6000), used: rupees(4500), left: rupees(1500), setAside: true, status: 'heading-over' },
-    { id: 'fuel', label: 'Fuel', amount: rupees(3000), used: rupees(3600), left: -rupees(600), setAside: true, status: 'over' },
-    { id: 'gift', label: 'Gifts', amount: rupees(1000), used: 0, left: rupees(1000), setAside: true, status: 'untracked' },
-  ];
-  const strip = monthStrip(tracker, items, new Date(2026, 9, 14));
-  equal((strip.match(/plan-strip__bar /g) || []).length, 3, 'one bar for each must-go-out that is tracked; set-asides and untracked ones are not on it');
-  ok(strip.includes('is-paid') && strip.includes('is-late') && strip.includes('is-due'), 'each bar says paid, late or still to pay');
-  ok(strip.includes('Car EMI, ₹8,000 on the 10th: late'), 'and says it in words too');
-  ok(strip.includes('class="is-late">Late'), 'the key names late only when something is');
-  ok(!monthStrip(tracker.slice(0, 1).map((t) => ({ ...t, status: 'due' })), items, new Date(2026, 9, 14)).includes('class="is-late"'), 'and leaves it out when nothing is');
-  equal(monthStrip([], items), '', 'no must-go-outs, no strip');
-  const flex = flexBars(tracker);
-  ok(flex.includes('₹1,500 left of ₹6,000') && flex.includes('is-warn'), 'a set-aside heading over is amber, with what is left');
-  ok(flex.includes('₹600 over ₹3,000') && flex.includes('is-over') && flex.includes('width:100.0%'), 'one that is over is red, full, and says by how much');
-  ok(!flex.includes('Gifts'), 'an untracked set-aside is left out');
-});
-
 test("History's day chart: what you spent each day, bills and moves apart, money moved between your own accounts left out", () => {
   const rows = [
     { date: '2026-09-03', direction: 'debit', amount: rupees(400) },
@@ -2453,7 +2338,7 @@ test('on Summary each card says yours, owed by the company and planned, in the s
   };
   const x = topFigures(f);
   equal(x.cards.map((c) => [c.amount, c.work, c.coming]), [[rupees(54000), rupees(44000), rupees(11000)], [0, 0, rupees(2000)]], 'a card with only planned costs still shows');
-  for (const top of [tactileTop(f, 's', ''), instrumentTop(f, 's', '')]) {
+  for (const top of [tactileTop(f, 's', '')]) {
     ok(top.includes('Yours <b>') && top.includes('Owed by company <b>') && top.includes('Planned <b>'), 'the three words, in every look');
     ok(top.includes('card-legend') && top.includes('class="cb"') && top.includes('class="plan"'), 'the bar has the planned part and the footnote says what planned is');
   }

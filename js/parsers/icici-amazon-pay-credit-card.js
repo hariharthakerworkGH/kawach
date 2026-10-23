@@ -5,6 +5,7 @@
 // A trailing "CR" marks a credit (refund, cashback, bill payment); its
 // absence means a debit (purchase). Reward points can be negative (a
 // reversal), which is metadata only and doesn't affect direction.
+import { toNumber } from '../format.js';
 export const id = 'icici-amazon-pay-credit-card';
 export const accountType = 'card';
 export const issuerLabel = 'ICICI Bank';
@@ -132,8 +133,4 @@ function parseLongDate(str) {
   const [, monthName, dd, yyyy] = m;
   const mm = MONTHS[monthName.toLowerCase()] || '01';
   return `${yyyy}-${mm}-${dd.padStart(2, '0')}`;
-}
-
-function toNumber(str) {
-  return parseFloat(str.replace(/,/g, ''));
 }

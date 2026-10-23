@@ -1518,7 +1518,8 @@ async function commitRows(resultsEl, rows, statusEl) {
   };
   // The day a list was taken; see listTakenOn.
   if (provisional) importBatch.takenOn = isoLocal(new Date());
-  await put('importBatches', importBatch);
+  // Saved with its (still empty) undo record at once: an import stopped half way keeps what it saved and can still be taken back.
+  await put('importBatches', { ...importBatch, undo });
 
   const existingById = new Map((await getAll('transactions')).map((t) => [t.id, t]));
   let matchedCount = 0;

@@ -11,7 +11,7 @@
  * doing the thing and a real reason to prefer either.
  */
 
-import { COLOURINGS, STYLES, applyColouring } from './looks.js';
+import { applyColouring } from './looks.js';
 import { isDemo } from './demo-flag.js';
 
 // The demo copies your look when it starts and keeps its own from then on (js/demo.js).
@@ -54,16 +54,6 @@ export function moveFixedHavenToSun() {
 }
 
 export const CHOICES = {
-  // The style screens are built in (js/looks.js): only those that are ready.
-  // Haven is the default since 5.52 (the owner's choice; Instrument was from 5.27, Tactile
-  // from 5.17): new features are built in it first and spread to the others together.
-  style: {
-    label: 'Style',
-    question: 'Which style?',
-    fallback: 'haven',
-    where: '',
-    options: STYLES.filter((s) => s.ready).map((s) => ({ value: s.id, label: s.name, note: s.note })),
-  },
   // The colours the app is painted in (js/looks.js, css/looks.css). It
   // replaced "Light or dark" in 4.29: each colouring is light or dark by
   // nature, and "Follow my phone" picks Charts or burning flame light.
@@ -284,7 +274,7 @@ export function setAppearance(name, value) {
   } catch {
     return false;
   }
-  if (name === 'colour' || name === 'style') { applyTheme(); window.dispatchEvent(new Event('hv-where')); }
+  if (name === 'colour') { applyTheme(); window.dispatchEvent(new Event('hv-where')); }
   if (name === 'text' || name === 'density' || name === 'motion' || name === 'liquid') applyDisplay();
   if (name === 'motion') window.dispatchEvent(new Event('hv-motion'));
   return true;
@@ -297,11 +287,11 @@ export function setAppearance(name, value) {
  */
 let following = false;
 export function applyTheme() {
-  applyColouring(appearance('colour'), appearance('style'));
+  applyColouring(appearance('colour'));
   if (!following && window.matchMedia) {
     following = true;
     window.matchMedia('(prefers-color-scheme: light)').addEventListener?.('change', () => {
-      if (appearance('colour') === 'auto') applyColouring('auto', appearance('style'));
+      if (appearance('colour') === 'auto') applyColouring('auto');
     });
   }
 }

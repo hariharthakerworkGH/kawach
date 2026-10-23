@@ -13,7 +13,7 @@ import { isPersonMoney, personSpendEffects, peopleStanding } from './people.js';
 import { refundPairs } from './card-refunds.js';
 import { cashPocket, CASH_GRACE_DAYS, addDaysIso } from './cash.js';
 import { formatRupees } from './format.js';
-import { DAY_MS, MIN_DAYS_FOR_PACE, addDays, dateOf, daysBetweenInclusive, trackCommitments, spendSeries } from './free-to-spend-parts.js';
+import { MIN_DAYS_FOR_PACE, addDays, dateOf, daysBetweenInclusive, trackCommitments, spendSeries } from './free-to-spend-parts.js';
 
 // THE RULE - how much you can spend this month (the 1st to the last day).
 //

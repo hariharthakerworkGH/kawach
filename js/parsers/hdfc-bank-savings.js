@@ -4,6 +4,7 @@
 // text-layout-aware extractor keeps them on one line. Any further narration
 // wrapping appears on subsequent lines with no amounts, until the next
 // transaction's date line.
+import { toNumber } from '../format.js';
 export const id = 'hdfc-bank-savings';
 export const accountType = 'bank';
 export const issuerLabel = 'HDFC Bank';
@@ -93,8 +94,4 @@ function reconcile(rows) {
 function stripInternalFields(row) {
   const { _closingBalance, _withdrawal, _deposit, ...rest } = row;
   return rest;
-}
-
-function toNumber(str) {
-  return parseFloat(str.replace(/,/g, ''));
 }

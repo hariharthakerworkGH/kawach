@@ -10,6 +10,7 @@ export const accountType = 'bank';
 export const issuerLabel = 'SBI';
 
 import { DEPOSIT_MOVE_RE } from './sbi-savings.js';
+import { matchedPaise as paise } from '../format.js';
 
 // "08-09-26 SWEEP TRF CREDT - 30015.00 0 32442.50": date, narration, an optional "-" for the empty Ref column, credit, debit, balance.
 const ROW_RE = /^(\d{2})-(\d{2})-(\d{2})\s+(.*?)\s+(?:-\s+)?(\d[\d,]*(?:\.\d{2})?)\s+(\d[\d,]*(?:\.\d{2})?)\s+(\d[\d,]*\.\d{2})$/;
@@ -20,7 +21,6 @@ export function detect(text) {
   return /TRANSACTION OVERVIEW/.test(text) && /Your Opening Balance on/i.test(text) && /Multi-Option Deposit Balance/i.test(text) && /SBIN\d{7}/.test(text);
 }
 
-const paise = (s) => Math.round(Number(String(s).replace(/,/g, '')) * 100);
 const iso = (d, m, y) => `20${y}-${m}-${d}`;
 
 export function parse(text) {

@@ -23,7 +23,7 @@
 
 import { significantTokens } from './merchant-rules.js';
 import { categoryStyle } from './category-style.js';
-import { escapeHtml, escapeAttr } from './ui.js';
+import { escapeHtml } from './ui.js';
 
 /* Words that identify a payment channel rather than a merchant. A UPI
  * handle's suffix is not who you paid.

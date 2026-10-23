@@ -272,9 +272,11 @@ Haven is the only look (5.90): Instrument retired like Tactile and Charts before
 anything saved. The colours are Follow the sun, Always day and Always night; every other colouring (Instrument's three, Ember dusk, Atelier,
 Follow my phone ...) retired and a saved one now follows the sun (`appearance('colour')` falls back to `sun`). How it looks shows five things:
 Colours, Where you are, Text size, Motion, When Kawach opens, and the order of lists folded away. The layout options (Summary, Accounts, Add,
-History), spacing, what fills the shield and festival touches are no longer offered; they keep their defaults. Some Instrument-only code
-branches in the screens are dead now and can be removed later (`tools/release/deadcode.mjs`). The checks run in Brave (`KH_BROWSER` names
-another Chromium; tools/tour-video/cdp.mjs).
+History), spacing, what fills the shield and festival touches are no longer offered; they keep their defaults. 5.92 then removed the Instrument-only code and the rules written for it: the
+dial and month scale, Instrument's Add and Coach arrangements, the layout previews in How it looks, the style list and the ten dead colourings
+(`css/looks.css` holds Haven day and night only), and moved the notes before 5.62 out of `js/whats-new.js` to
+`expense-tracker-versions/tools/archive`. The checks run in Ego Lite (`KH_BROWSER` names another Chromium; tools/tour-video/cdp.mjs, which
+deletes its own browser profile when it ends).
 
 Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built with
 `isoLocal` - never `toISOString()`, which is a day behind in India.
@@ -505,15 +507,8 @@ was from 5.27, Tactile from 5.17), and every new feature gets its look in Haven 
 Tactile are brought up to date together in a "mass update" (the last one was
 5.24: the short Summary's cards, the explain bubble, Lent and borrowed and the
 salary question in each look's own card language) - never ship anything that
-breaks in them. **Instrument (5.25)** is dark and precise (a dial for the
-budget, a ruled month chart, cells for bars, one lit colour: amber, ice or
-lime). It is not a copy: it SHARES Tactile's markup and rules - every selector
-in `css/style-tactile.css` is written `:root:is([data-style="tactile"],
-[data-style="instrument"])` - and repaints them by redefining the `--t-*`
-values in `css/style-instrument.css`, which loads after it. So a feature built for either
-(Instrument first, since 5.27) arrives in the other for free, and its own file only holds what
-Tactile has no equivalent of (radii, cell bars, the flush tab bar, the dial in
-`summary-looks.js` `instrumentDial`, the chart `monthScale` in `summary.js`).
+breaks in them. **Instrument (5.25 to 5.89)** is gone (retired 5.90, its code removed 5.92). `css/style-tactile.css` keeps only the plain `.tl-*` and `.pl-*` rules
+that Haven's Summary and Plan still use; its name is historical.
 **Haven (5.52, rebuilt from its prototype in 5.53)** is the default and the fourth look: calm and light by day, deep
 navy by night (`haven-day` / `haven-night`, always paired with the style; "Follow my phone" picks between them). **What
 the owner is shown is what ships**: Haven is built from the prototype in `mockups/7.1-haven`, never reinterpreted. Its
@@ -529,18 +524,17 @@ keypad with everything else behind "Details" (`add.js` `havenArrangeAdd`); a gui
 The tab bar is five tabs with Add raised in the middle; Coach is a button on Plan, and Plan stays lit while it is open.
 Before shipping any change to Haven, `tools/release/vs.mjs <view> [colour]` takes the app and the prototype at the same
 size, and `measure.mjs` gives the same parts' sizes in both; they must match.
-Tactile and Charts retired in 5.57 (two looks are left, Haven and Instrument; whoever wore the others lands on Haven once, told by
-a toast: `retireOldLooks`). Their stylesheets stayed because Instrument and Haven are built on them: `css/style-tactile.css` is
-now Instrument's base, `tactileTop` and `.pl-top--tactile` are the Summary and Plan markup both share, and Charts is the base
-every screen sits on, not a choice.
+Tactile and Charts retired in 5.57, Instrument in 5.90 (Haven is the only look; whoever wore another lands on Haven once, told by
+a toast: `retireOldLooks`). Some of their markup stayed because Haven uses it: `tactileTop` and `.pl-top--tactile` are the Summary and Plan
+markup, and Charts is the base every screen sits on, not a choice.
 Haven's second layer of life (5.60) is `js/haven-life.js`: the Summary carries its data on `data-life`, `data-recap`, `data-story`, `data-weather` (summary-looks.js `havenTop`), and `havenMore` in summary.js adds goals, a salary just landed, last month's line, the story and the badges.
 Haven's motion (5.56) is `js/haven-motion.js` + `css/haven-motion.css`, chosen in Settings (Alive, Calm, Still) and always off for a
 phone set to reduce motion; see design.md section 16. A save from the Add sheet fires `hv-saved` (the coin, the Add ring) and
 `hv-refresh` (app.js draws the screen underneath again).
 `plan.js`, `coach.js`, `add.js` and `transactions.js` list it beside the others.
-Its colourings come from `looks.py`; the contrast scan (text of every kind
-against what is behind it) is clean in all three. **Readable text is made by
-`looks.py` (5.26):** every colouring's secondary ink, money-in/out and warning
+Its colourings are in `css/looks.css`; the contrast scan (text of every kind
+against what is behind it) is clean in both. **Readable text was made by
+`looks.py` (5.26; the script is gone, its values are in `css/looks.css`):** every colouring's secondary ink, money-in/out and warning
 colours are nudged until they reach 4.7:1 on the page, a card, a raised card and
 a pressed-in well, and `--k-accent-text` is the accent as writing or a line icon
 (the real accent stays for fills, with an ink that reaches 4.5:1). Use
@@ -548,9 +542,9 @@ a pressed-in well, and `--k-accent-text` is the accent as writing or a line icon
 the owner's report, step through every screen in every look and colouring, and
 read the colour of each piece of text against what is behind it (gradients hide
 the real background from such a scan: judge those by eye). Check a look with: every screen in every look on the owner's
-loaded report, and contrast measured in all ten colourings (see the 5.23 and 5.24
-notes in the commit messages). A colouring is a set of token values in `css/looks.css`, GENERATED by
-`expense-tracker-versions/tools/looks.py` (never edit by hand); `data-colour`
+loaded report, and contrast measured in both colourings (see the 5.23 and 5.24
+notes in the commit messages). A colouring is a set of token values in `css/looks.css` (written by hand since 5.92: the generator
+`tools/looks.py` and its ten other colourings are gone); `data-colour`
 on <html> picks it and `data-theme` follows its light or dark, so the light
 and dark material in the stylesheets comes with it. The three Charts
 gradients are `--k-grad-1a/1b`, `-2a/2b`, `-3a/3b`, with `--k-grad-N-ink` for

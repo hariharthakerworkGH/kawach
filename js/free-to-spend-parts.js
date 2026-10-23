@@ -1,7 +1,7 @@
 /* Pieces of the money calculation that stand on their own (5.43.3), moved out of js/free-to-spend.js so each can be
  * read and tested by itself: the day arithmetic, the status of each commitment this cycle, and the by-day series
  * behind the burn drawing. The code is as it was; computeFreeToSpend() calls these. */
-import { isoLocal, frequencyOf, nextOccurrence, addDays, dateOf } from './frequency.js';
+import { frequencyOf, nextOccurrence, addDays, dateOf } from './frequency.js';
 
 export { addDays, dateOf };
 import { isSetAside } from './commitments.js';

@@ -1,6 +1,6 @@
 import { getAll, put, remove, newId, getSetting, setSetting } from '../db.js';
 import { holdFocus } from '../overlay.js';
-import { planTop, planMonth, havenCommitments } from './plan-looks.js';
+import { planTop, havenCommitments } from './plan-looks.js';
 import { wireHaven } from '../haven-ui.js';
 import { paidOut, setDueDot } from '../haven-motion.js';
 import { icon } from '../icons.js';
@@ -11,7 +11,7 @@ import { getBudgets, setBudget, budgetStatusForMonth } from '../budgets.js';
 import { DEFAULT_KEEP_IN_BANK, computeFreeToSpend } from '../free-to-spend.js';
 import { currentMonthKey } from '../spending-month.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequencyShort, hasDueDate, toMonthly, toYearly, isoLocal } from '../frequency.js';
-import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, byYourOrder, isSetAside, isAtmPlan, duplicateCommitments } from '../commitments.js';
+import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, isSetAside, isAtmPlan, duplicateCommitments } from '../commitments.js';
 import { appearance, setAppearance } from '../appearance.js';
 import { sortCommitments, sortAccounts, sortCategories, sortPicker } from '../list-order.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
@@ -152,18 +152,12 @@ export async function render(container) {
       tracker = [];
     }
   }
-  // NEW (5.14): Tactile and Instrument draw the month and the top their
-  // own way (plan-looks.js), from the same rows and figures.
-  const style = document.documentElement.dataset.style;
-  const looks = ['instrument', 'haven'].includes(style);
-  const stateOf = (t) => (t.status === 'skipped' ? 'skipped' : t.status === 'paid' ? 'paid' : t.status === 'late' ? 'late' : 'due');
-  const isHaven = style === 'haven';
   // Haven: only a cost you added yourself can be marked paid from its card (the others open what can be done with them).
   const markable = (id) => fixed.some((f) => f.id === id) && tracker.some((x) => x.id === id && x.status !== 'skipped' && x.status !== 'paid');
   // Haven (home): the month's box and the one list of commitments (plan-looks.js havenCommitments) replace this month's
   // strip, the bars under it, and the separate Commitments list.
   const allItems = [...fixed, ...loanItems];
-  const merged = isHaven && !inBusiness
+  const merged = !inBusiness
     ? havenCommitments(tracker, {
         order: new Map(allItems.map((f, i) => [f.id, i])),
         dayOf: (id) => allItems.find((f) => f.id === id)?.dayOfMonth || null,
@@ -174,13 +168,7 @@ export async function render(container) {
         form: (id) => fixedForm(laneCategories, laneAccounts, fixed.find((f) => f.id === id)),
       })
     : null;
-  const thisMonth = inBusiness
-    ? ''
-    : merged
-      ? merged.box
-      : (looks
-          ? planMonth(style, monthRows(tracker, allItems).map(({ t, day }) => ({ id: t.id, label: t.label, day, amount: t.amount, state: stateOf(t) })), now)
-          : monthStrip(tracker, allItems, now)) + flexBars(tracker);
+  const thisMonth = merged ? merged.box : '';
 
   // `k-plan` scopes the rules for classes this screen shares with Summary,
   // so styling a commitment row here cannot reach across and restyle one
@@ -211,8 +199,8 @@ export async function render(container) {
         ? ''
         : // Plan is a stat-led screen: the budget each month is what it
           // answers, and the sums behind it sit under it, not above it.
-          (looks && budget != null && incomeValue + sideExtra > 0
-            ? planTop(style, {
+          (budget != null && incomeValue + sideExtra > 0
+            ? planTop({
                 budget,
                 income: incomeValue + sideExtra,
                 must: mustTotal,
@@ -300,7 +288,7 @@ export async function render(container) {
     }
     ${
       doubled.length
-        ? `${isHaven ? `<details class="section-fold dupe-fold"><summary>${doubled.length} cost${doubled.length === 1 ? '' : 's'} may be on your list twice</summary>` : sectionHead('The same payment twice?')}
+        ? `<details class="section-fold dupe-fold"><summary>${doubled.length} cost${doubled.length === 1 ? '' : 's'} may be on your list twice</summary>
            <div class="totals-card">
              <p class="muted-note dupe-note">${
                doubled.some((p) => p.counted)
@@ -330,7 +318,7 @@ export async function render(container) {
                  </div>`
                )
                .join('')}
-           </div>${isHaven ? '</details>' : ''}`
+           </div></details>`
         : ''
     }
     ${sectionHead(
@@ -440,7 +428,7 @@ export async function render(container) {
 
     ${
       detected.length
-        ? `${isHaven ? `<details class="section-fold"><summary>${detected.length} payment${detected.length === 1 ? '' : 's'} look like they repeat</summary>` : sectionHead('Looks recurring')}
+        ? `<details class="section-fold"><summary>${detected.length} payment${detected.length === 1 ? '' : 's'} look like they repeat</summary>
            <div class="totals-card">
              ${detected
                .map(
@@ -455,13 +443,13 @@ export async function render(container) {
                  </div>`
                )
                .join('')}
-           </div>${isHaven ? '</details>' : ''}`
+           </div></details>`
         : ''
     }`
     }
   `;
 
-  if (isHaven && !inBusiness) havenArrange(container, figures, todayIso, skippedItems);
+  if (!inBusiness) havenArrange(container, figures, todayIso, skippedItems);
   container.querySelector('#plan-coach')?.addEventListener('click', () => container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'coach' } })));
   const incomeEl = container.querySelector('#plan-income');
   incomeEl?.addEventListener('change', async () => {
@@ -931,82 +919,6 @@ export async function render(container) {
       redraw(container, () => render(container));
     });
   });
-}
-
-/* This month's must-go-outs on their days: a bar on the day each one is
- * due, taller for more money, bright while it is still to pay, dim once it is
- * paid, red when it is late, with today marked. A name is written over a bar
- * only when there is room for it; every bar says its name and amount to a
- * screen reader. Exported so the rules can be tested. */
-export function monthStrip(tracker, items, now = new Date()) {
-  const rows = monthRows(tracker, items);
-  if (!rows.length) return '';
-  const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const x = (d) => 22 + ((Math.min(d, days) - 1) / (days - 1)) * 276;
-  const top = Math.max(...rows.map((r) => r.t.amount));
-  const axis = 104;
-  let lastLabel = -99;
-  // Two due on the same day stand side by side rather than one over the other.
-  const sameDay = (d) => rows.filter((r) => r.day === d);
-  const bars = rows
-    .map(({ t, day }) => {
-      const group = sameDay(day);
-      const cx = x(day) + (group.findIndex((r) => r.t === t) - (group.length - 1) / 2) * 11;
-      const h = 12 + Math.sqrt(Math.max(0, t.amount) / top) * 58;
-      const state = t.status === 'skipped' ? 'skipped' : t.status === 'paid' ? 'paid' : t.status === 'late' ? 'late' : 'due';
-      const said = `${t.label}, ${formatRupees(t.amount)} on the ${ordinal(day)}: ${state === 'paid' ? 'paid' : state === 'late' ? 'late' : state === 'skipped' ? 'skipped this month' : 'still to pay'}. Tap for what can be done.`;
-      const name = escapeHtml(t.label.split(/\s+/)[0].slice(0, 9));
-      const room = cx - lastLabel >= 34;
-      if (room) lastLabel = cx;
-      return `<g class="plan-strip__bar is-${state}" data-month-item="${escapeHtml(t.id)}" role="button" tabindex="0"><title>${escapeHtml(said)}</title>
-          <rect x="${(cx - 5).toFixed(1)}" y="${(axis - h).toFixed(1)}" width="10" height="${h.toFixed(1)}" rx="3"/>
-          ${room ? `<text x="${cx.toFixed(1)}" y="${(axis - h - 6).toFixed(1)}">${name}</text>` : ''}
-        </g>`;
-    })
-    .join('');
-  const today = now.getDate();
-  const ticks = [1, 8, 15, 22, days].map((d) => `<text class="plan-strip__tick" x="${x(d).toFixed(1)}" y="${axis + 16}">${d}</text>`).join('');
-  return `<figure class="plan-strip">
-      <svg viewBox="0 0 320 124" role="img" aria-label="This month's must-go-outs on their days">
-        <line class="plan-strip__axis" x1="10" y1="${axis}" x2="310" y2="${axis}"/>
-        <line class="plan-strip__today" x1="${x(today).toFixed(1)}" y1="10" x2="${x(today).toFixed(1)}" y2="${axis + 4}"/>
-        <text class="plan-strip__today-label" x="${x(today).toFixed(1)}" y="8">Today</text>
-        ${bars}${ticks}
-      </svg>
-      <figcaption class="plan-strip__key"><span class="is-due">Still to pay</span><span class="is-paid">Paid</span>${rows.some((r) => r.t.status === 'late') ? '<span class="is-late">Late</span>' : ''}${rows.some((r) => r.t.status === 'skipped') ? '<span class="is-skipped">Skipped</span>' : ''}</figcaption>
-    </figure>`;
-}
-
-/* This month's must-go-outs on their days, soonest first: what the strip
- * above draws, and what every style draws its own way (plan-looks.js). */
-export function monthRows(tracker, items) {
-  const byId = new Map(items.map((i) => [i.id, i]));
-  return tracker
-    .filter((t) => !t.setAside && !t.variable && t.status !== 'untracked' && byId.get(t.id)?.dayOfMonth)
-    .map((t) => ({ t, day: Math.min(byId.get(t.id).dayOfMonth, 31) }))
-    .sort((a, b) => a.day - b.day);
-}
-
-/* What is left of each set-aside this month, as a bar that fills as it is
- * spent: amber when the pace takes it over, red once it is over. */
-export function flexBars(tracker) {
-  const all = tracker.filter((t) => t.setAside && t.status !== 'untracked' && t.amount > 0).sort((a, b) => String(a.label).localeCompare(String(b.label), undefined, { sensitivity: 'base' }));
-  if (!all.length) return '';
-  // What is left to spend comes first; one used right up folds away, and one past its limit stays in view.
-  const rows = all.filter((t) => t.left !== 0 || t.status === 'over');
-  const usedUp = all.filter((t) => !rows.includes(t));
-  const draw = (list) => `<div class="plan-flex">${list
-    .map((t) => {
-      const used = Math.max(0, Math.min(1, t.used / t.amount));
-      const tone = t.status === 'over' ? 'is-over' : t.status === 'heading-over' ? 'is-warn' : '';
-      const left = t.left >= 0 ? `${formatRupees(t.left)} left of ${formatRupees(t.amount)}` : `${formatRupees(-t.left)} over ${formatRupees(t.amount)}`;
-      return `<div class="plan-flex__row ${tone}">
-          <div class="plan-flex__top"><span class="plan-flex__name">${escapeHtml(t.label)}</span><span class="plan-flex__left">${left}</span></div>
-          <div class="plan-flex__track"><i style="width:${(used * 100).toFixed(1)}%"></i></div>
-        </div>`;
-    })
-    .join('')}</div>`;
-  return `${rows.length ? draw(rows) : ''}${usedUp.length ? `<details class="plan-used"><summary>Used up this month (${usedUp.length})</summary>${draw(usedUp)}</details>` : ''}`;
 }
 
 function budgetCard(b) {

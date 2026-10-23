@@ -4,7 +4,7 @@ import { isoLocal } from '../frequency.js';
 import { categoryStyle } from '../category-style.js';
 import { financialSnapshot, affordability, savingsPlan, whereToCut, observations } from '../planner.js';
 import { redraw } from '../redraw.js';
-import { escapeHtml, hero, sectionHead, emptyState, shapeLike } from '../ui.js';
+import { escapeHtml, sectionHead, emptyState, shapeLike } from '../ui.js';
 
 // The planning screen: you pick a question, it answers with your own numbers.
 //
@@ -87,45 +87,16 @@ function heroTemplate(snapshot) {
   const projected = pace * c.daysToClose;
   const leftAtEnd = c.free - projected;
   const over = leftAtEnd < 0;
-  const pct = c.free > 0 ? Math.min(100, Math.round((projected / c.free) * 100)) : 100;
-  const style = document.documentElement.dataset.style;
-  if (['instrument', 'haven'].includes(style)) {
-    return coachTop(style, {
-      left: pace === 0 ? '-' : formatRupees(leftAtEnd),
-      over,
-      by: formatDateNice(c.cycleKey || c.windowEnd),
-      pace: `${formatRupees(pace)}/day`,
-      safe: `${formatRupees(Math.max(0, c.perDay))}/day`,
-      days: `${c.daysToClose}`,
-      share: c.free > 0 ? Math.min(1, projected / c.free) : 1,
-      uses: `${formatRupees(projected)} of ${formatRupees(Math.max(0, c.free))}`,
-    });
-  }
-  return hero({
-    label: 'Left at this pace',
-    // FIXED (5.5): the pace runs to the end of the spending month (cycleKey,
-    // the calendar month), not a card's statement day, which said 'by 25 Oct'
-    // beside 30 days left on the 2nd.
-    period: `by ${formatDateNice(c.cycleKey || c.windowEnd)}`,
-    amount: pace === 0 ? '-' : formatRupees(leftAtEnd),
-    negative: over,
-    level: over ? 'over' : 'ok',
-    meter: { pct, tone: over ? 'over' : '' },
-    figures: [
-      { label: 'Pace', value: `${formatRupees(pace)}/day` },
-      { label: 'Safe', value: `${formatRupees(Math.max(0, c.perDay))}/day` },
-    ],
-    // CHANGED (5.5, the Charts style): the same figures as a tracking card,
-    // one ring for how much of what is left this pace would use. Over the
-    // whole of it, it turns red like Summary's budget ring.
-    tracking: {
-      stats: [
-        { k: 'Your pace', v: `${formatRupees(pace)}/day` },
-        { k: 'Safe', v: `${formatRupees(Math.max(0, c.perDay))}/day` },
-        { k: 'Days left', v: `${c.daysToClose}` },
-      ],
-      rings: [{ value: c.free > 0 ? projected / c.free : 1, grad: 'spent', big: formatRupees(projected), label: `of ${formatRupees(Math.max(0, c.free))} at this pace` }],
-    },
+  return coachTop({
+    left: pace === 0 ? '-' : formatRupees(leftAtEnd),
+    over,
+    // The pace runs to the end of the spending month (cycleKey, the calendar month), not a card's statement day.
+    by: formatDateNice(c.cycleKey || c.windowEnd),
+    pace: `${formatRupees(pace)}/day`,
+    safe: `${formatRupees(Math.max(0, c.perDay))}/day`,
+    days: `${c.daysToClose}`,
+    share: c.free > 0 ? Math.min(1, projected / c.free) : 1,
+    uses: `${formatRupees(projected)} of ${formatRupees(Math.max(0, c.free))}`,
   });
 }
 
@@ -432,11 +403,9 @@ function noteTemplate(n) {
 }
 
 
-/* NEW (5.16): Coach's top in Tactile and Instrument, after their mockups:
- * the same figures as the Charts card - left at this pace and by when, your
- * pace and the safe amount a day, the days left, and how much of what is
- * left this pace would use - in each style's own drawing. */
-function coachTop(style, f) {
+/* Coach's top: left at this pace and by when, your pace and the safe amount a day, the days left, and how much of what is left this
+ * pace would use. */
+function coachTop(f) {
   const pct = `${Math.round(f.share * 100)}%`;
   const neg = f.over ? ' is-negative' : '';
   return `<section class="tl-hero ct-top${neg}">

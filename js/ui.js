@@ -320,13 +320,17 @@ export async function monthSwap(dir, pick, swap) {
   const clear = () => pick().forEach((el) => { if (el) { el.style.viewTransitionName = ''; el.style.viewTransitionClass = ''; } });
   document.documentElement.style.setProperty('--hv-month-dir', String(dir));
   name();
+  const t = document.startViewTransition(async () => { await swap(); name(); });
+  // Another tap while one is moving skips the first: that is not an error to report. A swap that fails is: it comes out of
+  // updateCallbackDone, after the names are cleared.
+  t.ready.catch(() => {});
+  const moving = t.finished.catch(() => {});
   try {
-    const t = document.startViewTransition(async () => { await swap(); name(); });
-    // Another tap while one is moving skips the first: not an error to report.
-    t.ready.catch(() => {});
-    await t.finished;
-  } catch { /* skipped or unsupported: the page is already in its new state */ }
-  clear();
+    await t.updateCallbackDone;
+  } finally {
+    await moving;
+    clear();
+  }
 }
 
 /* A chosen chip gives one small pop (5.37). Used where the list redraws itself on a choice, so the lit chip is new and CSS cannot tell it was just chosen. */
@@ -469,23 +473,18 @@ export function rollFigures(root = document) {
     const b = Math.abs(to) / 100;
     const start = performance.now();
     // What draws the same money moves with the figure, frame by frame, on the same curve, so what is
-    // written and what is drawn never disagree while it moves: the Instrument dial's marks and needle,
-    // and on the other looks a bar's width or a ring's arc (data-follow) inside the same hero.
-    const dial = el.closest('svg.in-dial');
+    // written and what is drawn never disagree while it moves: a bar's width or a ring's arc (data-follow) inside the same hero.
     const scope = el.dataset.rollKind === 'left' ? el.closest('[data-roll-scope]') : null;
     const followers = scope ? [...scope.querySelectorAll('[data-follow]')] : [];
     const place = (left) => {
-      if (dial) dialAt(dial, left);
       if (scope) followAt(scope, followers, left);
     };
-    dial?.classList.add('is-rolling');
     scope?.classList.add('is-rolling');
     // The ring's own drawing-in would fight the roll for the same stroke: while rolling it follows the figure only.
     followers.forEach((f) => f.dataset.follow === 'dash' && (f.style.animation = 'none'));
     write(shapeLike(final, Math.round(a)));
     place(from);
     const finish = () => {
-      dial?.classList.remove('is-rolling');
       scope?.classList.remove('is-rolling');
     };
     const paint = (now) => {
@@ -526,30 +525,6 @@ function followAt(scope, followers, left) {
       const from = Number(f.dataset.from || 0);
       f.setAttribute('d', arcPath(Number(f.dataset.r), from, Math.min(0.999, Math.max(from, share))));
     }
-  }
-}
-
-/* The Instrument dial for a given amount left (paise): marks lit up to what is spent, red past the
- * even pace, the needle turned to match. The needle is drawn at its final place; here it is
- * turned by how far the figure still is from it. Read from the dial's own data-limit, data-pace
- * and data-spent, so the picture is always the one drawn by instrumentDial. */
-export function dialAt(dial, left) {
-  const limit = Number(dial.dataset.limit);
-  if (!(limit > 0)) return;
-  const frac = (spent) => Math.min(1, Math.max(0, spent / limit));
-  const fs = frac(limit - left);
-  const fp = dial.dataset.pace === '' || dial.dataset.pace == null ? 1 : frac(Number(dial.dataset.pace));
-  const marks = dial.querySelectorAll('.in-dial__m');
-  const last = marks.length - 1;
-  marks.forEach((m, i) => {
-    const f = i / last;
-    const state = f <= fs + 1e-9 ? (f <= fp + 1e-9 ? 'on' : 'ahead') : 'off';
-    m.setAttribute('class', `in-dial__m in-dial__m--${state}${m.classList.contains('is-major') ? ' is-major' : ''}`);
-  });
-  const needle = dial.querySelector('.in-dial__needle');
-  if (needle) {
-    needle.style.transformOrigin = '163px 148px';
-    needle.style.transform = `rotate(${(fs - frac(Number(dial.dataset.spent))) * 240}deg)`;
   }
 }
 

@@ -15,6 +15,7 @@
 // it and the rest below, until the next transaction's line above. A summary
 // at the end gives the opening and closing balance and how many debits and
 // credits there were, which is how the reading is checked.
+import { matchedPaise } from '../format.js';
 export const id = 'sbi-savings';
 export const accountType = 'bank';
 export const issuerLabel = 'SBI';
@@ -37,7 +38,7 @@ export function detect(text) {
   return /SBIN\d{7}/.test(text) && /Clear Balance/i.test(text) && /Statement Summary/i.test(text) && !/Loan Term/i.test(text);
 }
 
-const amount = (s) => (s === '-' ? 0 : Math.round(Number(String(s).replace(/,/g, '')) * 100));
+const amount = (s) => (s === '-' ? 0 : matchedPaise(s));
 
 export function parse(text) {
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);

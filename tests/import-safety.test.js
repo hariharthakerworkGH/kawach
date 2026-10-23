@@ -72,3 +72,37 @@ test('a figure that cannot be worked out is a dash, never "NaN" or "undefined" o
   equal([formatRupees(NaN), formatRupees(undefined), formatCurrency(NaN), formatCurrency(Infinity)], ['—', '—', '—', '—']);
   equal([formatRupees(250000), formatCurrency(-123456)], ['₹2,500', '−₹1,234.56']);
 });
+
+/* --- the 5.92 audit: an import stopped half way, and a big undo ----------------------------------------------------------------------- */
+import { removeMany } from '../js/db.js';
+
+test('an import stopped half way keeps an (empty) undo record, so the rows it saved can still be taken back', async () => {
+  await resetDB();
+  await putAll('accounts', [{ id: 'bank', type: 'bank', label: 'Bank', issuer: 'SBI', last4: '1234' }]);
+  await putAll('importBatches', [{ id: 'half', accountId: 'bank', importedAt: week(0), txCount: 5, undo: newUndo() }]);
+  await putAll('transactions', [txn({ id: 'h1', accountId: 'bank', date: '2026-09-05', amount: 100, importBatchId: 'half' }), txn({ id: 'keep', accountId: 'bank', date: '2026-09-06', amount: 100, importBatchId: 'earlier' })]);
+  equal((await recentImports()).map((i) => i.id), ['half'], 'it is offered in Settings');
+  await undoImport('half');
+  equal((await getAll('transactions')).map((t) => t.id), ['keep'], 'only what that import saved goes');
+});
+
+test('undo of a big import removes every row, and each leaves its tombstone for the other device', async () => {
+  await resetDB();
+  const rows = Array.from({ length: 1500 }, (_, i) => txn({ id: `big${i}`, accountId: 'bank', date: '2026-09-05', amount: 100 + i, importBatchId: 'b' }));
+  await putAll('accounts', [{ id: 'bank', type: 'bank', label: 'Bank', issuer: 'SBI', last4: '1234' }]);
+  await putAll('transactions', rows);
+  await putAll('importBatches', [{ id: 'b', accountId: 'bank', importedAt: week(0), txCount: rows.length, undo: newUndo() }]);
+  await undoImport('b');
+  equal((await getAll('transactions')).length, 0);
+  equal((await getAll('deletions')).filter((d) => d.store === 'transactions').length, 1500);
+});
+
+test('removeMany deletes together and writes one tombstone per record', async () => {
+  await resetDB();
+  await putAll('transactions', [txn({ id: 'x1', accountId: 'a', date: '2026-09-05', amount: 100 }), txn({ id: 'x2', accountId: 'a', date: '2026-09-05', amount: 100 }), txn({ id: 'x3', accountId: 'a', date: '2026-09-05', amount: 100 })]);
+  await removeMany('transactions', ['x1', 'x3']);
+  equal((await getAll('transactions')).map((t) => t.id), ['x2']);
+  equal((await getAll('deletions')).map((d) => d.id).sort(), ['transactions:x1', 'transactions:x3']);
+  await removeMany('transactions', []);
+  equal((await getAll('transactions')).length, 1, 'an empty list changes nothing');
+});

@@ -207,62 +207,6 @@ export function tactileTop(f, status, month, heroHtml = '', opts = {}) {
     ${x.coming.length && !x.finished && !opts.noComing ? `<div class="tl-label"><span>Coming up</span><span class="tl-still">${formatRupees(x.stillToPay)} still to pay</span></div><div class="tl-list">${x.coming.map((c) => row(categoryStyle(c.label).icon, escapeHtml(c.label), `${formatDateNice(c.due)}${c.late ? ' · late' : ''}`, formatRupees(c.amount), c.late ? 'tl-bad' : '', '', categoryStyle(c.label).color)).join('')}</div>` : ''}`;
 }
 
-/* --- Instrument: a dial, then Tactile's rows (5.25) ---------------------- */
-// The budget as 240 degrees of scale, sixty marks. Marks up to the even pace
-// are lit in the accent; the marks past it up to what is spent are lit red, so
-// "ahead of pace" is something you see, not something you work out. A white
-// mark is where you are; the red marks show how far past an even spread you are. A
-// finished month has no pace: its marks are all one colour. Exported for a test.
-export function instrumentDial(x, negative) {
-  const cx = 163, cy = 148, R = 124, N = 60, sweep = 240;
-  const fs = x.limit > 0 ? Math.min(1, Math.max(0, x.spent / x.limit)) : 1;
-  const fp = x.finished || !(x.limit > 0) ? 1 : Math.min(1, Math.max(0, x.pace / x.limit));
-  const ang = (f) => -sweep / 2 + f * sweep;
-  const pt = (a, r) => [cx + r * Math.sin((a * Math.PI) / 180), cy - r * Math.cos((a * Math.PI) / 180)];
-  const n1 = (v) => v.toFixed(1);
-  let marks = '';
-  for (let i = 0; i <= N; i++) {
-    const f = i / N;
-    const major = i % 5 === 0;
-    const [x1, y1] = pt(ang(f), R);
-    const [x2, y2] = pt(ang(f), R - (major ? 18 : 11));
-    const lit = f <= fs + 1e-9 ? (f <= fp + 1e-9 ? 'on' : 'ahead') : 'off';
-    marks += `<line class="in-dial__m in-dial__m--${lit}${major ? ' is-major' : ''}" style="--i:${i}" x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}"/>`;
-  }
-  const [nx1, ny1] = pt(ang(fs), R + 5);
-  const [nx2, ny2] = pt(ang(fs), R - 26);
-  const [z0x, z0y] = pt(ang(0), R - 36);
-  const [z1x, z1y] = pt(ang(1), R - 36);
-  const paced = !(x.finished || !(x.limit > 0));
-  const total = x.limit > 0 ? formatRupees(x.limit) : '';
-  return `<svg class="in-dial${x.closedUnder ? ' in-dial--closed' : ''}" data-limit="${x.limit > 0 ? x.limit : ''}" data-pace="${paced ? x.pace : ''}" data-spent="${x.spent}" style="--lit:${Math.round(fs * N)}" viewBox="0 0 326 236" role="img" aria-label="${formatRupees(x.spent)} spent${x.limit > 0 ? ` of ${total}` : ''}${paced ? `, an even pace would be ${formatRupees(x.pace)} by now` : ''}">
-      ${marks}
-      <line class="in-dial__needle" x1="${n1(nx1)}" y1="${n1(ny1)}" x2="${n1(nx2)}" y2="${n1(ny2)}"/>
-      <text class="in-dial__end" x="${n1(z0x)}" y="${n1(z0y + 22)}" text-anchor="middle">₹0</text>
-      ${total ? `<text class="in-dial__end" x="${n1(z1x)}" y="${n1(z1y + 22)}" text-anchor="middle">${total}</text>` : ''}
-      <text class="in-dial__cap" x="${cx}" y="${cy - 46}" text-anchor="middle">LEFT TO SPEND</text>
-      <text class="in-dial__fig${negative ? ' is-negative' : ''}" data-roll-kind="left" data-roll="${x.left}" data-roll-key="${x.rollKey}" x="${cx}" y="${cy + 8}" text-anchor="middle">${formatRupees(x.left)}</text>
-      <text class="in-dial__sub" x="${cx}" y="${cy + 32}" text-anchor="middle">${x.limit > 0 ? `${formatRupees(x.spent)} spent of ${total}` : `${formatRupees(x.spent)} spent`}</text>
-    </svg>`;
-}
-
-export function instrumentTop(f, status, month) {
-  const x = topFigures(f);
-  const hero = `<div class="tl-hero in-hero ${f.free < 0 ? 'is-negative' : ''}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
-      <div class="tl-top"><span class="tl-k">Budget dial</span><span class="tl-period">${x.period}</span></div>
-      ${instrumentDial(x, f.free < 0)}
-      ${x.finished || !(x.limit > 0) ? (x.closedUnder ? `<p class="in-legend in-legend--closed">Closed <b>${formatRupees(x.leftOver)}</b> under budget</p>` : '') : `<p class="in-legend">Even pace by today <b>${formatRupees(x.pace)}</b></p>`}
-      <p class="in-status ${tone(f)}"><span class="in-led"></span><span data-status>${escapeHtml(status)}</span></p>
-      <div class="tl-stats">
-        <div><span class="tl-k">Spent</span><b>${formatRupees(x.spent)}</b></div>
-        <div><span class="tl-k">Budget</span><b>${formatRupees(x.limit)}</b></div>
-        <div><span class="tl-k">${x.finished ? 'Days' : 'A day'}</span><b>${x.finished ? x.monthDays : x.perDay > 0 ? formatRupees(x.perDay) : '-'}</b></div>
-      </div>
-      ${x.asideUsed != null ? `<div class="tl-prog tl-prog--aside"><i style="width:${pct(x.asideUsed)}"></i><span><span>Set aside used</span><span data-fillcount>${formatRupees(x.asideSpent)} of ${formatRupees(x.asideTotal)}</span></span></div>` : ''}
-    </div>`;
-  return tactileTop(f, status, month, hero);
-}
-
 /* --- Charts: each card as yours, owed by the company and planned (5.28) --- */
 // Charts used to show the cards as columns of amounts only. It now says what the other looks
 // say, in rows, with the same words.

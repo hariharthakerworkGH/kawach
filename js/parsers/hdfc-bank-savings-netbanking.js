@@ -12,6 +12,7 @@
 // with narration continuing both before AND after the numbers line. A
 // single forward pass tracks whatever's "open" and attaches trailing
 // continuation lines to whichever row was most recently completed.
+import { toNumber } from '../format.js';
 export const id = 'hdfc-bank-savings-netbanking';
 export const accountType = 'bank';
 export const issuerLabel = 'HDFC Bank';
@@ -172,8 +173,4 @@ function toIsoDate2(dd, mm, yy) {
 function toIsoDate4(ddmmyyyy) {
   const [dd, mm, yyyy] = ddmmyyyy.split('/');
   return `${yyyy}-${mm}-${dd}`;
-}
-
-function toNumber(str) {
-  return parseFloat(str.replace(/,/g, ''));
 }

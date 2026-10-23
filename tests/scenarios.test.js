@@ -13,7 +13,7 @@ import { syncNow, getSyncConfig, getSyncPassphrase, turnOnGoogleSync } from '../
 import { setBackupPassphrase, backUpToDrive, listBackups, SYNC_FILE } from '../js/drive.js';
 import { encryptPayload, decryptPayload, exportEncrypted, decryptBackup, restoreBackup } from '../js/backup.js';
 import { takenHome, categoriesFor } from '../js/business.js';
-import { notesFor, popupNotes, POPUP_MAX } from '../js/whats-new.js';
+import { notesFor, filterNotes, popupNotes, POPUP_MAX } from '../js/whats-new.js';
 import { isSetAside } from '../js/commitments.js';
 import { matchCategoryForDescription, learnFromAssignment, applyLearnedCategories, incomeSpendCount, fixIncomeSpends } from '../js/merchant-rules.js';
 import { APP_VERSION } from '../js/version.js';
@@ -951,14 +951,19 @@ test('salary and a new business: nothing added from it until there are three mon
 });
 
 test("What's new shows only the notes that fit, from versions not yet seen", () => {
-  const titles = (profile, since) => notesFor(profile, since).flatMap((n) => n.items.map((i) => i.title));
+  const notes = [
+    { version: '5.2', items: [{ title: 'Business categories', for: (p) => p.business }, { title: 'For everyone' }] },
+    { version: '5.1', items: [{ title: 'Pension news', for: (p) => p.main === 'pension' }] },
+  ];
+  const titles = (profile, since) => filterNotes(notes, profile, since).flatMap((n) => n.items.map((i) => i.title));
   const pensioner = { main: 'pension', business: false, side: false };
   const shopkeeper = { main: 'business', business: true, side: false };
   ok(!titles(pensioner, '1.10').includes('Business categories'), 'no business news for a pensioner');
   ok(titles(shopkeeper, '1.10').includes('Business categories'), 'business news for a shopkeeper');
-  // Nothing new since the version they last saw. Read from APP_VERSION so a
-  // release bump doesn't fail a test that is about the filtering, not the number.
-  equal(titles(pensioner, APP_VERSION), []);
+  equal(titles(pensioner, '5.1'), ['For everyone'], 'only versions after the one last seen');
+  equal(titles(pensioner, '5.2'), [], 'nothing new since the latest');
+  // The real list: nothing new since the running version.
+  equal(notesFor(pensioner, APP_VERSION), []);
 });
 
 

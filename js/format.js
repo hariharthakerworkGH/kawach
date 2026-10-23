@@ -74,3 +74,8 @@ export function toPaise(str) {
   const [whole, frac = ''] = cleaned.split('.');
   return Number(whole) * 100 + Number((frac + '00').slice(0, 2));
 }
+
+// What a statement reader does with a figure it has already matched as a number ("1,234.50"): its paise, rounded. toPaise is for text of
+// unknown shape; toNumber is the same figure as a plain number.
+export const matchedPaise = (s) => Math.round(Number(String(s).replace(/,/g, '')) * 100);
+export const toNumber = (str) => parseFloat(str.replace(/,/g, ''));

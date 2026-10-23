@@ -9,6 +9,7 @@
 //
 // The PDF has Hindi and English side by side and the Hindi comes out of the
 // text layer as gibberish, so every pattern here keys off the English.
+import { matchedPaise } from '../format.js';
 export const id = 'epfo-passbook';
 export const accountType = 'pf';
 export const issuerLabel = 'EPFO';
@@ -24,7 +25,7 @@ export function detect(text) {
   return /EPF\s*Passbook/i.test(text) && /Member\s*ID/i.test(text);
 }
 
-const toPaise = (value) => (value == null ? null : Math.round(Number(String(value).replace(/,/g, '')) * 100));
+const toPaise = (value) => (value == null ? null : matchedPaise(value));
 const toIso = (dmy) => {
   const [d, m, y] = dmy.split(/[-/]/);
   return `${y}-${m}-${d}`;

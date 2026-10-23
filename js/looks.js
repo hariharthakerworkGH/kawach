@@ -13,8 +13,6 @@
 
 import { isDay, getPlace, nextChange } from './sun-moon.js';
 
-export const STYLES = [{ id: 'haven', name: 'Haven', ready: true, note: 'Calm and light, in day and night: a tide shows what is left.' }];
-
 // Ground, accent, second accent, money in: the four dots a swatch shows. Haven is light by day and dark by night; the other colourings
 // (Instrument's three, Ember dusk, Atelier and the rest) retired in 5.90 with Instrument.
 export const COLOURINGS = [
@@ -32,28 +30,22 @@ export function colouringFor(choice, prefersLight, style = 'haven', sunUp = true
   return byId.get(prefersLight ? 'haven-day' : 'haven-night');
 }
 
-/* Haven is the only style (Instrument retired in 5.90, Tactile and Charts in 5.57, Peaks and Mindora before): whatever was saved is Haven. */
-export function styleFor() {
-  return 'haven';
-}
-
 function prefersLight() {
   return Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
 }
 
 /* Puts a choice on <html>: the colouring, its light or dark, and the colour
  * the phone draws its own bar in. */
-export function applyColouring(choice, styleChoice = 'haven') {
-  const style = styleFor(styleChoice);
+export function applyColouring(choice) {
   const place = getPlace();
   const sunUp = choice === 'sun' ? isDay(Date.now(), place) : true;
-  const c = colouringFor(choice, prefersLight(), style, sunUp);
+  const c = colouringFor(choice, prefersLight(), 'haven', sunUp);
   // index.html paints the right colours before anything loads, from what the last run learnt: dark or light, and until when.
   if (choice === 'sun') {
     try { localStorage.setItem('kawach-sun-theme', JSON.stringify({ dark: !sunUp, until: nextChange(Date.now(), place) })); } catch { /* private window */ }
   }
   const root = document.documentElement;
-  root.setAttribute('data-style', style);
+  root.setAttribute('data-style', 'haven');
   root.setAttribute('data-colour', c.id);
   root.setAttribute('data-theme', c.mode);
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.setAttribute('content', c.bg);

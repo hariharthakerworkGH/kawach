@@ -68,7 +68,6 @@ function crossings(from, at, level, place) {
   return { rise, set };
 }
 export const sunTimes = (fromMs, place = getPlace()) => crossings(fromMs, sunAt, -0.833, place);
-export const moonTimes = (fromMs, place = getPlace()) => crossings(fromMs, moonAt, 0, place);
 
 // The next minute the app's day/night flips: the time to swap the colours, and what the page stores to paint the right ones before it loads.
 export function nextChange(ms, place = getPlace()) {
