@@ -306,9 +306,18 @@ Money is integer paise everywhere. Dates are local `YYYY-MM-DD` strings built wi
   a GitHub gist; the Google pass lasts an hour, and when it has run out as the
   app opens, app.js renews it once, silently (prompt=none).
 - `js/ca-export.js` "For your CA" in Settings: a month or a financial year
-  (April to March) as a spreadsheet of every payment and a report printed to
-  PDF (totals by space and category, loan interest and principal). Not
-  encrypted, and the screen says so.
+  (April to March) as a workbook and a PDF, laid out the way a return is
+  filled, not by Kawach's own categories: money in by kind (salary, interest,
+  dividends, rent, business, refunds and cashbacks, from people), payments
+  that may be deductions with the proof to ask for, loan interest and
+  principal, tax the person paid, rent, money sent to brokers, a business
+  month by month (bank or UPI against cash), balances on the last day, and a
+  ledger with a voucher type and bank reference for accounting software.
+  `js/tax-pack.js` does the sorting by the bank's own words; every guess says
+  "looks like". Kawach computes no tax and files nothing: the income tax
+  portal takes returns only from its own utility, and the Annual Information
+  Statement and Form 26AS (which the workbook says to get) are what a CA sets
+  it beside. Not encrypted, and the screen says so.
 - `js/views/*` one file per screen. `js/app.js` routes between them. Back, one
   press at a time: a screen's `onBack()` closes what is open on it; then to the
   top of the screen; then a tab goes to Summary and a screen opened from

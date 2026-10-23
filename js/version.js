@@ -10,12 +10,12 @@
 // The version people see, written the way apps are: 3.0, then 3.1 for
 // features, then 3.1.1 for a fix. No leading zeros, no third number until
 // there is a fix to number. Major (4.0) is the app rebuilt.
-export const APP_VERSION = '7.0';
+export const APP_VERSION = '7.1';
 
 // A counter one higher with every release, never shown. The offline copy is
 // named after it (CACHE_NAME in sw.js), so a newer download can be told from
 // the one running. IMPORTANT: bump BUILD and CACHE_NAME together.
-export const BUILD = 289;
+export const BUILD = 290;
 
 // What's running versus what's downloaded and waiting.
 //
@@ -50,6 +50,13 @@ export async function versionStatus(store = typeof caches === 'undefined' ? null
     cached,
     stale: cached != null && cached > BUILD,
   };
+}
+
+// The same look without waiting for the answer: a pull to refresh and coming back to the app use it, so a phone
+// still showing the old version picks up the new one (app.js reloads itself when the new worker takes over).
+export function pokeUpdate() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistration().then((reg) => reg && reg.update()).catch(() => {});
 }
 
 // Ask the browser to look for a new service worker right now, rather than

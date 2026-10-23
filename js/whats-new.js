@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.1',
+    items: [
+      {
+        icon: 'file',
+        title: "A file your CA can use",
+        text: "For your CA now follows how a return is filled: money in by kind (salary, interest, dividends, rent), payments that may be deductions with the proof to ask for, loan interest, tax you paid, rent, a business month by month, balances on the last day, and a ledger ready for accounting software. Pulling down to refresh also looks for a new version.",
+        guide: [{ view: 'settings', target: '#ca-xlsx', text: "Pick the year, tap Excel, and hand the file over with your Form 16 and the AIS from the tax portal." }],
+      },
+    ],
+  },
+  {
     version: '7.0',
     items: [
       {

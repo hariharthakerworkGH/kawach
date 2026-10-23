@@ -184,7 +184,7 @@ export async function render(container, params = {}) {
           <button type="button" class="k-btn k-btn--secondary" id="ca-xlsx">${icon('file')} Excel</button>
           <button type="button" class="k-btn k-btn--secondary" id="ca-pdf">${icon('file')} PDF</button>
         </div>
-        <p class="muted-note">Not locked with your passphrase. Share it only with your CA.</p>
+        <p class="muted-note">Income by kind, deductions, tax paid and every payment, sorted the way a return is. Not locked with your passphrase: share it only with your CA.</p>
       </div>
 
       <h3>Help</h3>

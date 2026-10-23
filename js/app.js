@@ -12,7 +12,7 @@ import { statementDayFixes } from './account-metrics.js';
 import { forgetOldUndo } from './import-safety.js';
 import { showToast } from './toast.js';
 import { setCustomStyles } from './category-style.js';
-import { versionStatus, APP_VERSION } from './version.js';
+import { versionStatus, APP_VERSION, pokeUpdate } from './version.js';
 import { fillIcons, icon } from './icons.js';
 import { redraw } from './redraw.js';
 import { isoLocal } from './frequency.js';
@@ -462,6 +462,7 @@ function wirePull() {
       !document.documentElement.classList.contains('is-locked') &&
       !document.querySelector('.dialog-backdrop, .lock, #month-sheet, #quick-sheet, #add-cat-sheet:not([hidden])'),
     refresh: async () => {
+      pokeUpdate();
       await runSync({ silent: true });
       const container = document.getElementById('view-container');
       const view = views[currentView];
@@ -597,7 +598,10 @@ function wireUpdateBanner() {
 
   // Returning to the app is a natural moment to have picked up a new version.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') showUpdateBannerIfStale();
+    if (document.visibilityState === 'visible') {
+      showUpdateBannerIfStale();
+      pokeUpdate();
+    }
   });
 }
 

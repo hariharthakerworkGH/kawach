@@ -2213,21 +2213,84 @@ test('for your CA: financial years, totals without money moved, and a spreadshee
     at += 30 + nameLen + size;
   }
   ok(['[Content_Types].xml', 'xl/workbook.xml', 'xl/styles.xml', 'xl/worksheets/sheet1.xml', 'xl/worksheets/sheet2.xml'].every((n) => entries[n]), 'every part Excel needs');
-  ok(entries['xl/workbook.xml'].includes('name="Summary"') && entries['xl/workbook.xml'].includes('name="Payments"'), 'two sheets');
-  const pay = entries['xl/worksheets/sheet2.xml'];
+  const pos = ['Start here', 'Income', 'Deductions and tax', 'Business', 'Year end', 'Spending', 'Ledger'].map((n) => entries['xl/workbook.xml'].indexOf(`name="${n}"`));
+  ok(pos.every((p, i) => p >= 0 && (!i || p > pos[i - 1])), 'the sheets, in the order a CA works through them');
+  const pay = entries['xl/worksheets/sheet7.xml'];
   ok(pay.includes(`<v>${excelDate('2026-05-05')}</v>`) && pay.includes('<v>20000</v>'), 'the rent: a real date and the number 20000');
   ok(pay.includes('<t xml:space="preserve">=cmd</t>') && !pay.includes('<f>=cmd'), 'a description starting with = is text, never a formula');
-  ok(pay.includes('SUMIF(H2:H5,"Yes",G2:G5)') && pay.includes('<pane ySplit="1"') && pay.includes('<autoFilter ref="A1:I5"/>'), 'totals that add only counted rows, a frozen header, a filter');
-  ok(entries['xl/worksheets/sheet1.xml'].includes('Kept (in less out)') && entries['xl/worksheets/sheet1.xml'].includes('The Shop'), 'the summary: by lane, kept');
+  ok(pay.includes('SUMIF(K2:K5,"Yes",G2:G5)') && pay.includes('<pane ySplit="1"') && pay.includes('<autoFilter ref="A1:L5"/>'), 'totals that add only counted rows, a frozen header, a filter');
+  ok(pay.includes('>Payment<') && pay.includes('>Receipt<') && pay.includes('>Contra<'), 'a voucher type on every row, a move between your accounts a contra');
+  ok(entries['xl/worksheets/sheet6.xml'].includes('Kept (in less out)') && entries['xl/worksheets/sheet6.xml'].includes('The Shop'), 'the spending sheet: by lane, kept');
+  ok(entries['xl/worksheets/sheet2.xml'].includes('Salary or pension') && entries['xl/worksheets/sheet1.xml'].includes('Assessment year 2027-28') && entries['xl/worksheets/sheet1.xml'].includes('AIS'), 'income by kind, the assessment year, and what is still to be got from the tax portal');
   equal(excelDate('2026-05-05') - excelDate('2026-05-04'), 1, 'a day is one');
   // The PDF: a header, the figures and a trailer whose offset points at the table.
   const pdf = new TextDecoder('latin1').decode(toPdf(report));
   ok(pdf.startsWith('%PDF-1.4') && pdf.trimEnd().endsWith('%%EOF'), 'a PDF');
   const xref = Number(pdf.match(/startxref\n(\d+)/)[1]);
   equal(pdf.slice(xref, xref + 4), 'xref', 'the table is where the trailer says');
-  ok(pdf.includes('Money for the financial year 2026-27') && pdf.includes('Rs 20,000') && pdf.includes('Page 1 of 1') && !pdf.includes('₹'), 'the figures in rupees as "Rs", never the sign the fonts lack');
+  ok(pdf.includes('Money for the financial year 2026-27') && pdf.includes('Rs 20,000') && /Page 1 of \d/.test(pdf) && !pdf.includes('₹'), 'the figures in rupees as "Rs", never the sign the fonts lack');
   equal(pdfSafe('₹5 – “x” 日'), 'Rs 5 - "x" ?', 'what the fonts cannot draw becomes ?');
   ok(textWidth('Money', 10) > 0 && wrap('one two three four five six seven', 40, 8, 2).length === 2 && wrap('one two three four five six seven', 40, 8, 2)[1].endsWith('...'), 'text is measured and wrapped, cut with dots when too long');
+});
+
+test('for your CA: money in by kind, payments that may be deductions, tax paid, cash in a business, year-end balances', () => {
+  const accounts = [
+    { id: 'h', label: 'HDFC', type: 'bank', knownBalance: 5000000, knownBalanceDate: '2026-04-01' },
+    { id: 'l', label: 'Home loan', type: 'loan', loan: { ratePct: 8, emi: 2000000 } },
+    { id: 'c', label: 'Card', type: 'card' },
+    { id: 's', label: 'Shop bank', type: 'bank', business: true, space: 'biz' },
+    { id: 'p', label: 'Provident fund', type: 'pf', knownBalance: 100000, knownBalanceDate: '2026-04-01' },
+  ];
+  const tx = (id, accountId, date, amount, direction, rawDescription, extra = {}) => ({ id, accountId, date, amount, direction, rawDescription, ...extra });
+  const categories = [{ id: 'inc', name: 'Income' }, { id: 'o', name: 'Other' }, { id: 'rt', name: 'House Rent' }];
+  const period = { id: 'fy-2026', label: 'Financial year 2026-27 so far', from: '2026-04-01', to: '2026-09-30' };
+  const report = buildCaReport({
+    transactions: [
+      tx('sal', 'h', '2026-04-30', 9000000, 'credit', 'NEFT CR-ACME LTD SALARY APR', { categoryId: 'inc' }),
+      tx('int', 'h', '2026-06-30', 120000, 'credit', 'CREDIT INTEREST CAPITALISED', { categoryId: 'inc' }),
+      tx('div', 'h', '2026-07-10', 40000, 'credit', 'ACH CR DIVIDEND INFY'),
+      tx('cb', 'c', '2026-05-02', 15000, 'credit', 'AMAZON REFUND'),
+      tx('cb2', 'h', '2026-05-03', 3000, 'credit', '10% CASHBACK', { categoryId: 'inc' }),
+      tx('gift', 'h', '2026-05-04', 7000000, 'credit', 'UPI-FRIEND', { personId: 'f' }),
+      tx('out1', 'h', '2026-06-01', 500000, 'debit', 'UPI-TO SAVINGS'),
+      tx('in1', 'c', '2026-06-02', 500000, 'credit', 'PAYMENT RECEIVED'),
+      tx('tax', 'h', '2026-06-15', 4000000, 'debit', 'ONLINE TAX PAYMENT CBDT ITNS 280'),
+      tx('ppf', 'h', '2026-06-20', 1000000, 'debit', 'PPF DEPOSIT SBI'),
+      tx('hlth', 'h', '2026-06-21', 2500000, 'debit', 'STAR HEALTH INSURANCE PREMIUM'),
+      tx('rent', 'h', '2026-06-22', 2500000, 'debit', 'UPI RENT TO LANDLORD', { categoryId: 'rt' }),
+      tx('zer', 'h', '2026-06-23', 300000, 'debit', 'UPI-ZERODHA BROKING LTD'),
+      tx('sale1', 's', '2026-07-05', 8000000, 'credit', 'UPI-CUSTOMER A'),
+      tx('sale2', 's', '2026-07-06', 2000000, 'credit', 'CASH DEPOSIT CDM'),
+      tx('gst', 's', '2026-07-20', 900000, 'debit', 'GST PAYMENT GSTN CHALLAN'),
+      tx('pf1', 'p', '2026-05-01', 4000000, 'credit', 'EPF contribution'),
+    ],
+    accounts,
+    categories,
+    people: [{ id: 'f', name: 'Friend' }],
+    businesses: [{ id: 'biz', name: 'The Shop' }],
+    recurring: [{ id: 'pol', source: 'fixed', label: 'Term cover', amount: 1200000, policy: { kind: 'term', payments: [{ date: '2026-06-10', amount: 1200000 }, { date: '2025-06-10', amount: 999 }] } }],
+    period,
+    today: '2026-10-24',
+  });
+  const head = (id) => report.rows.find((r) => r.t.id === id).head;
+  equal(['sal', 'int', 'div', 'cb', 'cb2', 'gift'].map(head), ['Salary or pension', 'Interest', 'Dividends', 'Refunds and cashbacks', 'Refunds and cashbacks', 'From people'], 'a word the bank writes beats the category it was filed under');
+  equal(['tax', 'ppf', 'hlth', 'gst', 'rent', 'zer', 'out1'].map(head), ['Income tax paid', 'Looks like 80C: Savings, life insurance or school fees', 'Looks like 80D: Health insurance', 'GST paid', 'Rent paid', 'Sent to shares or mutual funds', ''], 'tax paid, payments that look like deductions, rent and investments, and nothing else guessed');
+  equal([report.pack.rent.rows[0][2].paise, report.pack.invest.rows[0][2].paise], [2500000, 300000], 'rent paid and money sent to a broker, each as one line');
+  equal([head('in1'), head('sale1'), head('sale2')], ['Maybe moved between your accounts', 'Business receipts', 'Business receipts'], 'the same amount that left another account is shown apart, not as income');
+  const income = Object.fromEntries(report.pack.income.rows.map((r) => [r[0], r[2].paise]));
+  equal(income['Salary or pension'], 9000000, 'salary is the salary alone');
+  ok(!('Other money in' in income), 'nothing is left unsorted here');
+  equal(report.pack.income.total[2].paise, report.rows.filter((r) => r.moneyIn && !r.t.isTransfer && !r.bill).reduce((s, r) => s + r.moneyIn, 0), 'the kinds add up to the money in');
+  const proof = Object.fromEntries(report.pack.proofs.rows.map((r) => [r[0], r[2].paise]));
+  equal([proof['Looks like 80C: Savings, life insurance or school fees'], proof['Looks like 80D: Health insurance'], proof['Term cover (Term life)']], [1000000, 2500000, 1200000], 'deductions from narrations, and a policy as recorded for the year only');
+  equal(report.pack.paid.total[3].paise, 4900000, 'tax you paid yourself: income tax and GST');
+  const shop = report.pack.business[0];
+  equal([shop.rows[0][0], shop.rows[0][1].paise, shop.rows[0][2].paise, shop.cashShare], ['Jul 2026', 8000000, 2000000, 20], 'a business: bank or UPI money in apart from cash, and the share of cash');
+  const balance = Object.fromEntries(report.pack.balances.rows.map((r) => [r[0], r[2]]));
+  equal(balance.HDFC.paise, 5000000 + 16163000 - 10800000, 'the bank balance is the statement carried forward by what came in and went out');
+  equal(balance['Home loan'], 'ask the bank for its certificate', 'a loan with no statement figure says so rather than guessing');
+  equal(balance['Provident fund'].paise > 100000, true, 'the fund includes what was paid in');
+  ok(!('Card' in balance), 'a card owes the bank its own figure: not listed');
 });
 
 test('salary at a month\'s end: spotted in the last week, counted in the month it pays for once you say so', () => {
