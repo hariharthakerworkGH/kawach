@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '5.93',
+    items: [
+      {
+        icon: 'palette',
+        title: "How it looks fits one screen",
+        text: "Where you are, text size, motion, which screen Kawach opens on, and the order of lists, in one card. The colours are chosen with the half-moon button at the top of Summary.",
+      },
+    ],
+  },
+  {
     version: '5.92',
     items: [
       {

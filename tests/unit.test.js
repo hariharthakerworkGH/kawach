@@ -2506,3 +2506,39 @@ test('Kept back opened: one line for each set-aside with something left, most le
   ok(!html.includes('Gift <b>') && html.includes('Gift &lt;b&gt;'), 'a name is escaped');
   equal(keptBlock({ tracker: [t('Amazon Pay', 3000, 0, 'ok', 3000)] }), '', 'nothing left: no row');
 });
+
+/* --- How it looks (5.93): five things in one card, each saved the moment it is touched ------------------------------------------------- */
+import { render as renderLook } from '../js/views/appearance.js';
+test('How it looks: where you are, text size, motion, the opening screen and the three orders; a touch saves at once; no colours here', async () => {
+  const key = 'kawach-appearance';
+  const before = localStorage.getItem(key);
+  const box = document.createElement('div');
+  document.body.append(box);
+  try {
+    localStorage.removeItem(key);
+    await renderLook(box);
+    equal(box.querySelectorAll('.hl-group').length, 7, 'where, three rows of buttons, three orders');
+    for (const name of ['text', 'motion', 'opening']) {
+      const picked = [...box.querySelectorAll(`input[name="look-${name}"]:checked`)];
+      equal(picked.map((i) => i.value), [appearance(name)], `${name}: exactly one lit, the saved one`);
+    }
+    ok(!box.querySelector('input[name="look-colour"]'), 'the colours are chosen on Summary, not here');
+    ok(box.querySelector('#where-city') && box.querySelector('#where-device') && /Sunrise .* · sunset .* · moon \d+% lit/.test(box.querySelector('#where-line').textContent), 'the city, the location button and the sun line');
+    const large = box.querySelector('input[name="look-text"][value="large"]');
+    large.checked = true;
+    large.dispatchEvent(new Event('change', { bubbles: true }));
+    equal(appearance('text'), 'large', 'a touch is saved at once');
+    const still = box.querySelector('input[name="look-motion"][value="still"]');
+    still.checked = true;
+    still.dispatchEvent(new Event('change', { bubbles: true }));
+    equal(box.querySelector('#motion-note').textContent, 'Nothing moves.', 'motion says in one line what it does');
+    const plan = box.querySelector('select[data-look="plan"]');
+    plan.value = 'size';
+    plan.dispatchEvent(new Event('change', { bubbles: true }));
+    equal(appearance('plan'), 'size', 'an order list is saved too');
+  } finally {
+    if (before === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, before);
+    box.remove();
+  }
+});

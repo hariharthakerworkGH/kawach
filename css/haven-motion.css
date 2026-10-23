@@ -608,3 +608,23 @@ button.account-recent-row:active { background: var(--hv-hair); }
 .hv-kept__used > summary { list-style: none; font-size: 13px; padding: 4px 0 2px; color: var(--hv-link); cursor: pointer; min-height: 44px; display: flex; align-items: center; }
 .hv-kept__used > summary::-webkit-details-marker { display: none; }
 @media (prefers-reduced-motion: reduce) { .hv-kept__chev { transition: none; } }
+
+/* ---- How it looks (5.93): one card, five choices. A row of buttons is a radio group underneath; the label is the 44px target, the lit pill inside it 36 ---- */
+.hl-card { display: grid; padding: 2px 12px; border-radius: 16px; background: var(--hv-core); box-shadow: 0 0 0 1px var(--hv-hair); }
+.hl-card--in { margin-top: 6px; }
+.hl-group { display: grid; gap: 6px; padding: 10px 0; }
+.hl-group + .hl-group { border-top: 1px solid var(--hv-hair); }
+.hl-label { font-size: 13px; font-weight: 600; color: var(--hv-ink-2); }
+.hl-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border-radius: 13px; background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair); }
+.hl-opt { position: relative; display: grid; min-height: 44px; font-size: 14px; font-weight: 600; color: var(--hv-ink-2); cursor: pointer; }
+.hl-opt > span { display: grid; place-items: center; margin: 4px 3px; border-radius: 10px; }
+.hl-opt input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; }
+.hl-opt:has(input:checked) > span { background: var(--hv-primary); color: var(--hv-on-primary); }
+.hl-opt:has(input:focus-visible) > span { outline: 2px solid var(--hv-link); outline-offset: 1px; }
+.hl-note { margin: 0; font-size: 12px; color: var(--hv-ink-3); }
+.hl-where { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.hl-where .k-select, .hl-pick { min-height: 44px; border-radius: 11px; }
+.hl-btn { min-height: 44px; padding: 0 12px; border: 0; border-radius: 11px; background: var(--hv-core-2); box-shadow: 0 0 0 1px var(--hv-hair); color: var(--hv-ink); font: inherit; font-size: 14px; font-weight: 600; }
+.hl-fold { margin-top: 8px; }
+.hl-fold > summary { min-height: 44px; display: flex; align-items: center; color: var(--hv-ink-2); font-size: 14px; font-weight: 600; cursor: pointer; }
+.hl-where .k-select, .hl-pick { -webkit-appearance: none; appearance: none; padding-right: 34px; background-repeat: no-repeat !important; background-position: right 12px center !important; background-size: 14px !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a95a8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important; }

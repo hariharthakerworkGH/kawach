@@ -2456,25 +2456,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] { color-scheme: dark; }
 
-/* --- How it looks ---------------------------------------------------- */
-.look-card { padding: var(--k-2) var(--k-4) var(--k-4); }
-.look-q { margin: var(--k-3) 0 var(--k-2); }
-.look-option { display: flex; gap: var(--k-3); align-items: flex-start; padding: var(--k-3) 0; border-top: 1px solid var(--k-hairline); cursor: pointer; min-height: var(--k-tap); }
-.look-option:first-of-type { border-top: 0; }
-.look-option input { margin: 2px 0 0; width: 20px; height: 20px; flex: none; accent-color: var(--k-accent); }
-.look-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.look-label { color: var(--k-text); line-height: var(--k-lh-body); }
-.look-option.chosen .look-label { font-weight: 600; }
-
-/* The real component, shown at the size it will be. Nothing is scaled: a
-   shrunken screen reads as a different design, and the point is to show the
-   one you are choosing. */
-.look-preview { position: relative; margin-top: var(--k-4); padding: var(--k-4) var(--k-3) var(--k-3); border: 1px dashed var(--k-hairline); border-radius: var(--k-r-md); }
-.look-preview-tag { position: absolute; top: calc(var(--k-2) * -1); left: var(--k-3); padding: 0 var(--k-2); background: var(--k-surface); font-size: var(--k-caption); letter-spacing: var(--k-track-caption); text-transform: uppercase; color: var(--k-text-3); }
-.look-preview-inner > .hero { margin: 0; }
-.look-preview-inner .section-fold { margin-top: var(--k-3); }
-.look-live { margin-top: var(--k-4); }
-
 /* A balance the person has asked to keep off the glass. Same width as the
    figure it stands in for, so nothing shifts when it is uncovered. */
 .amount-covered { letter-spacing: 0.12em; color: var(--k-text-3); font-variant-numeric: tabular-nums; }
@@ -3071,12 +3052,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .ch-coming__t small { font-size: var(--k-label); color: var(--k-text-3); }
 .ch-coming__row b { font-weight: var(--k-w-label); font-variant-numeric: tabular-nums; color: var(--k-text); }
 .ch-coming__row b.is-late { color: var(--k-negative); }
-
-/* How it looks: a style is a centred pill (5.10). dna's .look-option (a
-   left-aligned row with a rule above it) was winning over the picker's own
-   grid, so the names sat off centre and at different heights. */
-.look-option.look-style { display: grid; place-items: center; align-content: center; text-align: center; min-height: 48px; padding: var(--k-2) var(--k-1); border-top: 0; }
-.look-option.look-swatch { border-top-width: 1px; }
 
 /* A fold with a count or a note: it sits at the right, by the chevron
    (5.10). The count and the chevron both pushed themselves right, split the

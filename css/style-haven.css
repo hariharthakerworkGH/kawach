@@ -65,8 +65,7 @@
 :root[data-style="haven"] .k .hero,
 :root[data-style="haven"] .k .empty-state,
 :root[data-style="haven"] .k .pl-top,
-:root[data-style="haven"] .k .coach-q,
-:root[data-style="haven"] .k .look-card {
+:root[data-style="haven"] .k .coach-q {
   background: linear-gradient(180deg, var(--hv-core), var(--hv-core-2));
   border: 0;
   border-radius: var(--hv-r-core);
