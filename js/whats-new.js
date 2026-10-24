@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.6',
+    items: [
+      {
+        icon: 'check',
+        title: "Read any day on the chart",
+        text: "Press and slide along the Summary chart: the day under your finger lights up and reads itself, so none is missed. Big days (an EMI or rent) are cut with a clear zigzag so every other day stays readable. The line is a smooth curve, small hatched bars stand on the line, and Latest shows four payments so More about this month is whole on screen.",
+        guide: [{ view: 'summary', target: '.lg-chart', text: "Press and slide along the chart to read each day." }],
+      },
+    ],
+  },
+  {
     version: '7.5',
     items: [
       {

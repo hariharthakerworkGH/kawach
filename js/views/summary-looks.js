@@ -391,29 +391,58 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
   const x = (i) => L + (i / Math.max(1, days - 1)) * iw;
   const top = Math.max(f.limit, ...tot) * 1.04;
   const y = (v) => base - (Math.max(0, v) / top) * ih;
-  const dayMax = Math.max(1, ...by.map((d) => (d.amount || 0) + (d.other || 0)));
-  const bh = (v) => (v / dayMax) * ih * 0.5;
-  const bw = Math.max(2, Math.min(7, (iw / days) * 0.55));
+  // The bars stand on the line and share one ceiling (the cap, a little above what most days reach): a day that goes past it is cut, with a
+  // zigzag top and a slanted gap across the bar, so one EMI or a big bill cannot flatten every other day. Drag across the chart for the true amount.
+  const zone = ih * 0.6;
+  const sums = by.map((d) => (d.amount || 0) + (d.other || 0)).filter((v) => v > 0).sort((p, q) => p - q);
+  const cap = sums.length >= 4 ? Math.max(1, sums[Math.floor(sums.length * 0.8)] * 1.5) : Math.max(1, ...sums);
+  const bw = Math.max(3, Math.min(8, (iw / days) * 0.6));
   const hid = `hh${(heroHatches += 1)}`;
-  const bars = by.map((d, i) => {
-    const a = d.amount || 0;
-    const o = d.other || 0;
-    const ha = bh(a);
-    const ho = bh(o);
-    return `${a > 0 ? `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${(base - ha).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1.5, ha).toFixed(1)}" rx="1.5" fill="rgba(127,235,221,.5)"/>` : ''}${o > 0 ? `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${(base - ha - ho).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(2, ho).toFixed(1)}" rx="1.5" fill="url(#${hid})" stroke="#F4B541" stroke-width=".7"/>` : ''}`;
-  }).join('');
+  const ZZ = 6.5; // the zigzag's depth: deep enough to read as a break at a glance
+  const MINT = 'rgba(127,235,221,.55)';
+  const HATCH = `url(#${hid})`;
+  // One block of a bar: from `bottom` up `h`; its top a zigzag when it is cut. A break (the slanted gap) is drawn across a cut block.
+  const block = (cx, bottom, h, fill, edge, cut) => {
+    const l = cx - bw / 2;
+    const q = bw / 6; // three teeth across the top
+    const t = bottom - h;
+    const teeth = `l${q.toFixed(1)} ${-ZZ} l${q.toFixed(1)} ${ZZ} `.repeat(3);
+    const shape = cut
+      ? `<path d="M${l.toFixed(1)} ${bottom.toFixed(1)} V${(t + ZZ).toFixed(1)} ${teeth}V${bottom.toFixed(1)} Z" fill="${fill}"${edge || ' stroke="rgba(255,255,255,.55)" stroke-width=".6" stroke-linejoin="round"'}/>`
+      : `<rect x="${l.toFixed(1)}" y="${t.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${fill}"${edge}/>`;
+    // the break: a slanted gap across the bar, in the card's own colour, a little below the teeth
+    const gap = cut ? `<line x1="${(l - 1.4).toFixed(1)}" y1="${(t + ZZ + 7).toFixed(1)}" x2="${(l + bw + 1.4).toFixed(1)}" y2="${(t + ZZ + 3).toFixed(1)}" stroke="rgba(10,24,60,.95)" stroke-width="2.2"/>` : '';
+    return shape + gap;
+  };
   const day = (iso) => {
     const p = Object.fromEntries(new Intl.DateTimeFormat('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }).formatToParts(new Date(`${iso}T12:00:00`)).map((q) => [q.type, q.value]));
     return `${p.weekday} ${p.day} ${p.month}`;
   };
-  // A tap on a day reads it; the columns are invisible and as wide as the day.
-  const colW = iw / Math.max(1, days - 1);
-  const hits = by.map((d, i) => {
-    const say = `${day(d.date)} · ${money(d.amount || 0)}${d.other > 0 ? ` and ${money(d.other)} not from the budget` : ''}`;
-    return `<rect class="hit" x="${(x(i) - colW / 2).toFixed(1)}" y="${T}" width="${colW.toFixed(1)}" height="${ih}" fill="transparent" data-t="${escapeHtml(say)}"/>`;
+  const bars = by.map((d, i) => {
+    const a = d.amount || 0;
+    const o = d.other || 0;
+    const cx = x(i);
+    // a small amount is drawn at least 1.5px (2px hatched) high; the top comes from the height drawn, so every bar stands on the line
+    const hA = a > 0 ? Math.max(1.5, (Math.min(a, cap) / cap) * zone) : 0;
+    const cutA = a > cap;
+    let drawn = a > 0 ? block(cx, base, cutA ? zone : hA, MINT, '', cutA) : '';
+    if (o > 0 && !cutA) {
+      const room = zone - hA;
+      const want = Math.max(2, (o / cap) * zone);
+      const cutO = want > room;
+      drawn += block(cx, base - hA, cutO ? Math.max(2, room) : want, HATCH, ' stroke="#F4B541" stroke-width=".7"', cutO);
+    }
+    const say = `${day(d.date)} · ${money(a)}${o > 0 ? ` and ${money(o)} not from the budget` : ''}`;
+    return `<g class="b" data-x="${cx.toFixed(1)}" data-y="${y(tot[Math.min(i, tot.length - 1)]).toFixed(1)}" data-t="${escapeHtml(say)}">${drawn}</g>`;
   }).join('');
   const pts = tot.map((v, i) => [x(i), y(v)]);
-  const line = pts.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)} ${b.toFixed(1)}`).join(' ');
+  // a curve, not a polyline: each stretch leaves and arrives level (as in "More about this month"), so it never overshoots a day's value
+  const line = pts.reduce((d, [px, py], i) => {
+    if (!i) return `M${px.toFixed(1)} ${py.toFixed(1)}`;
+    const [qx, qy] = pts[i - 1];
+    const m = (px - qx) / 2;
+    return `${d} C${(qx + m).toFixed(1)} ${qy.toFixed(1)} ${(px - m).toFixed(1)} ${py.toFixed(1)} ${px.toFixed(1)} ${py.toFixed(1)}`;
+  }, '');
   const [tx, ty] = pts[pts.length - 1];
   const area = `${line} L${tx.toFixed(1)} ${base} L${pts[0][0].toFixed(1)} ${base} Z`;
   let dot;
@@ -425,7 +454,7 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
     dot = `<g transform="translate(${tx.toFixed(1)} ${ty.toFixed(1)}) scale(.3)${sh.flip ? ' scale(-1 1)' : ''}"><circle r="22" fill="rgba(188,204,255,.18)"/><circle r="20" fill="#27305a"/><path d="${sh.d}" fill="#EEF2FF"/></g>`;
   }
   const first = by.length ? Number(String(by[0].date).slice(8)) : 1;
-  return `<div class="lg-chartbox"><svg class="lg-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(`This month so far: ${money(tot[tot.length - 1])} spent, against an even pace of ${money(Math.round((f.limit * tot.length) / days))}. Tap a day to read it.`)}">
+  return `<div class="lg-chartbox"><svg class="lg-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(`This month so far: ${money(tot[tot.length - 1])} spent, against an even pace of ${money(Math.round((f.limit * tot.length) / days))}. Press and slide along it to read each day.`)}">
     <defs><pattern id="${hid}" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" fill="rgba(244,181,65,.14)"/><rect width="1.6" height="4" fill="#F4B541"/></pattern></defs>
     <line x1="${L}" y1="${base}" x2="${W - R}" y2="${base}" stroke="rgba(255,255,255,.25)"/>
     ${bars}
@@ -433,7 +462,7 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
     <path d="${area}" fill="rgba(63,216,198,.2)"/><path d="${line}" fill="none" stroke="#7FEBDD" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
     <line x1="${tx.toFixed(1)}" y1="${ty.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${base}" stroke="rgba(255,255,255,.35)" stroke-dasharray="2 3"/>${dot}
     <text x="${L}" y="${H - 3}" font-size="10" fill="rgba(255,255,255,.6)">${first}</text><text x="${W - R}" y="${H - 3}" font-size="10" text-anchor="end" fill="rgba(255,255,255,.6)">${days}</text>
-    ${hits}</svg><p class="lg-chartread" hidden aria-live="polite"></p></div>`;
+    <line class="lg-guide" y1="${T}" y2="${base}" stroke="#fff" stroke-width="1" opacity="0"/><circle class="lg-pickdot" r="4" fill="#fff" opacity="0"/></svg><p class="lg-chartread" hidden aria-live="polite"></p></div>`;
 }
 
 // What a payment's tile is tinted: the gem number of its category, in the Ledger's five tones.
@@ -559,8 +588,8 @@ export function havenTop(f, status, month, extra = {}) {
     }));
   }
 
-  // Five, so "More about this month" is whole on the screen below them.
-  const latest = (extra.latest || []).slice(0, 5);
+  // Four, so "More about this month" is whole on the screen below them (with the bigger chart there is less room than there was).
+  const latest = (extra.latest || []).slice(0, 4);
   // A row opens in place into its details (js/haven-life.js); "See in History" is the way on.
   const payRow = (p) => `<div class="hv-lp"><button type="button" class="lg-row" data-morph aria-expanded="false">${lgIco(p.category || p.title)}<span class="n">${escapeHtml(p.title)}<i>${escapeHtml(p.category)}</i></span><span class="amt hv-amt${p.credit ? ' in' : ''}">${p.credit ? '+' : '−'}${money(p.amount)}</span></button><div class="hv-lp__d"><div class="hv-lp__in"><span>${p.credit ? 'Paid into' : 'Paid from'} <b>${escapeHtml(p.account || 'an account')}</b> · ${escapeHtml(p.meta.replace(/^[^·]*· /, ''))}</span><button type="button" class="lg-btn sm s" data-open-hist="${escapeHtml(p.title)}">See in History</button></div></div></div>`;
   const tabOn = short ? 'todo' : 'latest';

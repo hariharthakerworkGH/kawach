@@ -24,18 +24,56 @@ export function wireHaven(root) {
   });
   root.querySelectorAll('.hv-chartwrap').forEach(scrub);
   wireTabs(root);
-  // a tap on a day of the hero's chart reads that day for a few seconds
+  // Press and slide along the hero's chart to read the day under the finger (a tap reads one day): a line and a dot follow it, the day's bar
+  // lights up and one line above says what it was. The nearest day always wins, so none can be missed. Vertical scrolling is left to the page.
   if (!root.dataset.chartWired) {
     root.dataset.chartWired = '1';
-    root.addEventListener('click', (e) => {
-      const hit = e.target.closest?.('.lg-chart .hit');
-      if (!hit) return;
-      const read = hit.closest('.lg-chartbox').querySelector('.lg-chartread');
-      read.textContent = hit.dataset.t;
+    const scrub = (svg, clientX) => {
+      const r = svg.getBoundingClientRect();
+      const u = ((clientX - r.left) / r.width) * svg.viewBox.baseVal.width;
+      const days = [...svg.querySelectorAll('g.b')];
+      let best = null;
+      let gap = Infinity;
+      for (const g of days) {
+        const d = Math.abs(Number(g.dataset.x) - u);
+        if (d < gap) { gap = d; best = g; }
+      }
+      if (!best) return;
+      const box = svg.closest('.lg-chartbox');
+      const read = box.querySelector('.lg-chartread');
+      if (svg._at !== best) { if (svg._at) navigator.vibrate?.(3); svg._at = best; }
+      days.forEach((g) => g.setAttribute('opacity', g === best ? '1' : '0.35'));
+      const guide = svg.querySelector('.lg-guide');
+      const dot = svg.querySelector('.lg-pickdot');
+      guide.setAttribute('x1', best.dataset.x); guide.setAttribute('x2', best.dataset.x); guide.setAttribute('opacity', '0.8');
+      dot.setAttribute('cx', best.dataset.x); dot.setAttribute('cy', best.dataset.y); dot.setAttribute('opacity', '1');
+      read.textContent = best.dataset.t;
       read.hidden = false;
-      clearTimeout(read._t);
-      read._t = setTimeout(() => { read.hidden = true; }, 4000);
+      clearTimeout(svg._t);
+    };
+    const release = (svg) => {
+      svg._t = setTimeout(() => {
+        svg._at = null;
+        svg.querySelectorAll('g.b').forEach((g) => g.removeAttribute('opacity'));
+        svg.querySelector('.lg-guide')?.setAttribute('opacity', '0');
+        svg.querySelector('.lg-pickdot')?.setAttribute('opacity', '0');
+        const read = svg.closest('.lg-chartbox')?.querySelector('.lg-chartread');
+        if (read) read.hidden = true;
+      }, 1800);
+    };
+    root.addEventListener('pointerdown', (e) => {
+      const svg = e.target.closest?.('svg.lg-chart');
+      if (!svg) return;
+      svg.setPointerCapture?.(e.pointerId);
+      scrub(svg, e.clientX);
     });
+    root.addEventListener('pointermove', (e) => {
+      const svg = e.target.closest?.('svg.lg-chart');
+      if (svg && (e.buttons || e.pointerType === 'mouse')) scrub(svg, e.clientX);
+    });
+    for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
+      root.addEventListener(type, (e) => { const svg = e.target.closest?.('svg.lg-chart'); if (svg) release(svg); }, true);
+    }
   }
   lifeDraw(root);
   afterDraw(root);

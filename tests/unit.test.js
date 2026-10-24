@@ -2242,11 +2242,22 @@ test('the hero chart: a bar for each day, hatching for money not from the budget
     daysToClose: 29,
   };
   const svg = heroChart(f, true);
-  equal((svg.match(/class="hit"/g) || []).length, 3, 'one place to tap for each day');
+  equal((svg.match(/<g class="b"/g) || []).length, 3, 'a group for each day, the nearest to a finger is the one read');
   ok(svg.includes('url(#hh') && svg.includes('stroke-dasharray="4 4"'), 'hatched bars, and the dashed pace line');
   ok(svg.includes('Fri 2 Oct') && svg.includes('not from the budget'), 'a tapped day reads its date and the hatched part');
   equal((svg.replace(/<title>[\s\S]*?<\/title>/g, '').match(/<text[^>]*>[^<]*<\/text>/g) || []).length, 2, 'two words on the chart: the first and last day');
   equal(heroChart({ ...f, limit: 0 }, true), '', 'no budget, no chart');
+  // every bar, even a tiny one, stands on the line: no bar's foot is lower than the line
+  const big = { ...f, spendByDay: [{ date: '2026-10-01', amount: 0, other: 6800000 }, { date: '2026-10-02', amount: 20000, other: 150 }, { date: '2026-10-03', amount: 40, other: 900 }] };
+  const baseY = Number((heroChart(big, true).match(/<line x1="6" y1="([\d.]+)"/) || [])[1]);
+  const feet = [...heroChart(big, true).matchAll(/<rect x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="([\d.]+)" rx="1.5"/g)].map((m) => Number(m[1]) + Number(m[2]));
+  ok(baseY > 0 && feet.length >= 4 && feet.every((foot) => foot <= baseY + 0.06), `a bar's foot sank below the line: ${JSON.stringify({ baseY, feet })}`);
+  // one huge day (an EMI) is cut with a zigzag top and a slanted gap, and does not flatten the ordinary days
+  const six = { ...f, spendDays: [100, 300, 450, 570, 750, 820], daysIntoCycle: 6, spendByDay: [100, 200, 150, 120, 180, 70].map((a, i) => ({ date: `2026-10-0${i + 1}`, amount: a * 100, other: i === 0 ? 6800000 : 0 })) };
+  const cutSvg = heroChart(six, true);
+  ok((cutSvg.match(/l[\d.]+ -6\.5/g) || []).length === 3 && cutSvg.includes('rgba(10,24,60,.95)'), 'the day that passes the ceiling is cut: a zigzag top and a gap');
+  const heights = [...cutSvg.matchAll(/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)" rx="1.5" fill="rgba\(127/g)].map((m) => Number(m[1]));
+  ok(heights.length === 6 && Math.min(...heights) > 6, `ordinary days stay readable beside the big one: ${JSON.stringify(heights)}`);
 });
 
 test('a payment moved to another account keeps its category unless that account cannot use it', () => {
