@@ -7,6 +7,12 @@ const GAP = 2;
 const TONES = ['#4B7BE5', '#3FD8C6', '#F4B541', '#62E3A5', '#FF8080'];
 const OTHER = '#8392AD';
 const inr = (paise) => `₹${Math.round(Math.abs(paise) / 100).toLocaleString('en-IN')}`;
+// The middle of the ring: the amount, shrunk until it fits the hole (about 62px) whatever its length: ₹2,73,170 is wider than ₹66,197.
+const mid = (paise, label) => {
+  const text = inr(paise);
+  const em = [...text].reduce((w, c) => w + (c === ',' ? 0.3 : 0.62), 0);
+  return `<b style="font-size:${Math.max(10, Math.min(16, 62 / em)).toFixed(1)}px">${text}</b><span>${label}</span>`;
+};
 const colourOf = (s, i) => (s.other ? OTHER : TONES[Math.min(i, TONES.length - 1)]);
 
 // slices: [{ name, amount (paise), icon (svg markup) }], biggest first; at most five, the rest gathered as "Other".
@@ -35,7 +41,7 @@ export function ringHtml(slices, income = 0) {
     off += len;
   });
   const money = income > 0 ? `<div class="lg-lin"><span>In</span><b>+${inr(income)}</b></div>` : '';
-  return `<div class="hv-ring__wrap" data-total="${total}"><svg class="hv-ring__svg" viewBox="0 0 104 104" width="104" height="104" role="img" aria-label="Where this month's spending went">${track}${arcs}</svg><div class="hv-ring__mid" aria-live="polite"><b>${inr(total)}</b><span>spent</span></div></div><div class="lg-legend">${rows}${money}</div>`;
+  return `<div class="hv-ring__wrap" data-total="${total}"><svg class="hv-ring__svg" viewBox="0 0 104 104" width="104" height="104" role="img" aria-label="Where this month's spending went">${track}${arcs}</svg><div class="hv-ring__mid" aria-live="polite">${mid(total, 'spent')}</div></div><div class="lg-legend">${rows}${money}</div>`;
 }
 
 export function wireRing(root, slices) {
@@ -44,15 +50,11 @@ export function wireRing(root, slices) {
   wrap.dataset.wired = '1';
   const total = slices.reduce((s, x) => s + x.amount, 0);
   if (!total) return;
-  const mid = wrap.querySelector('.hv-ring__mid');
+  const middle = wrap.querySelector('.hv-ring__mid');
   let pick = -1;
   const paint = () => {
     root.querySelectorAll('.hv-ring__arc, .hv-ring__badge').forEach((a) => { a.classList.toggle('dim', pick >= 0 && +a.dataset.i !== pick); a.classList.toggle('on', +a.dataset.i === pick); });
-    if (pick < 0) mid.innerHTML = `<b>${inr(total)}</b><span>spent</span>`;
-    else {
-      const s = slices[pick];
-      mid.innerHTML = `<b>${inr(s.amount)}</b><span>${esc(s.name)}</span>`;
-    }
+    middle.innerHTML = pick < 0 ? mid(total, 'spent') : mid(slices[pick].amount, esc(slices[pick].name));
   };
   root.addEventListener('click', (e) => {
     const t = e.target.closest('[data-i]');

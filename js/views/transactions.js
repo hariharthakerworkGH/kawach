@@ -23,7 +23,7 @@ import { looksLikeCardPayment, cashSide, spendMoves, moveWord } from '../transfe
 import { bankBalance, balanceAt } from '../account-metrics.js';
 import { isoLocal } from '../frequency.js';
 import { icon } from '../icons.js';
-import { categoriesFor, activeSpace, accountInSpace, isBusinessAccount } from '../business.js';
+import { categoriesFor, activeSpace, accountInSpace, isBusinessAccount, moveToAccount } from '../business.js';
 import { sortCommitments, sortAccounts, sortCategories, usageCounts } from '../list-order.js';
 import { tidyFlags } from '../reimbursable.js';
 import { inOutBars, cashRiver } from '../charts.js';
@@ -901,6 +901,14 @@ function expandedTemplate(t) {
                   ${categoryOptions(t.categoryId, fits)}
                 </select>`
         }
+        ${
+          // A move between your own accounts has two ends: its account is not changed from here.
+          t.isTransfer
+            ? ''
+            : `<select class="hist-catsel" data-field="accountId" aria-label="Paid from or into">
+                ${cache.accounts.filter((a) => a.type !== 'loan' && a.type !== 'pf' || a.id === t.accountId).map((a) => `<option value="${a.id}" ${a.id === t.accountId ? 'selected' : ''}>${escapeHtml(a.label)}</option>`).join('')}
+              </select>`
+        }
         <div class="hist-edit__pair">
           <input type="date" class="rv-field" data-field="date" value="${t.date}" aria-label="Date">
           <input type="time" class="rv-field" data-field="time" value="${timeValue}" aria-label="Time of day">
@@ -1188,6 +1196,19 @@ async function handleChange(e, container) {
   if (field === 'categoryId') {
     if (e.type !== 'change') return;
     await setCategory(t, e.target.value || null, container, rowEl);
+    return;
+  }
+
+  if (field === 'accountId') {
+    if (e.type !== 'change') return;
+    const account = cache.accounts.find((a) => a.id === e.target.value);
+    if (!account || account.id === t.accountId) return;
+    const moved = moveToAccount(t, account, cache.categories);
+    const lostCategory = Boolean(t.categoryId) && !moved.categoryId;
+    Object.assign(t, moved);
+    await save(t);
+    showToast(lostCategory ? `Moved to ${account.label}. Pick a category: this account has its own` : `Moved to ${account.label}`);
+    renderList(container);
     return;
   }
 

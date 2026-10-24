@@ -19,7 +19,8 @@ import { pfPosition, isPfAccount } from './pf.js';
 // The order a return follows, with the line a CA reads beside each.
 export const INCOME_HEADS = [
   { name: 'Salary or pension', hint: 'Set beside Form 16 and the employer lines in the Annual Information Statement (AIS)' },
-  { name: 'Interest', hint: 'Set beside the interest in AIS and the banks\' interest certificates' },
+  { name: 'Interest: savings account', hint: 'Set beside the interest in AIS. Up to Rs 10,000 of it is deductible under 80TTA' },
+  { name: 'Interest: deposits', hint: 'Set beside the deposit interest in AIS and the banks\' interest certificates' },
   { name: 'Dividends', hint: 'Set beside the dividend lines in AIS' },
   { name: 'Rent received', hint: 'Income from house property' },
   { name: 'Business receipts', hint: 'Business or profession: see the Business sheet' },
@@ -46,7 +47,7 @@ export function incomeHead(r) {
   const d = r.description || '';
   if (r.t.personId) return 'From people';
   if (RE.taxRefund.test(d)) return 'Income tax refund';
-  if (RE.interest.test(d)) return 'Interest';
+  if (RE.interest.test(d)) return r.accountType === 'savings' || /\b(fd|td|rd|mod|deposit)\b/i.test(d) ? 'Interest: deposits' : 'Interest: savings account';
   if (RE.dividend.test(d)) return 'Dividends';
   if (RE.refund.test(d) || r.accountType === 'card') return 'Refunds and cashbacks';
   if (r.lane !== 'Home') return 'Business receipts';
@@ -106,7 +107,7 @@ const monthLabel = (ym) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 
 /* Everything the workbook and the PDF need beyond the plain list of payments. `rows` are the report's rows (each
  * carries `head`, set here), `recurring` the commitments (policies live on them), `period` and `today` as elsewhere.
  * A table is { title, note, head: [..], rows: [[..]], total } whose cells are text, a count (number) or { paise }. */
-export function buildTaxPack({ rows, accounts, transactions, recurring = [], period, today, loans = [] }) {
+export function buildTaxPack({ rows, accounts, transactions, recurring = [], period, today, loans = [], lanes = [] }) {
   const moves = lookLikeMoves(rows);
   for (const r of rows) {
     r.head = r.t.isTransfer || r.bill ? '' : r.moneyIn ? (moves.has(r) ? 'Maybe moved between your accounts' : incomeHead(r)) : outHead(r);
@@ -182,25 +183,33 @@ export function buildTaxPack({ rows, accounts, transactions, recurring = [], per
   };
 
   // A business, month by month: the figures that decide which return and whether the books need an audit.
-  const lanes = [...new Set(counted.map((r) => r.lane))].filter((l) => l !== 'Home');
-  const business = lanes.map((lane) => {
+  const laneNames = [...new Set(counted.map((r) => r.lane))].filter((l) => l !== 'Home');
+  const business = laneNames.map((lane) => {
     const mine = counted.filter((r) => r.lane === lane);
-    const months = [...new Set(mine.map((r) => r.date.slice(0, 7)))].sort();
+    const sentHome = rows.filter((r) => r.lane === lane && r.t.isTransfer && r.moneyOut);
+    const months = [...new Set([...mine, ...sentHome].map((r) => r.date.slice(0, 7)))].sort();
     const cashIn = (r) => r.moneyIn && (r.accountType === 'cash' || RE.cashIn.test(r.description || ''));
     const body = months.map((m) => {
       const x = mine.filter((r) => r.date.startsWith(m));
       const cash = sum(x.filter(cashIn), (r) => r.moneyIn);
-      return [monthLabel(m), { paise: sum(x, (r) => r.moneyIn) - cash }, { paise: cash }, { paise: sum(x, (r) => r.moneyOut) }, { paise: sum(x.filter((r) => r.head === 'GST paid'), (r) => r.moneyOut) }];
+      return [monthLabel(m), { paise: sum(x, (r) => r.moneyIn) - cash }, { paise: cash }, { paise: sum(x, (r) => r.moneyOut) }, { paise: sum(sentHome.filter((r) => r.date.startsWith(m)), (r) => r.moneyOut) }, { paise: sum(x.filter((r) => r.head === 'GST paid'), (r) => r.moneyOut) }];
     });
     const col = (k) => body.reduce((s, b) => s + b[k].paise, 0);
     const received = col(1) + col(2);
+    const outBy = (lanes.find((l) => l.name === lane) || { outBy: [] }).outBy;
     return {
       title: `${lane}: month by month`,
-      note: 'Money in is split into bank or UPI and cash because a presumptive return (44AD) treats the two differently, and the share of cash decides audit limits. Money moved home or between accounts is left out.',
-      head: ['Month', 'Money in: bank or UPI', 'Money in: cash', 'Money out', 'GST paid'],
+      note: 'Money in is what reached the bank. Where a client cut tax at source (TDS) the full amount is on your invoice and in Form 26AS. It is split into bank or UPI and cash because a presumptive return treats the two differently and the share of cash decides audit limits. "Taken home" is money moved to your own accounts, which a CA books as drawings.',
+      head: ['Month', 'Money in: bank or UPI', 'Money in: cash', 'Money out', 'Taken home', 'GST paid'],
       rows: body,
-      total: ['Total', { paise: col(1) }, { paise: col(2) }, { paise: col(3) }, { paise: col(4) }],
+      total: ['Total', { paise: col(1) }, { paise: col(2) }, { paise: col(3) }, { paise: col(4) }, { paise: col(5) }],
       cashShare: received ? Math.round((col(2) / received) * 1000) / 10 : 0,
+      expenses: {
+        title: `${lane}: money out by category`,
+        note: 'Your own categories: a CA groups them into the expense heads of the books (telephone, travel, stationery and so on).',
+        head: ['Category', 'Amount'],
+        rows: outBy.map((o) => [o.name, { paise: o.amount }]),
+      },
     };
   });
 
@@ -240,5 +249,6 @@ export const STILL_TO_GET = [
   ['Share and mutual fund statements', 'The broker\'s or fund house\'s profit and loss statement: Kawach does not see what is bought or sold.'],
   ['Rent receipts and landlord details', 'For house rent allowance, when rent is paid.'],
   ['Insurance, donation and school fee receipts', 'For anything claimed as a deduction.'],
-  ['GST returns and invoices', 'Kawach has no invoices: for a registered business the CA files from the invoices.'],
+  ['Invoices, and Form 26AS for a business', 'Kawach has no invoices. The gross amount billed, the tax clients cut (TDS) and, for a GST-registered business, the GST returns come from them.'],
+  ['What you own and owe', 'Property, gold, vehicles, furniture, money clients owe you, money you owe others: a CA needs them for a balance sheet. Kawach knows only bank, deposit, loan and provident fund balances.'],
 ];

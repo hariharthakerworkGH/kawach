@@ -124,7 +124,7 @@ export function buildCaReport({ transactions, accounts, categories, people = [],
     })
     .filter((l) => l.count > 0);
 
-  const pack = buildTaxPack({ rows, accounts, transactions, recurring, period, today, loans });
+  const pack = buildTaxPack({ rows, accounts, transactions, recurring, period, today, loans, lanes: laneList });
   return { period, made: today, rows, lanes: laneList, loans, pack, moved: rows.filter((r) => r.t.isTransfer).reduce((s, r) => s + r.moneyIn + r.moneyOut, 0) };
 }
 
@@ -185,7 +185,7 @@ export function toXlsx(report) {
 
   sheets.push({ name: 'Income', rows: [...tableRows(pack.income, 4), ...report.lanes.flatMap((l) => [[{ v: `${l.name}: money in less money out`, s: 'bold' }, '', { v: (l.moneyIn - l.moneyOut) / 100, s: 'money' }]])], widths: [38, 10, 20, 90], grid: false });
   sheets.push({ name: 'Deductions and tax', rows: [...tableRows(pack.proofs, 5), ...tableRows(pack.loans, 5), ...tableRows(pack.paid, 5), ...tableRows(pack.rent, 5), ...tableRows(pack.invest, 5)], widths: [48, 16, 20, 20, 70], grid: false });
-  if (pack.business.length) sheets.push({ name: 'Business', rows: pack.business.flatMap((b) => [...tableRows(b, 5), [{ v: `Cash was ${b.cashShare}% of the money in.`, s: 'bold' }], []]), widths: [16, 24, 20, 20, 16], grid: false });
+  if (pack.business.length) sheets.push({ name: 'Business', rows: pack.business.flatMap((b) => [...tableRows(b, 6), [{ v: `Cash was ${b.cashShare}% of the money in.`, s: 'bold' }], [], ...tableRows(b.expenses, 6)]), widths: [24, 24, 20, 20, 18, 14], grid: false });
   sheets.push({ name: 'Year end', rows: tableRows(pack.balances, 3), widths: [34, 60, 22], grid: false });
 
   const spend = [];
@@ -251,7 +251,7 @@ export function toPdf(report) {
   }
   y += 6;
   // The tax pack, a table at a time: the first column is text, the others are counts, money or short text.
-  const tables = [report.pack.income, report.pack.proofs, report.pack.loans, report.pack.paid, report.pack.rent, report.pack.invest, ...report.pack.business, report.pack.balances];
+  const tables = [report.pack.income, report.pack.proofs, report.pack.loans, report.pack.paid, report.pack.rent, report.pack.invest, ...report.pack.business.flatMap((b) => [b, b.expenses]), report.pack.balances];
   for (const t of tables) {
     need(60);
     y += 8;

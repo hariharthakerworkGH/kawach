@@ -250,6 +250,8 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .lg-hero .tide { width: 38px; height: 45px; flex: none; cursor: default; }
 :root[data-style=haven] .lg-hero .tide:not([data-mood="watch"]):not([data-mood="low"]) { --hv-tide-a: #3FD8C6; --hv-tide-b: #7FEBDD; }
 :root[data-style=haven][data-theme="dark"] .lg-hero .tide svg { filter: none; }
+/* the water is cut to the shield by clip-path; on a phone's graphics chip that cut was lost while the screen was pulled down (the water showed as a teal block), so the svg's own edge cuts it too */
+:root[data-style=haven] .lg-hero .tide svg { overflow: hidden; }
 :root[data-style=haven] .lg-hero .sub { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: rgba(255, 255, 255, 0.76); margin-top: 4px; min-height: 22px; }
 :root[data-style=haven] .lg-hero .sub b { color: #fff; font-weight: 650; }
 :root[data-style=haven] .lg-hero .lg-tag { flex: none; background: rgba(255, 255, 255, 0.14); color: #fff; }
@@ -581,7 +583,7 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .lg-ringcard .hv-ring__arc.on { stroke-width: 14; }
 :root[data-style=haven] .lg-ringcard .hv-ring__arc { cursor: pointer; transition: opacity 200ms; }
 :root[data-style=haven] .lg-ringcard .hv-ring__arc.dim { opacity: 0.3; }
-:root[data-style=haven] .lg-ringcard .hv-ring__mid { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 0; pointer-events: none; }
+:root[data-style=haven] .lg-ringcard .hv-ring__mid { position: absolute; inset: 0; padding: 0; display: grid; place-content: center; text-align: center; gap: 0; pointer-events: none; }
 :root[data-style=haven] .lg-ringcard .hv-ring__mid b { font-size: 16px; font-weight: 700; color: var(--lg-ink); letter-spacing: -0.01em; }
 :root[data-style=haven] .lg-ringcard .hv-ring__mid span { max-width: 62px; margin: 0 auto; font-size: 11px; line-height: 1.15; color: var(--lg-ink2); overflow-wrap: anywhere; }
 :root[data-style=haven] .lg-legend { display: grid; gap: 6px; font-size: 13px; min-width: 0; }
@@ -592,6 +594,7 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .lg-legend .hv-ring__badge > b { font-weight: 650; color: var(--lg-ink); }
 :root[data-style=haven] .lg-legend .hv-ring__badge.dim { opacity: 0.4; }
 :root[data-style=haven] .lg-legend .hv-ring__badge.on > span { color: var(--lg-ink); }
+:root[data-style=haven] .lg-legend .hv-ring__badge.on { transform: none; }
 :root[data-style=haven] .lg-lin { display: flex; justify-content: space-between; border-top: 1px solid var(--lg-line); padding-top: 6px; }
 :root[data-style=haven] .lg-lin span { color: var(--lg-ink2); }
 :root[data-style=haven] .lg-lin b { color: var(--lg-ok); font-weight: 650; }
@@ -714,6 +717,24 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .hist-row .hist-sub { flex: 1 1 auto; white-space: normal; overflow: visible; text-overflow: clip; }
 :root[data-style=haven] .lg-row .nm .m, :root[data-style=haven] .lg-acclist .account-row .k-row__meta { white-space: normal; overflow: visible; text-overflow: clip; }
 :root[data-style=haven] .k .attention-row .muted-note, :root[data-style=haven] .k .attention-row small { color: var(--lg-ink2); }
+/* More about this month: the older blocks inside the fold take the Ledger card (small radius, hairline, 15px headings) instead of their own big rounded shells */
+:root[data-style=haven] details.sum-more .hv-sec { padding: 6px 2px 6px; }
+:root[data-style=haven] details.sum-more .hv-sec h2, :root[data-style=haven] details.sum-more .summary-viz__head { font-size: 15px; font-weight: 650; letter-spacing: 0; }
+:root[data-style=haven] details.sum-more .hv-shell { padding: 0; border-radius: 12px; background: none; box-shadow: none; }
+:root[data-style=haven] details.sum-more .hv-shell > .hv-core { border-radius: 12px; box-shadow: 0 0 0 1px var(--lg-line); }
+:root[data-style=haven] details.sum-more .summary-viz { padding: 12px; border: 0; border-radius: 12px; background: var(--lg-s2); box-shadow: 0 0 0 1px var(--lg-line); }
+
+/* History: a payment opened for editing sits inside its card with the same 12px sides as the rows, fields stacked on one grid, the actions on a line of their own */
+:root[data-style=haven] .hist-row .txn-expanded { padding: 0 12px 12px; }
+:root[data-style=haven] .hist-row .hist-raw { margin: 10px 0; font-size: 12px; line-height: 1.35; color: var(--lg-ink3); overflow-wrap: anywhere; }
+:root[data-style=haven] .hist-row .hist-edit { gap: 8px; margin: 0; }
+:root[data-style=haven] .hist-row .hist-more > summary { display: flex; align-items: center; justify-content: space-between; min-height: 36px; padding: 0; font-size: 13px; font-weight: 600; color: var(--lg-ink2); }
+:root[data-style=haven] .hist-row .hist-more .field { display: grid; gap: 4px; margin: 6px 0 0; padding: 0; }
+:root[data-style=haven] .hist-row .hist-more .field > span { margin: 0; padding: 0; font-size: 12px; color: var(--lg-ink2); }
+:root[data-style=haven] .hist-row .hist-flag { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 0; padding: 0; font-size: 13px; color: var(--lg-ink2); }
+:root[data-style=haven] .hist-row .hist-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 12px -12px 0; padding: 8px 12px 0; border-top: 1px solid var(--lg-line); }
+:root[data-style=haven] .hist-row .hist-actions__more { display: flex; flex-wrap: wrap; align-items: center; gap: 0 14px; }
+
 /* 320 wide at the largest text: names wrap instead of being cut with an ellipsis */
 @media (max-width: 360px) {
   :root[data-style=haven] .lg-row .n, :root[data-style=haven] .lg-row .nm .n, :root[data-style=haven] .lg-months .n, :root[data-style=haven] .lg-m .cap { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }

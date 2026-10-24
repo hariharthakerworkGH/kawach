@@ -27,6 +27,10 @@ import { MIN_DAYS_FOR_PACE, addDays, dateOf, daysBetweenInclusive, trackCommitme
 //                     − payments that are one of the fixed commitments
 //   Left to spend     = budget − spent
 //
+// A payment out dated later in the same month (a bill logged before the day it is
+// taken) comes off "Left to spend" from the day it is recorded, as of today. Money in
+// is never counted ahead, and a payment dated in a later month waits for that month.
+//
 // Work costs you front (isReimbursable) are NOT spending. Money you will be
 // paid back is not money you spent, so a hotel for work that goes on your card
 // is shown, followed and put in the bank check, but never comes off "Left to
@@ -169,9 +173,15 @@ export async function computeFreeToSpend(now = new Date()) {
   // until you remove the copy (Summary offers to).
   const duplicates = findDuplicates(allTransactions);
   const duplicateIds = new Set(duplicates.map((t) => t.id));
-  const transactions = duplicateIds.size ? allTransactions.filter((t) => !duplicateIds.has(t.id)) : allTransactions;
+  const deduped = duplicateIds.size ? allTransactions.filter((t) => !duplicateIds.has(t.id)) : allTransactions;
 
   const today = isoLocal(now);
+  // A payment out that is dated later in this month than today (a bill logged the day before it is taken, an autopay
+  // the bank has announced) is money already spoken for: it comes off "Left to spend" from the moment it is recorded,
+  // as of today, while the payment keeps its own date everywhere else. Money in is never counted ahead, and a
+  // payment dated in a later month waits for that month.
+  const month = today.slice(0, 7);
+  const transactions = deduped.map((t) => (t.direction === 'debit' && t.date > today && t.date.slice(0, 7) === month ? { ...t, date: today } : t));
   // Cash as a pocket (js/cash.js): on from the day it first ran on this phone, so no month already worked out changes.
   const cashOn = Boolean(cashRuleFrom) && cashRuleFrom <= today;
   // A cost you will be refunded for (a hotel for work), and that refund
@@ -219,7 +229,7 @@ export async function computeFreeToSpend(now = new Date()) {
   // --- Bank ---------------------------------------------------------------
   const bankLines = [...bankAccounts, ...accounts.filter(isSweepDeposit)]
     .map((a) => {
-      const balance = bankBalance(a, transactions, today);
+      const balance = bankBalance(a, deduped, today); // a balance counts what has happened: a payment dated ahead is not out of the account yet
       if (balance == null) return null;
       const since = transactions.filter((t) => t.accountId === a.id && afterKnownBalance(a, t)).length;
       return { account: a, balance, asOf: a.knownBalanceDate, entriesSince: since };
@@ -994,7 +1004,7 @@ export async function computeFreeToSpend(now = new Date()) {
     cycleKey: spendEnd,
     unassignedCardPayments,
     // Bank spending and bank commitments run by the salary month.
-    savings: savingsAccounts.map((a) => ({ account: a, balance: bankBalance(a, transactions, today) })),
+    savings: savingsAccounts.map((a) => ({ account: a, balance: bankBalance(a, deduped, today) })),
     pf: pfAccounts.map((a) => ({ account: a, balance: pfPosition(a, transactions, today).balance })),
     loans: loanAccounts.map((a) => ({ account: a, ...loanPosition(a, transactions, today, loanAccounts) })),
     bankMonthStart: bankPeriod.start,
@@ -1017,7 +1027,7 @@ export async function computeFreeToSpend(now = new Date()) {
     // away would cover, for a month when little comes home.
     monthsCovered:
       bank != null && monthlyIncome && monthlyIncome - keep > 0
-        ? Math.floor((bank + savingsAccounts.reduce((s, a) => s + Math.max(0, bankBalance(a, transactions, today) || 0), 0)) / (monthlyIncome - keep))
+        ? Math.floor((bank + savingsAccounts.reduce((s, a) => s + Math.max(0, bankBalance(a, deduped, today) || 0), 0)) / (monthlyIncome - keep))
         : null,
     business: hasBusiness ? businessMonth(transactions, allAccounts, categories, today.slice(0, 7)) : null,
     budgetItems,

@@ -41,6 +41,22 @@ test('budget = salary − bank and card commitments − saving (cash comes out o
   paise(f.limit, rupees(100000 - 40000 - 20000 - 10000 - 649 - 5000));
 });
 
+test('a payment out dated later this month comes off Left to spend now; money in and next month wait', async () => {
+  await seedMonth();
+  await putAll('transactions', [
+    txn({ accountId: 'bank', date: '2026-09-05', amount: 450, rawDescription: 'UPI-CAFE-777777777777' }),
+    // Logged on the 16th for the 17th: a subscription the bank will take tomorrow, in no commitment of the plan.
+    txn({ accountId: 'bank', date: '2026-09-17', amount: 1499, rawDescription: 'Jio Hotstar' }),
+    // Next month's: not this month's money.
+    txn({ accountId: 'bank', date: '2026-10-02', amount: 700, rawDescription: 'UPI-LATER-888888888888' }),
+    // Money coming in is never counted before it lands.
+    txn({ accountId: 'bank', date: '2026-09-18', amount: 5000, direction: 'credit', rawDescription: 'UPI-REFUND-999999999999' }),
+  ]);
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  paise(f.spentThisCycle, rupees(450 + 1499));
+  paise(f.free, f.limit - rupees(450 + 1499));
+});
+
 test('with no commitments there is no budget figure, only the reminder to add them', async () => {
   await seedBasics();
   const f = await computeFreeToSpend(day('2026-09-16'));

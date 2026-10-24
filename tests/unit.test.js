@@ -50,7 +50,7 @@ import { displayName } from '../js/views/transactions.js';
 import { assignStyles } from '../js/category-style.js';
 import { searchWords, findCandidates } from '../js/category-match.js';
 import { acceptSignIn, hasGooglePass } from '../js/drive.js';
-import { businessRunway } from '../js/business.js';
+import { businessRunway, moveToAccount } from '../js/business.js';
 import { burnLine, inOutBars, categoryBars, runwayBar , allocationRing, radialMeter, cashRiver, tickGauge } from '../js/charts.js';
 import { shapeLike, moneyTone, rollFigures, fillBars, levelWatch, slidingPill, invalidField, monthSwap } from '../js/ui.js';
 import { showToast } from '../js/toast.js';
@@ -2233,6 +2233,20 @@ test('for your CA: financial years, totals without money moved, and a spreadshee
   ok(textWidth('Money', 10) > 0 && wrap('one two three four five six seven', 40, 8, 2).length === 2 && wrap('one two three four five six seven', 40, 8, 2)[1].endsWith('...'), 'text is measured and wrapped, cut with dots when too long');
 });
 
+test('a payment moved to another account keeps its category unless that account cannot use it', () => {
+  const home = { id: 'h', type: 'bank' };
+  const other = { id: 'o', type: 'card' };
+  const shop = { id: 's', type: 'bank', business: true, space: 'biz' };
+  const categories = [{ id: 'food', name: 'Food' }, { id: 'stock', name: 'Stock', scope: 'business' }];
+  const t = { id: 't1', accountId: 'h', categoryId: 'food', amount: 5000, direction: 'debit' };
+  equal(moveToAccount(t, other, categories).accountId, 'o', 'it is on the other account');
+  equal(moveToAccount(t, other, categories).categoryId, 'food', 'a home category stays on another home account');
+  equal(moveToAccount(t, shop, categories).categoryId, null, 'a home category does not follow it to a business account');
+  equal(moveToAccount({ ...t, accountId: 's', categoryId: 'stock' }, shop, categories).categoryId, 'stock', 'a business category stays on a business account');
+  equal(moveToAccount({ ...t, categoryId: null }, shop, categories).categoryId, null, 'no category stays none');
+  equal([t.accountId, t.categoryId], ['h', 'food'], 'the original is left alone');
+});
+
 test('for your CA: money in by kind, payments that may be deductions, tax paid, cash in a business, year-end balances', () => {
   const accounts = [
     { id: 'h', label: 'HDFC', type: 'bank', knownBalance: 5000000, knownBalanceDate: '2026-04-01' },
@@ -2262,6 +2276,7 @@ test('for your CA: money in by kind, payments that may be deductions, tax paid, 
       tx('sale1', 's', '2026-07-05', 8000000, 'credit', 'UPI-CUSTOMER A'),
       tx('sale2', 's', '2026-07-06', 2000000, 'credit', 'CASH DEPOSIT CDM'),
       tx('gst', 's', '2026-07-20', 900000, 'debit', 'GST PAYMENT GSTN CHALLAN'),
+      tx('home', 's', '2026-07-25', 1000000, 'debit', 'TO OWNER HDFC', { isTransfer: true }),
       tx('pf1', 'p', '2026-05-01', 4000000, 'credit', 'EPF contribution'),
     ],
     accounts,
@@ -2273,7 +2288,7 @@ test('for your CA: money in by kind, payments that may be deductions, tax paid, 
     today: '2026-10-24',
   });
   const head = (id) => report.rows.find((r) => r.t.id === id).head;
-  equal(['sal', 'int', 'div', 'cb', 'cb2', 'gift'].map(head), ['Salary or pension', 'Interest', 'Dividends', 'Refunds and cashbacks', 'Refunds and cashbacks', 'From people'], 'a word the bank writes beats the category it was filed under');
+  equal(['sal', 'int', 'div', 'cb', 'cb2', 'gift'].map(head), ['Salary or pension', 'Interest: savings account', 'Dividends', 'Refunds and cashbacks', 'Refunds and cashbacks', 'From people'], 'a word the bank writes beats the category it was filed under');
   equal(['tax', 'ppf', 'hlth', 'gst', 'rent', 'zer', 'out1'].map(head), ['Income tax paid', 'Looks like 80C: Savings, life insurance or school fees', 'Looks like 80D: Health insurance', 'GST paid', 'Rent paid', 'Sent to shares or mutual funds', ''], 'tax paid, payments that look like deductions, rent and investments, and nothing else guessed');
   equal([report.pack.rent.rows[0][2].paise, report.pack.invest.rows[0][2].paise], [2500000, 300000], 'rent paid and money sent to a broker, each as one line');
   equal([head('in1'), head('sale1'), head('sale2')], ['Maybe moved between your accounts', 'Business receipts', 'Business receipts'], 'the same amount that left another account is shown apart, not as income');
@@ -2285,7 +2300,8 @@ test('for your CA: money in by kind, payments that may be deductions, tax paid, 
   equal([proof['Looks like 80C: Savings, life insurance or school fees'], proof['Looks like 80D: Health insurance'], proof['Term cover (Term life)']], [1000000, 2500000, 1200000], 'deductions from narrations, and a policy as recorded for the year only');
   equal(report.pack.paid.total[3].paise, 4900000, 'tax you paid yourself: income tax and GST');
   const shop = report.pack.business[0];
-  equal([shop.rows[0][0], shop.rows[0][1].paise, shop.rows[0][2].paise, shop.cashShare], ['Jul 2026', 8000000, 2000000, 20], 'a business: bank or UPI money in apart from cash, and the share of cash');
+  equal([shop.rows[0][0], shop.rows[0][1].paise, shop.rows[0][2].paise, shop.rows[0][4].paise, shop.cashShare], ['Jul 2026', 8000000, 2000000, 1000000, 20], 'a business: bank or UPI money in apart from cash, what was taken home, and the share of cash');
+  equal(shop.expenses.rows.length >= 0 && shop.expenses.head[0], 'Category', 'and its money out by category, for the expense heads of the books');
   const balance = Object.fromEntries(report.pack.balances.rows.map((r) => [r[0], r[2]]));
   equal(balance.HDFC.paise, 5000000 + 16163000 - 10800000, 'the bank balance is the statement carried forward by what came in and went out');
   equal(balance['Home loan'], 'ask the bank for its certificate', 'a loan with no statement figure says so rather than guessing');

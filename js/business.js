@@ -145,6 +145,13 @@ export function categoriesFor(categories, account) {
   return categories.filter((c) => isBusinessCategory(c) === business);
 }
 
+// A payment saved to the wrong account, moved to the right one. Its category goes only if the new account cannot use it
+// (a home category on a business account or the other way round), so the row asks for one rather than counting under a heading that does not exist there.
+export function moveToAccount(t, account, categories) {
+  const fits = !t.categoryId || categoriesFor(categories, account).some((c) => c.id === t.categoryId);
+  return { ...t, accountId: account.id, categoryId: fits ? t.categoryId : null };
+}
+
 // What most small businesses spend on. Owners add their own beside these.
 const BUSINESS_CATEGORIES = [
   { id: 'cat-biz-stock', name: 'Stock and purchases' },

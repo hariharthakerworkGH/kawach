@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.2',
+    items: [
+      {
+        icon: 'check',
+        title: "Every rupee counted",
+        text: "A payment dated later this month now comes off Left to spend as soon as you record it. A payment opened in History can be moved to another account. The ring's amount fits its circle, the opened payment is laid out properly, the CA file now follows the business books (taken home, expenses, interest split), and the water in the shield no longer spills while you pull to refresh.",
+        guide: [{ view: 'transactions', target: '.hist-row', text: "Open a payment to change its amount, account, category or day." }],
+      },
+    ],
+  },
+  {
     version: '7.1',
     items: [
       {
