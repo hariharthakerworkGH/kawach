@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.5',
+    items: [
+      {
+        icon: 'check',
+        title: "Calm water, a fuller chart",
+        text: "The water in the shield is calm: no more bubbles. When you spend, the level drops and a little steam lifts off the surface. Summary shows the full month chart: a bar for each day, hatching for money that is not from your budget, the pace line, with hardly any words (tap a day to read it).",
+        guide: [{ view: 'summary', target: '.lg-chart', text: "Tap any day on the chart to read it." }],
+      },
+    ],
+  },
+  {
     version: '7.4',
     items: [
       {

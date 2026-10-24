@@ -376,19 +376,46 @@ export function weekRecap(f) {
   return { total, under: Math.round((f.limit * by.length) / D) - total, days: by.map((d) => d.amount || 0), big: { date: big.date, amount: big.amount || 0 }, from: by[0].date, to: by[by.length - 1].date };
 }
 
-/* The month as a small chart inside the hero (mockups/7.0-ledger): what was spent so far, the even pace, and today as the sun by day or the moon,
- * in its real phase, by night. Pure: it is drawn from figures free-to-spend.js already worked out. Exported for a test. */
+/* The month as a chart inside the hero (mockups/7.0-ledger/summary-chart.html, A): a bar for each day (the hatched part is money out that is not
+ * from the budget), what was spent so far as a line that fills, the even pace as a dashed line, and today as the sun by day or the moon, in its
+ * real phase, by night. It carries almost no words: the first and last day, and the day you tap, read under your finger. Pure: it is drawn
+ * from figures free-to-spend.js already worked out. Exported for a test. */
+let heroHatches = 0;
 export function heroChart(f, dark = document.documentElement.dataset.theme === 'dark') {
   const tot = f.spendDays || [];
   const days = monthLen(f);
   if (!(f.limit > 0) || !tot.length || !(days > 0)) return '';
-  const W = 334, H = 58, top = 4;
-  const x = (d) => (d / days) * W;
-  const y = (v) => H - 2 - (Math.min(Math.max(0, v), f.limit * 1.08) / f.limit) * (H - 2 - top);
-  const pts = tot.map((v, i) => [x(i + 1), y(v)]);
+  const by = f.spendByDay || [];
+  const W = 334, H = 128, L = 6, R = 6, T = 8, B = 16;
+  const iw = W - L - R, ih = H - T - B, base = T + ih;
+  const x = (i) => L + (i / Math.max(1, days - 1)) * iw;
+  const top = Math.max(f.limit, ...tot) * 1.04;
+  const y = (v) => base - (Math.max(0, v) / top) * ih;
+  const dayMax = Math.max(1, ...by.map((d) => (d.amount || 0) + (d.other || 0)));
+  const bh = (v) => (v / dayMax) * ih * 0.5;
+  const bw = Math.max(2, Math.min(7, (iw / days) * 0.55));
+  const hid = `hh${(heroHatches += 1)}`;
+  const bars = by.map((d, i) => {
+    const a = d.amount || 0;
+    const o = d.other || 0;
+    const ha = bh(a);
+    const ho = bh(o);
+    return `${a > 0 ? `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${(base - ha).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1.5, ha).toFixed(1)}" rx="1.5" fill="rgba(127,235,221,.5)"/>` : ''}${o > 0 ? `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${(base - ha - ho).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(2, ho).toFixed(1)}" rx="1.5" fill="url(#${hid})" stroke="#F4B541" stroke-width=".7"/>` : ''}`;
+  }).join('');
+  const day = (iso) => {
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }).formatToParts(new Date(`${iso}T12:00:00`)).map((q) => [q.type, q.value]));
+    return `${p.weekday} ${p.day} ${p.month}`;
+  };
+  // A tap on a day reads it; the columns are invisible and as wide as the day.
+  const colW = iw / Math.max(1, days - 1);
+  const hits = by.map((d, i) => {
+    const say = `${day(d.date)} · ${money(d.amount || 0)}${d.other > 0 ? ` and ${money(d.other)} not from the budget` : ''}`;
+    return `<rect class="hit" x="${(x(i) - colW / 2).toFixed(1)}" y="${T}" width="${colW.toFixed(1)}" height="${ih}" fill="transparent" data-t="${escapeHtml(say)}"/>`;
+  }).join('');
+  const pts = tot.map((v, i) => [x(i), y(v)]);
   const line = pts.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)} ${b.toFixed(1)}`).join(' ');
   const [tx, ty] = pts[pts.length - 1];
-  const area = `${line} L${tx.toFixed(1)} ${H} L${pts[0][0].toFixed(1)} ${H} Z`;
+  const area = `${line} L${tx.toFixed(1)} ${base} L${pts[0][0].toFixed(1)} ${base} Z`;
   let dot;
   if (!dark) {
     dot = `<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="10" fill="rgba(255,210,94,.22)"/><circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="5.2" fill="#FFD25E" stroke="#fff" stroke-opacity=".7" stroke-width="1"/>`;
@@ -397,11 +424,16 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
     const sh = moonPathD(moonAt(Date.now(), place.lat, place.lon).phase);
     dot = `<g transform="translate(${tx.toFixed(1)} ${ty.toFixed(1)}) scale(.3)${sh.flip ? ' scale(-1 1)' : ''}"><circle r="22" fill="rgba(188,204,255,.18)"/><circle r="20" fill="#27305a"/><path d="${sh.d}" fill="#EEF2FF"/></g>`;
   }
-  return `<svg class="lg-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(`Spent so far this month, against an even pace`)}">
-    <line x1="0" y1="${top}" x2="${W}" y2="${top}" stroke="rgba(255,255,255,.16)" stroke-dasharray="2 4"/>
-    <line x1="0" y1="${H - 2}" x2="${W}" y2="${top}" stroke="rgba(255,255,255,.55)" stroke-width="1.4" stroke-dasharray="4 4"/>
-    <path d="${area}" fill="rgba(63,216,198,.2)"/><path d="${line}" fill="none" stroke="#5BE6D5" stroke-width="2" stroke-linejoin="round"/>
-    <line x1="${tx.toFixed(1)}" y1="${ty.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${H}" stroke="rgba(255,255,255,.35)"/>${dot}</svg>`;
+  const first = by.length ? Number(String(by[0].date).slice(8)) : 1;
+  return `<div class="lg-chartbox"><svg class="lg-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(`This month so far: ${money(tot[tot.length - 1])} spent, against an even pace of ${money(Math.round((f.limit * tot.length) / days))}. Tap a day to read it.`)}">
+    <defs><pattern id="${hid}" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" fill="rgba(244,181,65,.14)"/><rect width="1.6" height="4" fill="#F4B541"/></pattern></defs>
+    <line x1="${L}" y1="${base}" x2="${W - R}" y2="${base}" stroke="rgba(255,255,255,.25)"/>
+    ${bars}
+    <line x1="${x(0).toFixed(1)}" y1="${y(0).toFixed(1)}" x2="${x(days - 1).toFixed(1)}" y2="${y(f.limit).toFixed(1)}" stroke="rgba(255,255,255,.7)" stroke-width="1.3" stroke-dasharray="4 4"/>
+    <path d="${area}" fill="rgba(63,216,198,.2)"/><path d="${line}" fill="none" stroke="#7FEBDD" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <line x1="${tx.toFixed(1)}" y1="${ty.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${base}" stroke="rgba(255,255,255,.35)" stroke-dasharray="2 3"/>${dot}
+    <text x="${L}" y="${H - 3}" font-size="10" fill="rgba(255,255,255,.6)">${first}</text><text x="${W - R}" y="${H - 3}" font-size="10" text-anchor="end" fill="rgba(255,255,255,.6)">${days}</text>
+    ${hits}</svg><p class="lg-chartread" hidden aria-live="polite"></p></div>`;
 }
 
 // What a payment's tile is tinted: the gem number of its category, in the Ledger's five tones.

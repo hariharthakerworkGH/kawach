@@ -249,7 +249,7 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .lg-hero .hv-fig { font-size: 48px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.02; }
 :root[data-style=haven] .lg-hero .hv-fig .hv-cur { font-size: 28px; font-weight: 600; opacity: 0.8; margin-right: 2px; letter-spacing: 0; vertical-align: baseline; }
 :root[data-style=haven] .lg-hero.is-negative .hv-num, :root[data-style=haven] .lg-hero.is-negative .hv-cur { color: #ffb4ad; }
-:root[data-style=haven] .lg-hero .tide { width: 38px; height: 45px; flex: none; cursor: default; }
+:root[data-style=haven] .lg-hero .tide { width: 48px; height: 57px; flex: none; cursor: default; margin-top: -4px; }
 :root[data-style=haven] .lg-hero .tide:not([data-mood="watch"]):not([data-mood="low"]) { --hv-tide-a: #3FD8C6; --hv-tide-b: #7FEBDD; }
 :root[data-style=haven][data-theme="dark"] .lg-hero .tide svg { filter: none; }
 /* the water is cut to the shield by clip-path; on a phone's graphics chip that cut was lost while the screen was pulled down (the water showed as a teal block), so the svg's own edge cuts it too */
@@ -262,7 +262,11 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .lg-hero .lg-tag.bad { background: rgba(255, 128, 128, 0.2); color: #FFB4AD; }
 :root[data-style=haven] .lg-hero .hv-vault__cap, :root[data-style=haven] .lg-hero .hv-vault__sleep { margin-top: 3px; font-size: 13px; color: rgba(255, 255, 255, 0.76); }
 :root[data-style=haven] .lg-hero .hv-vault__eve { display: none; }
-:root[data-style=haven] .lg-hero svg.lg-chart { display: block; width: 100%; height: 58px; margin-top: 8px; }
+:root[data-style=haven] .lg-hero .lg-chartbox { position: relative; margin-top: 8px; }
+:root[data-style=haven] .lg-hero svg.lg-chart { display: block; width: 100%; height: auto; }
+:root[data-style=haven] .lg-hero .lg-chart .hit { cursor: pointer; }
+:root[data-style=haven] .lg-hero .lg-chartread { position: absolute; left: 6px; top: 0; margin: 0; padding: 3px 8px; border-radius: 8px; background: rgba(8, 16, 40, 0.78); font-size: 12px; font-weight: 600; color: #fff; pointer-events: none; }
+:root[data-style=haven] .lg-hero .lg-chartread[hidden] { display: none; }
 :root[data-style=haven] .lg-hero .hv-kept { margin: 0; padding: 0; border-radius: 0; background: none; box-shadow: none; }
 :root[data-style=haven] .lg-hero .stats { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.13); }
 :root[data-style=haven] .lg-hero .stats > div { padding: 0 10px; min-width: 0; }

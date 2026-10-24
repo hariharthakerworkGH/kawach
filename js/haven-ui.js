@@ -24,6 +24,19 @@ export function wireHaven(root) {
   });
   root.querySelectorAll('.hv-chartwrap').forEach(scrub);
   wireTabs(root);
+  // a tap on a day of the hero's chart reads that day for a few seconds
+  if (!root.dataset.chartWired) {
+    root.dataset.chartWired = '1';
+    root.addEventListener('click', (e) => {
+      const hit = e.target.closest?.('.lg-chart .hit');
+      if (!hit) return;
+      const read = hit.closest('.lg-chartbox').querySelector('.lg-chartread');
+      read.textContent = hit.dataset.t;
+      read.hidden = false;
+      clearTimeout(read._t);
+      read._t = setTimeout(() => { read.hidden = true; }, 4000);
+    });
+  }
   lifeDraw(root);
   afterDraw(root);
   // the little bars grow in when they arrive

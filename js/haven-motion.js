@@ -266,7 +266,8 @@ function changeTag(tide, from, to, gone, delay = 0) {
   const paise = Math.abs(gone);
   if (!(paise >= 100)) return;
   const down = gone > 0;
-  const at = (lvl) => ((surfaceOf(lvl) - 8) / 86) * tide.clientHeight;
+  // The shield is 57px high (css/ledger.css). Its height is not known while the screen is still being drawn out of sight (0 then), and the tag and the steam sat at the top.
+  const at = (lvl) => ((surfaceOf(lvl) - 8) / 86) * (tide.clientHeight || 57);
   const tag = document.createElement('i');
   tag.className = `hv-drain${down ? '' : ' is-up'}`;
   tag.textContent = `${down ? '−' : '+'}₹${Math.round(paise / 100).toLocaleString('en-IN')}`;
@@ -281,6 +282,34 @@ function changeTag(tide, from, to, gone, delay = 0) {
     ],
     { duration: 1700, delay, easing: 'ease-out', fill: 'backwards' }
   ).onfinish = () => tag.remove();
+  if (down) steam(tide, c, paise, delay);
+}
+
+/* When money leaves, a little of the water lifts off the surface as steam: short curls that rise quickly and fade, more of them for a bigger spend
+ * (mockups/7.0-ledger/shield-vapor.html, C). Only then: the rest of the time the water is calm. `y` is where the surface now is, in pixels. */
+function steam(tide, y, paise, delay) {
+  const big = Math.min(1, paise / 300000);
+  const box = document.createElement('span');
+  box.className = 'hv-steam';
+  box.setAttribute('aria-hidden', 'true');
+  tide.append(box);
+  const curls = 2 + Math.round(big);
+  // it rises through the empty top of the shield and no further: the higher the water, the less room there is
+  const rise = Math.max(7, Math.min(16 + big * 4, y - 10));
+  let done = 0;
+  for (let i = 0; i < curls; i += 1) {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    c.setAttribute('viewBox', '0 0 10 14');
+    c.setAttribute('width', '8');
+    c.setAttribute('height', '11');
+    c.innerHTML = '<path d="M5 14 c-3 -2.4 3 -4.6 0 -7 c-2.2 -1.8 1.6 -3.4 0 -5" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>';
+    c.style.cssText = `position:absolute;left:${curls === 2 ? 36 + i * 22 : 30 + i * 20}%;top:${Math.max(0, y - 12)}px;opacity:0`;
+    box.append(c);
+    c.animate(
+      [{ transform: 'translateY(0)', opacity: 0 }, { opacity: 0.95, offset: 0.2 }, { transform: `translateY(-${rise}px)`, opacity: 0 }],
+      { duration: 700, delay: delay + 300 + i * 110, easing: 'cubic-bezier(.25,.6,.4,1)', fill: 'backwards' }
+    ).onfinish = () => { done += 1; if (done === curls) box.remove(); };
+  }
 }
 
 function settle(tide, lvl) {
@@ -747,18 +776,6 @@ function askTilt() {
   addEventListener('pointerdown', first, true);
 }
 
-/* Little bubbles rise in the water now and then (alive; one each beat, never when the screen is hidden or dozing). */
-function bubble() {
-  if (!alive() || document.hidden || root.hasAttribute('data-dozing')) return;
-  const tide = document.querySelector('[data-hv-summary] .hv-vault .tide');
-  if (!tide || (Number(tide.style.getPropertyValue('--lvl')) || 0) < 0.2) return;
-  const b = document.createElement('i');
-  b.className = 'hv-bub';
-  b.style.left = `${30 + Math.random() * 40}%`;
-  tide.append(b);
-  b.animate([{ transform: 'translateY(0)', opacity: 0.8 }, { transform: `translateY(-${20 + Math.random() * 30}px)`, opacity: 0 }], { duration: 1400 }).onfinish = () => b.remove();
-}
-
 /* ---- start ---------------------------------------------------------------------------------------------------- */
 let started = false;
 export function initMotion() {
@@ -778,7 +795,6 @@ export function initMotion() {
   document.addEventListener('pointerup', onFigureTap, { passive: true });
   try { if (sessionStorage.getItem('kawach-hide-fig')) root.setAttribute('data-hide-fig', ''); } catch { /* none */ }
   setInterval(() => eveLine(document.querySelector('.hv-vault')), 60000);
-  setInterval(bubble, 450);
 
   // Anything touched wakes it and starts the thirty seconds again.
   for (const t of ['pointerdown', 'keydown', 'wheel', 'touchstart']) addEventListener(t, awake, { passive: true });

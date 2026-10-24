@@ -23,7 +23,7 @@ import { forecast, costInMonth } from '../js/forecast.js';
 import { flexReport } from '../js/flex-report.js';
 import { flexCard } from '../js/views/recap.js';
 import { makeRecord, checkPin, waitFor, mustLock, makeKeyText, normaliseKey, formatKey, makeKeyRecord, checkKey } from '../js/lock.js';
-import { comingUp, keptBack, keptItems, keptBlock, topFigures, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts, longestAhead, monthStory, weekRecap } from '../js/views/summary-looks.js';
+import { comingUp, keptBack, keptItems, keptBlock, topFigures, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts, longestAhead, monthStory, weekRecap, heroChart } from '../js/views/summary-looks.js';
 import { festivalOn } from '../js/haven-motion.js';
 import { rupeeWords } from '../js/haven-life.js';
 import { shortRupees } from '../js/format.js';
@@ -2231,6 +2231,22 @@ test('for your CA: financial years, totals without money moved, and a spreadshee
   ok(pdf.includes('Money for the financial year 2026-27') && pdf.includes('Rs 20,000') && /Page 1 of \d/.test(pdf) && !pdf.includes('₹'), 'the figures in rupees as "Rs", never the sign the fonts lack');
   equal(pdfSafe('₹5 – “x” 日'), 'Rs 5 - "x" ?', 'what the fonts cannot draw becomes ?');
   ok(textWidth('Money', 10) > 0 && wrap('one two three four five six seven', 40, 8, 2).length === 2 && wrap('one two three four five six seven', 40, 8, 2)[1].endsWith('...'), 'text is measured and wrapped, cut with dots when too long');
+});
+
+test('the hero chart: a bar for each day, hatching for money not from the budget, a day to tap, and hardly any words', () => {
+  const f = {
+    limit: 3000000,
+    spendDays: [10000, 30000, 60000],
+    spendByDay: [{ date: '2026-10-01', amount: 10000, other: 0 }, { date: '2026-10-02', amount: 20000, other: 50000 }, { date: '2026-10-03', amount: 30000, other: 0 }],
+    daysIntoCycle: 3,
+    daysToClose: 29,
+  };
+  const svg = heroChart(f, true);
+  equal((svg.match(/class="hit"/g) || []).length, 3, 'one place to tap for each day');
+  ok(svg.includes('url(#hh') && svg.includes('stroke-dasharray="4 4"'), 'hatched bars, and the dashed pace line');
+  ok(svg.includes('Fri 2 Oct') && svg.includes('not from the budget'), 'a tapped day reads its date and the hatched part');
+  equal((svg.replace(/<title>[\s\S]*?<\/title>/g, '').match(/<text[^>]*>[^<]*<\/text>/g) || []).length, 2, 'two words on the chart: the first and last day');
+  equal(heroChart({ ...f, limit: 0 }, true), '', 'no budget, no chart');
 });
 
 test('a payment moved to another account keeps its category unless that account cannot use it', () => {
