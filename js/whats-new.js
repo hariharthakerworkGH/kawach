@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.2.1',
+    items: [
+      {
+        icon: 'check',
+        title: "Shield water fixed",
+        text: "The water in the shield no longer shows as a block while a screen refreshes (pull to refresh, Mark paid and the like).",
+      },
+    ],
+  },
+  {
     version: '7.2',
     items: [
       {

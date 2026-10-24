@@ -19,7 +19,22 @@ export async function redraw(container, draw) {
   // It has no id (that would clash with the real screen's), so the rules written for the screen's id also name this class.
   still.removeAttribute('id');
   still.classList.add('view-still');
-  still.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+  // An id inside a drawing (a clip, a gradient) is renamed, not dropped: the copy's shapes still point at it, and with it
+  // gone they pointed at the real screen's, which is hidden and draws nothing, so the shield's water showed as a block.
+  const drawn = new Map();
+  still.querySelectorAll('svg [id]').forEach((el) => {
+    drawn.set(el.id, `${el.id}-still`);
+    el.id = `${el.id}-still`;
+  });
+  for (const el of still.querySelectorAll('svg *')) {
+    for (const a of ['clip-path', 'mask', 'fill', 'stroke', 'filter']) {
+      const v = el.getAttribute(a);
+      if (v && v.includes('url(#')) el.setAttribute(a, v.replace(/url\(#([^)]+)\)/g, (m, id) => (drawn.has(id) ? `url(#${drawn.get(id)})` : m)));
+    }
+  }
+  still.querySelectorAll('[id]').forEach((el) => {
+    if (!el.closest('svg')) el.removeAttribute('id');
+  });
   for (const el of [still, ...still.querySelectorAll('*')]) el.style.viewTransitionName = '';
   still.setAttribute('aria-hidden', 'true');
   still.inert = true;
