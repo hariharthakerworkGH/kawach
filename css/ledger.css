@@ -303,14 +303,16 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .hv-lp__in { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 12px 10px 50px; font-size: 13px; color: var(--lg-ink2); }
 :root[data-style=haven] .hv-lp__in b { color: var(--lg-ink); font-weight: 600; }
 :root[data-style=haven] .lg-todo { padding: 0; }
-:root[data-style=haven] .lg-todo .todo-row, :root[data-style=haven] .lg-todo .need-row { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; min-height: 44px; padding: 2px 12px; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; text-align: left; font: inherit; color: var(--lg-ink); }
+:root[data-style=haven] .lg-todo .todo-row, :root[data-style=haven] .lg-todo .need-row { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; min-height: 44px; padding: 8px 12px; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; text-align: left; font: inherit; color: var(--lg-ink); }
 :root[data-style=haven] .lg-todo .todo-row + .todo-row::before, :root[data-style=haven] .lg-todo .need-row + .need-row::before { content: ""; position: absolute; left: 50px; right: 0; top: 0; height: 1px; background: var(--lg-line); }
 :root[data-style=haven] .lg-todo .todo-icon, :root[data-style=haven] .lg-todo .need-row__ic { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--lg-amber-soft); color: var(--lg-amber); }
 :root[data-style=haven] .lg-todo .todo-row.is-alert .todo-icon, :root[data-style=haven] .lg-todo .todo-row.bill-overdue .todo-icon { background: var(--lg-coral-soft); color: var(--lg-coral); }
 :root[data-style=haven] .lg-todo .todo-icon svg, :root[data-style=haven] .lg-todo .need-row__ic svg { width: 16px; height: 16px; }
 :root[data-style=haven] .lg-todo .todo-text, :root[data-style=haven] .lg-todo .need-row__t { display: block; min-width: 0; font-size: 14px; font-weight: 600; }
-:root[data-style=haven] .lg-todo .todo-text > span:first-child { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-:root[data-style=haven] .lg-todo .todo-text .muted-note { display: none; margin: 0; font-size: 12px; font-weight: 400; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-todo .todo-text > span:first-child { display: block; overflow-wrap: anywhere; }
+:root[data-style=haven] .lg-todo .todo-text .muted-note { display: block; margin: 2px 0 0; font-size: 12px; line-height: 1.35; font-weight: 400; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-todo .attention-actions .icon-btn { position: relative; display: grid; place-items: center; width: 36px; height: 36px; border: 0; background: none; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-todo .attention-actions .icon-btn::after { content: ""; position: absolute; inset: -4px; }
 :root[data-style=haven] .lg-todo .todo-row.is-alert .muted-note, :root[data-style=haven] .lg-todo .todo-row.is-soon .muted-note, :root[data-style=haven] .lg-todo .todo-row.bill-overdue .muted-note, :root[data-style=haven] .lg-todo .todo-row.bill-urgent .muted-note { display: block; }
 :root[data-style=haven] .lg-todo .attention-actions { display: flex; align-items: center; gap: 6px; }
 :root[data-style=haven] .lg-todo .btn-tiny, :root[data-style=haven] .lg-todo select.assign-card, :root[data-style=haven] .lg-todo .btn-secondary { position: relative; height: 36px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); color: var(--lg-ink); font: inherit; font-size: 14px; font-weight: 600; }

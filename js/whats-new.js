@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.3.1',
+    items: [
+      {
+        icon: 'check',
+        title: "To do says what to do",
+        text: "Each thing under To do now says what it is and what to do about it in full words: no cut-off names, a line of why, and unusual spends listed plainly with a See it button and a tick-off cross.",
+      },
+    ],
+  },
+  {
     version: '7.3',
     items: [
       {

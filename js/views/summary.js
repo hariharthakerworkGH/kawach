@@ -1833,7 +1833,7 @@ async function renderAttention(container, transactions, fts = null) {
         : ''
       : safety.ok || isDemo()
         ? ''
-        : todo(icon('backup'), safety.daysUnprotected == null ? 'No backup yet' : `No backup for ${safety.daysUnprotected} days`, '', '<button type="button" class="btn-tiny primary" id="go-backup-btn">Back up</button>'),
+        : todo(icon('backup'), safety.daysUnprotected == null ? 'No backup yet' : `No backup for ${safety.daysUnprotected} days`, 'Your data lives only on this phone', '<button type="button" class="btn-tiny primary" id="go-backup-btn">Back up</button>'),
     ...cardPayments.map((p) =>
       todo(
         icon('card'),
@@ -1844,7 +1844,7 @@ async function renderAttention(container, transactions, fts = null) {
     ),
     ...sameAccounts.map((group) => todo(icon('copy'), `${group.length} accounts for ••${escapeHtml(group[0].last4)}`, 'Delete one on Cards so it isn\'t counted twice', '', 'bill-overdue')),
     duplicates.length ? todo(icon('copy'), `${duplicates.length} payment${duplicates.length === 1 ? '' : 's'} saved twice`, 'Already left out of every figure', '<button type="button" class="btn-tiny primary" id="remove-duplicates-btn">Remove</button>') : '',
-    alertsWaiting > 0 ? todo(icon('inbox'), `${alertsWaiting} bank alert${alertsWaiting === 1 ? '' : 's'} to check`, '', '<button type="button" class="btn-tiny primary" id="go-inbox-btn">Check</button>') : '',
+    alertsWaiting > 0 ? todo(icon('inbox'), `${alertsWaiting} bank alert${alertsWaiting === 1 ? '' : 's'} to check`, 'Bank messages waiting to be added as payments', '<button type="button" class="btn-tiny primary" id="go-inbox-btn">Check</button>') : '',
     ...dueCards.map(({ account, bill }) =>
       todo(icon('bill'), `${escapeHtml(account.label)} - ${formatRupees(bill.amount)}`, bill.daysLeft < 0 ? `Overdue by ${Math.abs(bill.daysLeft)}d` : bill.daysLeft === 0 ? 'Due today' : `Due in ${bill.daysLeft}d`, `<button type="button" class="btn-tiny mark-paid" data-id="${account.id}">Mark paid</button>`, bill.daysLeft <= 0 ? 'bill-overdue' : 'bill-urgent')
     ),
@@ -1856,7 +1856,7 @@ async function renderAttention(container, transactions, fts = null) {
       ? todo(
           icon('tag'),
           `${uncategorized.length} need${uncategorized.length === 1 ? 's' : ''} a category`,
-          '',
+          'Pick one for each so your totals are right',
           `${autoSortable > 0 ? `<button type="button" class="btn-tiny primary" id="auto-sort-btn">Sort ${autoSortable}</button>` : ''}<button type="button" class="btn-tiny" id="go-transactions-btn">Open</button>`
         )
       : '',
@@ -1886,27 +1886,18 @@ async function renderAttention(container, transactions, fts = null) {
     el.innerHTML = '';
     return;
   } else el.innerHTML = `
-    ${sectionHead('To do')}
-    <div class="totals-card todo-list">
+    <div class="todo-list">
       ${rows.join('')}
-      ${
-        unusual.length
-          ? `<details class="todo-more">
-              <summary>${unusual.length} unusual spend${unusual.length === 1 ? '' : 's'}</summary>
-              ${unusual
-                .map(
-                  (a) => `<div class="todo-row">
-                    <span class="todo-text"><span>${escapeHtml(a.transaction.rawDescription.slice(0, 36))} · ${formatCurrency(a.transaction.amount)}</span><span class="muted-note">${a.reason === 'new-merchant' ? 'First time here' : `Usually ${formatCurrency(a.averageAmount)}`}</span></span>
-                    <span class="attention-actions">
-                      <button type="button" class="btn-tiny anomaly-open" data-desc="${escapeAttr(a.transaction.rawDescription.slice(0, 24))}">Open</button>
-                      <button type="button" class="icon-btn anomaly-dismiss" data-id="${a.transaction.id}" aria-label="Dismiss">${icon('close')}</button>
-                    </span>
-                  </div>`
-                )
-                .join('')}
-            </details>`
-          : ''
-      }
+      ${unusual
+        .map((a) =>
+          todo(
+            icon('eye'),
+            `${escapeHtml(displayName(a.transaction.rawDescription))} · ${formatRupees(a.transaction.amount)}`,
+            a.reason === 'new-merchant' ? `First time at this shop, on ${formatDateNice(a.transaction.date)}. Was it you?` : `More than usual: this shop is normally about ${formatRupees(a.averageAmount)}. Was it you?`,
+            `<button type="button" class="btn-tiny anomaly-open" data-desc="${escapeAttr(a.transaction.rawDescription.slice(0, 24))}">See it</button><button type="button" class="icon-btn anomaly-dismiss" data-id="${a.transaction.id}" aria-label="It was me, stop asking about this one" title="It was me">${icon('close')}</button>`
+          )
+        )
+        .join('')}
     </div>
   `;
 
