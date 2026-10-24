@@ -72,7 +72,14 @@ export function paintSkyLayer() {
   set('--sky-hz', `rgb(${rgb(st.sky.hz)})`);
   set('--sky-veil', st.veil.toFixed(2));
   set('--ridge-far', st.night ? 'rgb(8,14,36)' : 'rgb(96,128,188)');
-  const lane = LANES[header.dataset.hvView] || [38, 60];
+  const fixed = LANES[header.dataset.hvView] || [38, 60];
+  // The lane starts clear of the title whatever its length ("Summary" runs to 45% of a phone, "Plan" to 20%): a moon disc must never sit on its letters.
+  const title = header.querySelector('#view-title');
+  const width = header.clientWidth || window.innerWidth;
+  const words = document.createRange();
+  if (title) words.selectNodeContents(title);
+  const clearOfTitle = title && title.textContent.trim() ? ((words.getBoundingClientRect().right - header.getBoundingClientRect().left + 26) / width) * 100 : 0;
+  const lane = [Math.min(Math.max(fixed[0], clearOfTitle), fixed[1] - 6), fixed[1]];
   const sp = spot(st.sun, lane), mp = spot(st.moon, lane);
   const sunCol = [255, 244, 214].map((v, i) => v + ([255, 112, 48][i] - v) * st.warm);
   set('--cr', rgb(sunCol));

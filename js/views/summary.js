@@ -340,7 +340,7 @@ function havenLatest(transactions, categories, accounts = []) {
   return transactions
     .filter((t) => !t.isTransfer && t.amount > 0)
     .sort((a, b) => (a.date === b.date ? (b.createdAt || 0) - (a.createdAt || 0) : a.date < b.date ? 1 : -1))
-    .slice(0, 4)
+    .slice(0, 8)
     .map((t) => {
       const when = new Date(t.createdAt || 0);
       // A time only for what was typed in on the day it happened; a statement line has a date and no time.

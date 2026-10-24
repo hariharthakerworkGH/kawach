@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.3',
+    items: [
+      {
+        icon: 'check',
+        title: "Summary fills the screen",
+        text: "Latest payments now show as many rows as fit your screen (three at least, up to eight), instead of leaving an empty space. The sun and moon no longer sit on the title.",
+        guide: [{ view: 'summary', target: '.lg-act', text: "Latest shows more rows on a taller phone. Tap one to see where it was paid from." }],
+      },
+    ],
+  },
+  {
     version: '7.2.1',
     items: [
       {

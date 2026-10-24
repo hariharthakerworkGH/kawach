@@ -8,7 +8,7 @@ import { afterDraw, paidOut, buzzFor, sweepTheme } from './haven-motion.js';
 import { appearance, setAppearance, applyTheme } from './appearance.js';
 import { showToast } from './toast.js';
 import { lifeDraw } from './haven-life.js';
-import { wireTabs } from './views/summary-looks.js';
+import { wireTabs, fitLatest } from './views/summary-looks.js';
 import { shortRupees } from './format.js';
 
 const inr = (paise) => Math.round(Math.abs(paise) / 100).toLocaleString('en-IN');
@@ -24,6 +24,12 @@ export function wireHaven(root) {
   });
   root.querySelectorAll('.hv-chartwrap').forEach(scrub);
   wireTabs(root);
+  // after the screen has settled into its place, so the page height is the real one
+  requestAnimationFrame(() => requestAnimationFrame(() => fitLatest(root)));
+  if (!window.__fitLatest) {
+    window.__fitLatest = true;
+    window.addEventListener('resize', () => fitLatest(document.getElementById('view-container') || document));
+  }
   lifeDraw(root);
   afterDraw(root);
   // the little bars grow in when they arrive

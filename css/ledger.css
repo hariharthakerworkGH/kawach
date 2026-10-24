@@ -717,6 +717,8 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .hist-row .hist-sub { flex: 1 1 auto; white-space: normal; overflow: visible; text-overflow: clip; }
 :root[data-style=haven] .lg-row .nm .m, :root[data-style=haven] .lg-acclist .account-row .k-row__meta { white-space: normal; overflow: visible; text-overflow: clip; }
 :root[data-style=haven] .k .attention-row .muted-note, :root[data-style=haven] .k .attention-row small { color: var(--lg-ink2); }
+:root[data-style=haven] .lg-act .hv-lp[hidden] { display: none; }
+
 /* More about this month: the older blocks inside the fold take the Ledger card (small radius, hairline, 15px headings) instead of their own big rounded shells */
 :root[data-style=haven] details.sum-more .hv-sec { padding: 6px 2px 6px; }
 :root[data-style=haven] details.sum-more .hv-sec h2, :root[data-style=haven] details.sum-more .summary-viz__head { font-size: 15px; font-weight: 650; letter-spacing: 0; }
