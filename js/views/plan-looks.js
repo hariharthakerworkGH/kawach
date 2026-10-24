@@ -112,7 +112,7 @@ export function havenCommitments(tracker, { order = new Map(), dayOf = () => nul
   const box = paid + toPay + kept > 0
     ? `<div class="hv-screen lg-monthbox" data-hv-box><div class="lg-card hv-sum"><div class="lg-month__h"><h2>This month</h2><span>tap a figure to filter</span></div><div class="hv-sum__bar" role="img" aria-label="Paid ${money(paid)}, to pay ${money(toPay)}, kept aside ${money(kept)}">${seg(paid, 'a')}${seg(toPay, 'b')}${seg(kept, 'c')}</div><div class="hv-sum__keys">${key('paid', 'a', 'Paid', paid)}${key('topay', 'b', 'To pay', toPay)}${key('aside', 'c', 'Kept aside', kept)}</div></div></div>`
     : '';
-  const bills_ = [...unpaid, ...done];
-  const list = `<div class="lg-card lg-clist hv-clist">${bills_.length ? `<div class="hv-clabel" data-g="bills">Bills</div>${bills_.map(bill).join('')}` : ''}${progress.length ? `<div class="hv-clabel" data-g="aside">Set aside this month</div>${progress.map(aside).join('')}` : ''}</div>`;
+  // What is still to do comes first (bills not yet paid, then what is set aside and being used), what is finished comes last.
+  const list = `<div class="lg-card lg-clist hv-clist">${unpaid.map(bill).join('')}${progress.length ? `<div class="hv-clabel" data-g="aside">Set aside this month</div>${progress.map(aside).join('')}` : ''}${done.length ? `<div class="hv-clabel" data-g="paid">Paid and skipped</div>${done.map(bill).join('')}` : ''}</div>`;
   return { box, list };
 }

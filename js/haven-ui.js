@@ -8,7 +8,7 @@ import { afterDraw, paidOut, buzzFor, sweepTheme } from './haven-motion.js';
 import { appearance, setAppearance, applyTheme } from './appearance.js';
 import { showToast } from './toast.js';
 import { lifeDraw } from './haven-life.js';
-import { wireTabs, fitLatest } from './views/summary-looks.js';
+import { wireTabs } from './views/summary-looks.js';
 import { shortRupees } from './format.js';
 
 const inr = (paise) => Math.round(Math.abs(paise) / 100).toLocaleString('en-IN');
@@ -24,12 +24,6 @@ export function wireHaven(root) {
   });
   root.querySelectorAll('.hv-chartwrap').forEach(scrub);
   wireTabs(root);
-  // after the screen has settled into its place, so the page height is the real one
-  requestAnimationFrame(() => requestAnimationFrame(() => fitLatest(root)));
-  if (!window.__fitLatest) {
-    window.__fitLatest = true;
-    window.addEventListener('resize', () => fitLatest(document.getElementById('view-container') || document));
-  }
   lifeDraw(root);
   afterDraw(root);
   // the little bars grow in when they arrive
@@ -54,7 +48,7 @@ export function wireHaven(root) {
       box.dataset.filter = f;
       box.querySelectorAll('[data-f]').forEach((x) => x.classList.toggle('on', x.dataset.f === f));
       scope.querySelectorAll('.hv-clist [data-kind]').forEach((row) => { row.hidden = Boolean(f) && row.dataset.kind !== f; });
-      scope.querySelectorAll('.hv-clist [data-g]').forEach((label) => { label.hidden = Boolean(f) && (label.dataset.g === 'bills' ? f === 'aside' : f !== 'aside'); });
+      scope.querySelectorAll('.hv-clist [data-g]').forEach((label) => { label.hidden = Boolean(f) && label.dataset.g !== f; });
     }));
   });
   // "Mark paid" on a card: the button says it worked, the card leaves, then the screen is told (it saves and redraws).
@@ -311,7 +305,9 @@ function dressAccounts(container, justOpened) {
     const b = container.querySelector(`#${id}`);
     if (b) { b.className = 'lg-btn q sm'; quiet.append(b); }
   }
+  const sortDir = container.querySelector('#accounts-sort-dir');
   if (sort) { sort.classList.add('hv-sortsel'); quiet.prepend(sort); }
+  if (sort && sortDir) sort.after(sortDir);
   container.querySelector('.accounts-actions')?.remove();
 
   // the icon of each account and the bar along its foot

@@ -21,10 +21,12 @@ let stars = [];
 // The band is drawn on a canvas 120px tall (the header is 62px of it; the hills reach 42px under the header and the first card sits on them).
 const HORIZON = 82;
 const SPAN = 58; // pixels from the horizon to a sun 70 degrees up
-// The sun and the moon keep to a lane of the sky: clear of the title on the left and of the buttons on the right. Where the header carries
-// more on the right (the month on History, Coach on Plan) the lane is narrower.
-const LANES = { plan: [32, 47], transactions: [32, 47] };
-const spot = (b, lane) => ({ x: lane[0] + ((clamp(b.az, -100, 100) + 100) / 200) * (lane[1] - lane[0]), y: HORIZON - (clamp(b.alt, -6, 80) / 70) * SPAN });
+// The sun and the moon keep to one narrow lane of the sky, the same on every screen: clear of the longest title ("Coach", "Accounts") on the left
+// and of the month stepper on History on the right. It must not change from screen to screen, or the moon jumps as you move about.
+// They rise and set along it (the height is the time of day); only a title longer than the lane allows (a rare screen) moves it.
+const LANE = [44.5, 46];
+const TOP = 30; // the lowest the middle of a disc may be high up: the moon is never cut by the top edge
+const spot = (b, lane) => ({ x: lane[0] + ((clamp(b.az, -100, 100) + 100) / 200) * (lane[1] - lane[0]), y: Math.max(TOP, HORIZON - (clamp(b.alt, -6, 80) / 70) * SPAN) });
 
 function build() {
   const el = document.createElement('div');
@@ -68,22 +70,36 @@ export function paintSkyLayer() {
   const st = skyState(Date.now(), getPlace(), force);
   const set = (k, v) => layer.style.setProperty(k, v);
   set('--sky-top', `rgb(${rgb(st.sky.top)})`);
+  // The phone's own bar above the app takes the sky's top colour, so the sky runs up under it without a black strip.
+  for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.setAttribute('content', `rgb(${rgb(st.sky.top)})`);
   set('--sky-mid', `rgb(${rgb(st.sky.mid)})`);
   set('--sky-hz', `rgb(${rgb(st.sky.hz)})`);
   set('--sky-veil', st.veil.toFixed(2));
   set('--ridge-far', st.night ? 'rgb(8,14,36)' : 'rgb(96,128,188)');
-  const fixed = LANES[header.dataset.hvView] || [38, 60];
-  // The lane starts clear of the title whatever its length ("Summary" runs to 45% of a phone, "Plan" to 20%): a moon disc must never sit on its letters.
+  // A title longer than the lane allows pushes the lane right, so a moon disc never sits on its letters; the usual titles never do.
   const title = header.querySelector('#view-title');
   const width = header.clientWidth || window.innerWidth;
+  // the box of the title's own letters (the element can also hold a status mark or a button that is not part of the words)
   const words = document.createRange();
-  if (title) words.selectNodeContents(title);
-  const clearOfTitle = title && title.textContent.trim() ? ((words.getBoundingClientRect().right - header.getBoundingClientRect().left + 26) / width) * 100 : 0;
-  const lane = [Math.min(Math.max(fixed[0], clearOfTitle), fixed[1] - 6), fixed[1]];
+  const walker = title ? document.createTreeWalker(title, NodeFilter.SHOW_TEXT) : null;
+  let first = null;
+  let last = null;
+  while (walker && walker.nextNode()) {
+    if (!walker.currentNode.nodeValue.trim()) continue;
+    first = first || walker.currentNode;
+    last = walker.currentNode;
+  }
+  if (first) {
+    words.setStart(first, 0);
+    words.setEnd(last, last.nodeValue.length);
+  }
+  const titleEnd = title && title.textContent.trim() ? words.getBoundingClientRect().right - header.getBoundingClientRect().left : 0;
+  const lane = LANE;
   const sp = spot(st.sun, lane), mp = spot(st.moon, lane);
   const sunCol = [255, 244, 214].map((v, i) => v + ([255, 112, 48][i] - v) * st.warm);
   set('--cr', rgb(sunCol));
-  const place = (el, p, o) => { el.style.left = `${p.x.toFixed(1)}%`; el.style.top = `${p.y.toFixed(1)}px`; el.style.opacity = clamp(o).toFixed(2); };
+  // A screen with a long title ("Backup & Settings") reaches the lane: the sun and moon tuck away there instead of sitting on its letters.
+  const place = (el, p, o) => { el.style.left = `${p.x.toFixed(1)}%`; el.style.top = `${p.y.toFixed(1)}px`; el.style.opacity = clamp(titleEnd + 8 > (p.x / 100) * width - 20 ? 0 : o).toFixed(2); };
   const sunEl = layer.querySelector('.hv-sun'), moonEl = layer.querySelector('.hv-moon');
   place(sunEl, sp, st.sunShown);
   place(moonEl, mp, st.moonShown);

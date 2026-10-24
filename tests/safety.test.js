@@ -10,7 +10,7 @@ import { restoreBackup, screenBackup, undoInfo, undoRestore } from '../js/backup
 import { backupsToDelete } from '../js/drive.js';
 import { comingMonths } from '../js/views/plan.js';
 import { bankAhead, forecast } from '../js/forecast.js';
-import { sortCommitments, sortAccounts, sortCategories, usageCounts } from '../js/list-order.js';
+import { sortCommitments, sortAccounts, sortCategories, usageCounts, setOrderDir, flipOrder } from '../js/list-order.js';
 import { byYourOrder } from '../js/commitments.js';
 import { cleanStatementText, sizeProblem, MAX_PDF_BYTES } from '../js/statement-text.js';
 
@@ -509,6 +509,29 @@ test('lists: accounts and categories are A to Z, or by size or use when asked', 
   equal(sortCategories(cats, 'name').map((c) => c.id), ['z', 'y', 'x']);
   equal(sortCategories(cats, 'used', used).map((c) => c.id), ['x', 'y', 'z']);
   equal(sortCategories(cats, 'used').map((c) => c.id), ['z', 'y', 'x'], 'without counts, A to Z');
+});
+
+test('lists: every order can be read the other way round, and put back', () => {
+  const list = [{ label: 'Apple', amount: 100, frequency: 'monthly', dayOfMonth: 20 }, { label: 'Zebra', amount: 900, frequency: 'monthly', dayOfMonth: 5 }];
+  const accounts = [{ label: 'Bank', id: 'a' }, { label: 'Wallet', id: 'b' }];
+  const cats = [{ id: 'x', name: 'Food' }, { id: 'y', name: 'Rent' }];
+  try {
+    for (const key of ['plan', 'accountOrder', 'categoryOrder']) setOrderDir(key, 'normal');
+    equal(sortCommitments(list, 'name').map((x) => x.label), ['Apple', 'Zebra'], 'A to Z');
+    equal(sortCommitments(list, 'size').map((x) => x.label), ['Zebra', 'Apple'], 'biggest first');
+    setOrderDir('plan', 'reverse');
+    equal(sortCommitments(list, 'name').map((x) => x.label), ['Zebra', 'Apple'], 'Z to A');
+    equal(sortCommitments(list, 'size').map((x) => x.label), ['Apple', 'Zebra'], 'smallest first');
+    equal(sortCommitments(list, 'day').map((x) => x.label), ['Apple', 'Zebra'], 'the latest day first');
+    setOrderDir('accountOrder', 'reverse');
+    equal(sortAccounts(accounts, 'name').map((a) => a.id), ['b', 'a'], 'accounts Z to A');
+    setOrderDir('categoryOrder', 'reverse');
+    equal(sortCategories(cats, 'name').map((c) => c.id), ['y', 'x'], 'categories Z to A');
+    equal(flipOrder('plan'), 1, 'flipping once more puts it back');
+    equal(sortCommitments(list, 'name').map((x) => x.label), ['Apple', 'Zebra'], 'and the list reads as before');
+  } finally {
+    for (const key of ['plan', 'accountOrder', 'categoryOrder']) setOrderDir(key, 'normal');
+  }
 });
 
 test('safety: sync notices when the shared file is behind this phone (two devices syncing at once)', () => {

@@ -5,6 +5,7 @@
  */
 import { CHOICES, appearance, setAppearance } from '../appearance.js';
 import { showToast } from '../toast.js';
+import { orderDir, setOrderDir } from '../list-order.js';
 import { CITIES, getPlace, setCity, useMyLocation, sunTimes, moonAt } from '../sun-moon.js';
 
 // One short line under Motion for the choice made; the long notes in js/appearance.js are not shown here.
@@ -58,6 +59,10 @@ function orderGroup([name, label]) {
     <label class="hl-group hl-order">
       <span class="hl-label">${label}</span>
       <select class="k-select hl-pick" data-look="${name}">${CHOICES[name].options.map((o) => `<option value="${o.value}"${o.value === current ? ' selected' : ''}>${o.label}</option>`).join('')}</select>
+      <select class="k-select hl-pick" data-dir="${name}" aria-label="${label}: which way round">
+        <option value="normal"${orderDir(name) === 1 ? ' selected' : ''}>As described</option>
+        <option value="reverse"${orderDir(name) === -1 ? ' selected' : ''}>The other way round</option>
+      </select>
     </label>`;
 }
 
@@ -93,6 +98,7 @@ function wire(container) {
     }
     // A radio of the rows of buttons, or one of the three order lists: saved at once, and the screen is not redrawn (that would scroll the
     // person away from the choice they just made).
+    if (t.dataset.dir) { setOrderDir(t.dataset.dir, t.value); return; }
     const name = t.matches('input[type="radio"]') ? t.name.replace(/^look-/, '') : t.dataset.look;
     if (!name) return;
     if (!setAppearance(name, t.value)) {

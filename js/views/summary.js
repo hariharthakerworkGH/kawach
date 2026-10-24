@@ -340,13 +340,13 @@ function havenLatest(transactions, categories, accounts = []) {
   return transactions
     .filter((t) => !t.isTransfer && t.amount > 0)
     .sort((a, b) => (a.date === b.date ? (b.createdAt || 0) - (a.createdAt || 0) : a.date < b.date ? 1 : -1))
-    .slice(0, 8)
+    .slice(0, 5)
     .map((t) => {
       const when = new Date(t.createdAt || 0);
       // A time only for what was typed in on the day it happened; a statement line has a date and no time.
       const time = t.source === 'manual' && t.createdAt && isoLocal(when) === t.date ? when.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase() : '';
       const category = names.get(t.categoryId) || 'Uncategorised';
-      return { title: displayName(t.merchant || t.rawDescription), category, account: accountName.get(t.accountId) || '', meta: `${category} · ${day(t.date)}${time ? `, ${time}` : ''}`, amount: t.amount, credit: t.direction === 'credit' };
+      return { title: displayName(t.rawDescription), category, account: accountName.get(t.accountId) || '', meta: `${category} · ${day(t.date)}${time ? `, ${time}` : ''}`, amount: t.amount, credit: t.direction === 'credit' };
     });
 }
 

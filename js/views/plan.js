@@ -13,7 +13,7 @@ import { currentMonthKey } from '../spending-month.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequencyShort, hasDueDate, toMonthly, toYearly, isoLocal } from '../frequency.js';
 import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, isSetAside, isAtmPlan, duplicateCommitments } from '../commitments.js';
 import { appearance, setAppearance } from '../appearance.js';
-import { sortCommitments, sortAccounts, sortCategories, sortPicker } from '../list-order.js';
+import { sortCommitments, sortAccounts, sortCategories, sortPicker, flipOrder } from '../list-order.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
 import { COMMON_COSTS, RENEWAL_MONTHS, renews, nextRenewal, renewalsAhead } from '../calendar.js';
@@ -803,6 +803,11 @@ export async function render(container) {
       redraw(container, () => render(container));
     });
   }
+  container.querySelector('#plan-sort-dir')?.addEventListener('click', () => {
+    flipOrder('plan');
+    reordering = false;
+    redraw(container, () => render(container));
+  });
   const reorderBtn = container.querySelector('#plan-reorder');
   if (reorderBtn) {
     reorderBtn.addEventListener('click', () => {

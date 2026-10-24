@@ -53,6 +53,8 @@ html:root[data-style="haven"] body::before, html:root[data-style="haven"] body::
 html:root[data-style="haven"] .view-container.k { padding-inline: 14px; }
 /* the hills reach 42px under the header, and the first card sits on them */
 html:root[data-style="haven"][data-sky-real] .view-container { padding-top: 38px; }
+/* The screens that are not one of the four tabs start a little lower: their first card is not cut by the sky's ridge (104px) */
+html:root[data-style="haven"][data-sky-real] body:has(.app-header:is([data-hv-view="settings"], [data-hv-view="categories"], [data-hv-view="bills"], [data-hv-view="policies"], [data-hv-view="inbox"], [data-hv-view="appearance"], [data-hv-view="import"], [data-hv-view="recap"], [data-hv-view="coach"], [data-hv-view="setup"])) .view-container { padding-top: 48px; }
 html:root[data-style="haven"] body { padding-bottom: calc(56px + env(safe-area-inset-bottom) + 28px); }
 
 /* ---------------------------------------------------------------- the header and the sky behind it */
@@ -109,7 +111,7 @@ html:root[data-style="haven"][data-sky-real] .app-header .hv-hdr__hi { opacity: 
 .hv-sun .g3 { width: 30px; height: 30px; left: -62px; top: -34px; opacity: 0.7; }
 /* the moon (option A): its real surface and phase, with a soft light round it */
 .hv-moon .moonglow { width: 110px; height: 110px; left: -55px; top: -55px; background: radial-gradient(circle, rgba(190, 205, 255, 0.34), transparent 68%); }
-.hv-moon .tex { left: -23px; top: -23px; width: 46px; height: 46px; border-radius: 50%; }
+.hv-moon .tex { left: -19px; top: -19px; width: 38px; height: 38px; border-radius: 50%; }
 
 /* ---------------------------------------------------------------- grouped tools in the header */
 .lg-tools { display: flex; height: 36px; border-radius: 10px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); flex: none; }
@@ -459,15 +461,16 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 
 :root[data-style=haven] .lg-clist { margin: 0; padding: 0; overflow: hidden; }
 :root[data-style=haven] .lg-clist .hv-clabel { margin: 0; padding: 6px 14px 2px; font-size: 12px; font-weight: 600; color: var(--lg-ink3); background: var(--lg-s2); }
-:root[data-style=haven] .lg-clist .hv-clabel[data-g="bills"] { display: none; }
 :root[data-style=haven] .lg-clist .hv-clabel[hidden] { display: none; }
 :root[data-style=haven] .lg-clist .hv-bill { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
 :root[data-style=haven] .lg-clist .hv-bill::before { content: ""; position: absolute; left: 50px; right: 0; top: 0; height: 1px; background: var(--lg-line); pointer-events: none; z-index: 1; }
 :root[data-style=haven] .lg-clist .hv-clabel + .hv-bill::before, :root[data-style=haven] .lg-clist > .hv-bill:first-child::before { display: none; }
 :root[data-style=haven] .lg-clist .hv-bill[hidden] { display: none; }
-:root[data-style=haven] .lg-clist .hv-bill__open.lg-row { grid-template-columns: 28px minmax(0, 1fr) auto auto; min-height: 44px; padding: 0 12px; color: var(--lg-ink); }
+:root[data-style=haven] .lg-clist .hv-bill__open.lg-row { grid-template-columns: 28px minmax(0, 1fr) auto 84px; min-height: 44px; padding: 0 12px; color: var(--lg-ink); }
+/* the capsule (tick and day, Skipped, Late) always ends at the same place and starts no earlier than 64px before it: a column of them reads straight */
+:root[data-style=haven] .lg-clist .hv-bill__open .lg-tag { justify-self: end; min-width: 64px; justify-content: center; white-space: nowrap; }
 :root[data-style=haven] .lg-clist .hv-bill__open.lg-row.two { grid-template-columns: 28px minmax(0, 1fr) auto; min-height: 56px; padding: 6px 12px 7px; }
-:root[data-style=haven] .lg-clist .hv-bill__open .amt { min-width: 58px; text-align: right; font-weight: 650; }
+:root[data-style=haven] .lg-clist .hv-bill__open .amt { min-width: 0; text-align: right; font-weight: 650; white-space: nowrap; }
 :root[data-style=haven] .lg-clist .hv-bill__open .nm { display: block; min-width: 0; }
 :root[data-style=haven] .lg-clist .hv-bill__open .nm .n { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 :root[data-style=haven] .lg-clist .hv-bill__open .nm .m { display: block; margin-top: 1px; font-size: 12px; color: var(--lg-ink2); }
@@ -719,7 +722,12 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .hist-row .hist-sub { flex: 1 1 auto; white-space: normal; overflow: visible; text-overflow: clip; }
 :root[data-style=haven] .lg-row .nm .m, :root[data-style=haven] .lg-acclist .account-row .k-row__meta { white-space: normal; overflow: visible; text-overflow: clip; }
 :root[data-style=haven] .k .attention-row .muted-note, :root[data-style=haven] .k .attention-row small { color: var(--lg-ink2); }
-:root[data-style=haven] .lg-act .hv-lp[hidden] { display: none; }
+/* the button beside a sort control that turns the list round: an arrow down for the order as chosen, up when it is reversed */
+:root[data-style=haven] .lg-sortset { display: inline-flex; align-items: center; }
+:root[data-style=haven] .lg-dir { position: relative; display: inline-grid; place-items: center; width: 32px; height: 32px; margin-left: 2px; padding: 0; border: 0; border-radius: 10px; background: none; color: var(--lg-ink2); cursor: pointer; }
+:root[data-style=haven] .lg-dir::after { content: ""; position: absolute; inset: -6px; }
+:root[data-style=haven] .lg-dir svg { width: 16px; height: 16px; transition: transform 200ms ease; }
+:root[data-style=haven] .lg-dir[aria-pressed="false"] svg { transform: rotate(180deg); }
 
 /* More about this month: the older blocks inside the fold take the Ledger card (small radius, hairline, 15px headings) instead of their own big rounded shells */
 :root[data-style=haven] details.sum-more .hv-sec { padding: 6px 2px 6px; }

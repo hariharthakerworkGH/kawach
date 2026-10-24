@@ -430,7 +430,6 @@ export function wireTabs(root) {
       card.dataset.tab = name;
       card.querySelectorAll('[data-lg-tab]').forEach((t) => { const on = t.dataset.lgTab === name; t.classList.toggle('on', on); t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
       card.querySelectorAll('[data-lg-panel]').forEach((p) => { p.hidden = p.dataset.lgPanel !== name; });
-      fitLatest(root);
     };
     card.querySelectorAll('[data-lg-tab]').forEach((t) => t.addEventListener('click', () => open(t.dataset.lgTab)));
     card.addEventListener('keydown', (e) => {
@@ -442,28 +441,6 @@ export function wireTabs(root) {
       next.focus();
     });
   });
-}
-
-/* Latest shows three payments and as many more (up to eight) as fit before the page would have to scroll: a tall phone
- * is not left with an empty space under the card, a short one keeps its three. Called when a screen is drawn, when the
- * Latest tab opens and when the window changes size. */
-export function fitLatest(root) {
-  const panel = root.querySelector?.('.lg-act [data-lg-panel="latest"]');
-  if (!panel || panel.hidden) return;
-  const rows = [...panel.querySelectorAll('.hv-lp')];
-  rows.forEach((r, i) => { r.hidden = i >= 3; });
-  // The page always keeps a margin under its last card for the dock, so "fits" is the last card ending above the dock, not the page not scrolling.
-  const dash = panel.closest('#dashboard');
-  const last = () => [...(dash ? dash.children : [])].filter((e) => e.offsetHeight).pop();
-  const limit = window.innerHeight - (document.querySelector('.bottom-nav')?.offsetHeight || 0) - 10;
-  for (let i = 3; i < rows.length; i += 1) {
-    rows[i].hidden = false;
-    const end = last();
-    if (end && end.getBoundingClientRect().bottom + window.scrollY > limit) {
-      rows[i].hidden = true;
-      break;
-    }
-  }
 }
 
 /* The To do tab says how many things wait, and says so plainly when none does. Called once the list under it has been drawn. */
@@ -550,14 +527,14 @@ export function havenTop(f, status, month, extra = {}) {
     }));
   }
 
-  // Eight are drawn, three always show, and fitLatest shows as many more as the screen has room for.
-  const latest = (extra.latest || []).slice(0, 8);
+  // Five, so "More about this month" is whole on the screen below them.
+  const latest = (extra.latest || []).slice(0, 5);
   // A row opens in place into its details (js/haven-life.js); "See in History" is the way on.
   const payRow = (p) => `<div class="hv-lp"><button type="button" class="lg-row" data-morph aria-expanded="false">${lgIco(p.category || p.title)}<span class="n">${escapeHtml(p.title)}<i>${escapeHtml(p.category)}</i></span><span class="amt hv-amt${p.credit ? ' in' : ''}">${p.credit ? '+' : '−'}${money(p.amount)}</span></button><div class="hv-lp__d"><div class="hv-lp__in"><span>${p.credit ? 'Paid into' : 'Paid from'} <b>${escapeHtml(p.account || 'an account')}</b> · ${escapeHtml(p.meta.replace(/^[^·]*· /, ''))}</span><button type="button" class="lg-btn sm s" data-open-hist="${escapeHtml(p.title)}">See in History</button></div></div></div>`;
   const tabOn = short ? 'todo' : 'latest';
   const activity = x.finished ? '' : `<div class="lg-card lg-act" data-tab="${tabOn}">
       <div class="lg-pad"><div class="lg-seg" role="tablist" aria-label="Payments or things to do"><button type="button" role="tab" class="${tabOn === 'latest' ? 'on' : ''}" aria-selected="${tabOn === 'latest'}" data-lg-tab="latest">Latest</button><button type="button" role="tab" class="${tabOn === 'todo' ? 'on' : ''}" aria-selected="${tabOn === 'todo'}" data-lg-tab="todo">To do <span class="lg-count" data-lg-count${pre.length ? '' : ' hidden'}>${pre.length}</span></button></div></div>
-      <div role="tabpanel" data-lg-panel="latest"${tabOn === 'latest' ? '' : ' hidden'}>${latest.length ? latest.map((p, i) => payRow(p).replace('<div class="hv-lp">', i < 3 ? '<div class="hv-lp">' : '<div class="hv-lp" hidden>')).join('') : '<p class="lg-calm">No payments yet. Add one with the + button.</p>'}<button type="button" class="lg-more lg-more--link" data-hv-go="transactions"><span>See all payments</span>${icon('forward')}</button></div>
+      <div role="tabpanel" data-lg-panel="latest"${tabOn === 'latest' ? '' : ' hidden'}>${latest.length ? latest.map(payRow).join('') : '<p class="lg-calm">No payments yet. Add one with the + button.</p>'}<button type="button" class="lg-more lg-more--link" data-hv-go="transactions"><span>See all payments</span>${icon('forward')}</button></div>
       <div role="tabpanel" class="lg-todo" data-lg-panel="todo"${tabOn === 'todo' ? '' : ' hidden'}>${pre.join('')}<div id="attention-section"></div></div>
     </div>`;
   // Saving for something: a strip for each goal (up to two), filled as far as what is set aside has got.

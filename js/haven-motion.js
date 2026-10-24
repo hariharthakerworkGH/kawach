@@ -581,7 +581,7 @@ async function offerUndo() {
   if (!last) return false;
   asking = true;
   navigator.vibrate?.([10, 30, 10]);
-  const name = String(last.merchant || last.rawDescription || 'payment');
+  const name = String(last.rawDescription || 'payment');
   const box = document.createElement('div');
   box.className = 'hv-ask';
   box.setAttribute('role', 'alertdialog');

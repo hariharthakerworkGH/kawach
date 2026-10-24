@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.4',
+    items: [
+      {
+        icon: 'check',
+        title: "Renames show everywhere, a steadier sky",
+        text: "A payment renamed in History now shows its new name on Summary (it was reading an old copy). Lists can be turned round with an arrow beside every order. On Plan what is still to do comes first and what is done comes last, and the capsules line up. Summary lists five payments, and To do and Latest no longer change the list. The sun and moon stay in one place on every screen and are never cut by the top or sit on a title, and the phone's top bar takes the sky's colour.",
+        guide: [{ view: 'plan', target: '#plan-sort-dir', text: "Tap the arrow to read the list the other way round." }],
+      },
+    ],
+  },
+  {
     version: '7.3.1',
     items: [
       {

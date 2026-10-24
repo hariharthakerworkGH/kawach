@@ -19,7 +19,7 @@ import { havenAccounts, softRedraw } from '../haven-ui.js';
 import { reminderText, updatePerson, shareReminder } from '../people.js';
 import { allocationRing, tickGauge } from '../charts.js';
 import { appearance, setAppearance } from '../appearance.js';
-import { sortAccounts, sortPicker } from '../list-order.js';
+import { sortAccounts, sortPicker, flipOrder } from '../list-order.js';
 import { displayName, newestFirst } from './transactions.js';
 import { moveWord } from '../transfers.js';
 import { cushion } from '../goals.js';
@@ -217,6 +217,11 @@ export async function render(container) {
       redraw(container, () => render(container));
     });
   }
+  container.querySelector('#accounts-sort-dir')?.addEventListener('click', () => {
+    flipOrder('accountOrder');
+    reordering = false;
+    redraw(container, () => render(container));
+  });
   const reorderBtn = container.querySelector('#accounts-reorder');
   if (reorderBtn) {
     reorderBtn.addEventListener('click', () => {
