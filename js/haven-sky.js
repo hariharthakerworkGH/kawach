@@ -71,7 +71,12 @@ export function paintSkyLayer() {
   const set = (k, v) => layer.style.setProperty(k, v);
   set('--sky-top', `rgb(${rgb(st.sky.top)})`);
   // The phone's own bar above the app takes the sky's top colour, so the sky runs up under it without a black strip.
-  for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.setAttribute('content', `rgb(${rgb(st.sky.top)})`);
+  // What is really painted along the top edge: the sky's top colour under the night scrim (rgba(8,14,40,.92) at the veil's strength).
+  const veil = 0.92 * st.veil;
+  // After thirty quiet seconds the app dims by 14% (.hv-doze in css/haven-motion.css); the phone's bar does not, so it is dimmed with the page or a seam shows.
+  const doze = root.hasAttribute('data-dozing') && root.dataset.motion === 'alive' ? 0.14 : 0;
+  const edge = st.sky.top.map((v, i) => (v * (1 - veil) + [8, 14, 40][i] * veil) * (1 - doze));
+  for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.setAttribute('content', `rgb(${rgb(edge)})`);
   set('--sky-mid', `rgb(${rgb(st.sky.mid)})`);
   set('--sky-hz', `rgb(${rgb(st.sky.hz)})`);
   set('--sky-veil', st.veil.toFixed(2));
@@ -162,5 +167,5 @@ export function startSky() {
       paintSkyLayer();
     }
   });
-  new MutationObserver(paintSkyLayer).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-motion', 'data-style'] });
+  new MutationObserver(paintSkyLayer).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-motion', 'data-style', 'data-dozing'] });
 }

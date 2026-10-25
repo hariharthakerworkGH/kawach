@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.6.1',
+    items: [
+      {
+        icon: 'check',
+        title: "A seamless top edge",
+        text: "The sky now runs up into the phone's top bar without a seam: the sun's glow fades out before the edge, and the bar takes the exact colour painted there, including when the screen dims after a quiet moment.",
+      },
+    ],
+  },
+  {
     version: '7.6',
     items: [
       {
