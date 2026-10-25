@@ -626,6 +626,34 @@ export async function computeFreeToSpend(now = new Date()) {
         b.charges.bankBeyond += t.amount - portion;
       }
     }
+    // The day after the statement day a new cycle begins in the middle of the month. What this allowance took in the cycle
+    // that just closed, dated this month, was inside it until that day, and the budget still holds the allowance back
+    // once for the month - so it stays inside it, up to what the new cycle has not used. Dropping it turned it into
+    // spending with nothing paid: Left to spend fell Rs 24,128 overnight on the 26th.
+    // The closed cycle is walked the way it was the day before, from its own first day, so payments in the last days of
+    // the month before use up the allowance first and the figure does not move when the cycle rolls.
+    if (p.kind === 'card' && p.start > monthStart) {
+      let room = Math.max(0, item.amount - counted);
+      let used = 0;
+      const closedFrom = addDays(paydayOnOrBefore(Math.max(...statementDays), addDays(p.start, -2)), 1);
+      for (const t of pool.filter(inRange(closedFrom, addDays(p.start, -1))).sort((x, y) => (x.date < y.date ? -1 : 1))) {
+        if (used >= item.amount) break;
+        if (claimed.has(t.id) || !mine(t) || (t.notCommitmentIds || []).includes(item.id)) continue;
+        const portion = Math.min(t.amount, item.amount - used);
+        used += portion;
+        claimed.add(t.id);
+        claimedBy.set(t.id, b.label);
+        const onCard = cardIds.has(t.accountId);
+        if ((onCard && t.date < monthStart) || room <= 0) continue;
+        const inside = Math.min(portion, room);
+        room -= inside;
+        if (onCard) b.charges.card += inside;
+        else {
+          b.charges.bank += inside;
+          b.charges.bankBeyond += t.amount - inside;
+        }
+      }
+    }
   };
   // Commitments are matched against money leaving any account you hold -
   // an EMI can leave a savings account. What counts as this month's SPENDING

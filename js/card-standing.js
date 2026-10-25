@@ -44,7 +44,7 @@ export function cardStandings(accounts, transactions, importBatches, today) {
   const bankOnly = bankOnlyCardPayments(transactions, bankIds, cardIds);
 
   const cards = cardAccounts.map((account) => {
-    const { owed: owedNet, cycleStart, since } = cardOwedThisCycle(account, transactions, importBatches);
+    const { owed: owedNet, cycleStart, since } = cardOwedThisCycle(account, transactions, importBatches, today);
     const bill = cardBillDue(account);
     const credits = transactions
       .filter((t) => t.accountId === account.id && t.isTransfer && t.direction === 'credit' && (!since || t.date > since))

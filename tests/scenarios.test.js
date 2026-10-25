@@ -1850,3 +1850,34 @@ test('the card after an update: only major overhauls, newest first, never more t
   equal(popupNotes([note('5.8', 'small b'), note('5.9', 'small a')]), [], 'only small changes: no card at all');
   ok(notesFor({}).some((n) => n.items.some((i) => !i.major)), 'and the small ones are still in the full list (Settings)');
 });
+
+// 26 Oct 2026, 7.6.2: on the day after the statement day Left to spend fell Rs 24,128 with no new payment. A card's
+// allowance (Amazon Pay, groceries) is followed by the card cycle, and the cycle moved on while the budget still held the
+// allowance back for the month, so what the allowance had taken in turned into spending. Same payments, any later day of
+// the month: the same figures. Run for statement days that put the roll early, middle and late in the month.
+for (const stmt of [5, 15, 25]) {
+  test(`the day the card cycle rolls (statement day ${stmt}) changes nothing when nothing was paid`, async () => {
+    await seedBasics();
+    await put('accounts', { id: 'card', label: 'Test Card', type: 'card', issuer: 'Test Bank', last4: '2222', billingCycleDay: stmt });
+    await putAll('recurring', [
+      commitment({ label: 'Amazon Pay top-up', amount: 15000, spread: true, accountId: 'card', matchText: 'AMAZON PAY' }),
+      commitment({ label: 'Groceries', amount: 10000, spread: true, accountId: 'card', categoryId: 'food' }),
+      commitment({ label: 'House Rent', amount: 20000 }),
+    ]);
+    const last = `2026-10-${String(stmt).padStart(2, '0')}`;
+    const pad = (n) => `2026-10-${String(n).padStart(2, '0')}`;
+    await putAll('transactions', [
+      txn({ accountId: 'card', date: pad(1), amount: 4000, rawDescription: 'AMAZON PAY TOPUP' }),
+      txn({ accountId: 'card', date: pad(Math.max(1, stmt - 1)), amount: 6000, rawDescription: 'AMAZON PAY TOPUP' }),
+      txn({ accountId: 'card', date: last, amount: 3000, rawDescription: 'BIGBASKET', categoryId: 'food' }),
+      txn({ accountId: 'card', date: pad(Math.max(1, stmt - 2)), amount: 2500, rawDescription: 'SHOE SHOP' }),
+    ]);
+    const was = await computeFreeToSpend(day(last));
+    for (let d = stmt + 1; d <= 31; d++) {
+      const f = await computeFreeToSpend(day(pad(d)));
+      paise(f.spentThisCycle, was.spentThisCycle);
+      paise(f.free, was.free);
+      paise(f.limit, was.limit);
+    }
+  });
+}

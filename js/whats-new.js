@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.6.3',
+    items: [
+      {
+        icon: 'check',
+        title: "Left to spend no longer drops on card statement day",
+        text: "On the day after a card's statement day, Left to spend could fall by thousands even though you had paid for nothing. Money set aside for Amazon Pay, groceries and the like is now counted the same on both days.",
+      },
+    ],
+  },
+  {
     version: '7.6.1',
     items: [
       {

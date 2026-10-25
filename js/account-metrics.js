@@ -115,7 +115,7 @@ export function listTakenOn(batch) {
 //
 // The same list pasted on two devices before they synced leaves two copies of
 // every row; identical rows from different lists are counted once.
-export function cardOwedThisCycle(account, transactions, importBatches) {
+export function cardOwedThisCycle(account, transactions, importBatches, today = null) {
   const statements = importBatches
     .filter((b) => b.accountId === account.id && !b.provisional && b.periodEnd)
     .sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1));
@@ -150,7 +150,10 @@ export function cardOwedThisCycle(account, transactions, importBatches) {
     owed += (direction === 'credit' ? -1 : 1) * Number(amount) * copies;
     rows += copies;
   }
-  return { cycleStart: currentCycleStart(account, importBatches), since, owed, rows };
+  // The day being worked out, not the real clock: a figure computed for another day (a replay, a test, the 26th seen
+  // from the 25th) must start its cycle where that day's cycle started.
+  const day = today ? new Date(...today.split('-').map((n, i) => (i === 1 ? n - 1 : Number(n)))) : undefined;
+  return { cycleStart: currentCycleStart(account, importBatches, day), since, owed, rows };
 }
 
 // The day a card's statement closes. An imported statement says it for
