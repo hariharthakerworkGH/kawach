@@ -85,7 +85,6 @@ export function buildDemo(today = new Date()) {
       direction: 'debit',
       createdAt: new Date(`${f.date}T12:00:00`).getTime(),
       ...f,
-      merchant: f.merchant || f.rawDescription,
       amount: rupees(f.amount),
     });
   };

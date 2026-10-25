@@ -1326,7 +1326,6 @@ async function handleChange(e, container) {
     }
   } else if (field === 'rawDescription') {
     t.rawDescription = e.target.value;
-    t.merchant = t.rawDescription; // a copy kept at import (js/records.js): left behind, it was what Summary showed after a rename
     const nameEl = rowEl.querySelector('.hist-name');
     if (nameEl) nameEl.textContent = displayName(t.rawDescription);
   }

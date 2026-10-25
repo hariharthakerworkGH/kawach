@@ -33,7 +33,6 @@ export function tidyRecord(store, r) {
   if (!r || typeof r !== 'object') return r;
   if (store === 'transactions') {
     r.rawDescription = text(r.rawDescription);
-    r.merchant = typeof r.merchant === 'string' ? r.merchant : r.rawDescription;
   } else if (store === 'accounts' || store === 'recurring') {
     r.label = text(r.label);
   } else if (store === 'categories') {

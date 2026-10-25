@@ -60,12 +60,18 @@ export function incomeHead(r) {
  * marked as moves: very likely your own money going round (an EMI sent to a loan account is the usual one). */
 export function lookLikeMoves(rows) {
   const day = (iso) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / 86400000;
-  const outs = rows.filter((r) => r.moneyOut && !r.t.isTransfer);
+  // debits grouped by amount, so each credit looks only at debits of the same amount (a big year stays quick)
+  const byAmount = new Map();
+  for (const r of rows) {
+    if (!r.moneyOut || r.t.isTransfer) continue;
+    if (!byAmount.has(r.moneyOut)) byAmount.set(r.moneyOut, []);
+    byAmount.get(r.moneyOut).push(r);
+  }
   const used = new Set();
   const found = new Set();
   for (const c of rows) {
     if (!c.moneyIn || c.t.isTransfer || c.bill) continue;
-    const match = outs.find((o) => !used.has(o) && o.t.accountId !== c.t.accountId && o.moneyOut === c.moneyIn && Math.abs(day(o.date) - day(c.date)) <= 3);
+    const match = (byAmount.get(c.moneyIn) || []).find((o) => !used.has(o) && o.t.accountId !== c.t.accountId && Math.abs(day(o.date) - day(c.date)) <= 3);
     if (match) {
       used.add(match);
       found.add(c);

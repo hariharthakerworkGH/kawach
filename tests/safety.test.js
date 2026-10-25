@@ -13,6 +13,7 @@ import { bankAhead, forecast } from '../js/forecast.js';
 import { sortCommitments, sortAccounts, sortCategories, usageCounts, setOrderDir, flipOrder } from '../js/list-order.js';
 import { byYourOrder } from '../js/commitments.js';
 import { cleanStatementText, sizeProblem, MAX_PDF_BYTES } from '../js/statement-text.js';
+import { lookLikeMoves } from '../js/tax-pack.js';
 
 // Writes straight to the test database, the way a restore from another version or an old sync could.
 async function rawPut(store, record) {
@@ -52,7 +53,7 @@ test('safety: a payment needs a day, a number for the amount and a direction; a 
   ok(problemWith('transactions', { ...good('a'), id: '' }));
   const r = { id: 'a', date: '2026-09-05', amount: 100, direction: 'debit' };
   tidyRecord('transactions', r);
-  equal([r.rawDescription, r.merchant], ['', '']);
+  equal([r.rawDescription, 'merchant' in r], ['', false]);
   equal(problemWith('transactions', r), null);
   equal(problemWith('recurring', { id: 'r', amount: null }), null);
   ok(problemWith('recurring', { id: 'r', amount: 'abc' }));
@@ -575,4 +576,20 @@ test('safety: records saved together are all saved or none', async () => {
   equal((await getAll('transactions')).length, 0, 'and the good one beside it was not saved either');
   await putMany('transactions', [good('ok1'), good('ok2')]);
   equal((await getAll('transactions')).length, 2);
+});
+
+test('CA pack: a credit matching a debit of the same amount on another account within 3 days is a move, and a big year is quick', () => {
+  const row = (date, accountId, over) => ({ date, moneyIn: 0, moneyOut: 0, t: { accountId, isTransfer: false }, ...over });
+  const rows = [
+    row('2026-09-05', 'bank', { moneyOut: 500000 }),
+    row('2026-09-07', 'loan', { moneyIn: 500000 }), // 2 days later, other account: a move
+    row('2026-09-20', 'loan', { moneyIn: 500000 }), // too late: the only debit is used and far off
+    row('2026-09-05', 'bank', { moneyIn: 300000 }), // same account: never a move
+  ];
+  const found = lookLikeMoves(rows);
+  equal([found.has(rows[1]), found.has(rows[2]), found.has(rows[3])], [true, false, false]);
+  const big = Array.from({ length: 20000 }, (_, i) => row('2026-09-05', i % 2 ? 'a' : 'b', i % 2 ? { moneyOut: 1000 + i } : { moneyIn: 7000000 + i }));
+  const t0 = Date.now();
+  equal(lookLikeMoves(big).size, 0);
+  ok(Date.now() - t0 < 1000, 'twenty thousand rows with nothing to match takes under a second');
 });
