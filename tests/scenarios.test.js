@@ -1851,6 +1851,29 @@ test('the card after an update: only major overhauls, newest first, never more t
   ok(notesFor({}).some((n) => n.items.some((i) => !i.major)), 'and the small ones are still in the full list (Settings)');
 });
 
+// 26 Oct 2026, 7.6.3: the month chart began at Rs 31,000 on the 1st. A card payment that an allowance covers only in part
+// (Rs 12,000 of groceries against Rs 10,000 set aside) was left off the day list whole, so the Rs 2,000 beyond the plan
+// - real spending - fell into the plug at the start. Every rupee of the line sits on the day it was paid.
+test('the month chart puts the part of a payment beyond its set-aside on the day it was paid, not on the 1st', async () => {
+  await seedBasics();
+  await put('accounts', { id: 'card', label: 'Test Card', type: 'card', issuer: 'Test Bank', last4: '2222', billingCycleDay: 25 });
+  await putAll('recurring', [commitment({ label: 'Groceries', amount: 10000, spread: true, accountId: 'card', categoryId: 'food' })]);
+  await putAll('transactions', [
+    txn({ accountId: 'card', date: '2026-10-03', amount: 12000, rawDescription: 'BIGBASKET', categoryId: 'food' }),
+    txn({ accountId: 'card', date: '2026-10-08', amount: 500, rawDescription: 'SHOE SHOP' }),
+  ]);
+  const f = await computeFreeToSpend(day('2026-10-10'));
+  paise(f.spentThisCycle, rupees(2500));
+  paise(f.spendDays[0], 0);
+  paise(f.spendByDay[2].amount, rupees(2000));
+  paise(f.spendDays[9], rupees(2500));
+  // The statement day is the 25th: from the 26th the card's own cycle starts again, and the month's chart must not move.
+  const after = await computeFreeToSpend(day('2026-10-26'));
+  paise(after.spendDays[0], 0);
+  paise(after.spendByDay[2].amount, rupees(2000));
+  paise(after.spendPlug, 0);
+});
+
 // 26 Oct 2026, 7.6.2: on the day after the statement day Left to spend fell Rs 24,128 with no new payment. A card's
 // allowance (Amazon Pay, groceries) is followed by the card cycle, and the cycle moved on while the budget still held the
 // allowance back for the month, so what the allowance had taken in turned into spending. Same payments, any later day of

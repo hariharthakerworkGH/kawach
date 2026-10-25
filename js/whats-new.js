@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.6.4',
+    items: [
+      {
+        icon: 'check',
+        title: "Month chart starts at zero again",
+        text: "After a card's statement day the month chart began at a high amount on the 1st and then dropped. Each payment now sits on the day it was made.",
+      },
+    ],
+  },
+  {
     version: '7.6.3',
     items: [
       {

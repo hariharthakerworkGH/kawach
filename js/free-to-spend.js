@@ -553,6 +553,8 @@ export async function computeFreeToSpend(now = new Date()) {
     b.matches = [];
     b.notThis = [];
     b.charges = { card: 0, bank: 0, bankBeyond: 0 };
+    // The part of a claimed payment that stays spending, with its own date, for the day-by-day chart.
+    b.beyond = [];
     if (!b.tracked) return;
     const mine = (t) => t.commitmentId === item.id || Boolean(matcher && matcher(t));
     const dated = p.kind === 'bank' && !item.spread && frequencyOf(item) === 'monthly';
@@ -617,13 +619,17 @@ export async function computeFreeToSpend(now = new Date()) {
         // payment on 28 Sep for a cycle that runs 26 Sep to 25 Oct was never in
         // October's total, and taking it off anyway understated October by that
         // much. (It was claimed above, so it is not counted as spending either.)
-        if (t.date >= windowStart && t.date <= spendEnd) b.charges.card += portion;
+        if (t.date >= windowStart && t.date <= spendEnd) {
+          b.charges.card += portion;
+          if (t.amount > portion) b.beyond.push({ date: t.date, amount: t.amount - portion });
+        }
       } else {
         // A bank payment is taken out whole, and the part beyond the plan put
         // back as spending (₹20,000 of ATM cash on top of ₹10,000 against
         // ₹26,000 planned).
         b.charges.bank += portion;
         b.charges.bankBeyond += t.amount - portion;
+        if (t.amount > portion) b.beyond.push({ date: t.date, amount: t.amount - portion });
       }
     }
     // The day after the statement day a new cycle begins in the middle of the month. What this allowance took in the cycle
@@ -644,7 +650,7 @@ export async function computeFreeToSpend(now = new Date()) {
         claimed.add(t.id);
         claimedBy.set(t.id, b.label);
         const onCard = cardIds.has(t.accountId);
-        if ((onCard && t.date < monthStart) || room <= 0) continue;
+        if (onCard && t.date < monthStart) continue;
         const inside = Math.min(portion, room);
         room -= inside;
         if (onCard) b.charges.card += inside;
@@ -652,6 +658,7 @@ export async function computeFreeToSpend(now = new Date()) {
           b.charges.bank += inside;
           b.charges.bankBeyond += t.amount - inside;
         }
+        if (t.amount > inside) b.beyond.push({ date: t.date, amount: t.amount - inside });
       }
     }
   };
@@ -856,9 +863,10 @@ export async function computeFreeToSpend(now = new Date()) {
     ...bankSpends.map((t) => ({ date: t.date, amount: t.direction === 'debit' ? t.amount : -t.amount })),
     ...cards.flatMap((c) =>
       transactions
-        .filter((t) => t.accountId === c.account.id && !t.isTransfer && !t.isShareBack && !isWorkCost(t) && !isRefund(t) && !isPersonMoney(t) && !claimed.has(t.id) && notCancelled(t) && (!c.cycleStart || t.date > c.cycleStart) && t.date <= today)
+        .filter((t) => t.accountId === c.account.id && !t.isTransfer && !t.isShareBack && !isWorkCost(t) && !isRefund(t) && !isPersonMoney(t) && !claimed.has(t.id) && !loanEmiIds.has(t.id) && notCancelled(t) && inCardMonth(t))
         .map((t) => ({ date: t.date, amount: t.direction === 'debit' ? t.amount : -t.amount }))
     ),
+    ...budgetItems.flatMap((b) => b.beyond || []),
     ...personSpends,
     ...shareBackSpends,
     ...(atmPlan ? [] : cashSpends.filter((t) => t.counts > 0).map((t) => ({ date: t.date, amount: t.counts }))),
@@ -1084,6 +1092,8 @@ export async function computeFreeToSpend(now = new Date()) {
     // Cumulative spending, one figure per day gone by. See above.
     spendDays,
     spendByDay,
+    // What the day list could not date (the chart starts from it). Near zero for a real household; the gate watches it.
+    spendPlug: undated,
     shareBackThisCycle: shareBackTotal,
     // The cash pocket (js/cash.js): what was taken out and written down this month, what is still in it, and what
     // was counted as spent because it was never written down.
