@@ -5,7 +5,7 @@ import { displayName } from './transactions.js';
 import { wireHaven } from '../haven-ui.js';
 import { scrubTick } from '../haven-motion.js';
 import { icon } from '../icons.js';
-import { isFixed, isLiveCommitment, coveredByFixed, commitmentFromSuggestion } from '../commitments.js';
+import { isFixed, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, clearSkip } from '../commitments.js';
 import { isoLocal, hasDueDate, frequencyOf } from '../frequency.js';
 import { formatCurrency, formatDateNice, formatRupees, formatMonthYear } from '../format.js';
 import { cardBillDue, bankBalance } from '../account-metrics.js';
@@ -549,7 +549,8 @@ async function renderDashboard(container) {
     const cycles = new Set(item[field] || []);
     if (on) cycles.add(key);
     else cycles.delete(key);
-    await put('recurring', { ...item, [field]: [...cycles].sort().slice(-12) });
+    const kept = !on && field === 'skippedCycles' ? clearSkip([...cycles], key) : [...cycles];
+    await put('recurring', { ...item, [field]: kept.sort().slice(-12) });
     showToast(message(item.label));
     redraw(container, () => renderDashboard(container));
   };

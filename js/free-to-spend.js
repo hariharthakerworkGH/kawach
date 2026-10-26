@@ -444,7 +444,12 @@ export async function computeFreeToSpend(now = new Date()) {
   // "Skip this month": you've chosen not to have this expense this period. It
   // comes out of the budget, isn't held back from the bank, and anything you
   // do spend on it anyway counts as ordinary spending.
-  const skipped = (item) => choseFor(item.skippedCycles, item);
+  // The budget runs by the calendar month but a card's cycle rolls on the statement day. A skip made in the cycle that
+  // just closed holds to the month's end, or the item came back into the budget overnight with nothing paid (26 Sep:
+  // Left to spend fell Rs 10,000). "Mark paid" does not carry: the new cycle's bill is a new bill.
+  const skipped = (item) =>
+    choseFor(item.skippedCycles, item) ||
+    (paidBy(item) === 'card' && (item.skippedCycles || []).some((k) => k < periodOf(item).start && k.slice(0, 7) === today.slice(0, 7)));
 
   // Before the next salary lands, from the bank.
   const beforeSalaryEnd = firstSalary ? addDays(firstSalary, -1) : windowEnd;

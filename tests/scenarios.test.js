@@ -14,7 +14,7 @@ import { setBackupPassphrase, backUpToDrive, listBackups, SYNC_FILE } from '../j
 import { encryptPayload, decryptPayload, exportEncrypted, decryptBackup, restoreBackup } from '../js/backup.js';
 import { takenHome, categoriesFor } from '../js/business.js';
 import { notesFor, filterNotes, popupNotes, POPUP_MAX } from '../js/whats-new.js';
-import { isSetAside } from '../js/commitments.js';
+import { isSetAside, clearSkip } from '../js/commitments.js';
 import { matchCategoryForDescription, learnFromAssignment, applyLearnedCategories, incomeSpendCount, fixIncomeSpends } from '../js/merchant-rules.js';
 import { APP_VERSION } from '../js/version.js';
 import { endOfMonthNoon } from '../js/views/summary.js';
@@ -1849,6 +1849,27 @@ test('the card after an update: only major overhauls, newest first, never more t
   equal(card[0].items.map((i) => i.title), ['BIG nine', 'BIG seven', 'BIG seven b'].slice(0, POPUP_MAX), 'newest first, three at most');
   equal(popupNotes([note('5.8', 'small b'), note('5.9', 'small a')]), [], 'only small changes: no card at all');
   ok(notesFor({}).some((n) => n.items.some((i) => !i.major)), 'and the small ones are still in the full list (Settings)');
+});
+
+// 26 Oct 2026, 7.6.5: found replaying the owner's September. A card allowance skipped for the month (recorded under the
+// card cycle that closed on the 25th) came back into the budget on the 26th: Left to spend fell Rs 10,000 mid-month with
+// nothing paid. The skip holds to the month's end; the next month starts clean; taking it back clears it.
+test('a card allowance skipped for the month stays skipped after the statement day, until the month ends', async () => {
+  await seedBasics();
+  await put('accounts', { id: 'card', label: 'Test Card', type: 'card', issuer: 'Test Bank', last4: '2222', billingCycleDay: 25 });
+  await putAll('recurring', [
+    commitment({ label: 'Groceries', amount: 10000, spread: true, accountId: 'card', categoryId: 'food', skippedCycles: ['2026-09-25'] }),
+    commitment({ label: 'House Rent', amount: 20000 }),
+  ]);
+  const was = await computeFreeToSpend(day('2026-09-25'));
+  for (const d of ['2026-09-26', '2026-09-27', '2026-09-30']) {
+    const f = await computeFreeToSpend(day(d));
+    paise(f.limit, was.limit);
+    paise(f.free, was.free);
+  }
+  const october = await computeFreeToSpend(day('2026-10-01'));
+  paise(october.limit, was.limit - rupees(10000));
+  equal(clearSkip(['2026-08-25', '2026-09-25'], '2026-10-25', '2026-09-27'), ['2026-08-25'], 'taking it back clears this month\'s keys and the cycle\'s');
 });
 
 // 26 Oct 2026, 7.6.3: the month chart began at Rs 31,000 on the 1st. A card payment that an allowance covers only in part

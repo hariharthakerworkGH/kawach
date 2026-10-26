@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.6.5',
+    items: [
+      {
+        icon: 'check',
+        title: "Skipped cards stay skipped",
+        text: "A card item you skipped for the month no longer comes back into your budget when the card's statement day passes. Taking the skip back works the same all month.",
+      },
+    ],
+  },
+  {
     version: '7.6.4',
     items: [
       {

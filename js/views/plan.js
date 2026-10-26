@@ -11,7 +11,7 @@ import { getBudgets, setBudget, budgetStatusForMonth } from '../budgets.js';
 import { DEFAULT_KEEP_IN_BANK, computeFreeToSpend } from '../free-to-spend.js';
 import { currentMonthKey } from '../spending-month.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequencyShort, hasDueDate, toMonthly, toYearly, isoLocal } from '../frequency.js';
-import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, isSetAside, isAtmPlan, duplicateCommitments } from '../commitments.js';
+import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, isSetAside, isAtmPlan, duplicateCommitments, clearSkip } from '../commitments.js';
 import { appearance, setAppearance } from '../appearance.js';
 import { sortCommitments, sortAccounts, sortCategories, sortPicker, flipOrder } from '../list-order.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
@@ -582,7 +582,8 @@ export async function render(container) {
       const set = new Set(item[field] || []);
       if (on) set.add(t.cycleKey);
       else set.delete(t.cycleKey);
-      await put('recurring', { ...item, [field]: [...set].sort().slice(-12) });
+      const kept = !on && field === 'skippedCycles' ? clearSkip([...set], t.cycleKey) : [...set];
+      await put('recurring', { ...item, [field]: kept.sort().slice(-12) });
       showToast(message(item.label));
       close();
       redraw(container, () => render(container));
@@ -629,7 +630,7 @@ export async function render(container) {
       const set = new Set(fresh.skippedCycles || []);
       if (on) set.add(t.cycleKey);
       else set.delete(t.cycleKey);
-      await put('recurring', { ...fresh, skippedCycles: [...set].sort().slice(-12) });
+      await put('recurring', { ...fresh, skippedCycles: (on ? [...set] : clearSkip([...set], t.cycleKey)).sort().slice(-12) });
       redraw(container, () => render(container));
     };
     await change(true);

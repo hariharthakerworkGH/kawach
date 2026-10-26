@@ -35,6 +35,11 @@ export function isFinished(r, today = isoLocal(new Date())) {
   return Boolean(r.endDate) && r.endDate < today;
 }
 
+// A skip is a choice about the month's budget, but a card's cycle rolls on the statement day, in the middle of the month:
+// a skip made before it is recorded under the cycle that then closes. It still holds to the month's end (free-to-spend.js),
+// so taking it back clears this month's keys as well as the one on screen.
+export const clearSkip = (list, key, today = isoLocal(new Date())) => (list || []).filter((k) => k !== key && k.slice(0, 7) !== today.slice(0, 7));
+
 // The order you arranged commitments in on Plan; ones never moved keep their
 // place after the rest.
 export function byYourOrder(a, b) {
