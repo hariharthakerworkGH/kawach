@@ -52,6 +52,21 @@ export async function detectAnomalies(sinceDate) {
     return lo;
   };
 
+  // An alert words a shop shorter than its statement does ("AAURIS" against "AAURIS HOTELS MUMBAI"), so the exact key misses
+  // last month's visit: the shop's first word counts too. A payment repeating in the same category at about the same amount
+  // (a monthly EMI sent as "Transfer to ...") is not a new shop either.
+  const firstWord = (t) => significantTokens(t.rawDescription)[0] || null;
+  const seenWord = new Map(); // first word -> earliest date
+  for (const t of debits) {
+    const w = firstWord(t);
+    if (w && (!seenWord.has(w) || t.date < seenWord.get(w))) seenWord.set(w, t.date);
+  }
+  const knownShop = (t) => {
+    const w = firstWord(t);
+    if (w && seenWord.get(w) < t.date) return true;
+    return debits.some((o) => o.id !== t.id && o.date < t.date && o.categoryId && o.categoryId === t.categoryId && Math.abs(o.amount - t.amount) <= t.amount * 0.02);
+  };
+
   const flagged = [];
   const recent = debits.filter((t) => t.date >= sinceDate);
 
@@ -67,7 +82,7 @@ export async function detectAnomalies(sinceDate) {
       if (t.amount > threshold) {
         flagged.push({ transaction: t, reason: 'unusual', averageAmount: avg });
       }
-    } else if (n === 0 && t.amount >= NEW_MERCHANT_THRESHOLD) {
+    } else if (n === 0 && t.amount >= NEW_MERCHANT_THRESHOLD && !knownShop(t)) {
       flagged.push({ transaction: t, reason: 'new-merchant', averageAmount: null });
     }
   }

@@ -81,6 +81,35 @@ function looksAnywhere(account, transactions) {
 // count every payment against both, halving each balance twice as fast, so
 // the payments are shared out: one payment belongs to one loan. A payment you
 // tagged to a loan yourself always goes to that one.
+// The EMI's month is the one whose due day the payment falls nearest to, so rent-style "paid on the 31st for the 5th" counts for the
+// month after. Within a month only ONE payment that merely looks like the EMI (about its amount) is the EMI - the one nearest the due day -
+// and none when the EMI was tagged or arrived on the loan itself that month. A second ₹18,000 that month is a hospital bill, not a
+// second EMI; it used to vanish from spending because its size matched.
+function onePerMonth(account, list) {
+  const day = (account.loan || {}).day || 1;
+  const near = (iso) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    let best = null;
+    for (const k of [-1, 0, 1]) {
+      const due = new Date(y, m - 1 + k, 1);
+      const dd = Math.min(day, new Date(due.getFullYear(), due.getMonth() + 1, 0).getDate());
+      const gap = Math.abs(new Date(y, m - 1, d) - new Date(due.getFullYear(), due.getMonth(), dd));
+      if (!best || gap < best.gap) best = { gap, month: `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, '0')}` };
+    }
+    return best;
+  };
+  const sure = (t) => t.paysLoanId === account.id || t.accountId === account.id;
+  const rows = list.map((t) => ({ t, ...near(t.date) }));
+  const sureMonths = new Set(rows.filter((r) => sure(r.t)).map((r) => r.month));
+  const keep = new Map();
+  for (const r of rows) {
+    if (sure(r.t)) continue;
+    const cur = keep.get(r.month);
+    if (!sureMonths.has(r.month) && (!cur || r.gap < cur.gap)) keep.set(r.month, r);
+  }
+  return rows.filter((r) => sure(r.t) || keep.get(r.month) === r).map((r) => r.t);
+}
+
 export function assignLoanPayments(loanAccounts, transactions, today = isoLocal(new Date())) {
   const byLoan = new Map(loanAccounts.map((a) => [a.id, []]));
   const wide = new Map(loanAccounts.map((a) => [a.id, { anyAccount: looksAnywhere(a, transactions) }]));
@@ -93,6 +122,7 @@ export function assignLoanPayments(loanAccounts, transactions, today = isoLocal(
     const target = matches.sort((a, b) => byLoan.get(a.id).length - byLoan.get(b.id).length || String(a.id).localeCompare(String(b.id)))[0];
     byLoan.get(target.id).push(t);
   }
+  for (const a of loanAccounts) byLoan.set(a.id, onePerMonth(a, byLoan.get(a.id)));
   return byLoan;
 }
 
@@ -101,7 +131,7 @@ export function assignLoanPayments(loanAccounts, transactions, today = isoLocal(
 export function paymentsFor(account, transactions, today, allLoans) {
   if (Array.isArray(allLoans) && allLoans.length > 1) return assignLoanPayments(allLoans, transactions, today).get(account.id) || [];
   const opts = { anyAccount: looksAnywhere(account, transactions) };
-  return transactions.filter((t) => isLoanPayment(account, t, opts) && t.date <= today);
+  return onePerMonth(account, transactions.filter((t) => isLoanPayment(account, t, opts) && t.date <= today));
 }
 // Where the loan stands. A statement prints what is still owed on the day it
 // was made, which is the most exact starting point there is: from there the

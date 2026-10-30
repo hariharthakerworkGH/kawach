@@ -16,7 +16,8 @@ export function bankOnlyCardPayments(transactions, bankIds, cardIds) {
   // The links you made come first, so a guess by amount and date can never take a card credit that is already someone's other half.
   const paired = new Set(transactions.filter((t) => t.settledWith && byId.has(t.settledWith)).map((t) => t.settledWith));
   return transactions.filter((t) => {
-    if (!bankIds.has(t.accountId) || t.direction !== 'debit' || !t.isTransfer || !(t.paysCardId || looksLikeCardPayment(t, 'bank'))) return false;
+    // Naming the card is the decision: such a payment counts even when the move flag was later switched off.
+    if (!bankIds.has(t.accountId) || t.direction !== 'debit' || !(t.paysCardId || (t.isTransfer && looksLikeCardPayment(t, 'bank')))) return false;
     if (t.settledWith && byId.has(t.settledWith)) return false;
     const twin = transactions.find(
       (c) =>
@@ -85,6 +86,7 @@ export function cardStandings(accounts, transactions, importBatches, today) {
       c.lastClose = p.lastClose;
       c.cycleClose = p.cycleClose;
       c.positioned = true;
+      c.bills = p.bills;
     } else {
       // No statement day yet: everything since the last imported statement. Payments since it first settle that
       // statement's bill, and anything beyond it comes off what's owed since. Once the bill is marked paid, the first

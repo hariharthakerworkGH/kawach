@@ -148,7 +148,12 @@ function paidBack(debits, transactions, today) {
   return pairs;
 }
 
-export async function computeFreeToSpend(now = new Date()) {
+// `now` omitted means "the figure on screen today": it then turns over to the next month the day a month-end salary lands (30 Oct 2026:
+// payday the 31st was a Saturday, the money came on the Friday, and Left to spend went on showing the old month). A date passed in
+// is a month looked back on or a test, which never turns over unless `opts.roll` asks.
+export async function computeFreeToSpend(now, opts = {}) {
+  const roll = opts.roll ?? now === undefined;
+  now = now || new Date();
   const [allAccounts, allTransactions, importBatches, allRecurring, incomeSetting, salaryDay, keepInBank, incomeKind, categories, sideSetting, cashRuleFrom] = await Promise.all([
     getAll('accounts'),
     getAll('transactions'),
@@ -204,6 +209,32 @@ export async function computeFreeToSpend(now = new Date()) {
   // The accounts you spend from. A bank account you keep only for savings or
   // to pay a loan from (see isPutAway) is not among them.
   const bankAccounts = accounts.filter(isEverydayBank);
+  // Salary that lands in the last week of a month pays for the month after (the same rule as History's "For Nov"; `salaryNextMonth`
+  // false means the owner said no). The day it landed, in a month's closing week, or null.
+  const homeBankIds = new Set(bankAccounts.map((a) => a.id));
+  const salaryNextMonth = await getSetting('salaryNextMonth', null);
+  const landingIn = (monthEndIso) => {
+    if (isBusiness || !salaryDay || !monthlyIncome || salaryNextMonth === false) return null;
+    const [y, m, last] = monthEndIso.split('-').map(Number);
+    const payday = isoLocal(new Date(y, m - 1, Math.min(salaryDay, last)));
+    if (Math.min(salaryDay, last) < last - 6) return null;
+    return (
+      transactions
+        .filter(
+          (t) =>
+            homeBankIds.has(t.accountId) && t.direction === 'credit' && !t.isTransfer && !t.isSettlement && !t.personId &&
+            t.amount >= monthlyIncome / 2 && t.date >= addDays(payday, -SALARY_EARLY_DAYS) && t.date <= monthEndIso && t.date <= today
+        )
+        .map((t) => t.date)
+        .sort()[0] || null
+    );
+  };
+  // The month after a month-end salary starts the day the salary landed: what is paid from then is that month's, and Left to spend
+  // does not move on the 1st. Today stays today; only the month the figures are for moves on.
+  const landedThisMonth = roll ? landingIn(isoLocal(new Date(now.getFullYear(), now.getMonth() + 1, 0))) : null;
+  const rolled = Boolean(landedThisMonth);
+  const figureMonth = rolled ? new Date(now.getFullYear(), now.getMonth() + 1, 1, 12) : now;
+  const spendFrom = landedThisMonth || landingIn(isoLocal(new Date(figureMonth.getFullYear(), figureMonth.getMonth(), 0)));
   // Savings pots, fixed deposits and bank accounts kept for saving: money of
   // yours, but not money to spend. A payment out of one can still settle a
   // commitment (an EMI leaving the loan account), but it is never spending.
@@ -341,8 +372,8 @@ export async function computeFreeToSpend(now = new Date()) {
       .sort()[0];
     return { from: landed && landed < payday ? landed : payday, to: monthEnd };
   };
-  const monthStart = `${today.slice(0, 7)}-01`;
-  const monthEnd = isoLocal(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+  const monthStart = isoLocal(new Date(figureMonth.getFullYear(), figureMonth.getMonth(), 1));
+  const monthEnd = isoLocal(new Date(figureMonth.getFullYear(), figureMonth.getMonth() + 1, 0));
   const previousMonthEnd = addDays(monthStart, -1);
   const previousMonthStart = `${previousMonthEnd.slice(0, 8)}01`;
   const daysLeft = Math.max(1, daysBetweenInclusive(today, windowEnd));
@@ -394,7 +425,7 @@ export async function computeFreeToSpend(now = new Date()) {
   // can reach a month further, which would spread this month's budget thin.
   // Spending, both halves of it, runs over the calendar month.
   const spendEnd = monthEnd;
-  const windowStart = monthStart;
+  const windowStart = spendFrom || monthStart;
   // The period each commitment is tracked over. Cards: the card cycle (the day
   // after the statement day to the next statement day). The bank and cash:
   // the calendar month, 1st to last day - except that a payment with a set day
@@ -415,7 +446,7 @@ export async function computeFreeToSpend(now = new Date()) {
   const cardPeriod =
     cycleStart && cycleClose
       ? { kind: 'card', start: cycleStart, end: cycleClose, key: cycleClose }
-      : { kind: 'card', start: windowStart, end: spendEnd, key: spendEnd };
+      : { kind: 'card', start: monthStart, end: spendEnd, key: spendEnd };
   const bankPeriod = {
     kind: 'bank',
     start: monthStart,
@@ -730,7 +761,9 @@ export async function computeFreeToSpend(now = new Date()) {
   const cashSpent = atmPlan ? 0 : cashCounted;
   const cardCommitmentCharges = budgetItems.filter((b) => b.charges.card > 0).map((b) => ({ label: b.label, amount: b.charges.card }));
   const bankCommitmentPayments = budgetItems.filter((b) => b.charges.bank > 0).map((b) => ({ label: b.label, amount: b.charges.bank }));
-  const bankWindow = bankPool.filter((t) => bankIds.has(t.accountId)).filter(inRange(bankPeriod.start, bankPeriod.end));
+  // Spending starts the day a month-end salary landed (windowStart); the commitments' period stays the calendar month, or a
+  // skip or a "paid" mark made for the month before would reach into this one.
+  const bankWindow = bankPool.filter((t) => bankIds.has(t.accountId)).filter(inRange(windowStart, bankPeriod.end));
   // An EMI leaving a bank account is repaying a debt, not spending, and it
   // must never land in "spent":
   //   - when the loan is in the budget, its EMI is a commitment and the
@@ -1038,6 +1071,9 @@ export async function computeFreeToSpend(now = new Date()) {
 
   return {
     today,
+    // The month these figures are for: the next one once a month-end salary has landed.
+    monthKey: monthStart.slice(0, 7),
+    rolled,
     windowEnd,
     daysLeft,
     cycleStart: windowStart,
@@ -1070,7 +1106,7 @@ export async function computeFreeToSpend(now = new Date()) {
       bank != null && monthlyIncome && monthlyIncome - keep > 0
         ? Math.floor((bank + savingsAccounts.reduce((s, a) => s + Math.max(0, bankBalance(a, deduped, today) || 0), 0)) / (monthlyIncome - keep))
         : null,
-    business: hasBusiness ? businessMonth(transactions, allAccounts, categories, today.slice(0, 7)) : null,
+    business: hasBusiness ? businessMonth(transactions, allAccounts, categories, monthStart.slice(0, 7)) : null,
     budgetItems,
     skippedItems,
     noCommitments,

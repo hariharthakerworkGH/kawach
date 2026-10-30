@@ -83,7 +83,7 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
   };
 
   const settingKeys = new Set(['monthlyIncome', 'salaryDay', 'keepInBank', 'cycleAwareMonths', 'budgets', 'incomeType', 'salaryNextMonth']);
-  const figures = await computeFreeToSpend(now);
+  const figures = await computeFreeToSpend(now, { roll: true }); // the figure on screen, month-end salary turnover included
 
   const importReading = describe ? describe(redact, numberFor) : undefined;
 

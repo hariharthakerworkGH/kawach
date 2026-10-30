@@ -261,7 +261,12 @@ export function namesCommitment(item, t) {
 
 export function commitmentMatcher(item) {
   const words = entryMatcher(item);
-  if (words) return words;
+  if (words) {
+    if (item.spread || !item.categoryId) return words;
+    // An alert often words the same EMI differently ("Transfer to SBI" for "…HOME LOAN EMI"): the category you gave it, at the
+    // commitment's amount, is the same payment.
+    return (t) => words(t) || (t.categoryId === item.categoryId && Math.abs(t.amount - item.amount) <= item.amount * 0.02);
+  }
   if (!item.spread) return (t) => Math.abs(t.amount - item.amount) <= item.amount * 0.02;
   if (item.categoryId) return (t) => t.categoryId === item.categoryId;
   return null;

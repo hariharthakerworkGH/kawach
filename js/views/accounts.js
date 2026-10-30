@@ -1138,7 +1138,12 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
           // A real amount already billed that the app cannot see yet: a fact
           // the card computes, not a remark invented about it.
           position && position.billedNotImported >= 1000
-            ? `${formatRupees(position.billedNotImported)} billed ${formatDateNice(position.lastClose)}, statement not imported`
+            ? (() => {
+                // Names the statement that is really missing (it may not be the latest close), and how many.
+                const missing = (position.bills || []).filter((b) => !b.fromStatement && b.left > 0);
+                const when = missing.length === 1 ? ` ${formatDateNice(missing[0].close)}` : missing.length > 1 ? ` on ${missing.length} statements` : ` ${formatDateNice(position.lastClose)}`;
+                return `${formatRupees(position.billedNotImported)} billed${when}, ${missing.length > 1 ? 'not imported' : 'statement not imported'}`;
+              })()
             : '',
           { spendable: true }
         )}
@@ -1569,7 +1574,7 @@ function readSavingsFields(form, existing) {
 function readLoanFields(form) {
   const num = (sel) => {
     const raw = parseFloat(form.querySelector(sel).value);
-    return Number.isFinite(raw) ? raw : null;
+    return Number.isFinite(raw) && raw >= 0 && raw <= 1e10 ? raw : null;
   };
   const principal = num('.af-principal');
   const emi = num('.af-emi');

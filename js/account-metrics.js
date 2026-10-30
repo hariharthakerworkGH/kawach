@@ -215,8 +215,21 @@ export function cardPosition(account, transactions, importBatches, today, extraP
   const closeBefore = (iso) => closeOnOrBefore(day, addDays(iso, -1));
   const cycleClose = closeOf(today);
   const lastClose = closeBefore(today);
-  const prevClose = closeBefore(lastClose);
+  // A bill that nobody paid stays a bill. Only the last two used to be kept, so a card forgotten for two cycles (or paid in part)
+  // dropped out of the bank check while still owed. The older ones count only on a card where payments are written down at all,
+  // else a card whose payments were never entered would show every old month as owed for ever.
+  const closeList = [lastClose];
+  while (closeList.length < BILL_CYCLES) closeList.unshift(closeBefore(closeList[0]));
+  const prevClose = closeList[0];
   const batches = new Map(importBatches.map((b) => [b.id, b]));
+  // A cycle whose own statement was imported is billed by that statement. The account keeps only its LATEST statement's amount, so
+  // the older cycles used to look "not imported" and were estimated from every entry and alert in them - an alert for something the
+  // NEXT statement then listed (dated on the statement day) was counted in the old bill, and the old bill swallowed the next payment.
+  // The statement's own amount is kept on its batch (statementDue, from 7.6.6); an older batch without one is the sum of its rows.
+  const statementOf = new Map(); // close -> the batch that is that cycle's statement
+  for (const b of importBatches) {
+    if (b.accountId === account.id && !b.provisional && b.periodEnd) statementOf.set(closeOf(b.periodEnd), b);
+  }
 
   // Which cycle a transaction belongs to.
   const cycleOf = (t) => {
@@ -252,6 +265,8 @@ export function cardPosition(account, transactions, importBatches, today, extraP
     if (t.date < tooOld && !(t.importBatchId && batches.get(t.importBatchId)?.provisional)) continue;
     const close = cycleOf(t);
     if (close < prevClose) continue; // long since billed and paid
+    const own = t.importBatchId ? batches.get(t.importBatchId) : null;
+    if (statementOf.has(close) && !(own && !own.provisional)) continue; // that cycle has its statement: entries and alerts were drafts of it
     if (t.source === 'unbilled') {
       const key = `${close}|${t.date}|${t.amount}|${t.direction}|${t.rawDescription}`;
       const perList = listRows.get(key) || new Map();
@@ -267,29 +282,38 @@ export function cardPosition(account, transactions, importBatches, today, extraP
     for (const t of copies) add(close, t);
   }
 
-  // Bills for the cycles that have closed.
-  const bills = [prevClose, lastClose].map((close) => {
-    const fromStatement =
-      account.statementDue != null && account.statementPeriodEnd && Math.abs(dateOf(account.statementPeriodEnd) - dateOf(close)) <= 3 * DAY_MS;
-    return {
-      close,
-      fromStatement: Boolean(fromStatement),
-      known: Boolean(fromStatement) || spend.has(close),
-      amount: fromStatement ? account.statementDue : Math.max(0, spend.get(close) || 0),
-      markedPaid: Boolean(fromStatement && account.statementDuePaid),
-      // The day after which a payment is no longer taken to be for this bill: its due date, or 20 days after the statement.
-      paidBy: (fromStatement && account.statementDueDate) || addDays(close, 20),
-      left: 0,
-    };
-  });
-  bills.forEach((b) => (b.left = b.amount));
-
-  const payments = [
+  const paymentRows = [
     ...transactions.filter((t) => t.accountId === account.id && t.isTransfer && t.direction === 'credit'),
     ...extraPayments,
   ]
     .filter((p) => p.date > prevClose)
     .sort((a, b) => a.date.localeCompare(b.date));
+
+  // Bills for the cycles that have closed.
+  const bills = closeList.map((close, i) => {
+    const latest =
+      account.statementDue != null && account.statementPeriodEnd && Math.abs(dateOf(account.statementPeriodEnd) - dateOf(close)) <= 3 * DAY_MS;
+    const batch = statementOf.get(close);
+    const fromStatement = latest || Boolean(batch);
+    const recent = i >= closeList.length - 2;
+    const stated = latest ? account.statementDue : batch && batch.statementDue != null ? batch.statementDue : null;
+    return {
+      close,
+      fromStatement: Boolean(fromStatement),
+      known: (Boolean(fromStatement) || spend.has(close)) && (recent || paymentRows.some((p) => p.date > close)),
+      amount: stated != null ? stated : Math.max(0, spend.get(close) || 0),
+      markedPaid: Boolean(latest && account.statementDuePaid),
+      // The day after which a payment is no longer taken to be for this bill: its due date, or 20 days after the statement.
+      paidBy: (latest && account.statementDueDate) || (batch && batch.statementDueDate) || addDays(close, 20),
+      // A bill added up from its rows leaves out what the statement adds itself (interest, a fee): a payment a little above it is
+      // that bill paid in full, not a payment ahead.
+      summed: stated == null,
+      left: 0,
+    };
+  });
+  bills.forEach((b) => (b.left = b.amount));
+
+  const payments = paymentRows;
   let advance = 0;
   for (const p of payments) {
     // Said to be paying ahead (the spending since the last statement, not a bill): it comes straight off this cycle.
@@ -303,9 +327,14 @@ export function cardPosition(account, transactions, importBatches, today, extraP
       const take = Math.min(b.left, amount);
       b.left -= take;
       amount -= take;
+      if (b.summed && take > 0 && b.left === 0 && amount > 0 && amount <= b.amount * 0.05 + 10000) amount = 0;
     }
-    // Paid more than the bills in the app: the extra comes off this cycle.
-    if (amount > 0 && eligible.length) advance += amount;
+    // Paid more than the bills in the app: the extra comes off this cycle - unless it was paid inside a cycle whose statement is
+    // imported with its own total: that statement already took the payment off (ICICI printed Rs 7,899 paid on the 16th and a
+    // bill of Rs 5,401), so taking it off the next cycle as well made Rs 9,292 of spending look like Rs 1,393.
+    const ownBill = bills.find((b) => b.close === closeOf(p.date));
+    const inStatement = Boolean(ownBill && ownBill.fromStatement && !ownBill.summed);
+    if (amount > 0 && eligible.length && !inStatement) advance += amount;
   }
   for (const b of bills) if (b.markedPaid) b.left = 0;
 
@@ -319,11 +348,13 @@ export function cardPosition(account, transactions, importBatches, today, extraP
     refunds: refunds.get(cycleClose) || 0,
     cycleClose,
     lastClose,
-    statementMissing: bills[1].known && !bills[1].fromStatement,
+    statementMissing: bills[bills.length - 1].known && !bills[bills.length - 1].fromStatement,
+    bills,
   };
 }
 
 const DAY_MS = 86400000;
+const BILL_CYCLES = 4;
 
 // The latest statement day on or before `iso`, clamped to short months.
 function closeOnOrBefore(dayOfMonth, iso) {

@@ -457,7 +457,8 @@ export async function render(container) {
   const incomeEl = container.querySelector('#plan-income');
   incomeEl?.addEventListener('change', async () => {
     const raw = parseFloat(incomeEl.value);
-    await setSetting('monthlyIncome', Number.isFinite(raw) ? Math.round(raw * 100) : null);
+    // A minus sign or an extra zero too many is a slip, not an income: treated as left empty.
+    await setSetting('monthlyIncome', Number.isFinite(raw) && raw >= 0 && raw * 100 <= 1e12 ? Math.round(raw * 100) : null);
     redraw(container, () => render(container));
   });
 

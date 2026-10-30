@@ -8,13 +8,15 @@ import { getAll, put, setSetting } from '../js/db.js';
 import { buildDemo, writeDemo, exampleMessages } from '../js/demo-data.js';
 import { parseAlert, resolveAccount } from '../js/alerts.js';
 import { detectRecurring } from '../js/recurring.js';
-import { detectTransfers } from '../js/transfers.js';
+import { detectTransfers, looksLikeCardPayment } from '../js/transfers.js';
+import { detectAnomalies } from '../js/anomalies.js';
 import { syncNow, getSyncConfig, getSyncPassphrase, turnOnGoogleSync } from '../js/sync.js';
 import { setBackupPassphrase, backUpToDrive, listBackups, SYNC_FILE } from '../js/drive.js';
 import { encryptPayload, decryptPayload, exportEncrypted, decryptBackup, restoreBackup } from '../js/backup.js';
 import { takenHome, categoriesFor } from '../js/business.js';
 import { notesFor, filterNotes, popupNotes, POPUP_MAX } from '../js/whats-new.js';
 import { isSetAside, clearSkip } from '../js/commitments.js';
+import { cardPosition } from '../js/account-metrics.js';
 import { matchCategoryForDescription, learnFromAssignment, applyLearnedCategories, incomeSpendCount, fixIncomeSpends } from '../js/merchant-rules.js';
 import { APP_VERSION } from '../js/version.js';
 import { endOfMonthNoon } from '../js/views/summary.js';
@@ -1925,3 +1927,93 @@ for (const stmt of [5, 15, 25]) {
     }
   });
 }
+
+// Year simulation (7.6.6): a one-off payment the size of the EMI is spending.
+test('a one-off payment the size of the EMI, in a month the EMI was already paid, is spending', async () => {
+  await seedBasics();
+  await putAll('accounts', [{
+    id: 'car', type: 'loan', label: 'Car Loan',
+    loan: { principal: rupees(900000), outstanding: rupees(700000), outstandingAsOf: '2026-08-31', ratePct: 9, emi: rupees(18000), day: 5, paidFromId: 'bank', inBudget: false },
+  }]);
+  await putAll('transactions', [
+    txn({ accountId: 'bank', date: '2026-09-05', amount: 18000, rawDescription: 'TRANSFER TO CAR LOAN' }),
+    txn({ accountId: 'bank', date: '2026-09-20', amount: 18000, rawDescription: 'UPI-CITY HOSPITAL-123456789012' }),
+  ]);
+  const f = await computeFreeToSpend(day('2026-09-25'));
+  paise(f.spentThisCycle, rupees(18000));
+});
+
+// Year simulation (7.6.6): a forgotten card bill kept vanishing after two cycles.
+test('card: a bill nobody paid stays owed for several cycles, not only the last two', () => {
+  const card = { id: 'card', type: 'card', billingCycleDay: 25 };
+  const spend = txn({ accountId: 'card', date: '2026-05-10', amount: 7000, rawDescription: 'Croma' });
+  const later = txn({ accountId: 'card', date: '2026-08-10', amount: 1000, rawDescription: 'Swiggy' });
+  const p = cardPosition(card, [spend, later], [], '2026-09-10');
+  paise(p.unpaid + p.billedNotImported, rupees(7000 + 1000));
+  // Long ago, with a payment recorded after it, an older bill is taken as settled.
+  const pay = txn({ accountId: 'card', date: '2026-06-02', amount: 7000, direction: 'credit', rawDescription: 'Payment received', isTransfer: true });
+  const settled = cardPosition(card, [spend, later, pay], [], '2026-09-10');
+  paise(settled.unpaid + settled.billedNotImported, rupees(1000));
+});
+
+// Owner's 30 Oct 2026 report (7.6.6): a payment made inside a cycle whose statement is imported is already taken off that
+// statement's total; taking it off the next cycle too made Rs 9,292 of Swiggy-card spending show as Rs 1,393.
+test('card: a payment made before the statement closed is not taken off the next cycle as well', () => {
+  const card = { id: 'card', type: 'card', billingCycleDay: 25 };
+  const batch = { id: 'b1', accountId: 'card', periodStart: '2026-09-26', periodEnd: '2026-10-25', provisional: false, statementDue: rupees(5401), statementDueDate: '2026-11-14' };
+  const rows = [
+    txn({ accountId: 'card', date: '2026-10-10', amount: 13300, rawDescription: 'Big purchase', importBatchId: 'b1' }),
+    txn({ accountId: 'card', date: '2026-10-16', amount: 7899, direction: 'credit', isTransfer: true, rawDescription: 'Payment received', importBatchId: 'b1' }),
+    txn({ accountId: 'card', date: '2026-10-27', amount: 9000, rawDescription: 'Swiggy', source: 'alert' }),
+  ];
+  const p = cardPosition(card, rows, [batch], '2026-10-30');
+  paise(p.owed, rupees(9000));
+  paise(p.unpaid, rupees(5401));
+});
+
+// Same report: ICICI words a bill paid from the bank "CREDIT CARD <name> (Ref# ...)"; the card side did not know it as a payment.
+test('card: a credit worded "CREDIT CARD ..." is a bill payment, a refund worded so is not', () => {
+  ok(looksLikeCardPayment({ direction: 'credit', rawDescription: 'CREDIT CARD JOHN (Ref# 123)' }, 'card'), 'bill payment');
+  ok(!looksLikeCardPayment({ direction: 'credit', rawDescription: 'CREDIT CARD REFUND AMAZON' }, 'card'), 'refund');
+});
+
+// Same report: "First time at this shop" fired for a shop paid last month (the alert words it shorter than the statement) and
+// for the monthly EMI sent as a differently worded transfer.
+test('first-time-shop warning: only a shop never paid before, however it was worded', async () => {
+  await seedBasics();
+  await putAll('transactions', [
+    txn({ accountId: 'card', date: '2026-09-28', amount: 19152, rawDescription: 'AAURIS HOTELS MUMBAI', categoryId: 'food' }),
+    txn({ accountId: 'bank', date: '2026-08-31', amount: 68000, rawDescription: 'IMPS-122-HOME LOAN EMI', categoryId: 'transport' }),
+    txn({ accountId: 'bank', date: '2026-10-01', amount: 68000, rawDescription: 'IMPS-123-HOME LOAN EMI', categoryId: 'transport' }),
+    txn({ accountId: 'card', date: '2026-10-26', amount: 27932, rawDescription: 'AAURIS', categoryId: 'food', source: 'alert' }),
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 68000, rawDescription: 'Transfer to SBI', categoryId: 'transport', source: 'alert' }),
+    txn({ accountId: 'card', date: '2026-10-29', amount: 5000, rawDescription: 'NEWPLACE RESTAURANT', categoryId: 'food' }),
+  ]);
+  const flagged = await detectAnomalies('2026-10-01');
+  equal(flagged.map((a) => a.transaction.rawDescription).join(), 'NEWPLACE RESTAURANT');
+});
+
+// Same report: salary landed on Friday 30 Oct (31st is a Saturday). From that day the new month's money is on screen, and
+// it does not move on the 31st or the 1st.
+test('salary landed the day before the month ends: Left to spend is the new month from that day, and holds', async () => {
+  await seedBasics();
+  await putAll('recurring', [commitment({ label: 'House Rent', amount: 20000 })]);
+  await putAll('transactions', [
+    txn({ accountId: 'bank', date: '2026-10-20', amount: 3000, rawDescription: 'OLD SHOP' }),
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 100000, direction: 'credit', rawDescription: 'SALARY ACME CORP' }),
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 5000, rawDescription: 'DMART' }),
+  ]);
+  const before = await computeFreeToSpend(day('2026-10-29'), { roll: true });
+  equal(before.monthKey, '2026-10');
+  const landed = await computeFreeToSpend(day('2026-10-30'), { roll: true });
+  equal(landed.monthKey, '2026-11');
+  paise(landed.spentThisCycle, rupees(5000));
+  for (const d of ['2026-10-31', '2026-11-01']) {
+    const f = await computeFreeToSpend(day(d), { roll: true });
+    paise(f.spentThisCycle, landed.spentThisCycle);
+    paise(f.free, landed.free);
+    paise(f.limit, landed.limit);
+  }
+  // Looking back at a date without asking to roll never moves the month.
+  equal((await computeFreeToSpend(day('2026-10-30'))).monthKey, '2026-10');
+});

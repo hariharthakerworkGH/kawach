@@ -2002,6 +2002,9 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 @media (max-width: 340px) {
   .k .bank-figures { flex-wrap: wrap; }
 }
+/* Crore-sized amounts (Rs 1.2 crore in the bank, a bank short by as much) do not fit side by side at any phone width; wrapping only
+   when the two cannot fit leaves every ordinary pair exactly where it was (checked on the year household at 390 and 320). */
+.k .bank-figures { flex-wrap: wrap; row-gap: var(--k-2, 8px); }
 
 /* --- shared: small controls keep a fingertip-sized target -------------
    Summary carries several controls that are 32 to 35px tall - dismiss an

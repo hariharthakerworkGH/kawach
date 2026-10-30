@@ -574,9 +574,8 @@ export function havenTop(f, status, month, extra = {}) {
   const short = f.bankAfterBills != null && f.bankAfterBills < 0 && !x.finished;
   const pre = [];
   if (short) pre.push(todoLine({ ico: icon('alert'), tone: 'is-alert', title: `Your bank is <b>${formatRupees(-f.bankAfterBills)}</b> short`, sub: 'for card bills and fixed costs before money comes in', go: 'accounts' }));
-  // Due soon: only when something is late or due this week (so a payment is not missed), tap for Plan.
-  const soonEnd = isoLocal(new Date(Date.now() + 7 * 86400000));
-  const soon = x.finished ? [] : x.coming.filter((c) => c.late || c.due <= soonEnd);
+  // Only what is late: a bill due next week is already on Plan, and a reminder you can do nothing about is not a thing to do.
+  const soon = x.finished ? [] : x.coming.filter((c) => c.late);
   if (soon.length) {
     pre.push(todoLine({
       ico: categoryStyle(soon[0].label).icon,

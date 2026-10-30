@@ -144,7 +144,8 @@ function detectOwnAccountTransfers(auto, accounts, accountType) {
 const PAYMENT_OUT_RE = /\b(CRED\b|CRED\.CLUB|CC\s*PAYMENT|CREDIT\s*CARD\s*(BILL\s*)?(PAYMENT|PMT)|PAYMENT\s*ON\s*CRED)/i;
 // On the card side a credit sent by bank transfer can only be a payment -
 // refunds come back from the merchant - so NEFT/IMPS/NetBanking count too.
-const PAYMENT_IN_RE = /\b(PAYMENT\s*RECEIVED|CC\s*PAYMENT|BPPY\s*CC|CRED\b|AUTOPAY\s*RECEIVED|NET\s*BANKING\s*(TRANSFER|PAYMENT)|PAYMENT\s*-?\s*THANK\s*YOU|BBPS|NEFT|IMPS)/i;
+// "CREDIT CARD <name> (Ref# …)" is how ICICI words a bill paid from the bank: it leads the line, so it is never a merchant refund.
+const PAYMENT_IN_RE = /^\s*CREDIT\s*CARD\b(?!.*\b(REFUND|REVERSAL|CASHBACK)\b)|\b(PAYMENT\s*RECEIVED|CC\s*PAYMENT|BPPY\s*CC|CRED\b|AUTOPAY\s*RECEIVED|NET\s*BANKING\s*(TRANSFER|PAYMENT)|PAYMENT\s*-?\s*THANK\s*YOU|BBPS|NEFT|IMPS)/i;
 
 /* In and Out for a month (5.21.3, the owner's rule): what came into or left
  * your bank and cash accounts. A card purchase is not out yet; the bill that

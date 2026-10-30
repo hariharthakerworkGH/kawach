@@ -13,6 +13,31 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.6.6',
+    items: [
+      {
+        icon: 'check',
+        title: "Fewer slips from mistyped amounts and big numbers",
+        text: "A payment equal to your EMI is no longer taken for the EMI when it was paid already that month. A card bill you forgot stays on the list for longer. Clearing or mistyping an amount in History or an import no longer saves zero or fails. Very large amounts (1 crore and up) no longer push Summary wider than the screen.",
+      },
+      {
+        icon: 'card',
+        title: "Cards add up after a new statement",
+        text: "Older card statements now count too, so a bill you imported no longer says \"statement not imported\", a bill paid from the bank (\"CREDIT CARD ...\") is seen as paid, and a payment made before the statement closed is not taken off the next cycle twice. Work costs on a card show beside the planned ones.",
+      },
+      {
+        icon: 'clock',
+        title: "Salary on the 30th starts the new month",
+        text: "When salary lands before the month ends (the 31st is a Saturday), Left to spend moves to the new month that day, and the EMI paid the same day is not counted as spending. History shows every payment of that day, marked For Nov, and can step to November.",
+      },
+      {
+        icon: 'check',
+        title: "To do is only what you can do",
+        text: "Reminders from Plan (a subscription due next week) no longer sit under To do. It lists late bills, card bills due, unusual spends and the like. \"First time at this shop\" no longer fires for a shop you paid last month or for your monthly EMI.",
+      },
+    ],
+  },
+  {
     version: '7.6.5',
     items: [
       {

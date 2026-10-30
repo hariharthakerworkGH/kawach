@@ -382,7 +382,7 @@ async function havenMore(fts, transactions, months, thisKey, categories = []) {
     }
     out.cap = Number(await getSetting('dailyCap', 0)) || 0;
     // Where this month's money went (the five biggest categories, the way budgets count it), and each budget as a tank.
-    const monthKey = currentMonthKey();
+    const monthKey = thisKey;
     const spentBy = spendByCategoryForMonth(transactions, accounts, monthKey, await cycleAwareEnabled());
     out.layers = [...spentBy.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id, amount]) => {
       const name = (categories.find((c) => c.id === id) || {}).name || 'Other';
@@ -426,8 +426,10 @@ async function renderDashboard(container) {
 
   // NEW: the month bar, and a finished month on screen.
   const todayIso = isoLocal(new Date());
-  const thisKey = todayIso.slice(0, 7);
-  const months = monthsWithData(await getAll('transactions'), todayIso);
+  // The figures are for the next month once a month-end salary has landed (computeFreeToSpend), so the month bar follows them.
+  const fts = await computeFreeToSpend();
+  const thisKey = fts.monthKey;
+  const months = monthsWithData(await getAll('transactions'), `${thisKey}-01`);
   // A month that has gone from the data (payments deleted) or is no longer in
   // the past falls back to this month.
   if (viewMonth && (!months.includes(viewMonth) || viewMonth >= thisKey)) {
@@ -462,7 +464,7 @@ async function renderDashboard(container) {
     return;
   }
 
-  const [transactions, fts, install, list, categoryList, accountList] = await Promise.all([getAll('transactions'), computeFreeToSpend(), installCard(), businesses(), getAll('categories'), getAll('accounts')]);
+  const [transactions, install, list, categoryList, accountList] = await Promise.all([getAll('transactions'), installCard(), businesses(), getAll('categories'), getAll('accounts')]);
   const latest = havenLatest(transactions, categoryList, accountList);
   const more = document.documentElement.dataset.style === 'haven' ? await havenMore(fts, transactions, months, thisKey, categoryList) : null;
   // Anyone with business income has tax dates to keep.
@@ -1563,7 +1565,7 @@ function renderCommitmentTracker(f) {
   // their next salary has to cover.
   const onMonth = open.filter((t) => t.period !== 'cycle');
   const onCycle = open.filter((t) => t.period === 'cycle');
-  const monthName = MONTH_NAMES[Number(f.bankMonthStart.slice(5, 7)) - 1];
+  const monthName = MONTH_NAMES[Number(f.monthKey.slice(5, 7)) - 1];
   // The dates the card group covers, taken from the rows themselves rather
   // than worked out again here.
   const cycleRow = onCycle[0];
@@ -1778,7 +1780,8 @@ async function renderAttention(container, transactions, fts = null) {
     .map((a) => ({ account: a, bill: cardBillDue(a) }))
     .filter((x) => x.bill && !x.bill.paid && x.bill.daysLeft != null && x.bill.daysLeft <= 5);
 
-  const budgetAlerts = (await budgetStatusForMonth(budgets, categories, transactions, currentMonthKey())).filter((b) => b.state !== 'ok');
+  // Only a category that is already over: "nearly there" is a number to read on Plan, not something to do.
+  const budgetAlerts = (await budgetStatusForMonth(budgets, categories, transactions, (fts && fts.monthKey) || currentMonthKey())).filter((b) => b.state === 'over');
 
   // Spending, the bank and each commitment already speak for themselves
   // above; this list is only things to do.
@@ -1818,7 +1821,7 @@ async function renderAttention(container, transactions, fts = null) {
   );
   // NEW (5.21): a renewal in the week ahead, or a few days gone. "Renewed"
   // moves it on to next time; left alone, it moves on by itself.
-  const renewing = renewalsAhead(recurring.filter((r) => isLiveCommitment(r) && renews(r)), isoLocal(new Date())).filter((r) => r.days <= 7);
+  const renewing = renewalsAhead(recurring.filter((r) => isLiveCommitment(r) && renews(r)), isoLocal(new Date())).filter((r) => r.days < 0); // only one that has gone by: next week's is a reminder, and Plan has it
   const renewRows = renewing.map(({ item, due, days }) =>
     todo(icon('clock'), `<b>${escapeHtml(item.label)} ${formatRupees(item.amount)}</b>`, days < 0 ? `renewal was due ${formatDateNice(due)}` : days === 0 ? 'renews today' : `renews ${formatDateNice(due)}`, `<button type="button" class="btn-tiny renewal-done" data-id="${item.id}">Renewed</button>`, days < 0 ? 'is-alert' : 'is-soon')
   );

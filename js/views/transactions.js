@@ -1,5 +1,6 @@
 import { getAll, put, remove, getSetting, setSetting } from '../db.js';
 import { holdFocus } from '../overlay.js';
+import { isMoney } from '../records.js';
 import { countsFor, nextMonthKey, salaryLike, monthKeyOf } from '../spending-month.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { personNamed } from '../people.js';
@@ -109,7 +110,7 @@ export async function render(container, params = {}) {
   filters.categoryId = params.filter === 'uncategorized' ? 'uncategorized' : params.categoryId || '';
   // A month asked for by another screen (Summary's "See September's payments")
   // opens on that month, if it is a real one and not in the future.
-  filters.month = /^\d{4}-\d{2}$/.test(params.month || '') && params.month <= thisMonth() ? params.month : thisMonth();
+  filters.month = /^\d{4}-\d{2}$/.test(params.month || '') && params.month <= latestMonth(transactions) ? params.month : thisMonth();
   // Opened for one account (from Accounts): its latest month, so an account
   // with nothing yet this month doesn't open on an empty page.
   if (filters.accountId) {
@@ -419,7 +420,9 @@ function matching() {
   const month = acrossMonths() ? null : filters.month;
   return cache.transactions
     .filter((t) => {
-      if (month && countsFor(t) !== month) return false;
+      // A payment is on the day it happened as well as in the month it counts for (tagged "For Nov"): what you did today is
+      // always in today's list, whichever month the salary it was paid from belongs to.
+      if (month && countsFor(t) !== month && t.date.slice(0, 7) !== month) return false;
       if (filters.accountId && t.accountId !== filters.accountId) return false;
       if (filters.categoryId === 'uncategorized' && !needsCategory(t)) return false;
       if (filters.categoryId && filters.categoryId !== 'uncategorized') {
@@ -567,14 +570,16 @@ function renderList(container) {
   if (nameEl) {
     nameEl.textContent = across ? 'All months' : formatMonthYear(`${filters.month}-01`);
     navEl(container, '#month-prev').disabled = across || !hasOlder;
-    navEl(container, '#month-next').disabled = across || filters.month >= thisMonth();
+    navEl(container, '#month-next').disabled = across || filters.month >= latestMonth();
   }
 
   // What the month came to. Net is the one answer: in minus out. A month
   // that kept money reads in the ordinary ink, a month that ate into savings
   // reads red, and zero is neither. In and out sit under it as
   // the two figures that make it up, the same stacked pair Summary uses.
-  const sum = totals(rows);
+  // Totals count each payment once, in the month it counts for; a row shown here for its date alone is not added.
+  const counted = across ? rows : rows.filter((t) => countsFor(t) === filters.month);
+  const sum = totals(counted);
   const net = sum.in - sum.out;
   const netEl = container.querySelector('#hist-net');
   const statsEl = container.querySelector('#hist-stats');
@@ -597,7 +602,7 @@ function renderList(container) {
     statsEl.innerHTML = '';
   }
   container.querySelector('#hist-days').innerHTML = across ? '' : dayChart(rows, filters.month);
-  if (document.documentElement.dataset.style === 'haven') drawRing(container, rows, sum, across);
+  if (document.documentElement.dataset.style === 'haven') drawRing(container, counted, sum, across);
   const carried = carryLine(container, across, net);
   salaryQuestion(container, across);
   // The month in one sentence, said once (the six months below used to say
@@ -1311,8 +1316,11 @@ async function handleChange(e, container) {
   // Typed edits save as you go and update the row's line in place, without
   // redrawing it and closing the keyboard.
   if (field === 'amount') {
-    const parsed = parseFloat(e.target.value);
-    t.amount = Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
+    const parsed = Math.round(parseFloat(e.target.value) * 100);
+    // Cleared or mistyped (empty, 0, -500): keep the amount it had rather than save Rs 0 or throw.
+    e.target.classList.toggle('is-invalid', !(parsed > 0 && isMoney(parsed)));
+    if (!(parsed > 0 && isMoney(parsed))) return;
+    t.amount = parsed;
     const amountEl = rowEl.querySelector('.txn-amount');
     if (amountEl) amountEl.textContent = `${t.direction === 'credit' ? '+' : '−'}${formatRupees(t.amount)}`;
   } else if (field === 'date') {
@@ -1654,6 +1662,11 @@ export function displayName(raw) {
 
 function thisMonth() {
   return isoLocal(new Date()).slice(0, 7);
+}
+
+// The last month the stepper may reach: this one, or the next when a month-end salary (and what was paid from it) counts there.
+function latestMonth(list = cache.transactions) {
+  return list.reduce((m, t) => (countsFor(t) > m ? countsFor(t) : m), thisMonth());
 }
 
 function shiftMonth(month, delta) {
