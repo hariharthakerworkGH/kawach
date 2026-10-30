@@ -453,8 +453,7 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
     const sh = moonPathD(moonAt(Date.now(), place.lat, place.lon).phase);
     dot = `<g transform="translate(${tx.toFixed(1)} ${ty.toFixed(1)}) scale(.3)${sh.flip ? ' scale(-1 1)' : ''}"><circle r="22" fill="rgba(188,204,255,.18)"/><circle r="20" fill="#27305a"/><path d="${sh.d}" fill="#EEF2FF"/></g>`;
   }
-  // The ends of the line are dates. A month that began on the day a month-end salary landed (30 Oct) runs into the next one, so
-  // the last day is "30 Nov", never "32".
+  // The ends of the line are day numbers; if a window ever runs into the next month they are dates ("30 Nov"), never "32".
   const startDate = new Date(`${by.length ? by[0].date : isoLocal(new Date())}T12:00:00`);
   const endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + days - 1, 12);
   const crosses = endDate.getMonth() !== startDate.getMonth();

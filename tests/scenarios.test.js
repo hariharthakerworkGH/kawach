@@ -1993,9 +1993,10 @@ test('first-time-shop warning: only a shop never paid before, however it was wor
   equal(flagged.map((a) => a.transaction.rawDescription).join(), 'NEWPLACE RESTAURANT');
 });
 
-// Same report: salary landed on Friday 30 Oct (31st is a Saturday). From that day the new month's money is on screen, and
-// it does not move on the 31st or the 1st.
-test('salary landed the day before the month ends: Left to spend is the new month from that day, and holds', async () => {
+// Same report: salary landed on Friday 30 Oct (31st is a Saturday). The owner's rule (30 Oct 2026): the calendar month has not ended
+// because the salary came or because next month's bills were paid, so October stays October to its last day and nothing moves on
+// the 31st; November starts on the 1st.
+test('salary landed the day before the month ends: the month stays the calendar month to its last day', async () => {
   await seedBasics();
   await putAll('recurring', [commitment({ label: 'House Rent', amount: 20000 })]);
   await putAll('transactions', [
@@ -2003,34 +2004,68 @@ test('salary landed the day before the month ends: Left to spend is the new mont
     txn({ accountId: 'bank', date: '2026-10-30', amount: 100000, direction: 'credit', rawDescription: 'SALARY ACME CORP' }),
     txn({ accountId: 'bank', date: '2026-10-30', amount: 5000, rawDescription: 'DMART' }),
   ]);
-  const before = await computeFreeToSpend(day('2026-10-29'), { roll: true });
-  equal(before.monthKey, '2026-10');
-  const landed = await computeFreeToSpend(day('2026-10-30'), { roll: true });
-  equal(landed.monthKey, '2026-11');
-  paise(landed.spentThisCycle, rupees(5000));
-  for (const d of ['2026-10-31', '2026-11-01']) {
-    const f = await computeFreeToSpend(day(d), { roll: true });
-    paise(f.spentThisCycle, landed.spentThisCycle);
-    paise(f.free, landed.free);
-    paise(f.limit, landed.limit);
-  }
-  // Looking back at a date without asking to roll never moves the month.
-  equal((await computeFreeToSpend(day('2026-10-30'))).monthKey, '2026-10');
+  const landed = await computeFreeToSpend(day('2026-10-30'));
+  equal(landed.monthKey, '2026-10');
+  equal(landed.cycleKey, '2026-10-31');
+  paise(landed.spentThisCycle, rupees(8000));
+  const last = await computeFreeToSpend(day('2026-10-31'));
+  equal(last.monthKey, '2026-10');
+  paise(last.spentThisCycle, landed.spentThisCycle);
+  paise(last.free, landed.free);
+  paise(last.limit, landed.limit);
+  // The new month starts on the 1st with its own spending, not October's.
+  const november = await computeFreeToSpend(day('2026-11-01'));
+  equal(november.monthKey, '2026-11');
+  paise(november.spentThisCycle, 0);
 });
 
-// Found by the month-end year simulation: groceries bought after a month-end salary landed counted as plain spending, though the
-// new month already held the groceries allowance back. They draw the allowance down, so Left to spend does not move.
-test('salary landed the day before the month ends: set-aside spending from that day uses the new month\'s allowance', async () => {
+// The screens call it with no date ("today"), which is the path that jumped to November in 7.6.6 and 7.6.7: the clock is
+// pinned to Friday 30 Oct 2026 here to check that path itself.
+test('the figure on screen on 30 Oct, salary just landed, is still October', async () => {
+  await seedBasics();
+  await putAll('transactions', [
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 100000, direction: 'credit', rawDescription: 'SALARY ACME CORP' }),
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 5000, rawDescription: 'DMART' }),
+  ]);
+  const RealDate = Date;
+  globalThis.Date = class extends RealDate {
+    constructor(...a) { super(...(a.length ? a : [2026, 9, 30, 12])); }
+    static now() { return new RealDate(2026, 9, 30, 12).getTime(); }
+  };
+  let f;
+  try { f = await computeFreeToSpend(); } finally { globalThis.Date = RealDate; }
+  equal([f.monthKey, f.cycleKey], ['2026-10', '2026-10-31']);
+  paise(f.spentThisCycle, rupees(5000));
+});
+
+// The EMI paid on the day the salary landed is for November: it is neither October's second EMI nor October's spending, and the
+// month on screen stays October.
+test('an EMI paid on a month-end salary day is next month\'s: October stays October and it is not spending', async () => {
+  await seedMonth();
+  await putAll('transactions', [
+    txn({ accountId: 'bank', date: '2026-10-01', amount: 40000, rawDescription: 'IMPS-111111111111-Home Loan EMI' }),
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 100000, direction: 'credit', rawDescription: 'NEFT SALARY ACME CORP' }),
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 40000, rawDescription: 'IMPS-222222222222-Home Loan EMI' }),
+  ]);
+  const f = await computeFreeToSpend(day('2026-10-30'));
+  equal(f.monthKey, '2026-10');
+  paise(f.bankSpent, 0);
+  equal(f.tracker.find((t) => t.label === 'Home Loan EMI').status, 'paid');
+});
+
+// Groceries bought on the day the salary landed still draw down October's groceries allowance (October's budget held it back), so
+// Left to spend for October does not drop by the grocery bill.
+test('salary landed the day before the month ends: set-aside spending that day draws down this month\'s allowance', async () => {
   await seedBasics();
   await putAll('recurring', [commitment({ label: 'Groceries', amount: 10000, spread: true, matchText: 'DMART' })]);
   await putAll('transactions', [
     txn({ accountId: 'bank', date: '2026-10-30', amount: 100000, direction: 'credit', rawDescription: 'SALARY ACME CORP' }),
     txn({ accountId: 'bank', date: '2026-10-30', amount: 4000, rawDescription: 'DMART' }),
   ]);
-  const landed = await computeFreeToSpend(day('2026-10-30'), { roll: true });
-  equal(landed.monthKey, '2026-11');
+  const landed = await computeFreeToSpend(day('2026-10-30'));
+  equal(landed.monthKey, '2026-10');
   paise(landed.spentThisCycle, 0);
-  const later = await computeFreeToSpend(day('2026-11-01'), { roll: true });
-  paise(later.spentThisCycle, 0);
-  paise(later.free, landed.free);
+  const last = await computeFreeToSpend(day('2026-10-31'));
+  paise(last.spentThisCycle, 0);
+  paise(last.free, landed.free);
 });

@@ -241,12 +241,15 @@ export function commitmentFromSuggestion(d, id) {
  *   commitments: the live ones, to know which are spread
  *   accountIds: the bank accounts the salary can land in */
 export function salaryDayPayments(transactions, commitments, from, to, accountIds) {
-  const spread = commitments.filter((c) => c.spread);
-  const isSpread = (t) => spread.some((c) => !(t.notCommitmentIds || []).includes(c.id) && (t.commitmentId ? t.commitmentId === c.id : Boolean(commitmentMatcher(c)?.(t))));
+  const names = (list) => (t) => list.some((c) => !(t.notCommitmentIds || []).includes(c.id) && (t.commitmentId ? t.commitmentId === c.id : Boolean(commitmentMatcher(c)?.(t))));
+  const isSpread = names(commitments.filter((c) => c.spread));
+  const isBill = names(commitments.filter((c) => !c.spread));
+  // Only what is next month's goes ahead: a bill with a set day, a card bill, money moved. Ordinary spending (a grocery run, a
+  // ₹240 UPI) is still this month's, which has not ended because the salary came: Summary counts it here, so History must too.
   return transactions.filter(
     (t) =>
       t.direction === 'debit' && !t.countsFor && !t.isReimbursable && !t.personId &&
-      t.date >= from && t.date <= to && accountIds.has(t.accountId) && !isSpread(t)
+      t.date >= from && t.date <= to && accountIds.has(t.accountId) && !isSpread(t) && (t.isTransfer || Boolean(t.paysCardId) || isBill(t))
   );
 }
 

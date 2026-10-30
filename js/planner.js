@@ -49,7 +49,7 @@ export async function financialSnapshot(now = new Date()) {
   // Everything about "this cycle" comes from the same calculation as the
   // Summary's headline, so Plan, Coach and Summary - forecasts and notes
   // included - never give two different answers.
-  const cycle = await computeFreeToSpend(now, { roll: now.toDateString() === new Date().toDateString() });
+  const cycle = await computeFreeToSpend(now);
   // What the month is planned on: a business owner's is worked out from what
   // came home, so it comes from the same calculation.
   const income = cycle.monthlyIncome ?? incomeSetting;

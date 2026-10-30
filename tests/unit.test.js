@@ -2359,7 +2359,7 @@ test('salary at a month\'s end: spotted in the last week, counted in the month i
   equal(nextMonthKey('2026-12'), '2027-01');
 });
 
-test('paid on salary day for the month after: everything from the salary moves with it, spread costs stay', () => {
+test('paid on salary day for the month after: bills, card bills and moves go ahead; ordinary spending and spread costs stay', () => {
   const rent = { id: 'rent', label: 'Rent', amount: 2500000, frequency: 'monthly', dayOfMonth: 30, source: 'fixed' };
   const tiffin = { id: 'tiffin', label: 'Tiffin', amount: 400000, frequency: 'monthly', spread: true, source: 'fixed', matchText: 'TIFFIN' };
   const out = (id, date, amount, extra = {}) => ({ id, accountId: 'b', date, amount, direction: 'debit', rawDescription: id.toUpperCase(), ...extra });
@@ -2372,7 +2372,7 @@ test('paid on salary day for the month after: everything from the salary moves w
     out('tagged', '2026-09-30', 99900, { commitmentId: 'rent' }),
   ];
   const ids = salaryDayPayments(rows, [rent, tiffin], '2026-09-30', '2026-09-30', new Set(['b'])).map((t) => t.id);
-  equal(ids, ['rent-paid', 'groceries', 'moved', 'tagged'], 'everything paid from the salary that day moves; tiffin (spread) and an earlier day stay');
+  equal(ids, ['rent-paid', 'moved', 'tagged'], 'the bill, the money moved and the tagged one go ahead; groceries (plain spending), tiffin (spread) and an earlier day stay');
   equal(countsForMonth({ date: '2026-09-30', forNextMonth: true, commitmentId: 'rent' }), '2026-10', 'a payment flagged for next month counts there');
 });
 

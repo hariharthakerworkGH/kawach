@@ -426,7 +426,7 @@ async function renderDashboard(container) {
 
   // NEW: the month bar, and a finished month on screen.
   const todayIso = isoLocal(new Date());
-  // The figures are for the next month once a month-end salary has landed (computeFreeToSpend), so the month bar follows them.
+  // The figures are for the calendar month (computeFreeToSpend); the month bar follows them.
   const fts = await computeFreeToSpend();
   const thisKey = fts.monthKey;
   const months = monthsWithData(await getAll('transactions'), `${thisKey}-01`);

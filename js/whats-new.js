@@ -13,12 +13,22 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.6.8',
+    items: [
+      {
+        icon: 'calendar',
+        title: "The month stays the calendar month",
+        text: "Your salary landing on the 30th no longer jumps the app to next month: Left to spend, Spent and the chart stay on this month until its last day. Plain spends on salary day stay in History for this month too; only bills, card bills and money moved go ahead to next month. The month button no longer touches the shield.",
+      },
+    ],
+  },
+  {
     version: '7.6.7',
     items: [
       {
         icon: 'clock',
-        title: "Month-end salary fixes",
-        text: "When your salary lands in the last days of a month, groceries and other set-aside spending from that day now use the new month's allowance, so Left to spend no longer sits too low until the month ends. The Summary chart for that month ends on a date (30 Nov), not 32. To do shows only purchases from the last week that need a look. Plan no longer shows Saved each month as -0.",
+        title: "To do and Plan tidy-ups",
+        text: "To do shows only purchases from the last week that need a look. Plan no longer shows Saved each month as -0.",
       },
     ],
   },
@@ -37,8 +47,8 @@ const NOTES = [
       },
       {
         icon: 'clock',
-        title: "Salary on the 30th starts the new month",
-        text: "When salary lands before the month ends (the 31st is a Saturday), Left to spend moves to the new month that day, and the EMI paid the same day is not counted as spending. History shows every payment of that day, marked For Nov, and can step to November.",
+        title: "Salary that lands before the month ends",
+        text: "When salary lands before the month ends (the 31st is a Saturday), the EMI paid the same day is not counted as spending. History shows every payment of that day, marked For Nov, and can step to November.",
       },
       {
         icon: 'check',

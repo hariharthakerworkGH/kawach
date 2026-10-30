@@ -246,14 +246,14 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .k #dashboard > details.sum-more, :root[data-style=haven] .k #dashboard > .lg-install { margin-top: 10px; }
 
 :root[data-style=haven] .lg-hero { margin: 0; padding: 10px 14px 12px; border-radius: 18px; background: linear-gradient(165deg, var(--lg-hero1), var(--lg-hero2)); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09); }
-:root[data-style=haven] .lg-hero .r1 { display: flex; align-items: center; justify-content: space-between; height: 34px; }
+:root[data-style=haven] .lg-hero .r1 { display: flex; align-items: center; justify-content: space-between; height: 32px; }
 :root[data-style=haven] .lg-hero .lab { font-size: 13px; color: rgba(255, 255, 255, 0.74); display: inline-flex; align-items: center; gap: 6px; }
-:root[data-style=haven] .lg-hero .figrow { display: flex; align-items: center; justify-content: space-between; margin-top: 0; }
+:root[data-style=haven] .lg-hero .figrow { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
 :root[data-style=haven] .lg-hero .hv-vault__fig { font-size: 48px; line-height: 1.02; margin: 0; }
 :root[data-style=haven] .lg-hero .hv-fig { font-size: 48px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.02; }
 :root[data-style=haven] .lg-hero .hv-fig .hv-cur { font-size: 28px; font-weight: 600; opacity: 0.8; margin-right: 2px; letter-spacing: 0; vertical-align: baseline; }
 :root[data-style=haven] .lg-hero.is-negative .hv-num, :root[data-style=haven] .lg-hero.is-negative .hv-cur { color: #ffb4ad; }
-:root[data-style=haven] .lg-hero .tide { width: 48px; height: 57px; flex: none; cursor: default; margin-top: -4px; }
+:root[data-style=haven] .lg-hero .tide { width: 42px; height: 50px; flex: none; cursor: default; }
 :root[data-style=haven] .lg-hero .tide:not([data-mood="watch"]):not([data-mood="low"]) { --hv-tide-a: #3FD8C6; --hv-tide-b: #7FEBDD; }
 :root[data-style=haven][data-theme="dark"] .lg-hero .tide svg { filter: none; }
 /* the water is cut to the shield by clip-path; on a phone's graphics chip that cut was lost while the screen was pulled down (the water showed as a teal block), so the svg's own edge cuts it too */
