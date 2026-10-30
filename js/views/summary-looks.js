@@ -24,6 +24,7 @@ import { icon } from '../icons.js';
 import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
 import { isoLocal } from '../frequency.js';
+import { spareInBank } from '../free-to-spend.js';
 import { getPlace, moonAt, moonPathD } from '../sun-moon.js';
 
 /* What is left of the money set aside that Kawach can follow: the same rows
@@ -563,11 +564,15 @@ export function havenTop(f, status, month, extra = {}) {
       : x.perDay > 0
         ? `<div><span>A day</span><b class="hv-amt">${formatRupees(x.perDay)}</b></div>`
         : `<div><span>Days left</span><b>${x.daysLeft}</b></div>`;
+  // Over the plan, the bank can still have money in it. It is said once, and kept apart from the budget (which comes from
+  // Plan): the money is there, spending it is the choice of the person, and next month's budget does not grow by it.
+  const spare = spareInBank(f);
+  const overNote = !x.finished && f.free < 0 && spare > 0 ? `<div class="hv-vault__bank" data-bank-spare>${escapeHtml(formatRupees(spare))} in the bank after bills, not budget</div>` : '';
   const hero = `<div class="lg-hero hv-vault ${f.free < 0 ? 'is-negative' : ''}"${x.finished ? ' data-finished' : ''}${vaultData} data-roll-scope data-limit="${x.limit}" data-left="${x.left}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
       <div class="r1"><span class="lab hv-vault__lab">Left to spend${badges}</span>${extra.nav || ''}</div>
       <div class="figrow"><div class="hv-vault__fig hv-amt">${num}</div><div class="tide" data-mood="${mood}"${x.finished && x.closedUnder ? ` data-closed="${escapeHtml(String(f.cycleKey || ''))}"` : ''} style="--lvl:${lvl.toFixed(3)}" role="img" aria-label="${word}: ${formatRupees(x.left)} left of ${formatRupees(x.limit)}">${tideSvg(lvl, 0)}</div></div>
       <div class="sub"><span data-status>${sub}</span>${tag}</div>
-      ${more.cap ? `<div class="hv-vault__cap" data-cap>Your own limit: <b>${escapeHtml(formatRupees(more.cap))}</b> a day</div>` : ''}${asleep ? '<div class="hv-vault__sleep">A quiet month so far.</div>' : ''}<div class="hv-vault__eve" data-eve-line aria-live="polite"></div>
+      ${overNote}${more.cap ? `<div class="hv-vault__cap" data-cap>Your own limit: <b>${escapeHtml(formatRupees(more.cap))}</b> a day</div>` : ''}${asleep ? '<div class="hv-vault__sleep">A quiet month so far.</div>' : ''}<div class="hv-vault__eve" data-eve-line aria-live="polite"></div>
       ${heroChart(f)}
       <div class="hv-kept"><div class="stats"><div><span>Spent</span><b class="hv-amt" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div><div><span>Budget</span><b class="hv-amt">${formatRupees(x.limit)}</b></div>${third}</div>${kp ? kp.list : ''}</div>
       ${closedNote(x)}

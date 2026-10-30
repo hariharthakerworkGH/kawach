@@ -1,9 +1,11 @@
 import { redactPolicy } from './policies.js';
 import { getAll } from './db.js';
 import { APP_VERSION, BUILD } from './version.js';
-import { computeFreeToSpend } from './free-to-spend.js';
+import { computeFreeToSpend, spareInBank } from './free-to-spend.js';
 import { isFixed } from './commitments.js';
 import { isoLocal } from './frequency.js';
+import { loadMarkerKey, markCode, showMark, CONSONANTS, DIGITS } from './marker.js';
+import { countsFor } from './spending-month.js';
 
 // A diagnostic report: everything needed to reproduce a wrong number on
 // another computer, with what identifies you taken out.
@@ -18,6 +20,11 @@ import { isoLocal } from './frequency.js';
 // names, people's names, UPI ids and reference numbers can't be read.
 // Removed: card and account digits, notes, merchant rules, the alert inbox,
 // sync settings and every password or token.
+//
+// Markers (js/marker.js): a record's id and each stand-in word are a keyed code made on this device, so the same
+// payment, account or word has the same code in every report from it, and the code shown on screen (History,
+// Accounts) is the end of the id in the report. Without the key (it could not be saved) the old numbering by order
+// is used, and the report says so (`stableMarkers: false`).
 
 // Words that describe how money moved, not who it went to.
 const BANKING_WORDS = new Set(
@@ -39,13 +46,31 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
     getAll('settings'),
   ]);
 
+  const stable = Boolean(await loadMarkerKey());
+  // `taken` guards the rare two-things-one-code case: the later one gets another try, so two different words,
+  // numbers or records are never given the same stand-in.
+  const taken = new Set();
+  const stand = (id, make) => {
+    for (let salt = 0; ; salt++) {
+      const code = make(salt ? `${id}#${salt}` : id, salt);
+      if (!taken.has(code)) {
+        taken.add(code);
+        return code;
+      }
+    }
+  };
   const wordMap = new Map();
   const numberMap = new Map();
   const numberFor = (digits) => {
     if (!numberMap.has(digits)) {
-      // A fresh number of the same length, never starting with 0.
-      const n = String(numberMap.size + 1);
-      numberMap.set(digits, (('9' + '0'.repeat(digits.length)).slice(0, digits.length - n.length) + n).slice(-digits.length));
+      if (stable) {
+        // The same digits give the same stand-in in every report; never starting with 0.
+        numberMap.set(digits, stand(digits, (id) => { const c = markCode('n', id, digits.length, DIGITS); return `${c[0] === '0' ? '9' : c[0]}${c.slice(1)}`; }));
+      } else {
+        // A fresh number of the same length, never starting with 0.
+        const n = String(numberMap.size + 1);
+        numberMap.set(digits, (('9' + '0'.repeat(digits.length)).slice(0, digits.length - n.length) + n).slice(-digits.length));
+      }
     }
     return numberMap.get(digits);
   };
@@ -56,7 +81,7 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
           if (/^\d+$/.test(token)) return token.length <= 2 ? token : numberFor(token);
           const upper = token.toUpperCase();
           if (BANKING_WORDS.has(upper)) return token;
-          if (!wordMap.has(upper)) wordMap.set(upper, `W${wordMap.size + 1}`);
+          if (!wordMap.has(upper)) wordMap.set(upper, stable ? stand(upper, (id) => `W${markCode('w', id, 7, CONSONANTS)}`) : `W${wordMap.size + 1}`);
           return wordMap.get(upper);
         });
 
@@ -78,7 +103,7 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
   const idFor = (kind, id) => {
     if (id == null || id === 'cash') return id ?? null;
     const map = idMaps[kind];
-    if (!map.has(id)) map.set(id, `${kind}${map.size + 1}`);
+    if (!map.has(id)) map.set(id, stable ? stand(`${kind}:${id}`, (x) => `${kind}-${showMark(markCode(kind, x.slice(kind.length + 1)))}`) : `${kind}${map.size + 1}`);
     return map.get(id);
   };
 
@@ -89,10 +114,25 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
 
   return {
     kind: 'expense-tracker-diagnostic-report',
+    // 2: stable markers, `flagged`, `screen` and each payment's `filedFor`. Reports without a format are the older kind.
+    format: 2,
+    stableMarkers: stable,
     appVersion: APP_VERSION,
     build: BUILD,
     generatedAt: new Date().toISOString(),
     today: figures.today,
+    // The payments the owner flagged as the problem (History, "Flag for the report"): where to start looking.
+    flagged: transactions.filter((t) => t.reportFlag === true).map((t) => idFor('t', t.id)),
+    // What the Summary hero said when this was saved, so a report can be set beside a screenshot of it.
+    screen: {
+      month: figures.monthKey,
+      until: figures.cycleKey,
+      level: figures.level,
+      left: figures.free,
+      budget: figures.limit,
+      spent: figures.spentThisCycle,
+      spareInBank: spareInBank(figures),
+    },
     importReading,
     // Your commitments, and apart from them the repeating payments the app
     // spotted on its own (suggestions, including ones you dismissed).
@@ -186,6 +226,9 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
       countsFor: t.countsFor || undefined,
       personId: t.personId ? idFor('p', t.personId) : undefined,
       paysStatement: t.paysStatement ? `${idFor('a', String(t.paysStatement).split('|')[0])}|${String(t.paysStatement).split('|')[1] || ''}` : undefined,
+      // The month History files it under, only when that is not the month of its date (the "For Nov" tag).
+      filedFor: countsFor(t) !== t.date.slice(0, 7) ? countsFor(t) : undefined,
+      flagged: t.reportFlag === true ? true : undefined,
       time: t.time || undefined,
       createdAt: t.createdAt || undefined,
       updatedAt: t.updatedAt || null,

@@ -95,6 +95,10 @@ const SALARY_LATE_DAYS = 5;
 // Saved each month (stored as "keepInBank"), unless changed on Plan: ₹10,000.
 export const DEFAULT_KEEP_IN_BANK = 1000000;
 
+// What is in the home bank accounts once card bills and fixed costs due before money comes in are paid, and the amount you
+// keep back is left alone. It is only said, never added to the budget (the budget comes from Plan); null when not worked out.
+export const spareInBank = (f) => (f && f.bankAfterBills != null ? Math.max(0, f.bankAfterBills - (f.keep || 0)) : null);
+
 // The latest payday on or before `iso`, with the day clamped to short months.
 function paydayOnOrBefore(dayOfMonth, iso) {
   const [y, m, d] = iso.split('-').map(Number);

@@ -264,7 +264,8 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .lg-hero .lg-tag.ok { background: rgba(98, 227, 165, 0.18); color: #7DF0B8; }
 :root[data-style=haven] .lg-hero .lg-tag.warn { background: rgba(244, 181, 65, 0.2); color: #FFD27A; }
 :root[data-style=haven] .lg-hero .lg-tag.bad { background: rgba(255, 128, 128, 0.2); color: #FFB4AD; }
-:root[data-style=haven] .lg-hero .hv-vault__cap, :root[data-style=haven] .lg-hero .hv-vault__sleep { margin-top: 3px; font-size: 13px; color: rgba(255, 255, 255, 0.76); }
+:root[data-style=haven] .lg-hero .hv-vault__cap, :root[data-style=haven] .lg-hero .hv-vault__sleep, :root[data-style=haven] .lg-hero .hv-vault__bank { margin-top: 3px; font-size: 13px; color: rgba(255, 255, 255, 0.76); }
+:root[data-style=haven] .lg-hero .hv-vault__bank { text-wrap: balance; }
 :root[data-style=haven] .lg-hero .hv-vault__eve { display: none; }
 :root[data-style=haven] .lg-hero .lg-chartbox { position: relative; margin-top: 8px; }
 :root[data-style=haven] .lg-hero svg.lg-chart { display: block; width: 100%; height: auto; }

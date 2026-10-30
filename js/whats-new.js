@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.7',
+    items: [
+      {
+        icon: 'shield',
+        title: "Reports",
+        text: "Every",
+        guide: [{ view: 'transactions', target: '.hist-main', text: "Open" }],
+      },
+    ],
+  },
+  {
     version: '7.6.8',
     items: [
       {

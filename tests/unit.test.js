@@ -10,6 +10,8 @@ import { searchHit, newestFirst, dayChart } from '../js/views/transactions.js';
 import { reimbursableTally, tidyFlags } from '../js/reimbursable.js';
 import { STEPS } from '../js/demo-script.js';
 import { versionStatus } from '../js/version.js';
+import { sha256, hmacSha256, setMarkerKey, markCode, markOf, showMark, CONSONANTS, DIGITS } from '../js/marker.js';
+import { spareInBank } from '../js/free-to-spend.js';
 import { cardPosition, bankBalance, statementDayFixes, balanceAt } from '../js/account-metrics.js';
 import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance, applyTheme, retireOldLooks } from '../js/appearance.js';
@@ -2656,4 +2658,44 @@ test('How it looks: where you are, text size, motion, the opening screen and the
     else localStorage.setItem(key, before);
     box.remove();
   }
+});
+
+const hex = (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+
+test('markers: the hash is the real SHA-256 and HMAC-SHA256 (published test values)', () => {
+  const enc = (s) => new TextEncoder().encode(s);
+  equal(hex(sha256(enc('abc'))), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad', 'sha256 of abc');
+  equal(hex(sha256(enc(''))), 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'and of nothing');
+  // 56 and 64 bytes are the lengths where the padding spills into another block.
+  equal(hex(sha256(enc('a'.repeat(56)))), 'b35439a4ac6f0948b6d6f9e3c6af0f5f590ce20f1bde7090ef7970686ec6738a', 'sha256 of 56 letters');
+  equal(hex(sha256(enc('a'.repeat(64)))), 'ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154668eb', 'and of 64');
+  equal(hex(hmacSha256('Jefe', enc('what do ya want for nothing?'))), '5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843', 'RFC 4231 case 2');
+  equal(hex(hmacSha256(new Uint8Array(131).fill(0xaa), enc('Test Using Larger Than Block-Size Key - Hash Key First'))), '60e431591ee0b67f0d8a26aacbf5b77f8e0bc6213728c5140546040f0ee37f54', 'RFC 4231 case 6, a key longer than a block');
+});
+
+test('markers: the same record always gets the same code, a different kind or key does not', () => {
+  setMarkerKey('0123456789abcdef');
+  const a = markCode('t', 'txn-1');
+  equal(a, markCode('t', 'txn-1'), 'repeatable');
+  equal(a.length, 8, 'eight letters and digits');
+  ok(/^[A-HJKMNP-TV-Z2-9]{8}$/.test(a), 'none of the look-alikes (I, L, O, U, 0, 1)');
+  ok(markCode('a', 'txn-1') !== a, 'a payment and an account sharing an id do not share a code');
+  equal(showMark(a), `${a.slice(0, 4)}-${a.slice(4)}`, 'shown as K7F2-QXMA');
+  equal(markOf('t', 'txn-1'), showMark(a), 'and that is what a screen shows');
+  const word = markCode('w', 'GROCERY', 7, CONSONANTS);
+  ok(/^[BCDFGHJKLMNPQRSTVWXZ]{7}$/.test(word), 'a stand-in for a word is consonants only');
+  ok(/^[1-9]\d{3}$/.test(markCode('n', '1234', 4, DIGITS).replace(/^0/, '9')), 'digits stay digits');
+  setMarkerKey('fedcba9876543210');
+  ok(markCode('t', 'txn-1') !== a, 'another device (another key) gives another code');
+  setMarkerKey(null);
+  equal(markCode('t', 'txn-1'), null, 'no key, no code: nothing is invented');
+  equal(markOf('t', 'txn-1'), '', 'and a screen shows nothing');
+  setMarkerKey('0123456789abcdef');
+});
+
+test('markers: what is in the bank after bills, apart from the budget', () => {
+  equal(spareInBank({ bankAfterBills: 35000000, keep: 1000000 }), 34000000, 'the bank after bills, less what you keep back');
+  equal(spareInBank({ bankAfterBills: 500000, keep: 1000000 }), 0, 'never below nothing');
+  equal(spareInBank({ bankAfterBills: null, keep: 1000000 }), null, 'unknown when the bank is not worked out');
+  equal(spareInBank(null), null, 'and when there are no figures');
 });

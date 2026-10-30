@@ -19,6 +19,7 @@ import { isoLocal } from './frequency.js';
 import { keepDataSafe, isInstalled } from './install.js';
 import { signIn, rememberGoogleAccount } from './drive.js';
 import { showIfUpdated } from './whats-new.js';
+import { loadMarkerKey } from './marker.js';
 import { moneyProfile, businesses, activeSpace, setCurrentSpace, settleSpaces } from './business.js';
 import { applyTheme, applyDisplay, appearance, chosen, setAppearance, retireOldLooks, moveFixedHavenToSun } from './appearance.js';
 import { collectSharedAlerts } from './alert-inbox.js';
@@ -721,6 +722,8 @@ async function init() {
   // Ask the phone not to clear Kawach's data when it runs low on space.
   if (!isDemo()) keepDataSafe();
   await seedIfNeeded();
+  // The key behind the short codes shown beside a payment or account and used in diagnostic reports (js/marker.js).
+  await loadMarkerKey();
   // Cash as a pocket starts today (js/cash.js): months already worked out stay as they were.
   if (!isDemo() && (await getSetting('cashRuleFrom', null)) === null) await setSetting('cashRuleFrom', isoLocal(new Date()));
   // The demo: a made-up household in its own database, and its ribbon (js/demo.js). Your own Kawach

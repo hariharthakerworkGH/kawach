@@ -29,6 +29,7 @@ import { escapeHtml, escapeAttr, emptyState, hero, moneyTone, shapeLike } from '
 // saying what happened.
 import { parseAlert, alertFingerprint } from '../alerts.js';
 import { showToast } from '../toast.js';
+import { markOf } from '../marker.js';
 
 // null = form closed, 'new' = adding, otherwise the id being edited
 let editing = null;
@@ -598,6 +599,7 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
       </div>
       <button type="submit" class="btn-primary">${account ? 'Save changes' : 'Add account'}</button>
       <p class="af-error status" hidden></p>
+      ${account && markOf('a', account.id) ? `<p class="muted-note acct-ref">Code <b>${markOf('a', account.id)}</b></p>` : ''}
       ${
         account
           ? `<button type="button" class="btn-tiny danger account-delete" data-id="${account.id}">Delete this account${txnCount ? ` and its ${txnCount} payment${txnCount === 1 ? '' : 's'}` : ''}</button>`

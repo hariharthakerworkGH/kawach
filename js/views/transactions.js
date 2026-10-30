@@ -19,6 +19,7 @@ import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
 import { dragToClose } from '../sheet-drag.js';
 import { isLiveCommitment, salaryDayPayments } from '../commitments.js';
+import { markOf } from '../marker.js';
 import { commitmentField, cardPaymentField, isMonthEnd } from './add.js';
 import { looksLikeCardPayment, cashSide, spendMoves, moveWord } from '../transfers.js';
 import { bankBalance, balanceAt } from '../account-metrics.js';
@@ -878,7 +879,7 @@ function expandedTemplate(t) {
   const timeValue = /^\d{2}:\d{2}/.test(t.time || '') ? t.time.slice(0, 5) : '';
   const commitment = t.direction === 'debit' && !paysCardLike(t) && !t.personId ? commitmentField(cache.commitments, t.commitmentId, `commitment-${t.id}`, 'class="rv-field" data-field="commitmentId"') : '';
   const card = paysCardLike(t) ? cardPaymentField(cache.accounts.filter((a) => a.type === 'card'), t.paysCardId, `pays-card-${t.id}`, 'class="rv-field" data-field="paysCardId"') : '';
-  const more = [card, commitment, workFlagField(t), nextMonthField(t), salaryMonthField(t), personField(t)].filter(Boolean).join('');
+  const more = [card, commitment, workFlagField(t), nextMonthField(t), salaryMonthField(t), personField(t), reportField(t)].filter(Boolean).join('');
   // What you came to change comes first and is open: the amount, what it was for, the day. One Save at the end
   // says it is kept (every field also keeps itself as it is changed, so nothing is lost if you walk away).
   return `
@@ -931,6 +932,18 @@ function expandedTemplate(t) {
       </div>
     </div>
   `;
+}
+
+// The short code that names this payment in a diagnostic report (js/marker.js), and a box to flag it as the one that looks
+// wrong: the report then lists it first. Behind More, so the row stays as short as it was.
+function reportField(t) {
+  const code = markOf('t', t.id);
+  if (!code) return '';
+  return `<label class="hist-flag">
+      <input type="checkbox" class="rv-field" data-field="reportFlag" ${t.reportFlag ? 'checked' : ''}>
+      <span>Flag this in the diagnostic report</span>
+    </label>
+    <p class="muted-note hist-ref">Code <b>${code}</b></p>`;
 }
 
 // NEW: the work-cost checkbox in a payment's Edit panel. It reads the saved
@@ -1232,7 +1245,7 @@ async function handleChange(e, container) {
     return;
   }
 
-  if (field === 'isReimbursable' || field === 'isSettlement' || field === 'isShareBack' || field === 'forNextMonth') {
+  if (field === 'isReimbursable' || field === 'isSettlement' || field === 'isShareBack' || field === 'forNextMonth' || field === 'reportFlag') {
     if (e.type !== 'change') return;
     if (e.target.checked) t[field] = true;
     else delete t[field];

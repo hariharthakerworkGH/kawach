@@ -4,6 +4,7 @@ import { test, equal, ok, paise } from './harness.js';
 import { seedBasics, putAll, txn, commitment, rupees, day, resetDB } from './fixtures.js';
 import { computeFreeToSpend } from '../js/free-to-spend.js';
 import { buildDiagnosticReport } from '../js/diagnostics.js';
+import { setMarkerKey, markOf } from '../js/marker.js';
 import { getAll, put, setSetting } from '../js/db.js';
 import { buildDemo, writeDemo, exampleMessages } from '../js/demo-data.js';
 import { parseAlert, resolveAccount } from '../js/alerts.js';
@@ -597,6 +598,40 @@ test('the diagnostic report builds from a real month, and carries the figures', 
   const text = JSON.stringify(report);
   ok(!text.includes('SHOES'), 'a merchant name is redacted');
   ok(!text.includes('111111111111'), 'a bank reference is redacted');
+});
+
+test('the diagnostic report names every record with a code that stays the same from one report to the next', async () => {
+  await seedMonth();
+  setMarkerKey('0123456789abcdef');
+  await putAll('transactions', [
+    txn({ id: 'shoes', accountId: 'card', date: '2026-09-10', amount: 3000, rawDescription: 'SHOES AT ZARA' }),
+    txn({ id: 'cafe', accountId: 'bank', date: '2026-09-12', amount: 900, rawDescription: 'UPI-CAFE-111111111111', reportFlag: true }),
+    // Salary at a month's end filed under the next month: the report says where History filed it.
+    txn({ id: 'pay', accountId: 'bank', date: '2026-09-30', amount: 100000, direction: 'credit', rawDescription: 'SALARY', countsFor: '2026-10' }),
+  ]);
+  const one = await buildDiagnosticReport(day('2026-09-16'));
+  // A payment that sorts before all the others arrives; in the old numbering by order every id after it moved up one.
+  await putAll('transactions', [txn({ id: 'aaa-first', accountId: 'bank', date: '2026-09-01', amount: 111, rawDescription: 'ZARA SALE' })]);
+  const two = await buildDiagnosticReport(day('2026-09-16'));
+  const byAmount = (r, amount) => r.transactions.find((t) => t.amount === rupees(amount));
+  equal(byAmount(one, 3000).id, byAmount(two, 3000).id, 'the same payment has the same id in both reports');
+  equal(byAmount(one, 3000).id, `t-${markOf('t', 'shoes')}`, 'and it ends in the code the screen shows');
+  equal(byAmount(one, 3000).accountId, `a-${markOf('a', 'card')}`, 'an account is named the same way');
+  equal(byAmount(one, 3000).rawDescription, byAmount(two, 3000).rawDescription, 'a redacted description does not change either');
+  const zara = (r, amount) => byAmount(r, amount).rawDescription.split(' ').pop();
+  equal(zara(two, 3000), byAmount(two, 111).rawDescription.split(' ')[0], 'the same word is the same stand-in in different payments');
+  ok(/^W[BCDFGHJKLMNPQRSTVWXZ]{7}$/.test(zara(one, 3000)), 'a stand-in word is W and seven consonants');
+  equal(one.flagged, [`t-${markOf('t', 'cafe')}`], 'the payment flagged in History is listed first');
+  equal(byAmount(one, 900).flagged, true, 'and carries the flag');
+  equal(byAmount(one, 100000).filedFor, '2026-10', 'a payment History files under another month says which');
+  equal(byAmount(one, 3000).filedFor, undefined, 'and one in its own month says nothing');
+  equal(one.screen.month, '2026-09', 'the month the hero was about');
+  equal(one.screen.until, '2026-09-30', 'and the day it runs to');
+  equal(one.format, 2);
+  equal(one.stableMarkers, true);
+  const text = JSON.stringify(one);
+  ok(!text.includes('ZARA') && !text.includes('SHOES'), 'no merchant words');
+  ok(!text.includes('0123456789abcdef'), 'and the key is never in a report');
 });
 
 test('a card\'s statement day comes from its imported statements, whatever was typed in', async () => {
