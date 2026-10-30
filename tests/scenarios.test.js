@@ -2017,3 +2017,20 @@ test('salary landed the day before the month ends: Left to spend is the new mont
   // Looking back at a date without asking to roll never moves the month.
   equal((await computeFreeToSpend(day('2026-10-30'))).monthKey, '2026-10');
 });
+
+// Found by the month-end year simulation: groceries bought after a month-end salary landed counted as plain spending, though the
+// new month already held the groceries allowance back. They draw the allowance down, so Left to spend does not move.
+test('salary landed the day before the month ends: set-aside spending from that day uses the new month\'s allowance', async () => {
+  await seedBasics();
+  await putAll('recurring', [commitment({ label: 'Groceries', amount: 10000, spread: true, matchText: 'DMART' })]);
+  await putAll('transactions', [
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 100000, direction: 'credit', rawDescription: 'SALARY ACME CORP' }),
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 4000, rawDescription: 'DMART' }),
+  ]);
+  const landed = await computeFreeToSpend(day('2026-10-30'), { roll: true });
+  equal(landed.monthKey, '2026-11');
+  paise(landed.spentThisCycle, 0);
+  const later = await computeFreeToSpend(day('2026-11-01'), { roll: true });
+  paise(later.spentThisCycle, 0);
+  paise(later.free, landed.free);
+});

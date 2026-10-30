@@ -253,7 +253,7 @@ export async function render(container) {
       }
       ${shown ? '' : `<div class="totals-row"><span><span class="seg-dot seg-must"></span>Must go out</span><span class="out">−${formatRupees(mustTotal)}</span></div>`}
       ${flexTotal && !shown ? `<div class="totals-row"><span><span class="seg-dot seg-flex"></span>Can flex</span><span class="out">−${formatRupees(flexTotal)}</span></div>` : ''}
-      <div class="totals-row"><span>Saved each month</span><span class="saved-row">−${formatRupees(keep)}</span></div>
+      <div class="totals-row"><span>Saved each month</span><span class="saved-row">${keep > 0 ? '−' : ''}${formatRupees(keep)}</span></div>
       ${cashTotal > 0 ? `<p class="muted-note">${formatRupees(cashTotal)} paid in cash comes out of your ATM money.</p>` : ''}
       <details class="fts-breakdown plan-amounts" ${income == null || (kind !== 'business' && !salaryDay) ? 'open' : ''}>
         <summary>Change amounts</summary>

@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.6.7',
+    items: [
+      {
+        icon: 'clock',
+        title: "Month-end salary fixes",
+        text: "When your salary lands in the last days of a month, groceries and other set-aside spending from that day now use the new month's allowance, so Left to spend no longer sits too low until the month ends. The Summary chart for that month ends on a date (30 Nov), not 32. To do shows only purchases from the last week that need a look. Plan no longer shows Saved each month as -0.",
+      },
+    ],
+  },
+  {
     version: '7.6.6',
     items: [
       {

@@ -630,6 +630,11 @@ export async function computeFreeToSpend(now, opts = {}) {
       entries = entries.filter((t) => !within(p.carriedOut)(t));
     }
     if (dated && p.carriedIn) entries = [...pool.filter(inRange(p.carriedIn.from, p.carriedIn.to)), ...entries];
+    // A month-end salary starts the next month's spending on the day it landed (spendFrom), so groceries bought on the 28th
+    // draw down the new month's allowance. Left out of it they were plain spending in a month that already held the
+    // allowance back: Left to spend sat too low until the month's end.
+    const spendsFromLanding = p.kind === 'bank' && isSetAside(item) && Boolean(spendFrom) && spendFrom < p.start;
+    if (spendsFromLanding) entries = [...pool.filter(inRange(spendFrom, previousMonthEnd)), ...entries];
     let counted = 0;
     for (const t of entries.sort((x, y) => (x.date < y.date ? -1 : 1))) {
       if (claimed.has(t.id) || !mine(t)) continue;
@@ -638,7 +643,7 @@ export async function computeFreeToSpend(now, opts = {}) {
         b.notThis.push({ id: t.id, date: t.date, description: t.rawDescription, amount: t.amount });
         continue;
       }
-      const onSalaryDay = t.date < p.start;
+      const onSalaryDay = t.date < p.start && !spendsFromLanding;
       b.used += t.amount;
       b.matches.push({ id: t.id, date: t.date, description: t.rawDescription, amount: t.amount, onSalaryDay, tagged: t.commitmentId === item.id });
       if (counted >= item.amount) continue;

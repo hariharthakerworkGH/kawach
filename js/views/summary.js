@@ -1765,9 +1765,10 @@ async function renderAttention(container, transactions, fts = null) {
   const { driveLastAt } = await backupStatus();
   const driveDays = driveLastAt ? Math.floor((Date.now() - driveLastAt) / 86400000) : null;
   const uncategorized = transactions.filter((t) => needsCategory(t));
-  const monthStart = `${currentMonthKey()}-01`;
   const dismissed = new Set(await getSetting('dismissedAnomalies', []));
-  const anomalies = (await detectAnomalies(monthStart)).filter((a) => !dismissed.has(a.transaction.id));
+  // "Was it you?" is only worth a place on To do while there is still something to do about it: the last week, not the month
+  // (on the 30th a purchase from the 1st had sat there for four weeks).
+  const anomalies = (await detectAnomalies(addDaysIso(isoLocal(new Date()), -7))).filter((a) => !dismissed.has(a.transaction.id));
 
   // How many of the uncategorised ones the app could sort on its own from what
   // it has already learned. Offering "sort 94 of these for me" is a far better

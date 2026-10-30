@@ -2260,6 +2260,15 @@ test('the hero chart: a bar for each day, hatching for money not from the budget
   ok(heights.length === 6 && Math.min(...heights) > 6, `ordinary days stay readable beside the big one: ${JSON.stringify(heights)}`);
 });
 
+// 30 Oct 2026 shot of the owner's data: a month begun on the day a month-end salary landed ended its chart at "32".
+test('the hero chart: a month that begins on 30 Oct ends on 30 Nov, and a whole month still reads 1 to 31', () => {
+  const rolled = { limit: 3000000, spendDays: [10000], spendByDay: [{ date: '2026-10-30', amount: 10000, other: 0 }], daysIntoCycle: 1, daysToClose: 32 };
+  const svg = heroChart(rolled, true);
+  ok(svg.includes('>30 Oct</text>') && svg.includes('>30 Nov</text>'), `the ends should be dates: ${(svg.match(/<text[^>]*>[^<]*<\/text>/g) || []).join(' ')}`);
+  const whole = heroChart({ ...rolled, spendByDay: [{ date: '2026-10-01', amount: 10000, other: 0 }], daysIntoCycle: 1, daysToClose: 31 }, true);
+  ok(whole.includes('>1</text>') && whole.includes('>31</text>'), 'an ordinary month keeps plain day numbers');
+});
+
 test('a payment moved to another account keeps its category unless that account cannot use it', () => {
   const home = { id: 'h', type: 'bank' };
   const other = { id: 'o', type: 'card' };

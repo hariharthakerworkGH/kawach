@@ -453,7 +453,14 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
     const sh = moonPathD(moonAt(Date.now(), place.lat, place.lon).phase);
     dot = `<g transform="translate(${tx.toFixed(1)} ${ty.toFixed(1)}) scale(.3)${sh.flip ? ' scale(-1 1)' : ''}"><circle r="22" fill="rgba(188,204,255,.18)"/><circle r="20" fill="#27305a"/><path d="${sh.d}" fill="#EEF2FF"/></g>`;
   }
-  const first = by.length ? Number(String(by[0].date).slice(8)) : 1;
+  // The ends of the line are dates. A month that began on the day a month-end salary landed (30 Oct) runs into the next one, so
+  // the last day is "30 Nov", never "32".
+  const startDate = new Date(`${by.length ? by[0].date : isoLocal(new Date())}T12:00:00`);
+  const endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + days - 1, 12);
+  const crosses = endDate.getMonth() !== startDate.getMonth();
+  const endName = (d) => (crosses ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : String(d.getDate()));
+  const first = endName(startDate);
+  const lastLabel = endName(endDate);
   return `<div class="lg-chartbox"><svg class="lg-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(`This month so far: ${money(tot[tot.length - 1])} spent, against an even pace of ${money(Math.round((f.limit * tot.length) / days))}. Press and slide along it to read each day.`)}">
     <defs><pattern id="${hid}" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" fill="rgba(244,181,65,.14)"/><rect width="1.6" height="4" fill="#F4B541"/></pattern></defs>
     <line x1="${L}" y1="${base}" x2="${W - R}" y2="${base}" stroke="rgba(255,255,255,.25)"/>
@@ -461,7 +468,7 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
     <line x1="${x(0).toFixed(1)}" y1="${y(0).toFixed(1)}" x2="${x(days - 1).toFixed(1)}" y2="${y(f.limit).toFixed(1)}" stroke="rgba(255,255,255,.7)" stroke-width="1.3" stroke-dasharray="4 4"/>
     <path d="${area}" fill="rgba(63,216,198,.2)"/><path d="${line}" fill="none" stroke="#7FEBDD" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
     <line x1="${tx.toFixed(1)}" y1="${ty.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${base}" stroke="rgba(255,255,255,.35)" stroke-dasharray="2 3"/>${dot}
-    <text x="${L}" y="${H - 3}" font-size="10" fill="rgba(255,255,255,.6)">${first}</text><text x="${W - R}" y="${H - 3}" font-size="10" text-anchor="end" fill="rgba(255,255,255,.6)">${days}</text>
+    <text x="${L}" y="${H - 3}" font-size="10" fill="rgba(255,255,255,.6)">${first}</text><text x="${W - R}" y="${H - 3}" font-size="10" text-anchor="end" fill="rgba(255,255,255,.6)">${lastLabel}</text>
     <line class="lg-guide" y1="${T}" y2="${base}" stroke="#fff" stroke-width="1" opacity="0"/><circle class="lg-pickdot" r="4" fill="#fff" opacity="0"/></svg><p class="lg-chartread" hidden aria-live="polite"></p></div>`;
 }
 
