@@ -11,7 +11,7 @@ import { reimbursableTally, tidyFlags } from '../js/reimbursable.js';
 import { STEPS } from '../js/demo-script.js';
 import { versionStatus } from '../js/version.js';
 import { sha256, hmacSha256, setMarkerKey, markCode, markOf, showMark, CONSONANTS, DIGITS } from '../js/marker.js';
-import { spareInBank } from '../js/free-to-spend.js';
+import { spareInBank, bankNowLines } from '../js/free-to-spend.js';
 import { cardPosition, bankBalance, statementDayFixes, balanceAt } from '../js/account-metrics.js';
 import { currentCycleStart } from '../js/billing-cycle.js';
 import { CHOICES, appearance, setAppearance, applyTheme, retireOldLooks } from '../js/appearance.js';
@@ -2731,4 +2731,18 @@ test('markers: what is in the bank after bills, apart from the budget', () => {
   equal(spareInBank({ bankAfterBills: 500000, keep: 1000000 }), 0, 'never below nothing');
   equal(spareInBank({ bankAfterBills: null, keep: 1000000 }), null, 'unknown when the bank is not worked out');
   equal(spareInBank(null), null, 'and when there are no figures');
+});
+
+test('markers: the bank line says what each account holds today, with the date when it is old', () => {
+  const f = {
+    bankLines: [
+      { account: { label: 'HDFC' }, balance: 5135265, asOf: '2026-10-01', entriesSince: 42 },
+      { account: { label: 'SBI deposit' }, balance: 23000000, asOf: '2026-10-02', entriesSince: 0 },
+      { account: { label: 'Other' }, balance: 100000, asOf: '2026-10-28', entriesSince: 0 },
+    ],
+  };
+  const lines = bankNowLines(f, '2026-10-31');
+  equal(lines.map((l) => l.amount), [5135265, 23000000, 100000], 'every spending account, its own balance');
+  equal(lines.map((l) => l.asOf), [null, '2026-10-02', null], 'an old balance with nothing since says when; one kept up by entries, or recent, does not');
+  equal(bankNowLines(null, '2026-10-31'), [], 'nothing when there are no figures');
 });

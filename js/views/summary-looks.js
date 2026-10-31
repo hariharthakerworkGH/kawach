@@ -24,7 +24,7 @@ import { icon } from '../icons.js';
 import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
 import { isoLocal } from '../frequency.js';
-import { spareInBank } from '../free-to-spend.js';
+import { spareInBank, bankNowLines } from '../free-to-spend.js';
 import { getPlace, moonAt, moonPathD } from '../sun-moon.js';
 
 /* What is left of the money set aside that Kawach can follow: the same rows
@@ -573,7 +573,15 @@ export function havenTop(f, status, month, extra = {}) {
   // Over the plan, the bank can still have money in it. It is said once, and kept apart from the budget (which comes from
   // Plan): the money is there, spending it is the choice of the person, and next month's budget does not grow by it.
   const spare = spareInBank(f);
-  const overNote = !x.finished && f.free < 0 && spare > 0 ? `<div class="hv-vault__bank" data-bank-spare>${escapeHtml(formatRupees(spare))} in the bank after bills, not budget</div>` : '';
+  // Two plain facts: what the accounts hold today (the number that is on the statement) and the forecast. The forecast adds the next
+  // pay and takes off every bill, so it is said as one, with the date: "in the bank after bills" alone read as the balance.
+  const nowLines = bankNowLines(f, f.today);
+  const nowText = nowLines.map((l) => `${formatRupees(l.amount)}${nowLines.length > 1 ? ` ${escapeHtml(l.label)}` : ''}${l.asOf ? ` (as of ${formatDateNice(l.asOf)})` : ''}`).join(' + ');
+  const payDay = f.salary && f.salary.dates && f.salary.dates[0];
+  const overNote =
+    !x.finished && f.free < 0 && spare > 0
+      ? `<div class="hv-vault__bank" data-bank-spare>${nowText} in the bank now</div><div class="hv-vault__bank" data-bank-spare>${escapeHtml(formatRupees(spare))} would be left after bills${payDay ? ` and the ${formatDateNice(payDay)} pay` : ''}, not budget</div>`
+      : '';
   // The pay landed before the month ended and has already paid out for the next: said, so the figures are not a puzzle.
   const aheadNote = !x.finished && f.paidAhead ? `<div class="hv-vault__bank" data-paid-ahead>${escapeHtml(formatRupees(f.paidAhead.amount))} already paid for ${escapeHtml(MONTHS_LONG[Number(f.paidAhead.monthKey.slice(5, 7)) - 1])}</div>` : '';
   const hero = `<div class="lg-hero hv-vault ${f.free < 0 ? 'is-negative' : ''}"${x.finished ? ' data-finished' : ''}${vaultData} data-roll-scope data-limit="${x.limit}" data-left="${x.left}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">

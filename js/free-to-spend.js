@@ -110,7 +110,19 @@ export const DEFAULT_KEEP_IN_BANK = 1000000;
 
 // What is in the home bank accounts once card bills and fixed costs due before money comes in are paid, and the amount you
 // keep back is left alone. It is only said, never added to the budget (the budget comes from Plan); null when not worked out.
-export const spareInBank = (f) => (f && f.bankAfterBills != null ? Math.max(0, f.bankAfterBills - (f.keep || 0)) : null);
+// What each spending account holds today, for the line on Summary. The "after bills" figure is a forecast to the next
+// pay (it adds that pay and takes off every bill), so it never matches a statement; this is the number that does.
+// A balance read more than a week ago with nothing recorded since says its date, so an old figure does not pass for today's
+// (one kept up by the day's alerts is as fresh as they are).
+export function bankNowLines(f, today) {
+  if (!f || !f.bankLines) return [];
+  return f.bankLines.map((l) => ({
+    label: l.account.label,
+    amount: l.balance,
+    asOf: l.asOf && !l.entriesSince && addDays(today, -7) > l.asOf ? l.asOf : null,
+  }));
+}
+export const spareInBank = (f) =>(f && f.bankAfterBills != null ? Math.max(0, f.bankAfterBills - (f.keep || 0)) : null);
 
 // The latest payday on or before `iso`, with the day clamped to short months.
 function paydayOnOrBefore(dayOfMonth, iso) {

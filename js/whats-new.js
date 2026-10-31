@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.9.2',
+    items: [
+      {
+        icon: 'accounts',
+        title: "Bank line matches your statement",
+        text: "The bank line on Summary now says what each account holds today, which is the number on your statement. The figure after bills is worded as what would be left after bills and the next pay, and a balance that has not been updated for a week says its date.",
+      },
+    ],
+  },
+  {
     version: '7.9.1',
     items: [
       {
