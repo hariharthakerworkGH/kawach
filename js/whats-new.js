@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.9.3',
+    items: [
+      {
+        icon: 'accounts',
+        title: "Savings stay off Summary",
+        text: "Savings no longer appear on Summary, and a savings deposit (like an SBI MOD) is never counted as money in your bank. The bank figure and what is left after bills now only use the accounts you spend from, so they match your statement.",
+      },
+    ],
+  },
+  {
     version: '7.9.2',
     items: [
       {

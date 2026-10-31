@@ -11,11 +11,9 @@ import { nextOccurrence, isoLocal, addDays, dateOf } from './frequency.js';
 export const isEverydayBank = (a) => a.type === 'bank' && a.spending !== false;
 export const isPutAway = (a) => a.type === 'savings' || (a.type === 'bank' && a.spending === false);
 
-// A MOD (SBI's multi-option deposit) sits under the savings account, shares its number, and is broken in blocks to cover whatever the
-// account has to pay (an EMI, say). So for what you can use it is one pool with the account: its balance counts with the bank's.
-// A payment that lands on it is still never spending - it is the account paying out, which the savings account's own rows say as well.
-// An ordinary fixed deposit is not this: breaking it costs interest, so it stays money put away.
-export const isSweepDeposit = (a) => Boolean(a && a.type === 'savings' && a.depositOf && a.deposit && a.deposit.kind === 'MOD');
+// A MOD (SBI's multi-option deposit) is savings like a fixed deposit: it is never counted with the bank account it sits under.
+// (The owner pooled it on 18 Oct 2026 and reversed that on 31 Oct, when Summary showed it as money in the bank.)
+// A payment out of it is still never spending - it is the account paying out, which the savings account's own rows say as well.
 
 // A bank account's balance is a snapshot (from the last imported statement)
 // adjusted forward by anything dated after it - transfers included, since

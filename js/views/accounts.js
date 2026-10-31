@@ -1,7 +1,7 @@
 import { getAll, put, remove, newId } from '../db.js';
 import { computeFreeToSpend } from '../free-to-spend.js';
 import { formatCurrency, formatDateNice, formatMonthYear, formatRupees, ordinal } from '../format.js';
-import { bankBalance, balanceAt, cardBillDue, statementDay, isPutAway, isSweepDeposit } from '../account-metrics.js';
+import { bankBalance, balanceAt, cardBillDue, statementDay, isPutAway } from '../account-metrics.js';
 import { cardStandings } from '../card-standing.js';
 import { loanPosition, loanPayments, paymentsFor, payFasterPlan, loanHistory, isLoanAccount } from '../loans.js';
 import { askConfirm } from '../dialog.js';
@@ -1190,8 +1190,7 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
                        ${fact('Savings', formatRupees(balance))}
                        ${deposits.map((d) => fact(kindOf(d), formatRupees(d.balance))).join('')}
                        ${maturity ? fact('At maturity', `<span class="in">${formatRupees(maturity)}</span>`) : ''}
-                     </dl>
-                     ${deposits.some((d) => isSweepDeposit(d.account)) ? `<p class="acc-state"><i class="bill-dot" aria-hidden="true"></i>The MOD counts as spendable with this account</p>` : ''}`
+                     </dl>`
                    : account.deposit && account.deposit.atMaturity
                    ? `<dl class="loan-lines">${fact('At maturity', `<span class="in">${formatRupees(account.deposit.atMaturity)}</span>`)}</dl>`
                    : ''
@@ -1630,16 +1629,7 @@ function accountsTotal(groups, transactions, fts = null) {
     (list || [])
       .map((a) => ({ label: a.label, amount: bankBalance(a, transactions) }))
       .filter((x) => x.amount != null);
-  // A MOD under a bank account is one pool with it (isSweepDeposit), so the account's row carries it.
-  const knownWithMod = (list) =>
-    (list || [])
-      .map((a) => {
-        const own = bankBalance(a, transactions);
-        const mod = (depositsOf.get(a.id) || []).filter(isSweepDeposit).reduce((s, d) => s + (bankBalance(d, transactions) || 0), 0);
-        return { label: a.label, amount: own == null ? null : own + mod };
-      })
-      .filter((x) => x.amount != null);
-  const spendableRows = [...knownWithMod(groups.bank), ...known(groups.cash)];
+  const spendableRows = [...known(groups.bank), ...known(groups.cash)];
   const spendable = spendableRows.map((x) => x.amount);
   if (!spendable.length) return '';
   const total = spendable.reduce((s, v) => s + v, 0);

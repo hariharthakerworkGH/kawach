@@ -8,7 +8,7 @@ import { icon } from '../icons.js';
 import { isFixed, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, clearSkip } from '../commitments.js';
 import { isoLocal, hasDueDate, frequencyOf } from '../frequency.js';
 import { formatCurrency, formatDateNice, formatRupees, formatMonthYear } from '../format.js';
-import { cardBillDue, bankBalance } from '../account-metrics.js';
+import { cardBillDue, bankBalance, isPutAway } from '../account-metrics.js';
 import { getGoals, goalProgress } from '../goals.js';
 import { computeFreeToSpend } from '../free-to-spend.js';
 import { burnLine, runwayBar, radialMeter, allocationRing } from '../charts.js';
@@ -500,7 +500,7 @@ async function renderDashboard(container) {
           ${rest}
           ${renderBankCard(fts)}
           ${fold('Commitments', fts.tracker ? `${fts.tracker.length}` : '', commitments, false, 'commitments-fold')}
-          ${fold('Loans and savings', '', renderLoansSavings(fts))}
+          ${fold('Loans', '', renderLoansSavings(fts))}
           <div id="upcoming-section"></div>
           ${tax}
           <div id="summary-content"></div>
@@ -517,7 +517,7 @@ async function renderDashboard(container) {
       renderDueSoon(fts),
       '<div id="attention-section"></div>',
       fold('Commitments', fts.tracker ? `${fts.tracker.length}` : '', commitments, false, 'commitments-fold'),
-      fold('Loans and savings', '', renderLoansSavings(fts)),
+      fold('Loans', '', renderLoansSavings(fts)),
       '<div id="upcoming-section"></div>',
       tax,
       // The invitation to install comes last: it is not part of the answer.
@@ -1469,21 +1469,13 @@ function renderBankCard(f) {
   // from ₹31,000 in each. One line per account, only when there are two or
   // more, so a single-account user sees no extra text.
   //
-  // Accounts kept for savings or a loan are listed after them as "put away":
-  // yours, but not in the figure above, because that figure is what you can
-  // spend without touching your savings.
-  const putAway = withDeposits(f.savings || []).filter((s) => s.balance != null);
+  // Savings never appear here (owner, 31 Oct 2026): this screen is what can be spent, and a savings balance in view
+  // works against the self-control the app is for. They are on Accounts.
   const spendLines =
-    f.bankLines.length > 1 || putAway.length
+    f.bankLines.length > 1
       ? f.bankLines.map((l) => `<span class="bank-account"><span class="muted-note">${escapeHtml(l.account.label)}</span><span>${formatRupees(l.balance)}</span></span>`).join('')
       : '';
-  const awayLines = putAway
-    .map(
-      (s) =>
-        `<span class="bank-account put-away"><span class="muted-note">${escapeHtml(s.account.label)}${s.deposits ? ' + FD' : ''} · put away</span><span>${formatRupees(s.balance)}</span></span>`
-    )
-    .join('');
-  const perAccount = spendLines || awayLines ? `<div class="bank-accounts">${spendLines}${awayLines}</div>` : '';
+  const perAccount = spendLines ? `<div class="bank-accounts">${spendLines}</div>` : '';
 
   if (f.bankAfterBills == null) {
     return `
@@ -1596,32 +1588,16 @@ function renderCommitmentTracker(f) {
     ${settled}`;
 }
 
-// Loans and savings: what you still owe and what is put away. Neither is
-// money to spend, so both sit behind a tap.
-// A fixed deposit belongs to the savings account it was opened from, so it is
-// shown as part of that account ("SBI Savings + FD") rather than as an
-// account of its own. One with no parent here stays as it is.
-function withDeposits(list) {
-  const parents = new Set(list.map((s) => s.account.id));
-  const deposits = list.filter((s) => s.account.depositOf && parents.has(s.account.depositOf));
-  return list
-    .filter((s) => !deposits.includes(s))
-    .map((s) => {
-      const own = deposits.filter((d) => d.account.depositOf === s.account.id);
-      return own.length ? { ...s, deposits: own, balance: (s.balance || 0) + own.reduce((t, d) => t + (d.balance || 0), 0) } : s;
-    });
-}
-
+// Loans: what you still owe, behind a tap. Savings are not shown on this screen at all (owner, 31 Oct 2026): money put away is
+// not money to spend, and seeing it here invites spending it. Accounts shows them.
 function renderLoansSavings(f) {
   const loans = f.loans || [];
-  const savings = [...withDeposits(f.savings || []), ...(f.pf || [])];
-  if (!loans.length && !savings.length) return '';
+  if (!loans.length) return '';
   const owed = loans.reduce((s, l) => s + (l.outstanding || 0), 0);
-  const put = savings.reduce((s, x) => s + (x.balance || 0), 0);
-  const summary = [owed ? `${formatRupees(owed)} owed` : '', put ? `${formatRupees(put)} put away` : ''].filter(Boolean).join(' · ');
+  const summary = owed ? `${formatRupees(owed)} owed` : '';
   return `
     <details class="section-fold">
-      <summary>Loans and savings<span class="summary-sub">${summary}</span></summary>
+      <summary>Loans<span class="summary-sub">${summary}</span></summary>
       <div class="totals-card">
         ${loans
           .map(
@@ -1630,14 +1606,6 @@ function renderLoansSavings(f) {
             }</span><span class="out">${l.outstanding != null ? formatRupees(l.outstanding) : '-'}</span></div>`
           )
           .join('')}
-        ${savings
-          .map(
-            (s) => `<div class="totals-row"><span>${escapeHtml(s.account.label)}${s.deposits ? ' + FD' : ''}</span><span class="in">${
-              s.balance != null ? formatRupees(s.balance) : '-'
-            }</span></div>`
-          )
-          .join('')}
-        <p class="muted-note">Put away is yours, but not counted as money to spend.</p>
       </div>
     </details>`;
 }
@@ -2376,7 +2344,9 @@ function renderAccountBreakdown(byAccount, accounts, transactions) {
 
   // Accounts that spent money first, biggest first; then the idle ones by how
   // recently they were used, with never-used accounts at the very bottom.
+  // Savings accounts are not on this screen (owner, 31 Oct 2026).
   const rows = accounts
+    .filter((a) => !isPutAway(a))
     .map((a) => ({ account: a, bucket: byAccount.get(a.id) || { in: 0, out: 0 }, last: lastUsed.get(a.id) }))
     .sort((x, y) => {
       const xu = x.bucket.out || x.bucket.in;

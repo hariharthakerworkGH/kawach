@@ -6,7 +6,6 @@ import { test, equal, ok } from './harness.js';
 import { parseAlert, resolveAccount, findDigits, splitAlerts, alertFingerprint, findExisting } from '../js/alerts.js';
 import { seedBasics, putAll, txn, rupees, day } from './fixtures.js';
 import { computeFreeToSpend } from '../js/free-to-spend.js';
-import { isSweepDeposit } from '../js/account-metrics.js';
 import { paise } from './harness.js';
 
 const sbi = (bal = '2,11,748.50') => `Greetings from SBI !\n\nYour A/C XXXXX890385 Debited INR 23,000.00 on 15/10/26 -Transferred to Mr. HARIHAR MANOJKUM. Avl Balance INR ${bal}-SBI`;
@@ -68,14 +67,8 @@ test('alert account: SBI in the alert is State Bank Of India on the account, so 
   equal(resolveAccount(p, [hdfc, bank], []).id, 'a4');
 });
 
-// SBI's MOD is broken in blocks to pay whatever the account has to pay, so the owner counts it with the account (18 Oct 2026).
-test('MOD: only a MOD under an account counts with it; a plain fixed deposit and a lone savings account do not', () => {
-  equal(isSweepDeposit(mod), true);
-  equal(isSweepDeposit({ ...mod, deposit: { kind: 'FD' } }), false);
-  equal(isSweepDeposit({ ...mod, depositOf: undefined }), false);
-  equal(isSweepDeposit(bank), false);
-});
-
+// The owner first counted the MOD with its account (18 Oct 2026) and reversed it on 31 Oct: savings are never money to spend, and
+// Summary showed ₹2,30,000 as "in the bank". The MOD is savings like a fixed deposit.
 async function seedPool() {
   await seedBasics({ bankBalance: 5000, balanceDate: '2026-09-15' });
   const before = await computeFreeToSpend(day('2026-09-16'));
@@ -86,20 +79,30 @@ async function seedPool() {
   return before;
 }
 
-test('MOD pool: the bank figure counts the MOD with its account, and a plain fixed deposit stays money put away', async () => {
+test('MOD is savings: the bank figure and what is left after bills never include it, and it is listed as put away', async () => {
   const before = await seedPool();
   const f = await computeFreeToSpend(day('2026-09-16'));
-  paise(f.bank, before.bank + rupees(230000));
-  ok(!f.savings.some((s) => s.account.id === 'mod'), 'the MOD is not also listed as savings');
-  ok(f.savings.some((s) => s.account.id === 'fd'), 'the plain FD is');
+  paise(f.bank, before.bank);
+  paise(f.bankAfterBills, before.bankAfterBills);
+  ok(f.bankLines.every((l) => l.account.id !== 'mod' && l.account.id !== 'fd'), 'neither is a spending account line');
+  ok(f.savings.some((s) => s.account.id === 'mod') && f.savings.some((s) => s.account.id === 'fd'), 'both are put away');
 });
 
-test('MOD pool: a payment out of the MOD lowers the pool and is not spending (it is the account paying, as its own rows say)', async () => {
+test('MOD is savings: a payment out of it is still not spending, and the bank figure does not move', async () => {
   const before = await seedPool();
   await putAll('transactions', [txn({ accountId: 'mod', date: '2026-09-16', amount: 23000, rawDescription: 'EMI' })]);
   const f = await computeFreeToSpend(day('2026-09-20'));
-  paise(f.bank, before.bank + rupees(230000) - rupees(23000));
+  paise(f.bank, before.bank);
   paise(f.spentThisCycle, 0);
+});
+
+test('savings of any kind never reach the bank figure: a savings account, a MOD and a fixed deposit leave it where it was', async () => {
+  const before = await seedPool();
+  await putAll('accounts', [{ id: 'sv', label: 'Savings pot', type: 'savings', issuer: 'Test Bank', last4: '2222', knownBalance: rupees(500000), knownBalanceDate: '2026-09-15' }]);
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  paise(f.bank, before.bank);
+  equal(f.bankLines.map((l) => l.account.id), ['bank'], 'only the spending account is a bank line');
+  equal(f.savings.map((s) => s.account.id).sort(), ['fd', 'mod', 'sv'], 'all three are put away');
 });
 
 test('pasting two SBI alerts gives two items, each with its greeting, not a third item that is only the greeting', () => {
