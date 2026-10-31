@@ -7,7 +7,7 @@ import { tellUser } from '../dialog.js';
 import { redraw } from '../redraw.js';
 import { BANKS as INDIAN_BANKS } from '../parsers/any-bank.js';
 import { playTour } from '../tour.js';
-import { incomeType, businesses, addBusiness } from '../business.js';
+import { incomeType, isVariableIncome, businesses, addBusiness } from '../business.js';
 import { escapeHtml } from '../ui.js';
 
 // First-run setup: a few short steps so a new user isn't left facing empty
@@ -100,6 +100,7 @@ function welcomeStep() {
 const KINDS = [
   { id: 'salary', icon: 'wallet', title: 'Salary', sub: 'A fixed amount on a set day', amount: 'Monthly salary (in hand)', day: true },
   { id: 'business', icon: 'store', title: 'Business or self-employed', sub: 'What you take home varies', amount: 'Roughly what the house needs a month', day: false },
+  { id: 'contract', icon: 'wallet', title: 'Paid on invoices', sub: 'Contract work: amount and day change', amount: 'Roughly what the house needs a month', day: false },
   { id: 'pension', icon: 'clock', title: 'Pension', sub: 'A fixed amount each month', amount: 'Monthly pension', day: true },
   { id: 'household', icon: 'home', title: 'Household money', sub: 'Given to you for the house', amount: 'Household money each month', day: true },
 ];
@@ -137,7 +138,7 @@ function incomeStep(kind, bizList, income, salaryDay, keep) {
           .join('')}
       </select>
     </label>
-    <p class="muted-note setup-field-note" id="setup-business-note" ${chosen.id === 'business' ? '' : 'hidden'}>After 3 months, Kawach plans on your lowest month.</p>
+    <p class="muted-note setup-field-note" id="setup-business-note" ${isVariableIncome(chosen.id) ? '' : 'hidden'}>After 3 months, Kawach plans on your lowest month.</p>
     <label class="field">
       <span>Save each month</span>
       <input type="number" id="setup-keep" inputmode="decimal" min="0" step="1" value="${Math.round((keep ?? DEFAULT_KEEP_IN_BANK) / 100)}">
@@ -289,7 +290,7 @@ function wire(container, name, { accounts }) {
       const k = KINDS.find((x) => x.id === radio.value);
       container.querySelector('#setup-income-label').textContent = k.amount;
       container.querySelector('#setup-day-field').hidden = !k.day;
-      container.querySelector('#setup-business-note').hidden = k.id !== 'business';
+      container.querySelector('#setup-business-note').hidden = !isVariableIncome(k.id);
       container.querySelector('#setup-side-row').hidden = k.id === 'business';
       showBizName();
     });
@@ -362,8 +363,8 @@ async function saveIncome(container) {
   const side = kind !== 'business' && container.querySelector('#setup-side').checked;
   await setSetting('incomeType', kind);
   if (Number.isFinite(income) && income > 0) await setSetting('monthlyIncome', Math.round(income * 100));
-  // A business has no payday.
-  await setSetting('salaryDay', kind === 'business' ? null : parseInt(container.querySelector('#setup-salary-day').value, 10));
+  // A business or a contract has no payday.
+  await setSetting('salaryDay', isVariableIncome(kind) ? null : parseInt(container.querySelector('#setup-salary-day').value, 10));
   if (Number.isFinite(keep) && keep >= 0) await setSetting('keepInBank', Math.round(keep * 100));
   // A business, as what pays for Home or on the side, gets its space.
   if ((kind === 'business' || side) && !(await businesses()).length) {

@@ -290,7 +290,10 @@ svg.waves:focus-visible:not(.by-pointer) { outline: 2px solid var(--hv-link, cur
 :root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .section-fold > summary { min-height: 44px; padding-block: 4px; }
 :root[data-style="haven"] :is(#view-container, .view-still):has(.settings-k) .settings-foot { margin-top: 10px; }
 /* Add: ways in other than typing, right under the way the money went. */
-:root[data-style="haven"] .money-kinds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+:root[data-style="haven"] .money-kinds { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+/* Five ways of being paid: three on the first row, two wider ones below, never one left alone. */
+:root[data-style="haven"] .money-kind { grid-column: span 2; }
+:root[data-style="haven"] .money-kind:nth-child(n+4) { grid-column: span 3; }
 :root[data-style="haven"] .money-kind { min-height: 44px; padding: 4px 6px; font-size: 12.5px; line-height: 1.15; }
 :root[data-style="haven"] .money-label { margin: 4px 0 6px; font-size: 12.5px; }
 :root[data-style="haven"] .money-label-gap { margin-top: 10px; }

@@ -18,14 +18,14 @@ import { isSplit, categorySlices, needsCategory, splitTotal } from '../splits.js
 import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
 import { dragToClose } from '../sheet-drag.js';
-import { isLiveCommitment, salaryDayPayments } from '../commitments.js';
+import { isLiveCommitment, salaryDayPayments, aheadPayments } from '../commitments.js';
 import { markOf } from '../marker.js';
 import { commitmentField, cardPaymentField, isMonthEnd } from './add.js';
 import { looksLikeCardPayment, cashSide, spendMoves, moveWord } from '../transfers.js';
 import { bankBalance, balanceAt } from '../account-metrics.js';
 import { isoLocal } from '../frequency.js';
 import { icon } from '../icons.js';
-import { categoriesFor, activeSpace, accountInSpace, isBusinessAccount, moveToAccount } from '../business.js';
+import { categoriesFor, activeSpace, accountInSpace, isBusinessAccount, isVariableIncome, moveToAccount } from '../business.js';
 import { sortCommitments, sortAccounts, sortCategories, usageCounts } from '../list-order.js';
 import { tidyFlags } from '../reimbursable.js';
 import { inOutBars, cashRiver } from '../charts.js';
@@ -1024,30 +1024,34 @@ let salaryAsk = null;
 async function fileSalaries(accounts) {
   const [income, kind, choice] = await Promise.all([getSetting('monthlyIncome', null), getSetting('incomeType', 'salary'), getSetting('salaryNextMonth', null)]);
   salaryAsk = null;
-  if (kind === 'business' || choice === false) return;
+  if (isVariableIncome(kind)) return;
   const byId = new Map(accounts.map((a) => [a.id, a]));
   const found = cache.transactions.filter((t) => salaryLike(t, byId.get(t.accountId), income)).sort((a, b) => (a.date < b.date ? 1 : -1));
-  if (choice !== true) {
-    salaryAsk = found[0] || null;
-    return;
-  }
-  for (const t of found) {
-    t.countsFor = nextMonthKey(t.date.slice(0, 7));
-    await save(t);
-  }
-  // And what that salary paid for the month after, from its date to the
-  // month's end (salaryDayPayments). Only for a salary filed ahead, never one
-  // you left in its own month, and only from the account it landed in.
-  const homeBanks = new Set(accounts.filter((a) => a.type === 'bank' && a.spending !== false && !a.business).map((a) => a.id));
-  const commitments = [...cache.commitments.filter((c) => !c.space || c.space === 'home'), ...accounts.filter(isLoanAccount).map(loanCommitment).filter(Boolean)];
-  const filed = cache.transactions.filter((t) => t.direction === 'credit' && t.countsFor && t.countsFor === nextMonthKey(t.date.slice(0, 7)) && homeBanks.has(t.accountId));
-  for (const s of filed) {
-    const [y, m] = s.date.split('-').map(Number);
-    const monthEnd = `${s.date.slice(0, 8)}${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`;
-    for (const t of salaryDayPayments(cache.transactions, commitments, s.date, monthEnd, new Set([s.accountId]))) {
-      t.countsFor = s.countsFor;
+  if (choice === null || choice === undefined) salaryAsk = found[0] || null;
+  if (choice === true) {
+    for (const t of found) {
+      t.countsFor = nextMonthKey(t.date.slice(0, 7));
       await save(t);
     }
+  }
+  // And what is paid for the month after, from the account it landed in: from a salary filed ahead to the month's end
+  // (salaryDayPayments), and what went out ahead of a due day whatever the salary did (aheadPayments). The same rule Summary
+  // and Plan use (free-to-spend.js), worked out again every time so a mark made under an older rule (a ₹240 UPI) is taken off.
+  const homeBanks = new Set(accounts.filter((a) => a.type === 'bank' && a.spending !== false && !a.business).map((a) => a.id));
+  const commitments = [...cache.commitments.filter((c) => !c.space || c.space === 'home'), ...accounts.filter(isLoanAccount).map(loanCommitment).filter(Boolean)];
+  const want = new Set(aheadPayments(cache.transactions, commitments, homeBanks).map((t) => t.id));
+  for (const s of cache.transactions.filter((t) => t.direction === 'credit' && t.countsFor && t.countsFor === nextMonthKey(t.date.slice(0, 7)) && homeBanks.has(t.accountId))) {
+    const [y, m] = s.date.split('-').map(Number);
+    const monthEnd = `${s.date.slice(0, 8)}${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`;
+    for (const t of salaryDayPayments(cache.transactions, commitments, s.date, monthEnd, new Set([s.accountId]))) want.add(t.id);
+  }
+  for (const t of cache.transactions) {
+    if (t.direction !== 'debit' || t.forNextMonth) continue;
+    const next = nextMonthKey(t.date.slice(0, 7));
+    if (want.has(t.id) && t.countsFor !== next) t.countsFor = next;
+    else if (!want.has(t.id) && t.countsFor === next) delete t.countsFor;
+    else continue;
+    await save(t);
   }
 }
 
@@ -1086,8 +1090,8 @@ const monthName = (key) => new Date(Number(key.slice(0, 4)), Number(key.slice(5,
 // The switch in a payment's Edit panel: money in during a month's last week.
 function salaryMonthField(t) {
   if (t.isTransfer || t.personId) return '';
-  // Money out only once it has been moved ahead, so it can be put back.
-  if (t.direction === 'debit' && !t.countsFor) return '';
+  // Money out is worked out (fileSalaries), never switched by hand: the same rule as Summary and Plan.
+  if (t.direction === 'debit') return '';
   const [y, m, d] = t.date.split('-').map(Number);
   if (d <= new Date(y, m, 0).getDate() - 7) return '';
   const next = nextMonthKey(t.date.slice(0, 7));

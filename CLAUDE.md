@@ -47,7 +47,10 @@ Monthly income depends on how money comes in (`incomeType`, js/business.js):
 a salary, pension or household money is the amount set on Plan; for a
 business owner it is the lowest of the last three months taken home (money
 reaching the home accounts from the business, or from outside), and the
-owner's estimate of what the house needs until there are three months.
+owner's estimate of what the house needs until there are three months. Someone
+paid on invoices (`contract`) is planned the same way, with no payday and no
+missing-salary alarm, because the pay arrives days into the month, whenever the
+invoices clear.
 Anyone else can have a business on the side: a salary, pension or household
 money plus the lowest of the business's last three months (only money moved
 over from its accounts, so a salary landing in the same account is never
@@ -110,8 +113,9 @@ month as well. It never shows among the repeating commitments on Plan.
 Periods:
 - **Spending is the calendar month**, 1st to last day, for cards and bank alike.
   Nothing before the 1st counts, with one exception: a commitment with a set day
-  (EMI, rent) paid on salary day at the end of a month belongs to the month
-  after. Card spending ran on the card cycle until 4.6, which meant a headline
+  (EMI, rent) paid on salary day at the end of a month, or within 4 days
+  before its due day, belongs to the month after (a pot or allowance only when
+  the payment is a lump of at least half its plan). Card spending ran on the card cycle until 4.6, which meant a headline
   reading "26 Sep to 25 Oct" while bank money from the 5th was counted and card
   money from the 10th was not: one month's budget against two windows. The
   statement day is a fact about a bank's paperwork, not about the person - it

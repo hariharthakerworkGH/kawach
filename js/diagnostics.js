@@ -107,7 +107,7 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
     return map.get(id);
   };
 
-  const settingKeys = new Set(['monthlyIncome', 'salaryDay', 'keepInBank', 'cycleAwareMonths', 'budgets', 'incomeType', 'salaryNextMonth']);
+  const settingKeys = new Set(['monthlyIncome', 'salaryDay', 'keepInBank', 'cycleAwareMonths', 'budgets', 'incomeType', 'salaryNextMonth', 'cashRuleFrom']);
   const figures = await computeFreeToSpend(now); // the figure on screen
 
   const importReading = describe ? describe(redact, numberFor) : undefined;

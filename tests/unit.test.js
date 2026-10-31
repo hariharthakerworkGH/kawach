@@ -5,7 +5,7 @@ import { txn, commitment, rupees } from './fixtures.js';
 import { nextOccurrence } from '../js/frequency.js';
 import { passwordErrorKind } from '../js/pdf-text.js';
 import { sameTransaction, findDuplicates } from '../js/duplicates.js';
-import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments, salaryDayPayments } from '../js/commitments.js';
+import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments, salaryDayPayments, paidAhead, movesAhead, aheadPayments } from '../js/commitments.js';
 import { searchHit, newestFirst, dayChart } from '../js/views/transactions.js';
 import { reimbursableTally, tidyFlags } from '../js/reimbursable.js';
 import { STEPS } from '../js/demo-script.js';
@@ -2364,18 +2364,51 @@ test('salary at a month\'s end: spotted in the last week, counted in the month i
 test('paid on salary day for the month after: bills, card bills and moves go ahead; ordinary spending and spread costs stay', () => {
   const rent = { id: 'rent', label: 'Rent', amount: 2500000, frequency: 'monthly', dayOfMonth: 30, source: 'fixed' };
   const tiffin = { id: 'tiffin', label: 'Tiffin', amount: 400000, frequency: 'monthly', spread: true, source: 'fixed', matchText: 'TIFFIN' };
+  const pot = { id: 'pot', label: 'Gold pot', amount: 1000000, frequency: 'monthly', dayOfMonth: 1, spread: true, source: 'fixed', matchText: 'GOLD POT' };
   const out = (id, date, amount, extra = {}) => ({ id, accountId: 'b', date, amount, direction: 'debit', rawDescription: id.toUpperCase(), ...extra });
   const rows = [
     out('rent-paid', '2026-09-30', 2500000),
-    out('tiffin', '2026-09-30', 400000),
+    out('tiffin', '2026-09-30', 15000),
     out('groceries', '2026-09-30', 120000),
     out('rent-early', '2026-09-20', 2500000),
     out('moved', '2026-09-30', 6800000, { isTransfer: true }),
     out('tagged', '2026-09-30', 99900, { commitmentId: 'rent' }),
+    out('gold pot top-up', '2026-09-30', 1000000),
   ];
-  const ids = salaryDayPayments(rows, [rent, tiffin], '2026-09-30', '2026-09-30', new Set(['b'])).map((t) => t.id);
-  equal(ids, ['rent-paid', 'moved', 'tagged'], 'the bill, the money moved and the tagged one go ahead; groceries (plain spending), tiffin (spread) and an earlier day stay');
+  const ids = salaryDayPayments(rows, [rent, tiffin, pot], '2026-09-30', '2026-09-30', new Set(['b'])).map((t) => t.id);
+  equal(ids, ['rent-paid', 'moved', 'tagged', 'gold pot top-up'], 'the bill, the money moved, the tagged one and the pot top-up go ahead; groceries (plain spending), a day of tiffin (spread) and an earlier day stay');
   equal(countsForMonth({ date: '2026-09-30', forNextMonth: true, commitmentId: 'rent' }), '2026-10', 'a payment flagged for next month counts there');
+});
+
+test('paid ahead: a bill due in the first week, paid in the last week of the month before, is next month\'s', () => {
+  const emi = { id: 'emi', label: 'Home loan EMI', amount: 1500000, frequency: 'monthly', dayOfMonth: 1, source: 'fixed', matchText: 'HOME LOAN' };
+  ok(paidAhead(emi, '2026-10-30', '2026-10-31'), 'the 30th for an EMI due on the 1st');
+  ok(paidAhead(emi, '2026-10-28', '2026-10-31'), 'four days before the 1st is the earliest');
+  ok(!paidAhead(emi, '2026-10-27', '2026-10-31'), 'five days before is unclear, so it stays in the month it was paid');
+  ok(!paidAhead({ ...emi, dayOfMonth: 25 }, '2026-10-30', '2026-10-31'), 'a bill due on the 25th, paid on the 30th, is October\'s');
+  ok(paidAhead({ ...emi, dayOfMonth: 3 }, '2026-10-30', '2026-10-31'), 'due on the 3rd: four days ahead');
+  ok(!paidAhead({ ...emi, dayOfMonth: 5 }, '2026-10-30', '2026-10-31'), 'due on the 5th: six days ahead is too far to be sure');
+  ok(!paidAhead({ ...emi, dayOfMonth: undefined }, '2026-10-30', '2026-10-31'), 'no set day, no way to tell');
+  ok(!paidAhead(emi, '2026-11-02', '2026-10-31'), 'a date in another month is never ahead');
+  const pot = { id: 'pot', label: 'Gold pot', amount: 1000000, frequency: 'monthly', dayOfMonth: 1, spread: true, source: 'fixed', matchText: 'GOLD POT' };
+  const groceries = { id: 'g', label: 'Groceries', amount: 1400000, frequency: 'monthly', dayOfMonth: 1, spread: true, source: 'fixed', categoryId: 'cat-g' };
+  const atm = { id: 'a', label: 'ATM cash', amount: 3100000, frequency: 'monthly', spread: true, cash: true, source: 'fixed', matchText: 'NWD' };
+  const pay = (amount, extra = {}) => ({ amount, rawDescription: 'TRANSFER TO GOLD POT', ...extra });
+  ok(movesAhead(emi, pay(1500000)), 'every payment of a bill with a set day can go ahead');
+  ok(movesAhead(pot, pay(1000000)), 'a top-up of the pot, sent with its words');
+  ok(!movesAhead(pot, pay(150000)), 'a small spend from it stays where it happened');
+  ok(!movesAhead(pot, pay(150000, { commitmentId: 'pot' })), 'tagged or not: a tag says which pot, not which month');
+  ok(movesAhead(pot, pay(3000000, { commitmentId: 'pot', rawDescription: 'NEFT SELF' })), 'a lump tagged to the pot goes ahead, whatever it says');
+  ok(!movesAhead(groceries, pay(120000, { commitmentId: 'g', rawDescription: 'FRESH BASKET' })), 'a grocery shop tagged to its allowance stays in its month');
+  ok(!movesAhead(groceries, pay(900000, { rawDescription: 'BIG BASKET' })), 'an allowance found by category never moves, however big');
+  ok(!movesAhead(atm, pay(2000000, { rawDescription: 'NWD-1234' })), 'ATM cash is settled by the cash rule, not by its date');
+  const rows = [
+    { id: 'a1', accountId: 'b', date: '2026-10-30', amount: 1500000, direction: 'debit', rawDescription: 'HOME LOAN EMI TRANSFER' },
+    { id: 'a2', accountId: 'b', date: '2026-10-12', amount: 1500000, direction: 'debit', rawDescription: 'HOME LOAN EMI TRANSFER' },
+    { id: 'a3', accountId: 'b', date: '2026-10-30', amount: 24000, direction: 'debit', rawDescription: 'UPI CHAI' },
+    { id: 'a4', accountId: 'x', date: '2026-10-30', amount: 1500000, direction: 'debit', rawDescription: 'HOME LOAN EMI TRANSFER' },
+  ];
+  equal(aheadPayments(rows, [emi, pot], new Set(['b'])).map((t) => t.id), ['a1'], 'only the EMI paid on the 30th, from the home account');
 });
 
 test('in and out: the card bill counts when paid, the purchase on the card does not count again', () => {

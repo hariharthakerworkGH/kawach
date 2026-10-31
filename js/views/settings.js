@@ -492,6 +492,7 @@ const KINDS = [
   ['salary', 'Salary'],
   ['household', 'Household money'],
   ['business', 'My business'],
+  ['contract', 'Paid on invoices'],
   ['pension', 'Pension'],
 ];
 

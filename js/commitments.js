@@ -241,16 +241,53 @@ export function commitmentFromSuggestion(d, id) {
  *   commitments: the live ones, to know which are spread
  *   accountIds: the bank accounts the salary can land in */
 export function salaryDayPayments(transactions, commitments, from, to, accountIds) {
-  const names = (list) => (t) => list.some((c) => !(t.notCommitmentIds || []).includes(c.id) && (t.commitmentId ? t.commitmentId === c.id : Boolean(commitmentMatcher(c)?.(t))));
-  const isSpread = names(commitments.filter((c) => c.spread));
-  const isBill = names(commitments.filter((c) => !c.spread));
+  const names = (c, t) => !(t.notCommitmentIds || []).includes(c.id) && (t.commitmentId ? t.commitmentId === c.id : Boolean(commitmentMatcher(c)?.(t)));
+  const goes = (t) => commitments.some((c) => names(c, t) && movesAhead(c, t));
+  const stays = (t) => commitments.some((c) => c.spread && names(c, t) && !movesAhead(c, t));
   // Only what is next month's goes ahead: a bill with a set day, a card bill, money moved. Ordinary spending (a grocery run, a
   // ₹240 UPI) is still this month's, which has not ended because the salary came: Summary counts it here, so History must too.
   return transactions.filter(
     (t) =>
-      t.direction === 'debit' && !t.countsFor && !t.isReimbursable && !t.personId &&
-      t.date >= from && t.date <= to && accountIds.has(t.accountId) && !isSpread(t) && (t.isTransfer || Boolean(t.paysCardId) || isBill(t))
+      t.direction === 'debit' && !t.isReimbursable && !t.personId &&
+      t.date >= from && t.date <= to && accountIds.has(t.accountId) && !stays(t) && (t.isTransfer || Boolean(t.paysCardId) || goes(t))
   );
+}
+
+// Which payments towards a commitment can be for the month after the one they are dated in. Every payment of a bill with a
+// set day can. Of a set-aside only a lump of at least half the plan, tagged to it or sent with its words (a top-up of a savings
+// pot): the daily spends of an allowance (tiffin, parking, groceries), tagged or not, belong to the month they happen, and ATM
+// cash is settled by the cash rule (js/cash.js), never by the date it was taken out. A tag says which commitment, not which month.
+// shortcut: "half the plan" tells a top-up from a spend by size; a smaller top-up stays in the month it was sent.
+export const movesAhead = (item, t) => !isAtmPlan(item) && (!item.spread || ((t.commitmentId === item.id || matchWords(item).length > 0) && t.amount * 2 >= item.amount));
+
+// Payments dated in the last days of a month for a bill due in the first days of the next (paidAhead), among the accounts given.
+// No salary is needed to say so: an auto-debit on the 30th is next month's EMI whenever the salary comes.
+export function aheadPayments(transactions, commitments, accountIds) {
+  const bridging = commitments.filter((c) => !c.once && frequencyOf(c) === 'monthly');
+  const monthEndOf = (date) => `${date.slice(0, 8)}${String(new Date(Number(date.slice(0, 4)), Number(date.slice(5, 7)), 0).getDate()).padStart(2, '0')}`;
+  return transactions.filter(
+    (t) =>
+      t.direction === 'debit' && !t.isReimbursable && !t.personId && accountIds.has(t.accountId) &&
+      bridging.some(
+        (c) =>
+          !(t.notCommitmentIds || []).includes(c.id) &&
+          (t.commitmentId ? t.commitmentId === c.id : Boolean(commitmentMatcher(c)?.(t))) &&
+          movesAhead(c, t) &&
+          paidAhead(c, t.date, monthEndOf(t.date))
+      )
+  );
+}
+
+// A bill with a set day in the first days of a month (EMI, rent, a pot top-up) that goes out within 4 days before that day is paid
+// ahead: auto-debits and bank holidays do it, and so does a salary that lands on the Friday when the month ends on a weekend. It
+// is next month's bill whether or not the salary landed that day, so no payday is needed to say so. Further out it is unclear
+// (rent due on the 5th, paid on the 30th, is 5 days early or 25 late), so it stays in the month it was paid; flag it for next
+// month to say otherwise.
+// `date` and `monthEnd` are in the same month; the due day counts forward from the month's end.
+export function paidAhead(item, date, monthEnd) {
+  const due = Number(item.dayOfMonth);
+  if (!due || item.once || date.slice(0, 7) !== monthEnd.slice(0, 7)) return false;
+  return Number(monthEnd.slice(8)) - Number(date.slice(8)) + due <= 4;
 }
 
 // Does this payment carry the commitment's NAME: the words it was given, or every word of its label ("Netflix")? Amount alone never does.

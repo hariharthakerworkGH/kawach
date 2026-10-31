@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.8',
+    items: [
+      {
+        icon: 'calendar',
+        title: "Paid early, paid on invoices",
+        text: "When your pay lands before the month ends, the bills and moves you pay that day now count for next month. Paid on invoices? Choose it in Settings: Kawach plans on your lowest month of the last three.",
+        guide: [{ view: 'settings', target: '#money-card', text: "Pick how home is paid for: Salary, Household money, My business, Paid on invoices or Pension." }],
+      },
+    ],
+  },
+  {
     version: '7.7',
     items: [
       {

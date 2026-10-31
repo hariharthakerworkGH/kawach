@@ -28,7 +28,12 @@ import { bankBalance } from './account-metrics.js';
 //     catch the house out. Until there are three months to go on, it starts
 //     from the owner's own estimate of what the house needs.
 
-const INCOME_TYPES = ['salary', 'business', 'pension', 'household'];
+//   contract   paid when invoices clear, an amount and a day that change each month: planned on the lowest of the last three whole
+//              months, like a business, but with no business space, shop costs or GST to go with it
+const INCOME_TYPES = ['salary', 'business', 'pension', 'household', 'contract'];
+
+// Money that varies: no payday to plan to, so the month runs by the calendar and the plan is the lowest of three months.
+export const isVariableIncome = (type) => type === 'business' || type === 'contract';
 
 export async function incomeType() {
   const type = await getSetting('incomeType', 'salary');
@@ -129,6 +134,7 @@ export function incomeWords(type) {
   return (
     {
       business: { label: 'Taken home', noun: 'what you take home', afterBank: 'After bills', paid: 'Taken home' },
+      contract: { label: 'Paid on invoices', noun: 'what you are paid', afterBank: 'After bills', paid: 'Invoice paid' },
       pension: { label: 'Monthly pension', noun: 'pension', afterBank: 'After pension and bills', paid: 'Pension' },
       household: { label: 'Household money', noun: 'household money', afterBank: 'After household money and bills', paid: 'Household money' },
     }[type] || { label: 'Monthly salary', noun: 'salary', afterBank: 'After salary and bills', paid: 'Salary' }

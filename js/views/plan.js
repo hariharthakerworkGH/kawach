@@ -21,7 +21,7 @@ import { getGoals, saveGoals, goalProgress, GOAL_IDEAS } from '../goals.js';
 import { committedBar, radialMeter } from '../charts.js';
 import { categoryIcon } from '../category-icons.js';
 import { bankBalance } from '../account-metrics.js';
-import { incomeType, incomeWords, businessPlan, isBusinessCategory, businesses, activeSpace, commitmentInSpace, accountInSpace } from '../business.js';
+import { incomeType, incomeWords, isVariableIncome, businessPlan, isBusinessCategory, businesses, activeSpace, commitmentInSpace, accountInSpace } from '../business.js';
 import { subscriptionsOf } from '../subscriptions.js';
 import { forecast, bankAhead } from '../forecast.js';
 import { isPolicy, yearlyPremium, maturitiesAhead, policyDue, kindLabel } from '../policies.js';
@@ -65,6 +65,7 @@ export async function render(container) {
   // income, the household commitments and the budgets.
   const space = await activeSpace();
   const inBusiness = space !== 'home';
+  const variable = isVariableIncome(kind);
   const sideBusiness = kind !== 'business' && (await businesses()).length > 0;
   const words = incomeWords(kind);
 
@@ -96,7 +97,7 @@ export async function render(container) {
   const suggestedIncome = suggestIncome(transactions, categories);
   // A business owner's month is planned on what came home (js/business.js);
   // what they typed is only the estimate it starts from.
-  const plan = kind === 'business' ? businessPlan(transactions, accounts, todayIso, income) : null;
+  const plan = variable ? businessPlan(transactions, accounts, todayIso, income) : null;
   // A business on the side adds the lowest of its last three months, the
   // same as Summary; nothing until there are three.
   const sidePlan = sideBusiness ? businessPlan(transactions, accounts, todayIso, null, { outside: false }) : null;
@@ -255,14 +256,14 @@ export async function render(container) {
       ${flexTotal && !shown ? `<div class="totals-row"><span><span class="seg-dot seg-flex"></span>Can flex</span><span class="out">−${formatRupees(flexTotal)}</span></div>` : ''}
       <div class="totals-row"><span>Saved each month</span><span class="saved-row">${keep > 0 ? '−' : ''}${formatRupees(keep)}</span></div>
       ${cashTotal > 0 ? `<p class="muted-note">${formatRupees(cashTotal)} paid in cash comes out of your ATM money.</p>` : ''}
-      <details class="fts-breakdown plan-amounts" ${income == null || (kind !== 'business' && !salaryDay) ? 'open' : ''}>
+      <details class="fts-breakdown plan-amounts" ${income == null || (!variable && !salaryDay) ? 'open' : ''}>
         <summary>Change amounts</summary>
         <label class="field">
-          <span>${kind === 'business' ? 'What the house needs a month' : words.label}</span>
+          <span>${variable ? 'What the house needs a month' : words.label}</span>
           <input type="number" id="plan-income" inputmode="decimal" step="1" placeholder="${suggestedIncome != null ? (suggestedIncome / 100).toFixed(0) : '60000'}" value="${income != null ? (income / 100).toFixed(0) : ''}">
         </label>
         ${
-          kind === 'business'
+          variable
             ? ''
             : `<label class="field">
           <span>Day it arrives <span class="muted">(31 = last day)</span></span>

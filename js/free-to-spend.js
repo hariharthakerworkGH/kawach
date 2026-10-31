@@ -2,12 +2,12 @@ import { getAll, getSetting } from './db.js';
 import { bankBalance, statementDay, afterKnownBalance, isEverydayBank, isPutAway, isSweepDeposit } from './account-metrics.js';
 import { cardStandings } from './card-standing.js';
 import { nextOccurrence, isoLocal, frequencyOf, monthlyAmountOf } from './frequency.js';
-import { isLiveCommitment, commitmentDueInWindow, paidAround, commitmentMatcher, matchWords, isSetAside, isAtmPlan, CASH_ENTRY_RE, namesCommitment } from './commitments.js';
+import { isLiveCommitment, commitmentDueInWindow, paidAround, paidAhead, movesAhead, commitmentMatcher, matchWords, isSetAside, isAtmPlan, CASH_ENTRY_RE, namesCommitment } from './commitments.js';
 import { looksLikeCardPayment } from './transfers.js';
 import { findDuplicates } from './duplicates.js';
 import { isLoanAccount, loanCommitment, loanPosition, assignLoanPayments } from './loans.js';
 import { isPfAccount, pfPosition } from './pf.js';
-import { businessPlan, businessMonth } from './business.js';
+import { businessPlan, businessMonth, isVariableIncome } from './business.js';
 import { reimbursableTally, unsettledCosts } from './reimbursable.js';
 import { isPersonMoney, personSpendEffects, peopleStanding } from './people.js';
 import { refundPairs } from './card-refunds.js';
@@ -52,6 +52,15 @@ import { MIN_DAYS_FOR_PACE, addDays, dateOf, daysBetweenInclusive, trackCommitme
 // sees that commitment as already paid. The budget already holds the amount
 // back, so it is never taken twice. Without a commitment to apply it to, the
 // flag does nothing and the payment is ordinary spending.
+//
+// Paid ahead, without a flag. A bill with a set day goes out before the month
+// turns when the salary lands on the last weekday, or an auto-debit runs a day
+// early. Such a payment is next month's, not this month's spending: a bill with
+// a set day paid from the salary-landing date to the month's end, or within 4
+// days before its due day (paidAhead, js/commitments.js); of a set-aside (a pot,
+// an allowance) only a lump of at least half the plan (movesAhead). Groceries
+// and the like, small spends and ATM cash stay in the month they happen, and
+// the month label never moves: the calendar month runs to its last day.
 //
 // Both halves of "spent" run over the same calendar month. They did not
 // always: card spending ran on the card cycle while bank spending ran on the
@@ -174,7 +183,7 @@ export async function computeFreeToSpend(now) {
   // And the house's commitments: a business's shop rent and wages are its own.
   const recurring = allRecurring.filter((r) => !r.space || r.space === 'home');
   const hasBusiness = accounts.length !== allAccounts.length;
-  const isBusiness = incomeKind === 'business';
+  const isBusiness = isVariableIncome(incomeKind); // a business owner or a contractor: no payday, planned on the lowest of three months
 
   // A payment saved twice by overlapping statement imports is counted once
   // until you remove the copy (Summary offers to).
@@ -569,7 +578,11 @@ export async function computeFreeToSpend(now) {
     b.beyond = [];
     if (!b.tracked) return;
     const mine = (t) => t.commitmentId === item.id || Boolean(matcher && matcher(t));
-    const dated = p.kind === 'bank' && !item.spread && frequencyOf(item) === 'monthly';
+    // A bill with a set day, or a pot topped up, can be paid for the month after (a salary that lands on the last weekday, an
+    // auto-debit on the 30th). Spending from an allowance (groceries, tiffin) and ATM cash stay in the month they happen, the
+    // owner's rule: only what is paid ahead moves (movesAhead).
+    const bridges = p.kind === 'bank' && frequencyOf(item) === 'monthly' && !item.once;
+    const leaves = (w, end) => (t) => movesAhead(item, t) && (within(w)(t) || paidAhead(item, t.date, end));
     let entries = pool.filter(inRange(p.start, p.end));
     // A payment you flagged "apply to next month's commitments" (forNextMonth)
     // is paid in one month and belongs to the next, which is what happens
@@ -595,17 +608,18 @@ export async function computeFreeToSpend(now) {
       entries = entries.filter((t) => !deferred(t));
       entries = [...pool.filter(inRange(previousMonthStart, previousMonthEnd)).filter(deferred), ...entries];
     }
-    if (dated && p.carriedOut) {
-      // Paid on this month's salary day: next month's. Not this month's
+    if (bridges) {
+      // Paid on this month's salary day, or ahead of next month's due day: next month's. Not this month's
       // commitment, and not spending either.
-      for (const t of entries.filter(within(p.carriedOut))) {
+      const out = leaves(p.carriedOut, p.end);
+      for (const t of entries.filter(out)) {
         if (claimed.has(t.id) || !mine(t) || (t.notCommitmentIds || []).includes(item.id)) continue;
         claimed.add(t.id);
         claimedBy.set(t.id, `${b.label} (next month)`);
       }
-      entries = entries.filter((t) => !within(p.carriedOut)(t));
+      entries = entries.filter((t) => !out(t));
+      entries = [...pool.filter(inRange(previousMonthStart, previousMonthEnd)).filter(leaves(p.carriedIn, previousMonthEnd)), ...entries];
     }
-    if (dated && p.carriedIn) entries = [...pool.filter(inRange(p.carriedIn.from, p.carriedIn.to)), ...entries];
     let counted = 0;
     for (const t of entries.sort((x, y) => (x.date < y.date ? -1 : 1))) {
       if (claimed.has(t.id) || !mine(t)) continue;
@@ -1067,7 +1081,7 @@ export async function computeFreeToSpend(now) {
     cards,
     keep,
     // the budget
-    incomeKind: isBusiness ? 'business' : incomeKind,
+    incomeKind,
     monthlyIncome,
     sideBusiness: side,
     businessExtra,

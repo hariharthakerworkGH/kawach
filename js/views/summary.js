@@ -29,7 +29,7 @@ import { askConfirm } from '../dialog.js';
 import { redraw } from '../redraw.js';
 import { installCard, wireInstallCard } from '../install.js';
 import { backupStatus } from '../drive.js';
-import { incomeWords, businesses, activeSpace, setCurrentSpace, accountInSpace, businessSpace, businessRunway } from '../business.js';
+import { incomeWords, isVariableIncome, businesses, activeSpace, setCurrentSpace, accountInSpace, businessSpace, businessRunway } from '../business.js';
 import { taxDates, renews, renewalsAhead, renewalAfter } from '../calendar.js';
 import { isPolicy, markPaid } from '../policies.js';
 import { settleBills } from '../bills.js';
@@ -468,7 +468,7 @@ async function renderDashboard(container) {
   const latest = havenLatest(transactions, categoryList, accountList);
   const more = document.documentElement.dataset.style === 'haven' ? await havenMore(fts, transactions, months, thisKey, categoryList) : null;
   // Anyone with business income has tax dates to keep.
-  const tax = taxCard(taxDates(isoLocal(new Date()), { business: list.length > 0 || fts.incomeKind === 'business' }));
+  const tax = taxCard(taxDates(isoLocal(new Date()), { business: list.length > 0 || isVariableIncome(fts.incomeKind) }));
 
   // In the order the questions are asked: where do I stand, how much of the
   // month is spoken for, what have I actually got, what needs me - and only
@@ -1045,7 +1045,7 @@ export function weekPills(f) {
 function renderSpendingLimit(f, opts = {}) {
   const owed = opts.past ? '' : renderOwed(f);
   if (!f.monthlyIncome || !f.salary.setUp) {
-    const ask = f.incomeKind === 'business' ? 'what the house needs a month' : `your ${incomeWords(f.incomeKind).noun} and the day it arrives`;
+    const ask = isVariableIncome(f.incomeKind) ? 'what the house needs a month' : `your ${incomeWords(f.incomeKind).noun} and the day it arrives`;
     return `<div class="totals-card"><p class="muted-note">Add ${ask} on Plan to see what you can spend.</p></div>${owed ? `<div class="summary-rows">${owed}</div>` : ''}`;
   }
   if (f.noCommitments) {
@@ -1205,7 +1205,7 @@ export function spendingStatus(f) {
 
 // What the budget starts from, in the words of the kind of income.
 function incomeLine(f) {
-  if (f.incomeKind !== 'business') return incomeWords(f.incomeKind).label;
+  if (!isVariableIncome(f.incomeKind)) return incomeWords(f.incomeKind).label;
   if (f.plan.basis !== 'lowest') return 'What the house needs';
   return `Taken home, lowest month (${monthShort(f.plan.lowestMonth)})`;
 }
@@ -1496,7 +1496,7 @@ function renderBankCard(f) {
   const tone = f.bankLevel === 'over' ? 'out' : f.bankLevel === 'warning' ? 'warn' : '';
   // What the bank pays before money next comes in: before payday, or for a
   // business owner, this month.
-  const before = f.incomeKind === 'business' ? 'this month' : `before ${incomeWords(f.incomeKind).noun}`;
+  const before = isVariableIncome(f.incomeKind) ? 'this month' : `before ${incomeWords(f.incomeKind).noun}`;
   return `
     <div class="totals-card bank-card level-${f.bankLevel}">
       <div class="bank-figures">
