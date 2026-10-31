@@ -2746,3 +2746,28 @@ test('markers: the bank line says what each account holds today, with the date w
   equal(lines.map((l) => l.asOf), [null, '2026-10-02', null], 'an old balance with nothing since says when; one kept up by entries, or recent, does not');
   equal(bankNowLines(null, '2026-10-31'), [], 'nothing when there are no figures');
 });
+
+import { seenState, markSeen, getSeen } from '../js/todo-seen.js';
+import { setSetting as setSettingForSeen } from '../js/db.js';
+test('to do: what was seen does not come back as new until it is clearly worse, or old', async () => {
+  const day = 86400000;
+  const t0 = Date.parse('2026-10-31T10:00:00');
+  const map = { a: { val: 5000000, hide: false, at: t0 }, b: { val: 5000000, hide: true, at: t0 } };
+  equal(seenState({}, 'a', 5000000, 100000, t0), 'new', 'never seen is new');
+  equal(seenState(map, 'a', 5000000, 100000, t0 + day), 'read', 'seen and unchanged is read, not new');
+  equal(seenState(map, 'b', 5000000, 100000, t0 + day), 'hidden', '"Got it" hides it');
+  equal(seenState(map, 'b', 5400000, 100000, t0 + day), 'hidden', 'a small worsening (under a tenth) stays hidden');
+  equal(seenState(map, 'b', 5600000, 100000, t0 + day), 'new', 'clearly worse is new again, even after "Got it"');
+  equal(seenState(map, 'a', 4000000, 100000, t0 + day), 'read', 'getting better is not news');
+  equal(seenState(map, 'a', 5000000, 100000, t0 + 31 * day), 'new', 'still true after a month is shown again');
+  equal(seenState({ c: { val: 3, hide: false, at: t0 } }, 'c', 4, 0, t0), 'new', 'one more of a count is news');
+
+  await setSettingForSeen('todoSeen', {});
+  await markSeen([{ key: 'x', val: 10 }, { key: 'y', val: 20 }], false, t0);
+  await markSeen([{ key: 'y', val: 20 }], true, t0 + 1000);
+  const saved = await getSeen();
+  equal([saved.x.hide, saved.y.hide], [false, true], 'reading keeps a row, "Got it" hides it');
+  await markSeen([{ key: 'z', val: 1 }], false, t0 + 40 * day);
+  equal(Object.keys(await getSeen()).sort(), ['z'], 'entries past their month are dropped when the next one is written');
+  await setSettingForSeen('todoSeen', {});
+});

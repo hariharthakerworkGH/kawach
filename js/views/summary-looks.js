@@ -20,6 +20,7 @@
 
 import { formatRupees, formatDateNice, shortRupees } from '../format.js';
 import { escapeHtml } from '../ui.js';
+import { seenState, rowMeta, rowsIn, markSeen } from '../todo-seen.js';
 import { icon } from '../icons.js';
 import { categoryStyle } from '../category-style.js';
 import { categoryIcon } from '../category-icons.js';
@@ -487,8 +488,8 @@ export const lgIco = (label, svg = categoryStyle(label).icon) => `<span class="l
 const money = (paise) => `₹${Math.round(Math.abs(paise) / 100).toLocaleString('en-IN')}`;
 
 /* A row of the "To do" list that this file draws itself (the bank running short, payments due): the same look as the rows renderAttention draws. */
-const todoLine = ({ ico, tone = '', title, sub = '', go = '', right = '' }) =>
-  `<${go ? 'button type="button"' : 'div'} class="todo-row lg-todo-pre ${tone}"${go ? ` data-hv-go="${go}"` : ''}><span class="todo-icon" aria-hidden="true">${ico}</span><span class="todo-text"><span>${title}</span>${sub ? `<span class="muted-note ${tone}">${sub}</span>` : ''}</span>${right ? `<span class="attention-actions">${right}</span>` : ''}${go ? `<span class="lg-todo-go">${icon('forward')}</span>` : ''}</${go ? 'button' : 'div'}>`;
+const todoLine = ({ ico, tone = '', title, sub = '', go = '', right = '', meta = null, state = 'new' }) =>
+  `<${go ? 'button type="button"' : 'div'} class="todo-row lg-todo-pre ${tone}${state === 'new' ? ' is-new' : ''}"${rowMeta(meta, state)}${go ? ` data-hv-go="${go}"` : ''}><span class="todo-icon" aria-hidden="true">${ico}</span><span class="todo-text"><span>${title}</span>${sub ? `<span class="muted-note ${tone}">${sub}</span>` : ''}</span>${right ? `<span class="attention-actions">${right}</span>` : ''}${go ? `<span class="lg-todo-go">${icon('forward')}</span>` : ''}</${go ? 'button' : 'div'}>`;
 
 /* The Latest / To do card's tabs: one handler for every card on the page. Called when a screen is drawn (js/haven-ui.js wireHaven). */
 export function wireTabs(root) {
@@ -499,7 +500,15 @@ export function wireTabs(root) {
       card.querySelectorAll('[data-lg-tab]').forEach((t) => { const on = t.dataset.lgTab === name; t.classList.toggle('on', on); t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
       card.querySelectorAll('[data-lg-panel]').forEach((p) => { p.hidden = p.dataset.lgPanel !== name; });
     };
-    card.querySelectorAll('[data-lg-tab]').forEach((t) => t.addEventListener('click', () => open(t.dataset.lgTab)));
+    card.querySelectorAll('[data-lg-tab]').forEach((t) => t.addEventListener('click', () => { open(t.dataset.lgTab); if (t.dataset.lgTab === 'todo') markRead(card); }));
+    // "Got it": the notice goes, and stays gone until it has got worse (js/todo-seen.js).
+    card.addEventListener('click', (e) => {
+      const row = e.target.closest?.('[data-todo-gotit]')?.closest('[data-todo-key]');
+      if (!row) return;
+      markSeen([{ key: row.dataset.todoKey, val: Number(row.dataset.todoVal) }], true).catch(() => {});
+      row.remove();
+      syncTodo(card.parentNode);
+    });
     card.addEventListener('keydown', (e) => {
       if (!['ArrowLeft', 'ArrowRight'].includes(e.key) || !e.target.matches('[data-lg-tab]')) return;
       e.preventDefault();
@@ -512,22 +521,33 @@ export function wireTabs(root) {
 }
 
 /* The To do tab says how many things wait, and says so plainly when none does. Called once the list under it has been drawn. */
+/* Seeing the tab is reading it: what it shows is marked read and the badge goes. The dots stay until the screen is drawn again. */
+function markRead(card) {
+  const fresh = rowsIn(card.querySelector('[data-lg-panel="todo"]'), true);
+  const badge = card.querySelector('[data-lg-count]');
+  if (badge) badge.hidden = true;
+  if (fresh.length) markSeen(fresh).catch(() => {});
+}
+
 export function syncTodo(root) {
   const card = root.querySelector?.('.lg-act');
   if (!card) return;
   const panel = card.querySelector('[data-lg-panel="todo"]');
   const n = panel.querySelectorAll('.todo-row, .need-row').length;
+  // The badge counts what has not been seen yet. A row with no key (the ones that have their own "stop asking") counts as it always did.
+  const unread = panel.querySelectorAll('.todo-row:not([data-todo-key]), .need-row:not([data-todo-key]), [data-todo-new]').length;
   const badge = card.querySelector('[data-lg-count]');
-  if (badge) { badge.textContent = String(n); badge.hidden = n === 0; }
+  if (badge) { badge.textContent = String(unread); badge.hidden = unread === 0 || card.dataset.tab === 'todo'; }
   let calm = panel.querySelector('.lg-calm');
   if (!n && !calm) { calm = document.createElement('p'); calm.className = 'lg-calm'; calm.textContent = 'Nothing needs you today.'; panel.append(calm); }
   else if (n && calm) calm.remove();
   // A large payment nobody has said the purpose of moves the headline figure: open on the question instead of hiding it behind a tab.
-  if (panel.querySelector('.assign-lump') && card.dataset.tab !== 'todo') {
+  if (panel.querySelector('[data-todo-new] .assign-lump') && card.dataset.tab !== 'todo') {
     card.dataset.tab = 'todo';
     card.querySelectorAll('[data-lg-tab]').forEach((t) => { const on = t.dataset.lgTab === 'todo'; t.classList.toggle('on', on); t.setAttribute('aria-selected', String(on)); });
     card.querySelectorAll('[data-lg-panel]').forEach((p) => { p.hidden = p.dataset.lgPanel !== 'todo'; });
   }
+  if (card.dataset.tab === 'todo') markRead(card);
 }
 
 export function havenTop(f, status, month, extra = {}) {
@@ -598,13 +618,21 @@ export function havenTop(f, status, month, extra = {}) {
   const chartBlock = `${x.spent > 0 && !x.finished ? `<button type="button" class="lg-link" data-hv-go="recap"><span class="n">Where it went<i>by category</i></span>${icon('forward')}</button>` : ''}${extra.chart || ''}`;
 
   // Said once, and only when it matters: the bank will not cover the card bills and fixed costs before money comes in. It is the first thing on the To do list.
-  const short = f.bankAfterBills != null && f.bankAfterBills < 0 && !x.finished;
+  const bankKey = { key: `bank-short:${f.monthKey}`, val: f.bankAfterBills < 0 ? -f.bankAfterBills : 0, tol: 100000 };
+  const bankState = seenState(extra.seen, bankKey.key, bankKey.val, bankKey.tol);
+  const bankShort = f.bankAfterBills != null && f.bankAfterBills < 0 && !x.finished && bankState !== 'hidden';
+  // The tab opens on To do only while this is news: once seen, Latest is what the screen opens on.
+  const short = bankShort && bankState === 'new';
   const pre = [];
-  if (short) pre.push(todoLine({ ico: icon('alert'), tone: 'is-alert', title: `Your bank is <b>${formatRupees(-f.bankAfterBills)}</b> short`, sub: 'for card bills and fixed costs before money comes in', go: 'accounts' }));
+  if (bankShort) pre.push(todoLine({ ico: icon('alert'), tone: 'is-alert', title: `Your bank is <b>${formatRupees(-f.bankAfterBills)}</b> short`, sub: 'Card bills and fixed costs due before your next pay come to more than the bank holds.', right: '<button type="button" class="btn-tiny" data-hv-go="accounts">Accounts</button><button type="button" class="btn-tiny" data-todo-gotit>Got it</button>', meta: bankKey, state: bankState }));
   // Only what is late: a bill due next week is already on Plan, and a reminder you can do nothing about is not a thing to do.
   const soon = x.finished ? [] : x.coming.filter((c) => c.late);
   if (soon.length) {
+    const lateSum = soon.reduce((s, c) => s + c.amount, 0);
+    const lateKey = { key: 'late-payments', val: lateSum };
     pre.push(todoLine({
+      meta: lateKey,
+      state: seenState(extra.seen, lateKey.key, lateKey.val),
       ico: categoryStyle(soon[0].label).icon,
       tone: soon.some((c) => c.late) ? 'is-alert' : 'is-soon',
       title: soon.length === 1 ? escapeHtml(soon[0].label) : `${soon.length} payments due`,

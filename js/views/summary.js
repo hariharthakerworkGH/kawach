@@ -1,5 +1,6 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
 import { havenTop, keptBack, chartsComing, chartsCards, tideSvg, monthStory, syncTodo } from './summary-looks.js';
+import { getSeen, seenState, rowMeta } from '../todo-seen.js';
 import { isDemo } from '../demo-flag.js';
 import { displayName } from './transactions.js';
 import { wireHaven } from '../haven-ui.js';
@@ -487,7 +488,7 @@ async function renderDashboard(container) {
     }
     // The figure and its answer; what needs you; the month; then the rest,
     // folded. The parts are marked where the top is drawn.
-    const [answer, afterAnswer = ''] = renderSpendingLimit(fts, { short: !haven, latest, more, nav: monthNav(thisKey, months) }).split('<!--k:answer-->');
+    const [answer, afterAnswer = ''] = renderSpendingLimit(fts, { short: !haven, latest, more, seen: await getSeen(), nav: monthNav(thisKey, months) }).split('<!--k:answer-->');
     const [month, rest = ''] = afterAnswer.split('<!--k:month-->');
     dashboardEl.innerHTML = [
       setup.payments ? '' : setupStrip(),
@@ -1246,7 +1247,7 @@ function renderCardsHero(f, opts = {}) {
   const lookTop = ['full', 'short'].includes(appearance('summary')) && f.limit != null && LOOK_TOPS[style];
   const drawn = past ? { ...shown, finished: true } : f;
   const top = lookTop
-    ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), '', { latest: opts.latest, more: opts.more, still: Boolean(past) || quiet, chart: monthWaves(drawn), nav: opts.nav })
+    ? lookTop(drawn, past ? `Final for ${past.name}` : short ? shortStatus(f) : spendingStatus(f), '', { latest: opts.latest, more: opts.more, seen: opts.seen, still: Boolean(past) || quiet, chart: monthWaves(drawn), nav: opts.nav })
     : spendingHero(shown, short ? 'full' : appearance('summary'), past ? `Final for ${past.name}` : null, short ? shortStatus(f) : null) + `<!--k:answer-->
     ${past ? '' : monthWaves(f)}<!--k:month-->
     ${past ? '' : weekPills(f)}
@@ -1761,10 +1762,17 @@ async function renderAttention(container, transactions, fts = null) {
   const cards = accounts.filter((a) => a.type === 'card');
 
   const short = shortMode();
-  const todo = (icon, title, sub, action = '', tone = '') =>
-    short
-      ? `<div class="need-row ${tone}"><span class="need-row__ic" aria-hidden="true">${icon}</span><span class="need-row__t"><span>${title}</span>${sub ? `<small>${sub}</small>` : ''}</span>${action ? `<span class="need-row__go">${action}</span>` : ''}</div>`
-      : `<div class="todo-row"><span class="todo-icon" aria-hidden="true">${icon}</span><span class="todo-text"><span>${title}</span>${sub ? `<span class="muted-note ${tone}">${sub}</span>` : ''}</span>${action ? `<span class="attention-actions">${action}</span>` : ''}</div>`;
+  // meta {key, val, tol, notice}: what the row is, how big it is now, and whether it is only news (then it gets "Got it"). js/todo-seen.js
+  const seen = await getSeen();
+  const todo = (icon, title, sub, action = '', tone = '', meta = null) => {
+    const state = meta ? seenState(seen, meta.key, meta.val, meta.tol) : 'new';
+    if (state === 'hidden') return '';
+    const acts = meta && meta.notice ? `${action}<button type="button" class="btn-tiny" data-todo-gotit>Got it</button>` : action;
+    const mark = `${meta && state === 'new' ? ' is-new' : ''}"${rowMeta(meta, state)}`;
+    return short
+      ? `<div class="need-row ${tone}${mark}><span class="need-row__ic" aria-hidden="true">${icon}</span><span class="need-row__t"><span>${title}</span>${sub ? `<small>${sub}</small>` : ''}</span>${acts ? `<span class="need-row__go">${acts}</span>` : ''}</div>`
+      : `<div class="todo-row${mark}><span class="todo-icon" aria-hidden="true">${icon}</span><span class="todo-text"><span>${title}</span>${sub ? `<span class="muted-note ${tone}">${sub}</span>` : ''}</span>${acts ? `<span class="attention-actions">${acts}</span>` : ''}</div>`;
+  };
   // NEW (5.18): in the short version, the bank running short and the
   // commitments due in the next three days come first - said here and
   // nowhere else on the screen.
@@ -1787,13 +1795,13 @@ async function renderAttention(container, transactions, fts = null) {
   // with the amount and the day, and Remind one tap away.
   const lateLent = fts ? lateBack(fts.people || [], isoLocal(new Date())) : [];
   const lateRows = lateLent.map((x) =>
-    todo(icon('clock'), `<b>${escapeHtml(x.person.name)} ${formatRupees(x.owed)}</b>`, `was due back ${formatDateNice(x.person.backBy)}`, `<button type="button" class="btn-tiny person-remind" data-text="${escapeAttr(reminderText(x.person.name, x.owed, formatDateNice(x.since)))}">Remind</button>`, 'is-soon')
+    todo(icon('clock'), `<b>${escapeHtml(x.person.name)} ${formatRupees(x.owed)}</b>`, `was due back ${formatDateNice(x.person.backBy)}`, `<button type="button" class="btn-tiny person-remind" data-text="${escapeAttr(reminderText(x.person.name, x.owed, formatDateNice(x.since)))}">Remind</button>`, 'is-soon', { key: `late:${x.person.id || x.person.name}`, val: x.owed })
   );
   // NEW (5.21): a renewal in the week ahead, or a few days gone. "Renewed"
   // moves it on to next time; left alone, it moves on by itself.
   const renewing = renewalsAhead(recurring.filter((r) => isLiveCommitment(r) && renews(r)), isoLocal(new Date())).filter((r) => r.days < 0); // only one that has gone by: next week's is a reminder, and Plan has it
   const renewRows = renewing.map(({ item, due, days }) =>
-    todo(icon('clock'), `<b>${escapeHtml(item.label)} ${formatRupees(item.amount)}</b>`, days < 0 ? `renewal was due ${formatDateNice(due)}` : days === 0 ? 'renews today' : `renews ${formatDateNice(due)}`, `<button type="button" class="btn-tiny renewal-done" data-id="${item.id}">Renewed</button>`, days < 0 ? 'is-alert' : 'is-soon')
+    todo(icon('clock'), `<b>${escapeHtml(item.label)} ${formatRupees(item.amount)}</b>`, days < 0 ? `renewal was due ${formatDateNice(due)}` : days === 0 ? 'renews today' : `renews ${formatDateNice(due)}`, `<button type="button" class="btn-tiny renewal-done" data-id="${item.id}">Renewed</button>`, days < 0 ? 'is-alert' : 'is-soon', { key: `renew:${item.id}`, val: 1 })
   );
   if (short) urgent.push(...lateRows, ...renewRows);
 
@@ -1805,7 +1813,9 @@ async function renderAttention(container, transactions, fts = null) {
         icon('tag'),
         `${formatRupees(l.amount)} · ${formatDateNice(l.date)}`,
         'Counts as spending. Which commitment?',
-        `<select class="assign-lump" data-txn="${l.id}" aria-label="Commitment this payment was for"><option value="">Pick one</option>${lumpChoices.map((c) => `<option value="${c.id}">${escapeHtml(c.label)}</option>`).join('')}</select><button type="button" class="icon-btn lump-dismiss" data-id="${l.id}" aria-label="Not for a commitment, stop asking" title="Not for a commitment">${icon('close')}</button>`
+        `<select class="assign-lump" data-txn="${l.id}" aria-label="Commitment this payment was for"><option value="">Pick one</option>${lumpChoices.map((c) => `<option value="${c.id}">${escapeHtml(c.label)}</option>`).join('')}</select><button type="button" class="icon-btn lump-dismiss" data-id="${l.id}" aria-label="Not for a commitment, stop asking" title="Not for a commitment">${icon('close')}</button>`,
+        '',
+        { key: `lump:${l.id}`, val: 1 }
       )
     );
   const rows = [
@@ -1813,39 +1823,43 @@ async function renderAttention(container, transactions, fts = null) {
     // for, so it moves the headline figure.
     ...lumpRows,
     incomeSpends
-      ? todo(icon('tag'), `${incomeSpends} spend${incomeSpends === 1 ? '' : 's'} filed as Income`, 'Money going out is never income', '<button type="button" class="btn-tiny primary" id="fix-income-btn">Fix</button>', 'is-alert')
+      ? todo(icon('tag'), `${incomeSpends} spend${incomeSpends === 1 ? '' : 's'} filed as Income`, 'Money going out is never income', '<button type="button" class="btn-tiny primary" id="fix-income-btn">Fix</button>', 'is-alert', { key: 'income-spends', val: incomeSpends })
       : '',
     driveDays != null
       ? driveDays >= 7
-        ? todo(icon('backup'), 'Back up to Google Drive', `Last one ${driveDays} days ago`, '<button type="button" class="btn-tiny primary" id="go-drive-btn">Back up</button>')
+        ? todo(icon('backup'), 'Back up to Google Drive', `Last one ${driveDays} days ago`, '<button type="button" class="btn-tiny primary" id="go-drive-btn">Back up</button>', '', { key: 'backup', val: driveDays, tol: 7 })
         : ''
       : safety.ok || isDemo()
         ? ''
-        : todo(icon('backup'), safety.daysUnprotected == null ? 'No backup yet' : `No backup for ${safety.daysUnprotected} days`, 'Your data lives only on this phone', '<button type="button" class="btn-tiny primary" id="go-backup-btn">Back up</button>'),
+        : todo(icon('backup'), safety.daysUnprotected == null ? 'No backup yet' : `No backup for ${safety.daysUnprotected} days`, 'Your data lives only on this phone', '<button type="button" class="btn-tiny primary" id="go-backup-btn">Back up</button>', '', { key: 'backup', val: safety.daysUnprotected || 0, tol: 7 }),
     ...cardPayments.map((p) =>
       todo(
         icon('card'),
         `${formatRupees(p.amount)} card bill paid ${formatDateNice(p.date)}`,
         'Which card did it pay?',
-        `<select class="assign-card" data-txn="${p.id}" aria-label="Card this payment paid"><option value="">Pick card</option>${cards.map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}</select>`
+        `<select class="assign-card" data-txn="${p.id}" aria-label="Card this payment paid"><option value="">Pick card</option>${cards.map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}</select>`,
+        '',
+        { key: `cardpay:${p.id}`, val: 1 }
       )
     ),
-    ...sameAccounts.map((group) => todo(icon('copy'), `${group.length} accounts for ••${escapeHtml(group[0].last4)}`, 'Delete one on Cards so it isn\'t counted twice', '', 'bill-overdue')),
-    duplicates.length ? todo(icon('copy'), `${duplicates.length} payment${duplicates.length === 1 ? '' : 's'} saved twice`, 'Already left out of every figure', '<button type="button" class="btn-tiny primary" id="remove-duplicates-btn">Remove</button>') : '',
-    alertsWaiting > 0 ? todo(icon('inbox'), `${alertsWaiting} bank alert${alertsWaiting === 1 ? '' : 's'} to check`, 'Bank messages waiting to be added as payments', '<button type="button" class="btn-tiny primary" id="go-inbox-btn">Check</button>') : '',
+    ...sameAccounts.map((group) => todo(icon('copy'), `${group.length} accounts for ••${escapeHtml(group[0].last4)}`, 'Delete one on Cards so it isn\'t counted twice', '', 'bill-overdue', { key: `dupacct:${group[0].last4}`, val: group.length, notice: true })),
+    duplicates.length ? todo(icon('copy'), `${duplicates.length} payment${duplicates.length === 1 ? '' : 's'} saved twice`, 'Already left out of every figure', '<button type="button" class="btn-tiny primary" id="remove-duplicates-btn">Remove</button>', '', { key: 'dups', val: duplicates.length }) : '',
+    alertsWaiting > 0 ? todo(icon('inbox'), `${alertsWaiting} bank alert${alertsWaiting === 1 ? '' : 's'} to check`, 'Bank messages waiting to be added as payments', '<button type="button" class="btn-tiny primary" id="go-inbox-btn">Check</button>', '', { key: 'alerts', val: alertsWaiting }) : '',
     ...dueCards.map(({ account, bill }) =>
-      todo(icon('bill'), `${escapeHtml(account.label)} - ${formatRupees(bill.amount)}`, bill.daysLeft < 0 ? `Overdue by ${Math.abs(bill.daysLeft)}d` : bill.daysLeft === 0 ? 'Due today' : `Due in ${bill.daysLeft}d`, `<button type="button" class="btn-tiny mark-paid" data-id="${account.id}">Mark paid</button>`, bill.daysLeft <= 0 ? 'bill-overdue' : 'bill-urgent')
+      todo(icon('bill'), `${escapeHtml(account.label)} - ${formatRupees(bill.amount)}`, bill.daysLeft < 0 ? `Overdue by ${Math.abs(bill.daysLeft)}d` : bill.daysLeft === 0 ? 'Due today' : `Due in ${bill.daysLeft}d`, `<button type="button" class="btn-tiny mark-paid" data-id="${account.id}">Mark paid</button>`, bill.daysLeft <= 0 ? 'bill-overdue' : 'bill-urgent', { key: `bill:${account.id}`, val: bill.amount })
     ),
     ...(short ? [] : [...lateRows, ...renewRows]),
     ...budgetAlerts.map((b) =>
-      todo(categoryStyle(b.name).icon, `${escapeHtml(b.name)} budget`, b.state === 'over' ? `Over by ${formatRupees(-b.left)}` : `${formatRupees(b.left)} left`, `<button type="button" class="btn-tiny budget-open" data-id="${b.categoryId}">See</button>`, b.state === 'over' ? 'bill-overdue' : 'bill-urgent')
+      todo(categoryStyle(b.name).icon, `${escapeHtml(b.name)} budget`, b.state === 'over' ? `Over by ${formatRupees(-b.left)}` : `${formatRupees(b.left)} left`, `<button type="button" class="btn-tiny budget-open" data-id="${b.categoryId}">See</button>`, b.state === 'over' ? 'bill-overdue' : 'bill-urgent', { key: `budget:${b.categoryId}`, val: -b.left, tol: 50000, notice: true })
     ),
     uncategorized.length
       ? todo(
           icon('tag'),
           `${uncategorized.length} need${uncategorized.length === 1 ? 's' : ''} a category`,
           'Pick one for each so your totals are right',
-          `${autoSortable > 0 ? `<button type="button" class="btn-tiny primary" id="auto-sort-btn">Sort ${autoSortable}</button>` : ''}<button type="button" class="btn-tiny" id="go-transactions-btn">Open</button>`
+          `${autoSortable > 0 ? `<button type="button" class="btn-tiny primary" id="auto-sort-btn">Sort ${autoSortable}</button>` : ''}<button type="button" class="btn-tiny" id="go-transactions-btn">Open</button>`,
+          '',
+          { key: 'uncategorised', val: uncategorized.length }
         )
       : '',
   ].filter(Boolean);
@@ -1860,7 +1874,7 @@ async function renderAttention(container, transactions, fts = null) {
           ${rows.slice(0, 3).join('')}
           ${more > 0
             ? `<details class="need-more"><summary>${rows.length > 3 ? `${rows.length - 3} more` : 'Unusual spends'}</summary>${rows.slice(3).join('')}${unusual
-                .map((a) => todo(icon('eye'), `${escapeHtml(a.transaction.rawDescription.slice(0, 36))} · ${formatRupees(a.transaction.amount)}`, a.reason === 'new-merchant' ? 'First time here' : `Usually ${formatRupees(a.averageAmount)}`, `<button type="button" class="btn-tiny anomaly-open" data-desc="${escapeAttr(a.transaction.rawDescription.slice(0, 24))}">Open</button><button type="button" class="icon-btn anomaly-dismiss" data-id="${a.transaction.id}" aria-label="Dismiss">${icon('close')}</button>`))
+                .map((a) => todo(icon('eye'), `${escapeHtml(a.transaction.rawDescription.slice(0, 36))} · ${formatRupees(a.transaction.amount)}`, a.reason === 'new-merchant' ? 'First time here' : `Usually ${formatRupees(a.averageAmount)}`, `<button type="button" class="btn-tiny anomaly-open" data-desc="${escapeAttr(a.transaction.rawDescription.slice(0, 24))}">Open</button><button type="button" class="icon-btn anomaly-dismiss" data-id="${a.transaction.id}" aria-label="Dismiss">${icon('close')}</button>`, '', { key: `odd:${a.transaction.id}`, val: 1 }))
                 .join('')}</details>`
             : ''}
         </section>`
@@ -1882,7 +1896,9 @@ async function renderAttention(container, transactions, fts = null) {
             icon('eye'),
             `${escapeHtml(displayName(a.transaction.rawDescription))} · ${formatRupees(a.transaction.amount)}`,
             a.reason === 'new-merchant' ? `First time at this shop, on ${formatDateNice(a.transaction.date)}. Was it you?` : `More than usual: this shop is normally about ${formatRupees(a.averageAmount)}. Was it you?`,
-            `<button type="button" class="btn-tiny anomaly-open" data-desc="${escapeAttr(a.transaction.rawDescription.slice(0, 24))}">See it</button><button type="button" class="icon-btn anomaly-dismiss" data-id="${a.transaction.id}" aria-label="It was me, stop asking about this one" title="It was me">${icon('close')}</button>`
+            `<button type="button" class="btn-tiny anomaly-open" data-desc="${escapeAttr(a.transaction.rawDescription.slice(0, 24))}">See it</button><button type="button" class="icon-btn anomaly-dismiss" data-id="${a.transaction.id}" aria-label="It was me, stop asking about this one" title="It was me">${icon('close')}</button>`,
+            '',
+            { key: `odd:${a.transaction.id}`, val: 1 }
           )
         )
         .join('')}

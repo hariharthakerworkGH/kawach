@@ -240,7 +240,7 @@ const stampOf = (record, now = Date.now()) => (typeof record.updatedAt === 'numb
 export const LIST_SETTINGS = ['businesses', 'people', 'goals', 'dismissedAnomalies', 'dismissedLumps', 'remindersSent', 'spendingAlertsSent'];
 /* Settings that hold a map (a budget for each category). Merged key by key the same way: a budget set on either
  * device stays, one removed on a device that had it stays removed, one set on both takes the newer side's. */
-export const MAP_SETTINGS = ['budgets'];
+export const MAP_SETTINGS = ['budgets', 'todoSeen'];
 const itemKey = (x) => (x && typeof x === 'object' ? x.id : x);
 const isMap = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 

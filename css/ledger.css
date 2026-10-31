@@ -326,6 +326,11 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .lg-todo .attention-actions .icon-btn::after { content: ""; position: absolute; inset: -4px; }
 :root[data-style=haven] .lg-todo .todo-row.is-alert .muted-note, :root[data-style=haven] .lg-todo .todo-row.is-soon .muted-note, :root[data-style=haven] .lg-todo .todo-row.bill-overdue .muted-note, :root[data-style=haven] .lg-todo .todo-row.bill-urgent .muted-note { display: block; }
 :root[data-style=haven] .lg-todo .attention-actions { display: flex; align-items: center; gap: 6px; }
+/* Two buttons do not fit beside the words on a narrow phone: they go on their own line under them. */
+:root[data-style=haven] .lg-todo .todo-row:has(.btn-tiny + .btn-tiny) .attention-actions { grid-column: 2 / -1; justify-self: start; margin-top: 2px; }
+/* Not seen yet: a dot on the icon. Seen rows stay, without it (js/todo-seen.js). */
+:root[data-style=haven] .lg-todo .todo-row.is-new .todo-icon { position: relative; }
+:root[data-style=haven] .lg-todo .todo-row.is-new .todo-icon::after { content: ""; position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--lg-coral); box-shadow: 0 0 0 2px var(--lg-s1); }
 :root[data-style=haven] .lg-todo .btn-tiny, :root[data-style=haven] .lg-todo select.assign-card, :root[data-style=haven] .lg-todo select.assign-lump, :root[data-style=haven] .lg-todo .btn-secondary { position: relative; height: 36px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); color: var(--lg-ink); font: inherit; font-size: 14px; font-weight: 600; }
 :root[data-style=haven] .lg-todo .btn-tiny.primary { background: var(--lg-s2); color: var(--lg-ink); }
 :root[data-style=haven] .lg-todo .btn-tiny::after { content: ""; position: absolute; inset: -4px -2px; }

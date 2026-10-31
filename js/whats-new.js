@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.10',
+    items: [
+      {
+        icon: 'check',
+        title: "To do remembers what you have seen",
+        text: "The To do tab now remembers what you have seen. Opening it clears the badge, and notices have a Got it button. A seen item only comes back as new if it gets clearly worse. The bank-short notice now says in words what it means.",
+        guide: [{ view: 'summary', target: '.lg-act [data-lg-tab=todo]', text: "Tap To do. Notices have Got it; once seen they stay quiet until they get worse." }],
+      },
+    ],
+  },
+  {
     version: '7.9.3',
     items: [
       {
