@@ -7,7 +7,7 @@ import { passwordErrorKind } from '../js/pdf-text.js';
 import { sameTransaction, findDuplicates } from '../js/duplicates.js';
 import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments, salaryDayPayments, paidAhead, movesAhead, aheadPayments } from '../js/commitments.js';
 import { searchHit, newestFirst, dayChart } from '../js/views/transactions.js';
-import { reimbursableTally, tidyFlags } from '../js/reimbursable.js';
+import { reimbursableTally, tidyFlags, unsettledCosts, repaymentCandidates } from '../js/reimbursable.js';
 import { STEPS } from '../js/demo-script.js';
 import { versionStatus } from '../js/version.js';
 import { sha256, hmacSha256, setMarkerKey, markCode, markOf, showMark, CONSONANTS, DIGITS } from '../js/marker.js';
@@ -1495,6 +1495,32 @@ test('owed back: flagged payments out less flagged payments in, never below noth
   ];
   equal(reimbursableTally(rows), { out: rupees(15000), back: rupees(10000), owed: rupees(5000) });
   equal(reimbursableTally([...rows, t({ direction: 'credit', amount: rupees(9000), isSettlement: true })]).owed, 0);
+});
+
+test('owed back: a refund only pays costs from before it arrived, and the owed figure equals the list', () => {
+  const t = (id, fields) => ({ id, isTransfer: false, ...fields });
+  const rows = [
+    t('a', { direction: 'debit', date: '2026-10-04', amount: rupees(22000), isReimbursable: true }),
+    t('b', { direction: 'debit', date: '2026-10-26', amount: rupees(28000), isReimbursable: true }),
+    t('r', { direction: 'credit', date: '2026-10-16', amount: rupees(48000), isSettlement: true }),
+  ];
+  equal(unsettledCosts(rows).map((u) => [u.transaction.id, u.amount]), [['b', rupees(28000)]], 'the 16 Oct refund cannot pay a cost from the 26th');
+  equal(reimbursableTally(rows).owed, rupees(28000), 'and the figure is what the list adds up to');
+});
+
+test('owed back: money in from the salary sender after the oldest cost is offered as a likely repayment, never applied', () => {
+  const sender = 'NEFT CR-ACME PAYROLL LTD 0001 SALARY';
+  const t = (id, fields) => ({ id, isTransfer: false, accountId: 'bank', ...fields });
+  const rows = [
+    t('cost', { direction: 'debit', date: '2026-10-04', amount: rupees(22443), isReimbursable: true, accountId: 'card' }),
+    t('sal', { direction: 'credit', date: '2026-09-30', amount: rupees(236158), rawDescription: sender }),
+    t('pay', { direction: 'credit', date: '2026-10-16', amount: rupees(48189), rawDescription: sender }),
+    t('old', { direction: 'credit', date: '2026-09-15', amount: rupees(52385), rawDescription: sender }),
+    t('other', { direction: 'credit', date: '2026-10-17', amount: rupees(900), rawDescription: 'NEFT CR-SOMEONE ELSE' }),
+  ];
+  const ctx = { income: rupees(236158), bankIds: new Set(['bank']), today: '2026-11-01' };
+  equal(repaymentCandidates(rows, ctx).map((c) => c.id), ['pay'], 'not the salary, not before the cost, not another sender');
+  equal(repaymentCandidates([...rows, t('done', { direction: 'credit', date: '2026-10-20', amount: rupees(22443), isSettlement: true })].filter((x) => x.id !== 'cost'), ctx), [], 'nothing waiting, nothing offered');
 });
 
 test('switching Spent to Received drops the flag that no longer fits', () => {

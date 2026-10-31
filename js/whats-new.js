@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.10.1',
+    items: [
+      {
+        icon: 'cash',
+        title: "Cash and work-cost figures corrected",
+        text: "A cash plan no longer counts the ATM withdrawals you tagged to it on top of the cash you wrote down, and every row behind its figure is listed. Money from your employer is now matched only to costs from before it arrived, and Summary offers the likely repayment for one tap: Yes, paid back.",
+        guide: [{ view: 'summary', target: '#owed-back-stat', text: "Tap Owed back, then Yes on the money your employer paid back." }],
+      },
+    ],
+  },
+  {
     version: '7.10',
     items: [
       {

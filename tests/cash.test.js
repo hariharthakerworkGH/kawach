@@ -16,7 +16,7 @@ test('cash pocket: what is written down comes off the oldest cash, the rest stay
 
 test('cash pocket: cash never written down is counted as spent when its 30 days are over, once', () => {
   const p = cashPocket({ takenOut: [lot('2026-10-01', 5000)], spends: [spend('2026-10-03', 1300)], today: '2026-11-05' });
-  equal(p.expired, [{ date: '2026-10-31', amount: rupees(3700), lotDate: '2026-10-01' }]);
+  equal(p.expired, [{ date: '2026-10-31', amount: rupees(3700), lotDate: '2026-10-01', lotId: 'L2026-10-015000' }]);
   equal(p.inPocket, 0);
   equal(CASH_GRACE_DAYS, 30);
   // the day before it runs out it is still in the pocket
@@ -56,7 +56,7 @@ async function world({ plan = true, planLabel = 'ATM cash', from = null } = {}) 
   ]);
   if (from) await setSetting('cashRuleFrom', from);
 }
-const atm = (date, amount, n = 30) => txn({ accountId: 'bank', date, amount, rawDescription: `ATW-400000XXXXXX1111-S1AWMI${n}` });
+const atm = (date, amount, n = 30, over = {}) => txn({ accountId: 'bank', date, amount, rawDescription: `ATW-400000XXXXXX1111-S1AWMI${n}`, ...over });
 const cashSpend = (date, amount, over = {}) => txn({ accountId: 'acct-cash', date, amount, rawDescription: 'CHAI', ...over });
 const planOf = (f) => f.tracker.find((t) => /ATM|Cash/.test(t.label));
 
@@ -114,6 +114,24 @@ test('cash rule on, with the plan the owner named "Cash Withdrawal": cash he alr
   const later = await computeFreeToSpend(day('2026-10-12'));
   paise(planOf(later).used, rupees(30000 + 1700), 'only what was past the cash that was already counted draws the plan');
   paise(later.spentThisCycle, rupees(700), 'and what is past the 31,000 plan is spending');
+});
+
+test('cash rule, ATM plan: withdrawals tagged to the plan are not counted on top of the cash written down, and every counted row is listed', async () => {
+  // 1 Nov 2026, the owner's screen: three 10,000 withdrawals tagged to "Cash Withdrawal" plus 40,000 written in Cash read
+  // 70,000 used against 31,000 planned, with only the 40,000 row in the list.
+  await world({ planLabel: 'Cash Withdrawal', from: '2026-10-11' });
+  const id = planOf(await computeFreeToSpend(day('2026-10-30'))).id;
+  await putAll('transactions', [
+    atm('2026-10-30', 10000, 51, { commitmentId: id, forNextMonth: true }),
+    atm('2026-10-30', 10000, 52, { commitmentId: id, forNextMonth: true }),
+    atm('2026-10-30', 10000, 53, { commitmentId: id, forNextMonth: true }),
+    cashSpend('2026-11-01', 40000),
+  ]);
+  const f = await computeFreeToSpend(day('2026-11-01'));
+  const plan = planOf(f);
+  paise(plan.used, rupees(40000), 'only the cash that counts draws the plan; the tagged withdrawals are cash moved to the pocket');
+  paise(plan.matches.reduce((n, m) => n + m.amount, 0), plan.used, 'what is used equals the rows shown');
+  paise(f.cash.plan.used, rupees(40000));
 });
 
 test('cash rule: a dated cost with the word cash in its name is not the ATM plan, and stays set aside', async () => {

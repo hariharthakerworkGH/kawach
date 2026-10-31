@@ -66,7 +66,7 @@ export function cashPocket({ takenOut = [], spends = [], today, graceDays = CASH
     if (lot.left <= 0) continue;
     if (lot.expires <= today) {
       // Cash that was counted when it was taken out is never counted again.
-      if (!lot.counted) expired.push({ date: lot.expires, amount: lot.left, lotDate: lot.date });
+      if (!lot.counted) expired.push({ date: lot.expires, amount: lot.left, lotDate: lot.date, lotId: lot.id });
     } else inPocket += lot.left;
   }
   return { spends: counted, expired, inPocket, lots, beyond };

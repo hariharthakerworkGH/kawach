@@ -28,6 +28,7 @@ import { applyLearnedCategories, incomeSpendCount, fixIncomeSpends } from '../me
 import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
 import { redraw } from '../redraw.js';
+import { tidyFlags } from '../reimbursable.js';
 import { installCard, wireInstallCard } from '../install.js';
 import { backupStatus } from '../drive.js';
 import { incomeWords, isVariableIncome, businesses, activeSpace, setCurrentSpace, accountInSpace, businessSpace, businessRunway } from '../business.js';
@@ -579,6 +580,14 @@ async function renderDashboard(container) {
   on('#owed-back-stat', (btn) => showOwed(btn.getAttribute('aria-expanded') !== 'true'));
   // The list stays open when the screen draws itself again (a sync, a tap on Mark paid).
   if (owedOpen) showOwed(true);
+  // One tap: this money in was the employer paying back (the same flag as ticking "This pays back a work cost").
+  on('.owed-yes', async (btn) => {
+    const txn = (await getAll('transactions')).find((t) => t.id === btn.dataset.txn);
+    if (!txn) return;
+    await put('transactions', tidyFlags({ ...txn, isSettlement: true, updatedAt: Date.now() }));
+    showToast('Marked as paid back by your employer');
+    redraw(container, () => renderDashboard(container));
+  });
   on('.owed-row[data-search]', (b) => {
     container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'transactions', month: b.dataset.month, search: b.dataset.search } }));
   });
@@ -1428,6 +1437,7 @@ function owedListHtml(f) {
   const r = f.reimbursable || {};
   const items = r.items || [];
   const refunds = r.refunds || [];
+  const guesses = r.guesses || [];
   const late = f.refundOverdue ? f.refundOverdue.since : null;
   const row = (i) => `<button type="button" class="owed-row" data-month="${i.date.slice(0, 7)}" data-search="${escapeAttr(shortDescription(i.description).slice(0, 18))}">
       <span class="owed-row__d">${formatDateNice(i.date)}</span>
@@ -1437,14 +1447,19 @@ function owedListHtml(f) {
   return `<div class="owed-list" id="owed-back-list">
       <div class="owed-list__head"><span>Work costs not paid back yet</span><b>${formatRupees(r.owed || 0)}</b></div>
       ${items.length ? items.map(row).join('') : '<p class="owed-list__none">Nothing is waiting.</p>'}
-      ${late ? `<p class="owed-list__late">Some of this is late, since ${formatDateNice(late)}.</p>` : ''}
+      ${late ? `<p class="owed-list__late">Some of this is not marked paid back, due by the ${formatDateNice(late)} statement.</p>` : ''}
       ${
         refunds.length
           ? `<div class="owed-list__head owed-list__head--sub"><span>Paid back so far</span></div>
              ${refunds.map((x) => `<div class="owed-row owed-row--in"><span class="owed-row__d">${formatDateNice(x.date)}</span><span class="owed-row__t">Your employer<small>${escapeHtml(x.account)}</small></span><span class="owed-row__v">+${formatRupees(x.amount)}</span></div>`).join('')}`
           : ''
       }
-      <p class="owed-list__tip">Got paid back? Open the payment in History or when adding it, and tick "This pays back a work cost".</p>
+      ${
+        guesses.length
+          ? `<div class="owed-list__head owed-list__head--sub"><span>Did your employer pay one of these back?</span></div>
+             ${guesses.map((x) => `<div class="owed-row owed-row--in"><span class="owed-row__d">${formatDateNice(x.date)}</span><span class="owed-row__t">From your salary sender<small>${escapeHtml(x.account)}</small></span><span class="owed-row__v">${formatRupees(x.amount)}</span><button type="button" class="btn-tiny owed-yes" data-txn="${x.id}">Yes, paid back</button></div>`).join('')}`
+          : '<p class="owed-list__tip">Got paid back? Open the payment in History or when adding it, and tick "This pays back a work cost".</p>'
+      }
     </div>`;
 }
 
@@ -1506,7 +1521,7 @@ function renderBankCard(f) {
             w
               ? `<div class="bank-refund"><span class="muted-note">If your employer pays back ${formatRupees(w.refund)}</span><span class="${w.after < 0 ? 'out' : 'in'}">${formatRupees(w.after)}</span></div>`
               : ''
-          }${late ? `<p class="bank-late muted-note">${formatRupees(late.amount)} from your employer is late: it was due back by the ${formatDateNice(late.since)} statement.</p>` : ''}`;
+          }${late ? `<p class="bank-late muted-note">${formatRupees(late.amount)} from your employer is not marked as paid back, due by the ${formatDateNice(late.since)} statement.${f.reimbursable?.guesses?.length ? ' Money that may be it is under Owed back.' : ''}</p>` : ''}`;
         })()
       }
       <details class="fts-breakdown">
@@ -1669,10 +1684,10 @@ function commitmentRow(t) {
           .map(
             (m) => `<div class="tracker-match">
               <div class="totals-row"><span class="muted-note">${formatDateNice(m.date)} · ${escapeHtml((m.description || '').slice(0, 48))}${m.tagged ? ' · tagged' : m.onSalaryDay ? ' · salary day' : ''}</span><span>${formatCurrency(m.amount)}</span></div>
-              <div class="tracker-actions">
+              ${m.plain ? '' : `<div class="tracker-actions">
                 <button type="button" class="icon-btn match-not-this" data-txn="${m.id}" data-id="${t.id}">Not this</button>
                 <button type="button" class="icon-btn match-remove" data-txn="${m.id}">Remove copy</button>
-              </div>
+              </div>`}
             </div>`
           )
           .join('')}

@@ -8,7 +8,7 @@ import { findDuplicates } from './duplicates.js';
 import { isLoanAccount, loanCommitment, loanPosition, assignLoanPayments } from './loans.js';
 import { isPfAccount, pfPosition } from './pf.js';
 import { businessPlan, businessMonth, isVariableIncome } from './business.js';
-import { reimbursableTally, unsettledCosts } from './reimbursable.js';
+import { reimbursableTally, unsettledCosts, repaymentCandidates } from './reimbursable.js';
 import { isPersonMoney, personSpendEffects, peopleStanding } from './people.js';
 import { refundPairs } from './card-refunds.js';
 import { cashPocket, CASH_GRACE_DAYS, addDaysIso } from './cash.js';
@@ -581,7 +581,10 @@ export async function computeFreeToSpend(now) {
     const item = b.item;
     const p = periodOf(item);
     const matcher = commitmentMatcher(item);
-    const tagged = transactions.filter((t) => t.commitmentId === item.id && t.direction === 'debit' && !isWorkCost(t) && notCancelled(t));
+    // Under the cash rule an ATM withdrawal is cash moved to the pocket, never a payment towards the ATM plan: the cash that
+    // counts draws the plan down below. Letting a tagged withdrawal in as well counted the same money twice (30,000 tagged
+    // withdrawals + 40,000 written down as cash read 70,000 used against 31,000 planned).
+    const tagged = transactions.filter((t) => t.commitmentId === item.id && t.direction === 'debit' && !isWorkCost(t) && notCancelled(t) && !(b === atmPlan && takenOutIds.has(t.id)));
     // A commitment paid from one named bank account only looks at that one.
     // (A card payment that names the bill is let through: the pool only holds one when it does.)
     const onItsAccount = holdingIds.has(item.accountId) ? accountPool.filter((t) => t.accountId === item.accountId || (!isSetAside(item) && cardIds.has(t.accountId))) : accountPool;
@@ -763,6 +766,21 @@ export async function computeFreeToSpend(now) {
     atmPlan.charges.bank += inside;
     atmPlan.charges.bankBeyond += cashCounted - inside;
     atmPlan.used += cashCounted;
+    // Show every row behind that figure, so what is used always equals what is listed (plain: nothing to undo on them here).
+    const byId = new Map(transactions.map((t) => [t.id, t]));
+    for (const s of cashSpends) {
+      if (s.counts > 0) atmPlan.matches.push({ id: s.id, date: s.date, description: byId.get(s.id)?.rawDescription, amount: s.counts, plain: true });
+    }
+    for (const e of cashExpired) {
+      atmPlan.matches.push({ id: e.lotId, date: e.date, description: `Cash taken out ${e.lotDate}, never written down`, amount: e.amount, plain: true });
+    }
+    // The part past the plan is spending on the day it happened, oldest first, so the month chart has a day for every rupee of it.
+    let planRoom = room;
+    for (const m of [...atmPlan.matches.filter((x) => x.plain)].sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : 0))) {
+      const within = Math.min(planRoom, m.amount);
+      planRoom -= within;
+      if (m.amount > within) atmPlan.beyond.push({ date: m.date, amount: m.amount - within });
+    }
   }
   // With no plan, what counts is spending of its own.
   const cashSpent = atmPlan ? 0 : cashCounted;
@@ -880,6 +898,11 @@ export async function computeFreeToSpend(now) {
     .sort((a, b) => (a.date < b.date ? 1 : -1))
     .slice(0, 5)
     .map((t) => ({ id: t.id, date: t.date, amount: t.amount, account: accountLabel(t.accountId) }));
+  // Credits that look like the employer paying back but were never marked, offered on Summary for one tap.
+  const repaymentGuesses = repaymentCandidates(
+    transactions.filter((t) => ownedByHouse(t) && notCancelled(t)),
+    { income: monthlyIncome || 0, bankIds, today }
+  ).map((c) => ({ ...c, account: accountLabel((transactions.find((t) => t.id === c.id) || {}).accountId) }));
   // On each card: the work part of what it holds. workCycle is the work costs
   // of this cycle (what is inside "owed"), workOwed all that is still to come
   // back from the employer, whichever bill it is on.
@@ -1147,7 +1170,7 @@ export async function computeFreeToSpend(now) {
     // time (js/reimbursable.js); and how much of what the bank check takes off
     // for cards is such a cost.
     workCostsThisMonth,
-    reimbursable: { ...owedBack, items: owedItems, refunds: refundsIn },
+    reimbursable: { ...owedBack, items: owedItems, refunds: refundsIn, guesses: repaymentGuesses },
     // Lent and borrowed: where you stand with each person (js/people.js).
     people: peopleStanding(transactions, await getSetting('people', [])),
     refundInBankCheck,
