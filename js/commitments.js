@@ -87,10 +87,14 @@ const NOISE_WORDS = new Set(
 // The distinctive words of one phrase: no reference numbers or dates (they
 // change every month), no IFSC codes, no generic banking words.
 function phraseTokens(phrase) {
-  return String(phrase || '')
+  const words = String(phrase || '')
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((w) => w.length >= 3 && !/\d{4,}/.test(w) && !/^[a-z]{4}0[a-z0-9]{6}$/.test(w) && !NOISE_WORDS.has(w));
+  // "Card" says which instrument paid, not who was paid: once two other words name the payee it is left out, or a plan
+  // typed "Shop Name Card" never matched the card's own "EMI Shop Name" lines and every one counted as spending twice
+  // (the owner's 15,000 card pot, 13,000 a month, 7.9).
+  return words.length > 2 ? words.filter((w) => w !== 'card') : words;
 }
 
 // A whole line copied from a statement ("UPI-somename-name@okicici-

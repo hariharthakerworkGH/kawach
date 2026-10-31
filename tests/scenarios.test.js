@@ -448,6 +448,24 @@ test('over budget: the unused part of a commitment is marked "stop", with a reas
   ok(/No entry in the app contains "CULTFIT"/.test(f.tracker.find((t) => t.label === 'Gym').hint || ''), 'gym explains why nothing matched');
 });
 
+test('a card pot typed with the word Card still claims the card\'s own lines (13,000 of EMI was counted as spending on top of its pot)', async () => {
+  await seedMonth();
+  await putAll('recurring', [
+    commitment({ id: 'emipot', label: 'Shopname Loanname', amount: 15000, spread: true, accountId: 'card', matchText: 'SHOPNAME LOANNAME Card' }),
+    commitment({ id: 'amz', label: 'Amazon', amount: 2000, spread: true, accountId: 'card', matchText: 'AMAZON Card' }),
+  ]);
+  await putAll('transactions', [
+    txn({ accountId: 'card', date: '2026-09-01', amount: 10000, rawDescription: 'EMI SHOPNAME LOANNAME XY' }),
+    txn({ accountId: 'card', date: '2026-09-11', amount: 3000, rawDescription: 'EMI SHOPNAME LOANNAME XY' }),
+    txn({ accountId: 'card', date: '2026-09-12', amount: 700, rawDescription: 'AMAZON PAY INDIA' }),
+  ]);
+  const f = await computeFreeToSpend(day('2026-09-16'));
+  equal(f.tracker.find((t) => t.label === 'Shopname Loanname').used, rupees(13000));
+  // Only two words besides Card are enough to name the payee; "Amazon Card" is one, so Card still counts there.
+  equal(f.tracker.find((t) => t.label === 'Amazon').used, 0);
+  paise(f.spentThisCycle, rupees(700));
+});
+
 test('suggestions: rent sent by transfer and monthly ATM cash, added with their statement words', async () => {
   await seedBasics();
   const rent = (date, ref) => txn({ accountId: 'bank', date, amount: 20000, isTransfer: true, rawDescription: `IMPS-${ref}-LANDLORD NAME-HDFC-XXXX1234-House rent` });

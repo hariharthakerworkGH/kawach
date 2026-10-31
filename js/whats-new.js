@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.9.1',
+    items: [
+      {
+        icon: 'wallet',
+        title: "Left to spend, corrected",
+        text: "Fixed a mistake that made Left to spend read too low: a monthly set-aside for a card EMI was not recognising the EMI charges on that card, so they were counted as spending a second time. They now count inside the set-aside.",
+      },
+    ],
+  },
+  {
     version: '7.9',
     items: [
       {
