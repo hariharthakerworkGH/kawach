@@ -187,7 +187,7 @@ export async function render(container, params = {}) {
         <summary>More</summary>
         <div class="k-add-more__body">
           ${commitmentField(commitments)}
-          <!-- NEW: a bill paid in the last two days of a month for the next
+          <!-- NEW: a bill paid in the last week of a month for the next
                one. Shown only then, and works only once a commitment is
                chosen above, because it has to say which one it pays. -->
           ${reimbursableSwitch('add-nextmonth', "Apply to next month's commitments", 'Choose the commitment above first', true)}
@@ -296,7 +296,7 @@ export async function render(container, params = {}) {
   };
 
   // NEW: "Apply to next month's commitments". Offered for a bank payment on
-  // the last two days of a month, when rent or an EMI goes out early for the
+  // the last week of a month, when rent or an EMI goes out early for the
   // month about to begin. It is switched off the moment any of that stops
   // being true, so it can never be saved on a payment it does not fit.
   const nextEl = container.querySelector('#add-nextmonth');
@@ -729,13 +729,13 @@ function savedFeedback(btn, after) {
   }, 1300);
 }
 
-// The last two days of the month a date is in - the 30th and 31st, or the
-// 28th and 29th in February. Exported so History's Edit panel asks the same
-// question.
+// The last week of the month a date is in. A salary that lands on the last weekday can be a week before the month's last
+// day, and what it pays out that week is next month's, so the box is offered as far back as the salary can have come.
+// Exported so History's Edit panel asks the same question.
 export function isMonthEnd(iso) {
   const [y, m, d] = String(iso || '').split('-').map(Number);
   if (!y || !m || !d) return false;
-  return d >= new Date(y, m, 0).getDate() - 1;
+  return d >= new Date(y, m, 0).getDate() - 6;
 }
 
 // A switch for a work cost. Same look and same hidden-checkbox arrangement as

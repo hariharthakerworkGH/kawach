@@ -2104,3 +2104,46 @@ test('salary landed the day before the month ends: set-aside spending that day d
   paise(last.spentThisCycle, 0);
   paise(last.free, landed.free);
 });
+
+// What the pay that landed early has already paid out for November is said, so the figures are explained, not puzzled over.
+test('pay landed before month-end: what was paid ahead for next month is returned as a sum', async () => {
+  await seedMonth();
+  await putAll('transactions', [
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 100000, direction: 'credit', rawDescription: 'NEFT SALARY ACME CORP' }),
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 40000, rawDescription: 'IMPS-222222222222-Home Loan EMI' }),
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 240, rawDescription: 'UPI TEA STALL' }),
+  ]);
+  const f = await computeFreeToSpend(day('2026-10-30'));
+  equal(f.paidAhead.monthKey, '2026-11');
+  paise(f.paidAhead.amount, rupees(40000));
+  equal(f.paidAhead.count, 1);
+  // A month where nothing went out ahead says nothing.
+  const early = await computeFreeToSpend(day('2026-10-20'));
+  equal(early.paidAhead, null);
+});
+
+// A large payment of the days the pay landed that no commitment claimed stays spending, and is asked about; once said what it
+// was for, it is claimed for next month and the question goes. Small spends, moved money and a payment already tagged never ask.
+test('a large unplaced payment on a bridge day is asked about, and placed by naming its commitment', async () => {
+  await seedBasics();
+  await putAll('recurring', [commitment({ id: 'pot', label: 'Savings pot', amount: 30000, spread: true, matchText: 'POTWORD' })]);
+  await putAll('transactions', [
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 100000, direction: 'credit', rawDescription: 'NEFT SALARY ACME CORP' }),
+    txn({ id: 'big', accountId: 'bank', date: '2026-10-30', amount: 30000, rawDescription: 'NEFT SOMEONE ELSE' }),
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 240, rawDescription: 'UPI TEA STALL' }),
+    txn({ accountId: 'bank', date: '2026-10-30', amount: 20000, rawDescription: 'ATM WDL', isTransfer: true }),
+  ]);
+  const before = await computeFreeToSpend(day('2026-10-30'));
+  equal(before.lumps.map((l) => l.id), ['big']);
+  paise(before.bankSpent, rupees(30240));
+  // Said what it was for: claimed for November, no longer asked about, no longer October's spending.
+  const t = (await getAll('transactions')).find((x) => x.id === 'big');
+  await put('transactions', { ...t, commitmentId: 'pot' });
+  const after = await computeFreeToSpend(day('2026-10-30'));
+  equal(after.lumps, []);
+  paise(after.bankSpent, rupees(240));
+  paise(after.paidAhead.amount, rupees(30000));
+  // The next morning it is still November's, and Left to spend has not moved.
+  const next = await computeFreeToSpend(day('2026-10-31'));
+  paise(next.free, after.free);
+});

@@ -326,10 +326,12 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .lg-todo .attention-actions .icon-btn::after { content: ""; position: absolute; inset: -4px; }
 :root[data-style=haven] .lg-todo .todo-row.is-alert .muted-note, :root[data-style=haven] .lg-todo .todo-row.is-soon .muted-note, :root[data-style=haven] .lg-todo .todo-row.bill-overdue .muted-note, :root[data-style=haven] .lg-todo .todo-row.bill-urgent .muted-note { display: block; }
 :root[data-style=haven] .lg-todo .attention-actions { display: flex; align-items: center; gap: 6px; }
-:root[data-style=haven] .lg-todo .btn-tiny, :root[data-style=haven] .lg-todo select.assign-card, :root[data-style=haven] .lg-todo .btn-secondary { position: relative; height: 36px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); color: var(--lg-ink); font: inherit; font-size: 14px; font-weight: 600; }
+:root[data-style=haven] .lg-todo .btn-tiny, :root[data-style=haven] .lg-todo select.assign-card, :root[data-style=haven] .lg-todo select.assign-lump, :root[data-style=haven] .lg-todo .btn-secondary { position: relative; height: 36px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); color: var(--lg-ink); font: inherit; font-size: 14px; font-weight: 600; }
 :root[data-style=haven] .lg-todo .btn-tiny.primary { background: var(--lg-s2); color: var(--lg-ink); }
 :root[data-style=haven] .lg-todo .btn-tiny::after { content: ""; position: absolute; inset: -4px -2px; }
-:root[data-style=haven] .lg-todo select.assign-card { appearance: none; -webkit-appearance: none; padding-right: 12px; }
+:root[data-style=haven] .lg-todo select.assign-card, :root[data-style=haven] .lg-todo select.assign-lump { appearance: none; -webkit-appearance: none; padding-right: 12px; }
+/* A commitment's name can be long: the box stays one size and cuts it short, never widening the row. */
+:root[data-style=haven] .lg-todo select.assign-lump { width: 112px; min-width: 0; text-overflow: ellipsis; }
 :root[data-style=haven] .lg-todo .lg-todo-pre { width: 100%; cursor: pointer; }
 :root[data-style=haven] .lg-todo .lg-todo-go { color: var(--lg-ink3); display: grid; }
 :root[data-style=haven] .lg-todo .lg-todo-go svg { width: 16px; height: 16px; }

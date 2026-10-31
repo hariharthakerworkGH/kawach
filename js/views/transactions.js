@@ -1122,10 +1122,13 @@ function personField(t) {
 function nextMonthField(t) {
   const account = cache.accounts.find((a) => a.id === t.accountId);
   if (t.direction !== 'debit' || t.isTransfer || !account || account.type === 'card' || isBusinessAccount(account) || !isMonthEnd(t.date)) return '';
+  // Never greyed out: a box that cannot be ticked and does not say why is a box nobody can use. Ticking it before a
+  // commitment is chosen says what to do (handleChange) and the line under it goes once one is.
   return `<label class="hist-flag">
-      <input type="checkbox" class="rv-field" data-field="forNextMonth" ${t.forNextMonth ? 'checked' : ''} ${t.commitmentId ? '' : 'disabled'}>
+      <input type="checkbox" class="rv-field" data-field="forNextMonth" ${t.forNextMonth ? 'checked' : ''}>
       <span>Apply to next month's commitments</span>
-    </label>`;
+    </label>
+    <p class="muted-note hist-nextnote" ${t.commitmentId ? 'hidden' : ''}>Choose the commitment above first.</p>`;
 }
 
 // A bank payment that could be a credit card bill: worded like one (CRED, CC
@@ -1251,6 +1254,16 @@ async function handleChange(e, container) {
 
   if (field === 'isReimbursable' || field === 'isSettlement' || field === 'isShareBack' || field === 'forNextMonth' || field === 'reportFlag') {
     if (e.type !== 'change') return;
+    // "Next month" has to say which commitment it pays: without one, say so and take the user to the box, instead of
+    // refusing to tick.
+    if (field === 'forNextMonth' && e.target.checked && !t.commitmentId) {
+      e.target.checked = false;
+      showToast('Choose the commitment first');
+      const pick = rowEl.querySelector('select[data-field="commitmentId"]');
+      pick?.scrollIntoView({ block: 'center' });
+      pick?.focus();
+      return;
+    }
     if (e.target.checked) t[field] = true;
     else delete t[field];
     // Money in is an employer paying back or someone else, never both.
@@ -1322,10 +1335,9 @@ async function handleChange(e, container) {
     await save(t);
     // The next-month box follows the choice, in place.
     const nextBox = rowEl.querySelector('input[data-field="forNextMonth"]');
-    if (nextBox) {
-      nextBox.disabled = !t.commitmentId;
-      if (!t.commitmentId) nextBox.checked = false;
-    }
+    if (nextBox && !t.commitmentId) nextBox.checked = false;
+    const nextNote = rowEl.querySelector('.hist-nextnote');
+    if (nextNote) nextNote.hidden = Boolean(t.commitmentId);
     showToast(commitmentId ? 'Counts towards that commitment' : 'The app will work it out');
     return;
   }

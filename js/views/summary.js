@@ -1591,7 +1591,7 @@ function renderCommitmentTracker(f) {
     : '';
 
   return `
-    ${group(onMonth, 'From your bank', monthName)}
+    ${group(onMonth, 'From your bank', f.paidAhead ? `${monthName.slice(0, 3)} · ${formatRupees(f.paidAhead.amount)} paid ahead for ${MONTH_NAMES[Number(f.paidAhead.monthKey.slice(5, 7)) - 1].slice(0, 3)}` : monthName)}
     ${group(onCycle, 'On your cards', cycleNote)}
     ${settled}`;
 }
@@ -1766,6 +1766,7 @@ async function renderAttention(container, transactions, fts = null) {
   const driveDays = driveLastAt ? Math.floor((Date.now() - driveLastAt) / 86400000) : null;
   const uncategorized = transactions.filter((t) => needsCategory(t));
   const dismissed = new Set(await getSetting('dismissedAnomalies', []));
+  const dismissedLumps = new Set(await getSetting('dismissedLumps', []));
   // "Was it you?" is only worth a place on To do while there is still something to do about it: the last week, not the month
   // (on the 30th a purchase from the 1st had sat there for four weeks).
   const anomalies = (await detectAnomalies(addDaysIso(isoLocal(new Date()), -7))).filter((a) => !dismissed.has(a.transaction.id));
@@ -1828,7 +1829,21 @@ async function renderAttention(container, transactions, fts = null) {
   );
   if (short) urgent.push(...lateRows, ...renewRows);
 
+  const lumpChoices = recurring.filter(isLiveCommitment).sort((a, b) => a.label.localeCompare(b.label));
+  const lumpRows = (fts ? fts.lumps || [] : [])
+    .filter((l) => !dismissedLumps.has(l.id))
+    .map((l) =>
+      todo(
+        icon('tag'),
+        `${formatRupees(l.amount)} · ${formatDateNice(l.date)}`,
+        'Counts as spending. Which commitment?',
+        `<select class="assign-lump" data-txn="${l.id}" aria-label="Commitment this payment was for"><option value="">Pick one</option>${lumpChoices.map((c) => `<option value="${c.id}">${escapeHtml(c.label)}</option>`).join('')}</select><button type="button" class="icon-btn lump-dismiss" data-id="${l.id}" aria-label="Not for a commitment, stop asking" title="Not for a commitment">${icon('close')}</button>`
+      )
+    );
   const rows = [
+    // First: a large payment in the days the pay landed that no commitment claimed is spending until it is said what it was
+    // for, so it moves the headline figure.
+    ...lumpRows,
     incomeSpends
       ? todo(icon('tag'), `${incomeSpends} spend${incomeSpends === 1 ? '' : 's'} filed as Income`, 'Money going out is never income', '<button type="button" class="btn-tiny primary" id="fix-income-btn">Fix</button>', 'is-alert')
       : '',
@@ -1917,6 +1932,24 @@ async function renderAttention(container, transactions, fts = null) {
       redraw(container, () => render(container));
     });
   });
+
+  // Saying what a large payment was for: it is tagged to that commitment, and the pay-ahead rule files it from there.
+  el.querySelectorAll('.assign-lump').forEach((select) => {
+    select.addEventListener('change', async () => {
+      if (!select.value) return;
+      const txn = (await getAll('transactions')).find((t) => t.id === select.dataset.txn);
+      if (!txn) return;
+      await put('transactions', { ...txn, commitmentId: select.value });
+      showToast(`Counted towards ${recurring.find((r) => r.id === select.value)?.label || 'that commitment'}`);
+      redraw(container, () => render(container));
+    });
+  });
+  el.querySelectorAll('.lump-dismiss').forEach((btn) =>
+    btn.addEventListener('click', async () => {
+      await setSetting('dismissedLumps', [...new Set([...(await getSetting('dismissedLumps', [])), btn.dataset.id])]);
+      redraw(container, () => render(container));
+    })
+  );
 
   const dupBtn = el.querySelector('#remove-duplicates-btn');
   if (dupBtn) {

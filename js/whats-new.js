@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.9',
+    items: [
+      {
+        icon: 'calendar',
+        title: "Paid ahead, said plainly",
+        text: "When your pay lands early, Summary now says how much is already paid for next month. A big payment that no commitment claimed asks which commitment it was for, and the next-month box in History now tells you what to do instead of staying grey.",
+        guide: [{ view: 'summary', target: '.lg-act', text: "A large payment nobody placed shows here as Which commitment? Pick one and it counts for the right month." }],
+      },
+    ],
+  },
+  {
     version: '7.8',
     items: [
       {

@@ -522,6 +522,12 @@ export function syncTodo(root) {
   let calm = panel.querySelector('.lg-calm');
   if (!n && !calm) { calm = document.createElement('p'); calm.className = 'lg-calm'; calm.textContent = 'Nothing needs you today.'; panel.append(calm); }
   else if (n && calm) calm.remove();
+  // A large payment nobody has said the purpose of moves the headline figure: open on the question instead of hiding it behind a tab.
+  if (panel.querySelector('.assign-lump') && card.dataset.tab !== 'todo') {
+    card.dataset.tab = 'todo';
+    card.querySelectorAll('[data-lg-tab]').forEach((t) => { const on = t.dataset.lgTab === 'todo'; t.classList.toggle('on', on); t.setAttribute('aria-selected', String(on)); });
+    card.querySelectorAll('[data-lg-panel]').forEach((p) => { p.hidden = p.dataset.lgPanel !== 'todo'; });
+  }
 }
 
 export function havenTop(f, status, month, extra = {}) {
@@ -568,11 +574,13 @@ export function havenTop(f, status, month, extra = {}) {
   // Plan): the money is there, spending it is the choice of the person, and next month's budget does not grow by it.
   const spare = spareInBank(f);
   const overNote = !x.finished && f.free < 0 && spare > 0 ? `<div class="hv-vault__bank" data-bank-spare>${escapeHtml(formatRupees(spare))} in the bank after bills, not budget</div>` : '';
+  // The pay landed before the month ended and has already paid out for the next: said, so the figures are not a puzzle.
+  const aheadNote = !x.finished && f.paidAhead ? `<div class="hv-vault__bank" data-paid-ahead>${escapeHtml(formatRupees(f.paidAhead.amount))} already paid for ${escapeHtml(MONTHS_LONG[Number(f.paidAhead.monthKey.slice(5, 7)) - 1])}</div>` : '';
   const hero = `<div class="lg-hero hv-vault ${f.free < 0 ? 'is-negative' : ''}"${x.finished ? ' data-finished' : ''}${vaultData} data-roll-scope data-limit="${x.limit}" data-left="${x.left}" data-level="${f.level || ''}" data-level-key="${f.cycleKey || ''}|${f.limit}">
       <div class="r1"><span class="lab hv-vault__lab">Left to spend${badges}</span>${extra.nav || ''}</div>
       <div class="figrow"><div class="hv-vault__fig hv-amt">${num}</div><div class="tide" data-mood="${mood}"${x.finished && x.closedUnder ? ` data-closed="${escapeHtml(String(f.cycleKey || ''))}"` : ''} style="--lvl:${lvl.toFixed(3)}" role="img" aria-label="${word}: ${formatRupees(x.left)} left of ${formatRupees(x.limit)}">${tideSvg(lvl, 0)}</div></div>
       <div class="sub"><span data-status>${sub}</span>${tag}</div>
-      ${overNote}${more.cap ? `<div class="hv-vault__cap" data-cap>Your own limit: <b>${escapeHtml(formatRupees(more.cap))}</b> a day</div>` : ''}${asleep ? '<div class="hv-vault__sleep">A quiet month so far.</div>' : ''}<div class="hv-vault__eve" data-eve-line aria-live="polite"></div>
+      ${overNote}${aheadNote}${more.cap ? `<div class="hv-vault__cap" data-cap>Your own limit: <b>${escapeHtml(formatRupees(more.cap))}</b> a day</div>` : ''}${asleep ? '<div class="hv-vault__sleep">A quiet month so far.</div>' : ''}<div class="hv-vault__eve" data-eve-line aria-live="polite"></div>
       ${heroChart(f)}
       <div class="hv-kept"><div class="stats"><div><span>Spent</span><b class="hv-amt" data-roll="${x.spent}" data-roll-key="${x.rollKey}:spent">${formatRupees(x.spent)}</b></div><div><span>Budget</span><b class="hv-amt">${formatRupees(x.limit)}</b></div>${third}</div>${kp ? kp.list : ''}</div>
       ${closedNote(x)}

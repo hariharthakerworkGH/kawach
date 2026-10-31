@@ -237,7 +237,7 @@ const stampOf = (record, now = Date.now()) => (typeof record.updatedAt === 'numb
  * other device added, so these are merged item by item against what both sides agreed at the last sync
  * (`base`): an item added on either side stays, an item removed on a side that had it is removed, and an item
  * on both takes the newer side's version. With no base (the first sync) nothing is removed. */
-export const LIST_SETTINGS = ['businesses', 'people', 'goals', 'dismissedAnomalies', 'remindersSent', 'spendingAlertsSent'];
+export const LIST_SETTINGS = ['businesses', 'people', 'goals', 'dismissedAnomalies', 'dismissedLumps', 'remindersSent', 'spendingAlertsSent'];
 /* Settings that hold a map (a budget for each category). Merged key by key the same way: a budget set on either
  * device stays, one removed on a device that had it stays removed, one set on both takes the newer side's. */
 export const MAP_SETTINGS = ['budgets'];

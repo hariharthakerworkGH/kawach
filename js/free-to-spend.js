@@ -62,6 +62,10 @@ import { MIN_DAYS_FOR_PACE, addDays, dateOf, daysBetweenInclusive, trackCommitme
 // and the like, small spends and ATM cash stay in the month they happen, and
 // the month label never moves: the calendar month runs to its last day.
 //
+// What was paid out ahead is returned as `paidAhead` (a sum, for Summary to say). A payment of a tenth of the income or more
+// in those days that no commitment claimed is returned in `lumps`: it stays spending until the owner says what it was for,
+// and Summary asks. Nothing here moves it by itself.
+//
 // Both halves of "spent" run over the same calendar month. They did not
 // always: card spending ran on the card cycle while bank spending ran on the
 // month, and the headline printed the card one. On the 27th that meant a
@@ -1006,6 +1010,24 @@ export async function computeFreeToSpend(now) {
     }
   }
 
+  // --- Paid ahead, and the large payment nobody placed ---------------------
+  // What the pay that landed before the month ended has already paid out for the month after, so Summary can say it
+  // rather than leave the month's figures to be puzzled over. And the big payments of those days that no commitment
+  // claimed (₹30,000 sent to a pot with nothing to say what it was): they are spending until the owner places them.
+  // Only for someone with a payday in the last week; a month of no such window has none.
+  const aheadPaid = transactions.filter((t) => (claimedBy.get(t.id) || '').endsWith('(next month)'));
+  const lumpWindows = [bankPeriod.carriedOut, today <= addDays(monthStart, 6) ? bankPeriod.carriedIn : null].filter(Boolean);
+  const lumps = monthlyIncome
+    ? transactions
+        .filter(
+          (t) =>
+            t.direction === 'debit' && bankIds.has(t.accountId) && !t.isTransfer && !t.paysCardId && !t.personId && !t.isReimbursable && !t.forNextMonth &&
+            !claimed.has(t.id) && t.amount * 10 >= monthlyIncome && lumpWindows.some((w) => within(w)(t))
+        )
+        .sort((x, y) => (x.date < y.date ? -1 : 1))
+        .map((t) => ({ id: t.id, date: t.date, amount: t.amount, description: t.rawDescription }))
+    : [];
+
   // Skipped this cycle: listed so they can be brought back, never counted.
   for (const item of skippedItems) {
     tracker.push({
@@ -1136,6 +1158,9 @@ export async function computeFreeToSpend(now) {
       plan: atmPlan ? { label: atmPlan.label, amount: atmPlan.amount, used: atmPlan.used, left: atmPlan.amount - atmPlan.used } : null,
     },
     tracker,
+    // What was paid out ahead for the month after (see above), and the large payments of those days not yet placed.
+    paidAhead: aheadPaid.length ? { monthKey: addDays(monthEnd, 1).slice(0, 7), amount: aheadPaid.reduce((s, t) => s + t.amount, 0), count: aheadPaid.length } : null,
+    lumps,
     cutBack,
     flexible,
     free,

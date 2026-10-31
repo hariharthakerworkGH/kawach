@@ -115,7 +115,10 @@ Periods:
   Nothing before the 1st counts, with one exception: a commitment with a set day
   (EMI, rent) paid on salary day at the end of a month, or within 4 days
   before its due day, belongs to the month after (a pot or allowance only when
-  the payment is a lump of at least half its plan). Card spending ran on the card cycle until 4.6, which meant a headline
+  the payment is a lump of at least half its plan). Summary says "₹X already
+  paid for November", History tags such a row "For Nov", and a large payment in
+  those days that no commitment claimed is spending until the To do row "Which
+  commitment?" is answered. Card spending ran on the card cycle until 4.6, which meant a headline
   reading "26 Sep to 25 Oct" while bank money from the 5th was counted and card
   money from the 10th was not: one month's budget against two windows. The
   statement day is a fact about a bank's paperwork, not about the person - it
