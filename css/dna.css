@@ -3212,7 +3212,8 @@ body:has(#view-container.k) .app-header {
 .k .owed-row__v { font-weight: 600; font-variant-numeric: tabular-nums; }
 .k .owed-row--in .owed-row__v { color: var(--k-positive); }
 /* The "Yes, paid back" button sits under the text, in the text column, at full tap size. */
-.k .owed-yes { grid-column: 2 / -1; justify-self: start; min-height: 44px; margin: 0 0 4px; }
+.k .owed-ask { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: var(--k-2); margin: 0 0 4px; }
+.k .owed-yes, .k .owed-no { min-height: 44px; }
 .k .owed-list__late { margin: var(--k-2) 0 0; font-size: var(--k-caption); color: var(--k-warning); }
 .k .owed-list__tip, .k .owed-list__none { margin: var(--k-3) 0 0; font-size: var(--k-caption); line-height: 1.4; color: var(--k-text-2); }
 

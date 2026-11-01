@@ -35,7 +35,7 @@ import { nextRenewal, renewalAfter, renewalsAhead } from '../js/calendar.js';
 import { caPeriods, buildCaReport, toXlsx, toPdf } from '../js/ca-export.js';
 import { excelDate } from '../js/xlsx.js';
 import { textWidth, wrap, pdfSafe } from '../js/pdf-write.js';
-import { planParts } from '../js/views/plan-looks.js';
+import { planParts, havenCommitments } from '../js/views/plan-looks.js';
 import { looksLikeCardPayment, cashSide, spendMoves, isCardBill } from '../js/transfers.js';
 import { spendingMonthOf, salaryLike, nextMonthKey, countsFor as countsForMonth } from '../js/spending-month.js';
 import { parseAlert, splitAlerts, resolveAccount, findDigits, useLearned, findExisting } from '../js/alerts.js';
@@ -1520,6 +1520,7 @@ test('owed back: money in from the salary sender after the oldest cost is offere
   ];
   const ctx = { income: rupees(236158), bankIds: new Set(['bank']), today: '2026-11-01' };
   equal(repaymentCandidates(rows, ctx).map((c) => c.id), ['pay'], 'not the salary, not before the cost, not another sender');
+  equal(repaymentCandidates(rows.map((x) => (x.id === 'pay' ? { ...x, notRepayment: true } : x)), ctx), [], 'answered No: never offered again');
   equal(repaymentCandidates([...rows, t('done', { direction: 'credit', date: '2026-10-20', amount: rupees(22443), isSettlement: true })].filter((x) => x.id !== 'cost'), ctx), [], 'nothing waiting, nothing offered');
 });
 
@@ -2681,6 +2682,11 @@ test('Kept back opened: one line for each set-aside with something left, most le
   ok(html.includes('is-warn') && html.includes('is-over'), 'running low is amber, over is red');
   ok(!html.includes('Gift <b>') && html.includes('Gift &lt;b&gt;'), 'a name is escaped');
   equal(keptBlock({ tracker: [t('Amazon Pay', 3000, 0, 'ok', 3000)] }), '', 'nothing left: no row');
+  // The owner's 1 Nov report: Summary said Kept back 40,600 and Plan said Kept aside 43,600, the gap being one untracked pot of 3,000.
+  const plan = havenCommitments(tracker.map((x) => ({ ...x, id: x.label })));
+  const said = Number(/Kept aside<\/span><b class="hv-amt">₹([\d,]+)/.exec(plan.box)[1].replace(/,/g, ''));
+  equal(said * 100, keptBack({ tracker }), 'Plan and Summary say the same Kept back / Kept aside');
+  ok(plan.list.includes('Not tracked') && !/Untracked<\/span><span class="m">₹/.test(plan.list), 'an untracked pot does not claim money left');
 });
 
 /* --- How it looks (5.93): five things in one card, each saved the moment it is touched ------------------------------------------------- */

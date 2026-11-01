@@ -766,5 +766,12 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 /* 320 wide at the largest text: names wrap instead of being cut with an ellipsis */
 @media (max-width: 360px) {
   :root[data-style=haven] .lg-row .n, :root[data-style=haven] .lg-row .nm .n, :root[data-style=haven] .lg-months .n, :root[data-style=haven] .lg-m .cap { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+  /* A bill row on Plan is icon | name | tag | amount beside the pay check, so at 320 the name had about 20px, one letter to a line
+     (1 Nov 2026, every bill row). Here the tag drops under the name and the amount is as wide as its figure. */
+  :root[data-style=haven] .lg-clist .hv-bill__open.lg-row:not(.two) { grid-template-columns: 28px minmax(0, 1fr) auto; row-gap: 0; padding-top: 4px; padding-bottom: 4px; }
+  :root[data-style=haven] .lg-clist .hv-bill__open.lg-row:not(.two) > :nth-child(1) { grid-column: 1; grid-row: 1 / span 2; }
+  :root[data-style=haven] .lg-clist .hv-bill__open.lg-row:not(.two) > :nth-child(2) { grid-column: 2; grid-row: 1; }
+  :root[data-style=haven] .lg-clist .hv-bill__open.lg-row:not(.two) > :nth-child(3) { grid-column: 2; grid-row: 2; justify-self: start; min-width: 0; margin-top: 2px; }
+  :root[data-style=haven] .lg-clist .hv-bill__open.lg-row:not(.two) > :nth-child(4) { grid-column: 3; grid-row: 1 / span 2; }
 }
 :root[data-style=haven] .hv-recrow button, :root[data-style=haven] .hv-rec button, :root[data-style=haven] .hv-recdlg button { background: var(--lg-tide); color: var(--lg-tide-ink); }

@@ -13,7 +13,7 @@ import { formatRupees, ordinal } from '../format.js';
 import { escapeHtml } from '../ui.js';
 import { icon } from '../icons.js';
 import { categoryStyle } from '../category-style.js';
-import { lgIco } from './summary-looks.js';
+import { lgIco, keptBack } from './summary-looks.js';
 
 const share = (v, of) => (of > 0 ? Math.max(0, Math.min(1, v / of)) : 0);
 
@@ -99,14 +99,16 @@ export function havenCommitments(tracker, { order = new Map(), dayOf = () => nul
     const used = t.amount > 0 ? Math.max(0, Math.min(1, t.used / t.amount)) : 0;
     const over = t.left < 0;
     const extra = note(t.id);
-    const text = (over ? `${money(t.left)} over` : t.left > 0 ? `${money(t.left)} left` : 'Used up') + (extra ? ` · ${extra}` : '');
+    // An untracked set-aside has nothing matched to it, so "left" would be a guess; Summary says the same ("Not tracked").
+    const text = (over ? `${money(t.left)} over` : t.status === 'untracked' ? 'Not tracked' : t.left > 0 ? `${money(t.left)} left` : 'Used up') + (extra ? ` · ${extra}` : '');
     return `<div class="hv-bill hv-bill--aside" data-kind="aside" data-step="${escapeHtml(t.id)}"${t.left > 0 && used >= 0.9 ? ' data-near' : ''}>
       <button type="button" class="hv-bill__open lg-row two" data-month-item="${escapeHtml(t.id)}" aria-label="${escapeHtml(`${t.label}, ${money(t.amount)} set aside, ${text}. Tap for more.`)}">${lgIco(t.label)}<span class="nm"><span class="n">${escapeHtml(t.label)}</span><span class="m${over ? ' bad' : ''}">${text}</span></span><span class="amt hv-amt">${money(t.amount)}</span></button><span class="hv-paycheck-gap"></span>
       <div class="lg-edge hv-usedline${t.left <= 0 ? ' full' : ''}${over ? ' warn' : ''}" aria-hidden="true"><i style="width:${(used * 100).toFixed(0)}%"></i></div></div>`;
   };
   const paid = done.filter((t) => t.status === 'paid').reduce((s, t) => s + t.amount, 0);
   const toPay = unpaid.reduce((s, t) => s + (t.status === 'part' ? Math.max(0, t.left) : t.amount), 0);
-  const kept = progress.reduce((s, t) => s + Math.max(0, t.left), 0);
+  // Summary's own Kept back rule, not a second copy: an untracked or skipped set-aside is left out of both, or the screens differ by its amount.
+  const kept = keptBack({ tracker });
   const key = (f, cls, label, v) => `<button type="button" data-f="${f}"><span><i class="${cls}"></i>${label}</span><b class="hv-amt">${money(v)}</b></button>`;
   const seg = (v, cls) => (v > 0 ? `<i class="${cls}" style="flex:${v}"></i>` : '');
   const box = paid + toPay + kept > 0

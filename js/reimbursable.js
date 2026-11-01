@@ -56,11 +56,12 @@ export function unsettledCosts(transactions) {
 
 // Credits that look like the employer paying back, for the owner to confirm with one tap: money into a bank account from
 // the same sender as the salary (same first 40 letters of the narration), smaller than half a salary, after the oldest
-// cost still waiting. The app never marks one itself - it only knows what it has been told.
+// cost still waiting. The app never marks one itself - it only knows what it has been told. A credit the owner answered
+// "No" to (notRepayment: a monthly payback for costs never logged here) is never offered again.
 export function repaymentCandidates(transactions, { income = 0, bankIds, today }) {
   const oldest = unsettledCosts(transactions)[0]?.transaction.date;
   if (!oldest || income <= 0) return [];
-  const credit = (t) => t.direction === 'credit' && !t.isTransfer && !t.isSettlement && !t.personId && bankIds.has(t.accountId) && t.date <= today;
+  const credit = (t) => t.direction === 'credit' && !t.isTransfer && !t.isSettlement && !t.notRepayment && !t.personId && bankIds.has(t.accountId) && t.date <= today;
   const sender = (t) => String(t.rawDescription || '').toUpperCase().slice(0, 40);
   const paid = new Set(transactions.filter((t) => credit(t) && t.amount >= income / 2).map(sender));
   return transactions

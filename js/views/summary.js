@@ -588,6 +588,14 @@ async function renderDashboard(container) {
     showToast('Marked as paid back by your employer');
     redraw(container, () => renderDashboard(container));
   });
+  // "No": this money in is not the employer paying these costs back (he is repaid for others that are not logged here).
+  on('.owed-no', async (btn) => {
+    const txn = (await getAll('transactions')).find((t) => t.id === btn.dataset.txn);
+    if (!txn) return;
+    await put('transactions', { ...txn, notRepayment: true, updatedAt: Date.now() });
+    showToast('Got it, this will not be offered again');
+    redraw(container, () => renderDashboard(container));
+  });
   on('.owed-row[data-search]', (b) => {
     container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'transactions', month: b.dataset.month, search: b.dataset.search } }));
   });
@@ -1457,7 +1465,7 @@ function owedListHtml(f) {
       ${
         guesses.length
           ? `<div class="owed-list__head owed-list__head--sub"><span>Did your employer pay one of these back?</span></div>
-             ${guesses.map((x) => `<div class="owed-row owed-row--in"><span class="owed-row__d">${formatDateNice(x.date)}</span><span class="owed-row__t">From your salary sender<small>${escapeHtml(x.account)}</small></span><span class="owed-row__v">${formatRupees(x.amount)}</span><button type="button" class="btn-tiny owed-yes" data-txn="${x.id}">Yes, paid back</button></div>`).join('')}`
+             ${guesses.map((x) => `<div class="owed-row owed-row--in"><span class="owed-row__d">${formatDateNice(x.date)}</span><span class="owed-row__t">From your salary sender<small>${escapeHtml(x.account)}</small></span><span class="owed-row__v">${formatRupees(x.amount)}</span><span class="owed-ask"><button type="button" class="btn-tiny owed-yes" data-txn="${x.id}">Yes, paid back</button><button type="button" class="btn-tiny owed-no" data-txn="${x.id}">No, not for these</button></span></div>`).join('')}`
           : '<p class="owed-list__tip">Got paid back? Open the payment in History or when adding it, and tick "This pays back a work cost".</p>'
       }
     </div>`;

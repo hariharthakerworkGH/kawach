@@ -13,6 +13,27 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.10.2',
+    items: [
+      {
+        icon: 'wallet',
+        title: "Plan and Summary agree, small phones readable",
+        text: "Plan's Kept aside now matches Summary's Kept back (a set-aside Kawach cannot follow is no longer counted as money left, and says Not tracked). On a narrow phone, bill names on Plan and the category names under Where it went on Summary are readable instead of one letter a line.",
+      },
+      {
+        icon: 'wallet',
+        title: "Your provident fund counts in what you hold",
+        text: "On Accounts, You hold now uses the same provident fund figure its card shows, including months not yet in your passbook, instead of a smaller number. Summary is unchanged: savings never appear there.",
+      },
+      {
+        icon: 'check',
+        title: "Say No to a guessed repayment",
+        text: "When Summary offers money in as your employer's repayment and it is for something else, tap No, not for these and it is never offered again.",
+        guide: [{ view: 'summary', target: '#owed-back-stat', text: "Tap Owed back: Yes marks a repayment, No, not for these hides the guess." }],
+      },
+    ],
+  },
+  {
     version: '7.10.1',
     items: [
       {

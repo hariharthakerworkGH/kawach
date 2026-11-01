@@ -369,6 +369,11 @@ html.hv-sweeping::view-transition-new(root) { z-index: 2; }
 .hv-ins__tanks { max-width: 100%; }
 .hv-ins__layers { grid-template-columns: auto minmax(0, 1fr); }
 .hv-lkey span { min-width: 0; overflow-wrap: anywhere; line-height: 1.2; }
+/* At 320 the shield left its names about 23px, "Tra nsf er" (1 Nov 2026, Where it went on Summary): the names go under it. */
+@media (max-width: 360px) {
+  .hv-ins__layers { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .hv-ins__layers .hv-lkeys { width: 100%; }
+}
 :root[data-style="haven"] .hv-filter { flex-wrap: wrap; overflow: visible; }
 :root[data-style="haven"] .hv-hold-wrap { min-width: 0; }
 :root[data-style="haven"] .hv-acctchips { flex-wrap: wrap; }

@@ -1613,11 +1613,14 @@ export function cushionCard(fts) {
     </div>`;
 }
 
+const pfSum = (list, transactions) => (list || []).reduce((s, a) => s + pfPosition(a, transactions).balance, 0);
+
 // Haven's top: what you hold (everything you could name a balance for) and what you owe (cards and loans), as two figures.
 function holdOwe(groups, transactions, fts) {
   const sum = (list) => (list || []).map((a) => bankBalance(a, transactions)).filter((v) => v != null).reduce((s, v) => s + v, 0);
   // Deposits shown inside a bank account's card are yours as well; they were not in this sum.
-  const hold = sum(groups.bank) + sum(groups.cash) + sum(groups.savings) + sum(groups.pf) + sum([...depositsOf.values()].flat());
+  // The provident fund is the figure its card shows (months not yet in a passbook assumed), not the proven balance, so the card and this total agree.
+  const hold = sum(groups.bank) + sum(groups.cash) + sum(groups.savings) + pfSum(groups.pf, transactions) + sum([...depositsOf.values()].flat());
   const owe = Math.max(0, ((fts && fts.totals && fts.totals.owedCards) || 0) + ((fts && fts.totals && fts.totals.unpaidBills) || 0)) + (((fts && fts.loans) || []).reduce((s, l) => s + (l.outstanding || 0), 0));
   return `<div id="hv-hold" data-hold="${hold}" data-owe="${owe}" hidden></div>`;
 }
@@ -1638,7 +1641,7 @@ function accountsTotal(groups, transactions, fts = null) {
   // such an account exists, so the figure above is never read as everything.
   // Money put away is not part of the ring: it is not what "In your accounts"
   // counts, and drawing it beside the same total would show it twice.
-  const putAway = [...known(groups.savings), ...known(groups.pf)].map((x) => x.amount);
+  const putAway = [...known(groups.savings).map((x) => x.amount), ...(groups.pf || []).map((a) => pfSum([a], transactions))];
   // The supporting line counts the very accounts just added up, not every
   // account on screen: an account whose balance is not known yet is not in
   // the figure, and saying otherwise would make the total look wrong.
