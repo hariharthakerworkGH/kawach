@@ -31,6 +31,7 @@ import { askConfirm } from '../dialog.js';
 import { dragToClose } from '../sheet-drag.js';
 import { dragRows } from '../reorder-drag.js';
 import { showToast } from '../toast.js';
+import { MAX_PAISE } from '../records.js';
 
 let adding = false;
 let editingId = null;
@@ -508,7 +509,7 @@ export async function render(container) {
     e.preventDefault();
     const name = container.querySelector('.gf-name').value.trim();
     const target = Math.round(parseFloat(container.querySelector('.gf-target').value) * 100);
-    if (!name || !Number.isFinite(target) || target <= 0) return;
+    if (!name || !Number.isFinite(target) || target <= 0 || target > MAX_PAISE) return;
     await saveGoals([
       ...(await getGoals()),
       {
@@ -707,7 +708,7 @@ export async function render(container) {
       const label = form.querySelector('.ff-label').value.trim();
       const amount = Math.round(parseFloat(amountEl.value) * 100);
       const day = parseInt(form.querySelector('.ff-day').value, 10);
-      if (!label || !Number.isFinite(amount) || amount <= 0) return;
+      if (!label || !Number.isFinite(amount) || amount <= 0 || amount > MAX_PAISE) return;
       const endMonth = form.querySelector('.ff-end').value; // YYYY-MM or ''
       // A renewal's date gives its day as well, so everything that reads the
       // day keeps working.
@@ -778,7 +779,7 @@ export async function render(container) {
       e.preventDefault();
       const categoryId = budgetFormEl.querySelector('.bf-category').value;
       const amount = Math.round(parseFloat(budgetFormEl.querySelector('.bf-amount').value) * 100);
-      if (!categoryId || !Number.isFinite(amount) || amount <= 0) return;
+      if (!categoryId || !Number.isFinite(amount) || amount <= 0 || amount > MAX_PAISE) return;
       await setBudget(categoryId, amount);
       addingBudget = false;
       redraw(container, () => render(container));

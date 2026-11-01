@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.10.3',
+    items: [
+      {
+        icon: 'check',
+        title: "Coach waits for real spending, and bad amounts are refused",
+        text: "In the first days of a month Coach now says Too early instead of guessing a pace from one day of spending, and no longer calls rent, EMIs, transfers or cash withdrawals running hot. A mistyped amount in the import review, History, bills, insurance, alerts and Plan is refused: the box turns red and the old amount stays.",
+      },
+    ],
+  },
+  {
     version: '7.10.2',
     items: [
       {

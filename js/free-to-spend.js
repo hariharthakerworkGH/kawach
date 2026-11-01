@@ -1202,6 +1202,8 @@ export async function computeFreeToSpend(now) {
     free,
     perDay: free != null && free > 0 ? Math.floor(free / daysToClose) : 0,
     pace,
+    // The first days of a month are too few to judge a pace by (one day's shopping would read as a month of it).
+    paceKnown: daysIntoCycle >= MIN_DAYS_FOR_PACE,
     crossesOn: crossesOn && crossesOn <= spendEnd ? crossesOn : null,
     used,
     level,

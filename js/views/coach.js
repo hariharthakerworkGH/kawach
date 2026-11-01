@@ -83,20 +83,22 @@ function heroTemplate(snapshot) {
     });
   }
 
-  const pace = c.pace;
+  // Too few days into the month to judge a pace: say so instead of stretching one day's spending over the whole month.
+  const early = !c.paceKnown;
+  const pace = early ? 0 : c.pace;
   const projected = pace * c.daysToClose;
   const leftAtEnd = c.free - projected;
-  const over = leftAtEnd < 0;
+  const over = !early && leftAtEnd < 0;
   return coachTop({
     left: pace === 0 ? '-' : formatRupees(leftAtEnd),
     over,
     // The pace runs to the end of the spending month (cycleKey, the calendar month), not a card's statement day.
     by: formatDateNice(c.cycleKey || c.windowEnd),
-    pace: `${formatRupees(pace)}/day`,
+    pace: early ? 'Too early' : `${formatRupees(pace)}/day`,
     safe: `${formatRupees(Math.max(0, c.perDay))}/day`,
     days: `${c.daysToClose}`,
-    share: c.free > 0 ? Math.min(1, projected / c.free) : 1,
-    uses: `${formatRupees(projected)} of ${formatRupees(Math.max(0, c.free))}`,
+    share: early ? 0 : c.free > 0 ? Math.min(1, projected / c.free) : 1,
+    uses: early ? 'Needs a few days of spending' : `${formatRupees(projected)} of ${formatRupees(Math.max(0, c.free))}`,
   });
 }
 

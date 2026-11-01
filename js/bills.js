@@ -2,6 +2,7 @@ import { getAll, put } from './db.js';
 import { isoLocal, addDays } from './frequency.js';
 import { commitmentMatcher } from './commitments.js';
 import { formatDateNice } from './format.js';
+import { MAX_PAISE } from './records.js';
 
 // One-time bills (5.85): a payment due on one date that does not repeat - a school admission, a repair, a trip balance, a
 // supplier's invoice. Plan only knew costs that repeat. A one-time bill is a commitment (so the trackers, the bills list on
@@ -34,7 +35,7 @@ export function billState(item, today) {
 
 const rupeesToPaise = (v) => {
   const n = Math.round(parseFloat(v) * 100);
-  return Number.isFinite(n) && n > 0 ? n : null;
+  return Number.isFinite(n) && n > 0 && n <= MAX_PAISE ? n : null;
 };
 
 /* The commitment a form describes. `fields` are as typed (the amount in rupees); `existing` is the record being edited, so what the form

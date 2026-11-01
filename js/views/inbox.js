@@ -15,6 +15,7 @@ import { isoLocal } from '../frequency.js';
 import { looksLikeCardPayment } from '../transfers.js';
 import { redraw } from '../redraw.js';
 import { escapeHtml, escapeAttr, sectionHead, invalidField, slidingPill } from '../ui.js';
+import { MAX_PAISE } from '../records.js';
 
 // Bank alerts you've shared or pasted, each shown as a draft to check and
 // save. Nothing here counts towards any total until you tap Save.
@@ -552,7 +553,7 @@ function readEdits(card, draft, inline = false) {
 
   const amountInput = card.querySelector('.al-amount');
   const amount = amountInput ? Math.round(parseFloat(amountInput.value) * 100) : parsed.amount;
-  if (!Number.isFinite(amount) || amount <= 0) return refuse('.al-amount', 'Check the amount');
+  if (!Number.isFinite(amount) || amount <= 0 || amount > MAX_PAISE) return refuse('.al-amount', 'Check the amount');
 
   const date = card.querySelector('.al-date').value;
   if (!date) return refuse('.al-date', 'Pick a date');

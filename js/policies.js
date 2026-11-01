@@ -1,6 +1,7 @@
 import { frequencyOf, addDays, yearlyAmountOf } from './frequency.js';
 import { RENEWAL_MONTHS, monthsOn } from './calendar.js';
 import { formatRupees, formatDateNice } from './format.js';
+import { MAX_PAISE } from './records.js';
 
 // Insurance policies (5.84). A policy is a yearly (or quarterly, half-yearly, monthly) fixed cost with its
 // details kept beside it, so it is typed in once: the cost keeps working exactly as every renewal does
@@ -117,7 +118,7 @@ export function maturitiesAhead(items, today, months = 12) {
 
 const rupeesToPaise = (v) => {
   const n = Math.round(parseFloat(v) * 100);
-  return Number.isFinite(n) && n > 0 ? n : null;
+  return Number.isFinite(n) && n > 0 && n <= MAX_PAISE ? n : null;
 };
 const clean = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
 

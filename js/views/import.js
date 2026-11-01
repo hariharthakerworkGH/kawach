@@ -1236,9 +1236,10 @@ function handleFieldChange(e, resultsEl) {
   if (!row) return;
 
   if (field === 'amount') {
-    // A negative or huge amount would make the save throw halfway through the import: keep the amount the row had.
-    const typed = Math.round(parseFloat(e.target.value || '0') * 100);
-    const fine = Number.isFinite(typed) && typed >= 0 && typed <= MAX_PAISE;
+    // A negative or huge amount would make the save throw halfway through the import, and an emptied box (or a
+    // zero) would save a Rs 0 payment: keep the amount the row had. Same guard as Add (finite, above zero, under the cap).
+    const typed = Math.round(parseFloat(e.target.value) * 100);
+    const fine = Number.isFinite(typed) && typed > 0 && typed <= MAX_PAISE;
     e.target.classList.toggle('is-invalid', !fine);
     if (fine) row.amount = typed;
   } else if (field === 'categoryId') {

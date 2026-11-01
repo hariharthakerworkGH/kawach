@@ -4,6 +4,7 @@ import { currentMonthKey, previousMonthKey } from './spending-month.js';
 import { monthlyAmountOf, yearlyAmountOf } from './frequency.js';
 import { isLiveCommitment } from './commitments.js';
 import { computeFreeToSpend } from './free-to-spend.js';
+import { MIN_DAYS_FOR_PACE } from './free-to-spend-parts.js';
 
 // The planning engine.
 //
@@ -13,7 +14,7 @@ import { computeFreeToSpend } from './free-to-spend.js';
 // about their own money - can I afford this, will I hit my goal, where is it
 // going wrong - are forecasting and comparison problems, not language ones.
 
-const DISCRETIONARY_EXCLUDE = /rent|emi|loan|insurance|tax|income|transfer|bill|utilit/i;
+const DISCRETIONARY_EXCLUDE = /rent|emi|loan|insurance|tax|income|transfer|atm|bill|utilit/i;
 
 // A single read of everything the other functions need, so a screen asking
 // four questions doesn't hit the database four times.
@@ -59,11 +60,12 @@ export async function financialSnapshot(now = new Date()) {
 
   // Run rate is measured over the days that have actually happened, then
   // carried across the days still to come before the statement.
-  const runRate = inCycle ? cycle.pace : daysElapsed > 0 ? Math.round(variableSpent / daysElapsed) : 0;
+  const paceKnown = inCycle ? cycle.paceKnown : daysElapsed >= MIN_DAYS_FOR_PACE;
+  const runRate = !paceKnown ? 0 : inCycle ? cycle.pace : Math.round(variableSpent / daysElapsed);
   const daysAhead = inCycle ? cycle.daysToClose : daysLeft;
   const spentSoFar = inCycle ? Math.max(0, cycle.spentThisCycle) : variableSpent;
   const projectedVariable = spentSoFar + runRate * daysAhead;
-  const projectedOver = free != null ? projectedVariable - free : null;
+  const projectedOver = free != null && paceKnown ? projectedVariable - free : null;
 
   return {
     now,
@@ -85,6 +87,7 @@ export async function financialSnapshot(now = new Date()) {
     variableSpent,
     leftToSpend,
     runRate,
+    paceKnown,
     projectedVariable,
     projectedOver,
     perDayAllowance: leftToSpend != null ? cycle.perDay : null,
@@ -282,10 +285,12 @@ export function observations(snapshot) {
   }
 
   // Categories running well above their own normal.
-  if (monthsCounted > 0) {
+  if (monthsCounted > 0 && snapshot.paceKnown) {
     const spikes = [];
     for (const [categoryId, amount] of snapshot.spentMap) {
       if (categoryId === 'uncategorized') continue;
+      // Rent, loan, transfer and bill categories are plan money paid out, not habits that can run hot.
+      if (DISCRETIONARY_EXCLUDE.test(snapshot.categoryName(categoryId))) continue;
       const average = averages.get(categoryId);
       if (!average || average < 50000) continue; // ignore noise under ~₹500/month
       // Compare like with like: this month is only partly done.
