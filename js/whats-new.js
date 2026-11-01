@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.10.5',
+    items: [
+      {
+        icon: 'check',
+        title: "Month in review and Categories match Summary on card refunds",
+        text: "A card purchase that a matching refund cancels is no longer counted as spending in Categories, Coach or Month in review, so they agree with Summary. A refund that cancels no purchase is now named on the Month in review card, because Summary takes it off what you spent.",
+      },
+    ],
+  },
+  {
     version: '7.10.4',
     items: [
       {

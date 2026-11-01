@@ -17,7 +17,7 @@ import { detectRecurring, nextDueDate } from '../recurring.js';
 import { detectAnomalies } from '../anomalies.js';
 import { categoryStyle } from '../category-style.js';
 import { categorySlices, needsCategory } from '../splits.js';
-import { getBudgets, budgetStatusForMonth, cycleAwareEnabled, spendByCategoryForMonth, isNotSpending } from '../budgets.js';
+import { getBudgets, budgetStatusForMonth, cycleAwareEnabled, spendByCategoryForMonth, isNotSpending, cancelledByRefund } from '../budgets.js';
 import { spendingMonthOf, accountMap, currentMonthKey, previousMonthKey } from '../spending-month.js';
 import { appearance } from '../appearance.js';
 import { playTour } from '../tour.js';
@@ -2262,10 +2262,11 @@ async function renderContent(container) {
   const byCategory = new Map();
   const byAccount = new Map();
 
+  const cancelled = cancelledByRefund(transactions, [...byAccountId.values()]);
   for (const t of inRange) {
-    // What Spent leaves out (a cost the office pays back, money lent, cash taken out) is not "where it went" either,
-    // or this list adds up to more than Spent on Summary.
-    if (isNotSpending(t, byAccountId.get(t.accountId), cashFrom)) { addToBucket(byAccount, t.accountId, t.direction, t.amount); continue; }
+    // What Spent leaves out (a cost the office pays back, money lent, cash taken out, a purchase a refund cancelled) is not
+    // "where it went" either, or this list adds up to more than Spent on Summary.
+    if (isNotSpending(t, byAccountId.get(t.accountId), cashFrom, cancelled)) { addToBucket(byAccount, t.accountId, t.direction, t.amount); continue; }
     if (t.direction === 'debit') totalOut += t.amount;
 
     // Split-aware: one transaction can land in several categories.
@@ -2280,7 +2281,7 @@ async function renderContent(container) {
   if (comparison) {
     const prevOut = transactions
       .filter((t) => {
-        if (t.isTransfer || t.direction !== 'debit' || isCardBill(t, byAccountId.get(t.accountId)) || isNotSpending(t, byAccountId.get(t.accountId), cashFrom)) return false;
+        if (t.isTransfer || t.direction !== 'debit' || isCardBill(t, byAccountId.get(t.accountId)) || isNotSpending(t, byAccountId.get(t.accountId), cashFrom, cancelled)) return false;
         // Compare against the same slice of the previous spending month, so a
         // half-finished month isn't measured against a complete one.
         if (monthKey) {

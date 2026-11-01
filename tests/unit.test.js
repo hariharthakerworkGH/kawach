@@ -24,6 +24,7 @@ import { limitUse, bestDay, payBy } from '../js/card-smarts.js';
 import { forecast, costInMonth } from '../js/forecast.js';
 import { flexReport } from '../js/flex-report.js';
 import { flexCard } from '../js/views/recap.js';
+import { cancelledByRefund, isCardRefund } from '../js/budgets.js';
 import { makeRecord, checkPin, waitFor, mustLock, makeKeyText, normaliseKey, formatKey, makeKeyRecord, checkKey } from '../js/lock.js';
 import { comingUp, keptBack, keptItems, keptBlock, topFigures, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts, longestAhead, monthStory, weekRecap, heroChart } from '../js/views/summary-looks.js';
 import { festivalOn } from '../js/haven-motion.js';
@@ -1049,6 +1050,24 @@ test('spending by category leaves out what Left to spend leaves out: work costs,
   ];
   equal(spendByCategoryForMonth(rows, accounts, '2026-09', false, '2026-09-05').get('food'), rupees(2500), 'only the shop and the ATM withdrawal from before the cash rule began count');
   equal(spendByCategoryForMonth(rows, accounts, '2026-09', false).get('food'), rupees(12500), 'no cash rule on this phone: a withdrawal counts as it always did');
+});
+
+test('category figures follow Summary on card refunds: a returned purchase is not spending, a stray refund is named', () => {
+  const accounts = [{ id: 'cc', type: 'card' }];
+  const rows = [
+    { id: 'p1', accountId: 'cc', date: '2026-09-03', direction: 'debit', amount: rupees(2000), categoryId: 'shop', rawDescription: 'FLIPKART SHOES' },
+    { id: 'r1', accountId: 'cc', date: '2026-09-08', direction: 'credit', amount: rupees(2000), rawDescription: 'FLIPKART SHOES REFUND' },
+    { id: 'p2', accountId: 'cc', date: '2026-09-04', direction: 'debit', amount: rupees(500), categoryId: 'food', rawDescription: 'CAFE COFFEE' },
+    { id: 'r2', accountId: 'cc', date: '2026-09-09', direction: 'credit', amount: rupees(1200), rawDescription: 'MYNTRA REFUND' },
+    { id: 'r3', accountId: 'cc', date: '2026-09-10', direction: 'credit', amount: rupees(9000), rawDescription: 'PAYMENT RECEIVED THANK YOU' },
+  ];
+  const gone = cancelledByRefund(rows, accounts);
+  equal([...gone].sort(), ['p1', 'r1'], 'the purchase and the refund that undoes it cancel each other');
+  const totals = spendByCategoryForMonth(rows, accounts, '2026-09', false);
+  equal(totals.get('shop'), undefined, 'the returned shoes are not in any category');
+  equal(totals.get('food'), rupees(500), 'a purchase nobody refunded stays');
+  const card = accounts[0];
+  equal(rows.map((t) => isCardRefund(t, card, gone)), [false, false, false, true, false], 'only the Myntra refund is named: not the cancelled pair, not the card payment');
 });
 
 test('SBI savings statement: a row missed is caught by the summary', () => {

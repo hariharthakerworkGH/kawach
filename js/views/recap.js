@@ -5,7 +5,7 @@ import { extractMerchantKey } from '../merchant-rules.js';
 import { categorySlices } from '../splits.js';
 import { categoryBars } from '../charts.js';
 import { spendingMonthOf, accountMap, monthKeyOf } from '../spending-month.js';
-import { cycleAwareEnabled, isNotSpending } from '../budgets.js';
+import { cycleAwareEnabled, isNotSpending, cancelledByRefund, isCardRefund } from '../budgets.js';
 import { isPutAway } from '../account-metrics.js';
 import { isCardBill } from '../transfers.js';
 import { redraw } from '../redraw.js';
@@ -35,11 +35,14 @@ export async function render(container, params = {}) {
   // Tag each transaction with the month it actually belongs to, so a card
   // purchase after the statement day is recapped in the month it gets billed.
   const byId = accountMap(accounts);
+  const cancelled = cancelledByRefund(transactions, accounts);
   const spendable = transactions
     // Nothing leaving an account you do not spend from is spending (budgets.js).
     // ...nor a card bill, which is the card's purchases again.
-    .filter((t) => !t.isTransfer && !(t.direction === 'debit' && isPutAway(byId.get(t.accountId) || {})) && !isCardBill(t, byId.get(t.accountId)) && !isNotSpending(t, byId.get(t.accountId), cashFrom))
-    .map((t) => ({ ...t, month: spendingMonthOf(t, byId.get(t.accountId), cycleAware) }));
+    .filter((t) => !t.isTransfer && !(t.direction === 'debit' && isPutAway(byId.get(t.accountId) || {})) && !isCardBill(t, byId.get(t.accountId)) && !isNotSpending(t, byId.get(t.accountId), cashFrom, cancelled))
+    // A card refund that cancels no purchase is not spending but lowers Spent on Summary: it is tagged so the month's first
+    // card can say so, and the two screens read the same.
+    .map((t) => ({ ...t, month: spendingMonthOf(t, byId.get(t.accountId), cycleAware), cardRefund: isCardRefund(t, byId.get(t.accountId), cancelled) }));
 
   const months = [...new Set(spendable.map((t) => t.month))].sort().reverse();
   if (months.length === 0) {
@@ -146,10 +149,12 @@ function buildCards(transactions, categories, month, prevMonth) {
           : `That's ${formatRupees(Math.abs(diff))} ${diff > 0 ? 'more' : 'less'} than ${against}.`;
     }
   }
+  // Summary takes a card refund off Spent; this card counts purchases only, so the refund is named instead of left as a gap.
+  const refundsBack = inMonth.filter((t) => t.cardRefund).reduce((s, t) => s + t.amount, 0);
   const damage = {
     kicker: 'The damage',
     value: formatRupees(spent),
-    line: `${debits.length} transactions${isCurrentMonth ? ` so far in ${monthLabel(month)}` : ` across ${monthLabel(month)}`}. ${comparison}`,
+    line: `${debits.length} transactions${isCurrentMonth ? ` so far in ${monthLabel(month)}` : ` across ${monthLabel(month)}`}. ${comparison}${refundsBack > 0 ? ` ${formatRupees(refundsBack)} came back as card refunds, which Summary takes off.` : ''}`,
   };
   cards.push('');
 

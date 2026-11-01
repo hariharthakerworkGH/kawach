@@ -1,7 +1,7 @@
 import { sortCategories } from '../list-order.js';
 import { monthKeyOf } from '../spending-month.js';
 import { getAll, put, remove, newId, getSetting } from '../db.js';
-import { isNotSpending } from '../budgets.js';
+import { isNotSpending, cancelledByRefund } from '../budgets.js';
 import { categoryStyle, setCustomStyles, categoryIconKey, COLOR_CHOICES } from '../category-style.js';
 import { categoryIcon, PICKABLE_ICONS } from '../category-icons.js';
 import { icon } from '../icons.js';
@@ -485,8 +485,9 @@ function spendThisMonth(transactions, accounts, lane, cashFrom) {
   const byId = new Map(accounts.map((a) => [a.id, a]));
   const key = monthKeyOf(new Date());
   const totals = new Map();
+  const cancelled = cancelledByRefund(transactions, accounts);
   for (const t of transactions) {
-    if (t.direction !== 'debit' || t.isTransfer || t.date.slice(0, 7) !== key || putAway.has(t.accountId) || isCardBill(t, byId.get(t.accountId)) || isNotSpending(t, byId.get(t.accountId), cashFrom)) continue;
+    if (t.direction !== 'debit' || t.isTransfer || t.date.slice(0, 7) !== key || putAway.has(t.accountId) || isCardBill(t, byId.get(t.accountId)) || isNotSpending(t, byId.get(t.accountId), cashFrom, cancelled)) continue;
     if (business.has(t.accountId) !== (lane === 'business')) continue;
     for (const slice of categorySlices(t)) {
       if (!slice.categoryId) continue;
