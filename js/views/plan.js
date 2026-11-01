@@ -31,7 +31,7 @@ import { askConfirm } from '../dialog.js';
 import { dragToClose } from '../sheet-drag.js';
 import { dragRows } from '../reorder-drag.js';
 import { showToast } from '../toast.js';
-import { MAX_PAISE } from '../records.js';
+import { MAX_PAISE, paiseFrom } from '../records.js';
 
 let adding = false;
 let editingId = null;
@@ -466,8 +466,7 @@ export async function render(container) {
 
   const keepEl = container.querySelector('#plan-keep');
   keepEl?.addEventListener('change', async () => {
-    const raw = parseFloat(keepEl.value);
-    await setSetting('keepInBank', Number.isFinite(raw) && raw >= 0 ? Math.round(raw * 100) : DEFAULT_KEEP_IN_BANK);
+    await setSetting('keepInBank', paiseFrom(keepEl.value, { allowZero: true }) ?? DEFAULT_KEEP_IN_BANK);
     redraw(container, () => render(container));
   });
 
@@ -680,17 +679,16 @@ export async function render(container) {
     const setAside = () => form.querySelector('.ff-kind:checked')?.value === 'aside';
 
     const updatePreview = () => {
-      const raw = parseFloat(amountEl.value);
+      const minor = paiseFrom(amountEl.value);
       const freq = freqEl.value;
       // Money set aside has no day to be late on, so there is no day to ask
       // for. A thing that must be paid keeps its day.
       dayField.hidden = !hasDueDate(freq) || (freq === 'monthly' && setAside()) || Boolean(RENEWAL_MONTHS[freq]);
       renewsField.hidden = !RENEWAL_MONTHS[freq];
-      if (!Number.isFinite(raw) || raw <= 0 || freq === 'monthly') {
+      if (minor == null || freq === 'monthly') {
         previewEl.hidden = true;
         return;
       }
-      const minor = Math.round(raw * 100);
       const monthly = toMonthly(minor, freq);
       const yearly = toYearly(minor, freq);
       previewEl.hidden = false;

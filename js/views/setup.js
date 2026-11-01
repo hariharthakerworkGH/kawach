@@ -1,6 +1,7 @@
 import { getAll, put, remove, newId, getSetting, setSetting } from '../db.js';
 import { icon } from '../icons.js';
 import { formatCurrency } from '../format.js';
+import { paiseFrom } from '../records.js';
 import { isFixed } from '../commitments.js';
 import { DEFAULT_KEEP_IN_BANK } from '../free-to-spend.js';
 import { tellUser } from '../dialog.js';
@@ -336,8 +337,8 @@ function wire(container, name, { accounts }) {
   if (commitmentForm) {
     commitmentForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const amount = Math.round(parseFloat(container.querySelector('#setup-commitment-amount').value) * 100);
-      if (!Number.isFinite(amount) || amount <= 0) return;
+      const amount = paiseFrom(container.querySelector('#setup-commitment-amount').value);
+      if (amount == null) return;
       const spread = container.querySelector('#setup-commitment-spread').checked;
       await put('recurring', {
         id: `fixed-${newId()}`,
@@ -358,14 +359,14 @@ function wire(container, name, { accounts }) {
 
 async function saveIncome(container) {
   const kind = container.querySelector('input[name="income-kind"]:checked')?.value || 'salary';
-  const income = parseFloat(container.querySelector('#setup-income').value);
-  const keep = parseFloat(container.querySelector('#setup-keep').value);
+  const income = paiseFrom(container.querySelector('#setup-income').value);
+  const keep = paiseFrom(container.querySelector('#setup-keep').value, { allowZero: true });
   const side = kind !== 'business' && container.querySelector('#setup-side').checked;
   await setSetting('incomeType', kind);
-  if (Number.isFinite(income) && income > 0) await setSetting('monthlyIncome', Math.round(income * 100));
+  if (income != null) await setSetting('monthlyIncome', income);
   // A business or a contract has no payday.
   await setSetting('salaryDay', isVariableIncome(kind) ? null : parseInt(container.querySelector('#setup-salary-day').value, 10));
-  if (Number.isFinite(keep) && keep >= 0) await setSetting('keepInBank', Math.round(keep * 100));
+  if (keep != null) await setSetting('keepInBank', keep);
   // A business, as what pays for Home or on the side, gets its space.
   if ((kind === 'business' || side) && !(await businesses()).length) {
     await addBusiness(container.querySelector('#setup-biz-name').value || 'My business');

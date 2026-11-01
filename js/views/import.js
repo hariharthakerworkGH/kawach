@@ -1379,7 +1379,7 @@ function updateTotals(resultsEl) {
     const existingInput = totalsEl.querySelector('#import-check-figure');
     const typed = existingInput ? existingInput.value : '';
     const check = parseFloat(typed);
-    const matches = Number.isFinite(check) && Math.abs(Math.round(check * 100) - owed) <= 100;
+    const matches = Number.isFinite(check) && Math.abs(Math.round(check * 100) - owed) <= 100; // moneyinputs-ok: only compared to the bill, never stored
     totalsEl.innerHTML = `
       <div class="totals-row"><span>Spends</span><span class="out">-${formatCurrency(spends)}</span></div>
       <div class="totals-row"><span>Refunds and cashback</span><span class="in">+${formatCurrency(refunds)}</span></div>

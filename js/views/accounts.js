@@ -1,4 +1,5 @@
 import { getAll, put, remove, newId } from '../db.js';
+import { paiseFrom } from '../records.js';
 import { computeFreeToSpend } from '../free-to-spend.js';
 import { formatCurrency, formatDateNice, formatMonthYear, formatRupees, ordinal } from '../format.js';
 import { bankBalance, balanceAt, cardBillDue, statementDay, isPutAway } from '../account-metrics.js';
@@ -375,9 +376,8 @@ export async function render(container) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const month = form.querySelector('.pf-month').value;
-      const rupees = parseFloat(form.querySelector('.pf-basic').value);
-      if (!month || !Number.isFinite(rupees) || rupees <= 0) return;
-      const basic = Math.round(rupees * 100);
+      const basic = paiseFrom(form.querySelector('.pf-basic').value);
+      if (!month || basic == null) return;
       const account = (await getAll('accounts')).find((a) => a.id === form.dataset.id);
       const share = pfContribution(basic, account.pf || {});
       await put('accounts', { ...account, pf: { ...(account.pf || {}), basic, monthlyIntoFund: share.intoFund } });
@@ -427,18 +427,14 @@ export async function render(container) {
         if (chip.dataset.amount === 'other') {
           other.hidden = false;
           other.focus();
-          const rupees = parseFloat(other.value);
-          show(Number.isFinite(rupees) && rupees > 0 ? Math.round(rupees * 100) : 0);
+          show(paiseFrom(other.value) ?? 0);
         } else {
           other.hidden = true;
           show(Number(chip.dataset.amount));
         }
       })
     );
-    other.addEventListener('input', () => {
-      const rupees = parseFloat(other.value);
-      show(Number.isFinite(rupees) && rupees > 0 ? Math.round(rupees * 100) : 0);
-    });
+    other.addEventListener('input', () => show(paiseFrom(other.value) ?? 0));
   });
 
   container.querySelectorAll('.account-add-expense').forEach((btn) => {
@@ -652,6 +648,16 @@ function wireForm(form, container, accounts, transactions) {
       return;
     }
 
+    // A limit with a zero too many is a slip: said, not saved.
+    const limitTyped = form.querySelector('.af-limit')?.value ?? '';
+    const limit = type === 'card' ? paiseFrom(limitTyped) : null;
+    if (type === 'card' && limit == null && parseFloat(limitTyped) > 0) {
+      errorEl.hidden = false;
+      errorEl.textContent = 'That limit is too large to be right. Check the zeros.';
+      errorEl.classList.add('out');
+      return;
+    }
+
     const id = form.dataset.id;
     const existing = id ? accounts.find((a) => a.id === id) : null;
     const account = {
@@ -662,7 +668,7 @@ function wireForm(form, container, accounts, transactions) {
       issuer: form.querySelector('.af-issuer').value.trim() || null,
       last4: last4 || null,
       // The limit as the person typed it (paise); cleared when the box is emptied.
-      creditLimit: type === 'card' && Number(form.querySelector('.af-limit').value) > 0 ? Math.round(Number(form.querySelector('.af-limit').value) * 100) : null,
+      creditLimit: limit,
       // Kept as it was: the cycle comes from statements, not from this form.
       billingCycleDay: type === 'card' ? existing?.billingCycleDay ?? null : null,
       // Stored only when turned off, so every bank account from before this
@@ -1545,11 +1551,13 @@ function billPanel(account) {
 // The provident fund's own settings. The opening balance is typed in because
 // there is no statement to import it from - EPFO's passbook is a website.
 function readPfFields(form, existing) {
-  const opening = parseFloat(form.querySelector('.af-pf-opening').value);
+  const typed = form.querySelector('.af-pf-opening').value;
+  const opening = paiseFrom(typed, { allowZero: true });
   const rate = parseFloat(form.querySelector('.af-pf-rate').value);
   const asOf = form.querySelector('.af-pf-asof').value;
   return {
-    knownBalance: Number.isFinite(opening) && opening >= 0 ? Math.round(opening * 100) : 0,
+    // An emptied box means 0; a slip (a zero too many) keeps the balance it had.
+    knownBalance: opening ?? (parseFloat(typed) > 0 ? existing?.knownBalance ?? 0 : 0),
     knownBalanceDate: asOf ? `${asOf}-01` : existing?.knownBalanceDate || null,
     pf: {
       ...(existing?.pf || {}),
@@ -1565,9 +1573,8 @@ function readPfFields(form, existing) {
 // the app can read; an FD from a bank statement keeps the balance it read.
 function readSavingsFields(form, existing) {
   const kind = form.querySelector('.af-savings-kind').value;
-  const raw = parseFloat(form.querySelector('.af-savings-value').value);
-  if (!Number.isFinite(raw) || raw < 0) return { savingsKind: kind };
-  const value = Math.round(raw * 100);
+  const value = paiseFrom(form.querySelector('.af-savings-value').value, { allowZero: true });
+  if (value == null) return { savingsKind: kind };
   if (existing && existing.knownBalance === value) return { savingsKind: kind };
   return { savingsKind: kind, knownBalance: value, knownBalanceDate: isoLocal(new Date()) };
 }

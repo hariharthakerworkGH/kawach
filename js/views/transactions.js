@@ -1,6 +1,6 @@
 import { getAll, put, remove, getSetting, setSetting } from '../db.js';
 import { holdFocus } from '../overlay.js';
-import { isMoney } from '../records.js';
+import { isMoney, paiseFrom } from '../records.js';
 import { countsFor, nextMonthKey, salaryLike, monthKeyOf } from '../spending-month.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { personNamed } from '../people.js';
@@ -1208,8 +1208,9 @@ async function handleChange(e, container) {
     const i = Number(splitRow.dataset.index);
     if (e.target.classList.contains('split-cat')) splitDraft.rows[i].categoryId = e.target.value || null;
     if (e.target.classList.contains('split-amount')) {
-      const parsed = parseFloat(e.target.value);
-      splitDraft.rows[i].amount = Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
+      // A cleared, negative or enormous box counts as 0, so the split cannot be saved on a slip.
+      splitDraft.rows[i].amount = paiseFrom(e.target.value) ?? 0;
+      e.target.classList.toggle('is-invalid', e.target.value.trim() !== '' && paiseFrom(e.target.value) == null);
       updateRemainder(container, t);
     }
     return;

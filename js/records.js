@@ -23,6 +23,14 @@ export function validDate(s) {
 
 export const isMoney = (v) => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= MAX_PAISE;
 
+/* Rupees typed in a box, as whole paise. Null when it is empty, not a number, negative, zero (unless 0 is a real
+ * answer, allowZero) or beyond MAX_PAISE: a slip is never turned into an amount. Every typed money box reads
+ * through this, so no screen can forget a guard (tools/release/moneyinputs.mjs fails the release if one does). */
+export function paiseFrom(value, { allowZero = false } = {}) {
+  const paise = Math.round(parseFloat(value) * 100);
+  return Number.isFinite(paise) && (allowZero ? paise >= 0 : paise > 0) && paise <= MAX_PAISE ? paise : null;
+}
+
 /* Stores whose records are checked. The rest (settings, sync bookkeeping) hold anything. */
 export const CHECKED = new Set(['transactions', 'accounts', 'recurring', 'categories']);
 

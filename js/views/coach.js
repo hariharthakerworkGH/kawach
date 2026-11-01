@@ -1,4 +1,5 @@
 import { formatDateNice, formatRupees } from '../format.js';
+import { paiseFrom } from '../records.js';
 import { icon } from '../icons.js';
 import { isoLocal } from '../frequency.js';
 import { categoryStyle } from '../category-style.js';
@@ -158,13 +159,13 @@ function wirePanel(container, s, cash) {
   const affordGo = container.querySelector('#afford-go');
   if (affordGo) {
     const run = () => {
-      const raw = parseFloat(container.querySelector('#afford-amount').value);
+      const price = paiseFrom(container.querySelector('#afford-amount').value);
       const target = container.querySelector('#afford-answer');
-      if (!Number.isFinite(raw) || raw <= 0) {
+      if (price == null) {
         target.innerHTML = '';
         return;
       }
-      target.innerHTML = affordAnswer(cash, affordability(cash, Math.round(raw * 100)));
+      target.innerHTML = affordAnswer(cash, affordability(cash, price));
       countIn(target);
     };
     affordGo.addEventListener('click', run);
@@ -183,14 +184,14 @@ function wirePanel(container, s, cash) {
   const goalGo = container.querySelector('#goal-go');
   if (goalGo) {
     goalGo.addEventListener('click', () => {
-      const raw = parseFloat(container.querySelector('#goal-amount').value);
+      const goal = paiseFrom(container.querySelector('#goal-amount').value);
       const date = container.querySelector('#goal-date').value;
       const target = container.querySelector('#goal-answer');
-      if (!Number.isFinite(raw) || raw <= 0 || !date) {
+      if (goal == null || !date) {
         target.innerHTML = '';
         return;
       }
-      target.innerHTML = goalAnswer(s, savingsPlan(s, Math.round(raw * 100), date));
+      target.innerHTML = goalAnswer(s, savingsPlan(s, goal, date));
     });
   }
 }

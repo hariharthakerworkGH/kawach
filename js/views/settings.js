@@ -1062,11 +1062,13 @@ async function renderImportHistory(container) {
       ${sorted
         .map((b) => {
           const stillThere = transactions.filter((t) => t.importBatchId === b.id).length;
+          // A statement with no readable dates says so by leaving them out, not by printing "to".
+          const span = [b.periodStart, b.periodEnd].map((d) => (/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? formatDateNice(d) : '')).filter(Boolean).join(' to ');
           return `
           <div class="upcoming-row">
             <div class="attention-row">
-              <span>${escapeHtml(accountLabel(b.accountId))}<br><span class="muted-note">${formatDateNice(b.periodStart)} to ${formatDateNice(b.periodEnd)} · ${stillThere} of ${b.txCount} still here</span></span>
-              <button type="button" class="btn-tiny undo-import" data-id="${b.id}" ${stillThere === 0 ? 'disabled' : ''}>Undo</button>
+              <span>${escapeHtml(accountLabel(b.accountId))}<br><span class="muted-note">${span ? `${span} · ` : ''}${stillThere} of ${b.txCount} still here</span></span>
+              <button type="button" class="btn-tiny undo-import" data-id="${b.id}">${stillThere === 0 ? 'Clear' : 'Undo'}</button>
             </div>
           </div>`;
         })
@@ -1078,6 +1080,12 @@ async function renderImportHistory(container) {
     btn.addEventListener('click', async () => {
       const batchId = btn.dataset.id;
       const affected = transactions.filter((t) => t.importBatchId === batchId);
+      // Nothing of it is left (every payment was removed one by one): only the line in this list goes.
+      if (affected.length === 0) {
+        await remove('importBatches', batchId);
+        await renderImportHistory(container);
+        return;
+      }
       const ok = await askConfirm({
         title: `Undo this import?`,
         message: `${affected.length} payments from it are removed. Anything you logged by hand that it replaced does not come back, and categories set on these are lost.`,

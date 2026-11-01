@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.10.4',
+    items: [
+      {
+        icon: 'check',
+        title: "Category figures now match Left to spend",
+        text: "Categories, Coach and Month in review no longer count work costs you will be paid back for, money you lent, or cash taken out of an ATM as spending, so they agree with Summary. A statement you imported that has nothing left in it can be cleared from the import list, and small phones (320 wide) no longer cut off Coach figures, import review boxes or the links at the bottom of Settings.",
+      },
+    ],
+  },
+  {
     version: '7.10.3',
     items: [
       {

@@ -39,6 +39,11 @@
 
   /* Fields and pickers never wider than the screen. */
   .k-field, .k-picker, .k-input, .k-select { max-width: 100%; min-width: 0; }
+  /* ...and a select sizes itself to its longest option, so a long account name ran it 500px wide (import review). */
+  .field :is(input, select, textarea) { max-width: 100%; min-width: 0; box-sizing: border-box; }
+  .field select { text-overflow: ellipsis; }
+  /* A full-width small button may take two lines ("Looks wrong? Download a report" ran out of its pill at 320). */
+  .btn-tiny.btn-block { white-space: normal; line-height: 1.25; text-align: center; }
   :where(.k-field, .k-picker, .k-switch-row, .settings-row) > * { min-width: 0; }
 
   /* The tab bar: sentence case, no tracking and a size that follows the screen, so six words fit 320 at any text size. */
@@ -56,6 +61,11 @@
   .cat-row-main { flex-wrap: wrap; }
   .cat-actions { flex-wrap: wrap; justify-content: flex-end; max-width: 100%; flex-shrink: 1; }
   a.link-btn, .link-btn { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+
+  /* The three links under Settings: when they do not fit one line each takes the line it needs, whole, with no dot left hanging. */
+  .k.settings-k .settings-foot { flex-wrap: wrap; column-gap: 18px; }
+  .k.settings-k .settings-foot > .link-btn { white-space: nowrap; }
+  .k.settings-k .settings-foot .foot-dot { display: none; }
 }
 
 /* --- larger text --- */
@@ -113,6 +123,14 @@
 :root:is([data-text="large"], [data-text="largest"]) .k-input,
 :root:is([data-text="large"], [data-text="largest"]) .k-select { max-width: 100%; min-width: 0; }
 
+/* ...and a select sizes itself to its longest option, so a long account name ran it 500px wide (import review). */
+:root:is([data-text="large"], [data-text="largest"]) .field :is(input, select, textarea) { max-width: 100%; min-width: 0; box-sizing: border-box; }
+
+:root:is([data-text="large"], [data-text="largest"]) .field select { text-overflow: ellipsis; }
+
+/* A full-width small button may take two lines ("Looks wrong? Download a report" ran out of its pill at 320). */
+:root:is([data-text="large"], [data-text="largest"]) .btn-tiny.btn-block { white-space: normal; line-height: 1.25; text-align: center; }
+
 :root:is([data-text="large"], [data-text="largest"]) :where(.k-field, .k-picker, .k-switch-row, .settings-row) > * { min-width: 0; }
 
 /* The tab bar: sentence case, no tracking and a size that follows the screen, so six words fit 320 at any text size. */
@@ -139,6 +157,13 @@
 :root:is([data-text="large"], [data-text="largest"]) a.link-btn,
 :root:is([data-text="large"], [data-text="largest"]) .link-btn { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
 
+/* The three links under Settings: when they do not fit one line each takes the line it needs, whole, with no dot left hanging. */
+:root:is([data-text="large"], [data-text="largest"]) .k.settings-k .settings-foot { flex-wrap: wrap; column-gap: 18px; }
+
+:root:is([data-text="large"], [data-text="largest"]) .k.settings-k .settings-foot > .link-btn { white-space: nowrap; }
+
+:root:is([data-text="large"], [data-text="largest"]) .k.settings-k .settings-foot .foot-dot { display: none; }
+
 /* --- reach, at every size: a fingertip is 44px --- */
 /* A dotted label that explains itself when tapped has a 44px invisible reach around it. */
 .explainable { position: relative; }
@@ -151,6 +176,9 @@
 .muted-note a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
 /* A grey pill sits one step lower, so its words clear 4.5 to 1 in every colouring. */
 .pill { background: var(--surface-alt, var(--surface-hi)); }
+/* The small coloured label above a note: mixed with more of the page's ink, so it reads on every colouring. */
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context--alert .k-context__k,
+:root:is([data-style="tactile"], [data-style="instrument"]) .k-context--attention .k-context__k { color: color-mix(in srgb, var(--t-alarm) 18%, var(--k-text)); }
 .k-context__note { color: color-mix(in srgb, var(--k-text-2) 75%, var(--k-text)); }
 /* A purchase and the refund that undid it: marked by the line through it and a fainter icon, not by fading the
    words, which fell to 2.5 to 1. */

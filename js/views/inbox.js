@@ -506,7 +506,7 @@ function showReading(card) {
   const raw = draft.item.rawText;
   const p = draft.parsed;
   const marks = [];
-  const money = [...raw.matchAll(/(?:Rs\.?|INR|₹|Rupees|Amt\.?:?|Amount:?)\s*([\d,]+(?:\.\d{1,2})?)/gi)].find((m) => Math.round(parseFloat(m[1].replace(/,/g, '')) * 100) === p.amount);
+  const money = [...raw.matchAll(/(?:Rs\.?|INR|₹|Rupees|Amt\.?:?|Amount:?)\s*([\d,]+(?:\.\d{1,2})?)/gi)].find((m) => Math.round(parseFloat(m[1].replace(/,/g, '')) * 100) === p.amount); // moneyinputs-ok: compared to a parsed amount, never stored
   if (money) marks.push({ at: money.index, len: money[0].length, kind: 'money' });
   const who = p.party ? raw.toLowerCase().indexOf(p.party.toLowerCase()) : -1;
   if (who >= 0) marks.push({ at: who, len: p.party.length, kind: 'who' });

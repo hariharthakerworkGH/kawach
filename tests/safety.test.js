@@ -2,7 +2,7 @@
 // sync keeps what two devices each added, and the readers are not handed absurd text. Made-up data only.
 import { test, equal, ok } from './harness.js';
 import { seedBasics, txn, rupees, day, resetDB } from './fixtures.js';
-import { problemWith, tidyRecord, screenRecords, validDate, BadRecordError, MAX_PAISE } from '../js/records.js';
+import { problemWith, tidyRecord, screenRecords, validDate, BadRecordError, MAX_PAISE, paiseFrom } from '../js/records.js';
 import { put, putMany, getAll, getAllRaw, damagedRecords, removeDamaged, getSetting, setSetting, forgetCachedReads, replaceAll } from '../js/db.js';
 import { computeFreeToSpend } from '../js/free-to-spend.js';
 import { mergeSnapshots, mergeLists } from '../js/sync.js';
@@ -57,6 +57,16 @@ test('safety: a payment needs a day, a number for the amount and a direction; a 
   equal(problemWith('transactions', r), null);
   equal(problemWith('recurring', { id: 'r', amount: null }), null);
   ok(problemWith('recurring', { id: 'r', amount: 'abc' }));
+});
+
+test('safety: typed rupees become paise only when they are a real amount (every typed money box reads through this)', () => {
+  equal([paiseFrom('450'), paiseFrom('460.25'), paiseFrom(' 12.5 ')], [45000, 46025, 1250]);
+  // empty, zero, negative, text, a zero too many: no amount at all, never Rs 0 and never a huge number in the sums
+  for (const bad of ['', '0', '-500', 'abc', '99999999999999999999', '1e300', 'Infinity', null, undefined]) equal(paiseFrom(bad), null, `"${bad}" is not an amount`);
+  equal(paiseFrom('0', { allowZero: true }), 0, '0 is a real answer where the box allows it (keep in the bank, extra payment)');
+  equal(paiseFrom('-1', { allowZero: true }), null);
+  equal(paiseFrom(String(MAX_PAISE / 100)), MAX_PAISE, 'the limit itself is allowed');
+  equal(paiseFrom(String(MAX_PAISE / 100 + 1)), null, 'one rupee above the limit is not');
 });
 
 test('safety: screenRecords keeps the usable and names the rest', () => {

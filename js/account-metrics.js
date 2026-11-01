@@ -99,9 +99,9 @@ export function listTakenOn(batch) {
 
 // Everything on a card that the imported statements haven't settled, as
 // money: spends minus refunds and cashback since the last imported statement
-// closed. Bill payments are transfers and don't count here. Unlike
-// cardCycleSpend (a spending figure, where a refund shouldn't buy headroom),
-// a ₹333 refund really does make what you owe ₹333 smaller.
+// closed. Bill payments are transfers and don't count here. Unlike a spending
+// figure (where a refund shouldn't buy headroom), a ₹333 refund really does
+// make what you owe ₹333 smaller.
 //
 // It runs from the last imported statement, not from today's cycle boundary.
 // From the statement day until that statement is imported, the closed
@@ -362,10 +362,3 @@ function closeOnOrBefore(dayOfMonth, iso) {
   return isoLocal(new Date(y, m - 2, clamp(y, m - 2)));
 }
 
-export function cardCycleSpend(account, transactions, importBatches) {
-  const cycleStart = currentCycleStart(account, importBatches);
-  const spend = transactions
-    .filter((t) => t.accountId === account.id && t.direction === 'debit' && !t.isTransfer && (!cycleStart || t.date > cycleStart))
-    .reduce((s, t) => s + t.amount, 0);
-  return { cycleStart, spend };
-}

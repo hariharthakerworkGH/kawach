@@ -2,6 +2,8 @@ import { getSetting, setSetting, getAll } from './db.js';
 import { categorySlices } from './splits.js';
 import { isPutAway } from './account-metrics.js';
 import { isCardBill } from './transfers.js';
+import { isPersonMoney } from './people.js';
+import { CASH_ENTRY_RE } from './commitments.js';
 import { spendingMonthOf, accountMap, CYCLE_SETTING_KEY } from './spending-month.js';
 
 // Budgets are a plain map of categoryId -> monthly limit in paise, kept in the
@@ -28,19 +30,31 @@ export function monthStartISO(date = new Date()) {
 // after its statement day counts towards the next month. Credits and
 // transfers never count against a budget - a refund shouldn't quietly buy you
 // more headroom.
-export function spendByCategoryForMonth(transactions, accounts, monthKey, cycleAware = true) {
+export function spendByCategoryForMonth(transactions, accounts, monthKey, cycleAware = true, cashFrom = null) {
   const byId = accountMap(accounts);
-  return tally(transactions.filter((t) => spendingMonthOf(t, byId.get(t.accountId), cycleAware) === monthKey), byId);
+  return tally(transactions.filter((t) => spendingMonthOf(t, byId.get(t.accountId), cycleAware) === monthKey), byId, cashFrom);
+}
+
+// A debit that Left to spend (js/free-to-spend.js) does not count either, or the
+// category screens read differently from it for the same month: a cost the
+// office pays back, money lent to a person, and, once the cash rule is on
+// (`cashFrom`, the day it began), a bank cash withdrawal, which is money moved to
+// the pocket and counted when it is spent.
+export function isNotSpending(t, account, cashFrom = null) {
+  if (t.direction !== 'debit') return false;
+  if (t.isReimbursable === true || isPersonMoney(t)) return true;
+  return Boolean(cashFrom) && t.date >= cashFrom && account?.type === 'bank' && CASH_ENTRY_RE.test(t.rawDescription || '');
 }
 
 // An account you do not spend from (a savings pot, a bank kept for EMIs and
 // FDs) is never spending, so its payments out stay out of every category: two
 // home-loan EMIs from it once read as ₹46,000 of "Transport" a month.
-function tally(rows, byId) {
+function tally(rows, byId, cashFrom = null) {
   const totals = new Map();
   for (const t of rows) {
     // A card bill is the card's purchases again (they are counted on the card).
     if (t.isTransfer || t.direction !== 'debit' || isPutAway(byId.get(t.accountId) || {}) || isCardBill(t, byId.get(t.accountId))) continue;
+    if (isNotSpending(t, byId.get(t.accountId), cashFrom)) continue;
     for (const slice of categorySlices(t)) {
       const key = slice.categoryId || 'uncategorized';
       totals.set(key, (totals.get(key) || 0) + slice.amount);
@@ -57,7 +71,7 @@ export async function cycleAwareEnabled() {
 // means by "this month".
 export async function budgetStatusForMonth(budgets, categories, transactions, monthKey) {
   const accounts = await getAll('accounts');
-  const spentMap = spendByCategoryForMonth(transactions, accounts, monthKey, await cycleAwareEnabled());
+  const spentMap = spendByCategoryForMonth(transactions, accounts, monthKey, await cycleAwareEnabled(), await getSetting('cashRuleFrom', null));
   return statusFrom(budgets, categories, spentMap);
 }
 

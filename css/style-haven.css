@@ -376,7 +376,17 @@ html:root[data-style="haven"] .hv-chip svg, html:root[data-style="haven"] .hv-ch
 :root[data-style="haven"] .ct-top .tl-stats > div:first-child { padding-left: 0; }
 :root[data-style="haven"] .ct-top .tl-stats > div + div { border-left: 1px solid var(--hv-on-navy-3); }
 :root[data-style="haven"] .ct-top .tl-stats .tl-k { font-size: var(--hv-fs-micro); }
-:root[data-style="haven"] .ct-top .tl-stats b { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; color: var(--hv-on-navy); }
+:root[data-style="haven"] .ct-top .tl-stats b { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; color: var(--hv-on-navy); overflow-wrap: anywhere; }
+:root[data-style="haven"] .ct-top .tl-stats > div { min-width: 0; }
+/* A narrow phone: "₹1,516/day" is the longest word, so the two per-day figures get the room and Days left gives it up
+   (at 320 wide and the largest text it ran into the cell beside it). */
+@media (max-width: 380px) {
+  :root[data-style="haven"] .ct-top .tl-stats { grid-template-columns: 1.25fr 1.35fr 1fr; }
+  :root[data-style="haven"] .ct-top .tl-stats > div { padding: 0 5px; }
+  :root[data-style="haven"] .ct-top .tl-stats > div:first-child { padding-left: 0; }
+  :root[data-style="haven"] .ct-top .tl-stats .tl-k { white-space: nowrap; }
+  :root[data-style="haven"] .ct-top .tl-stats b { font-size: 14.5px; }
+}
 :root[data-style="haven"] .ct-top .tl-prog { background: oklch(100% 0 0 / 0.12); box-shadow: none; }
 :root[data-style="haven"] .ct-top .tl-prog > span { color: var(--hv-on-navy); }
 :root[data-style="haven"] .coach-hub { display: none; }

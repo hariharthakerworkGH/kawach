@@ -1,6 +1,7 @@
 import { sortCategories } from '../list-order.js';
 import { monthKeyOf } from '../spending-month.js';
-import { getAll, put, remove, newId } from '../db.js';
+import { getAll, put, remove, newId, getSetting } from '../db.js';
+import { isNotSpending } from '../budgets.js';
 import { categoryStyle, setCustomStyles, categoryIconKey, COLOR_CHOICES } from '../category-style.js';
 import { categoryIcon, PICKABLE_ICONS } from '../category-icons.js';
 import { icon } from '../icons.js';
@@ -45,8 +46,8 @@ export function onBack() {
 
 export async function render(container) {
   shownIn = container;
-  const [categories, accounts, profile, transactions] = await Promise.all([getAll('categories'), getAll('accounts'), moneyProfile(), getAll('transactions')]);
-  monthSpend = spendThisMonth(transactions, accounts, scope);
+  const [categories, accounts, profile, transactions, cashFrom] = await Promise.all([getAll('categories'), getAll('accounts'), moneyProfile(), getAll('transactions'), getSetting('cashRuleFrom', null)]);
+  monthSpend = spendThisMonth(transactions, accounts, scope, cashFrom);
   biggestSpend = Math.max(0, ...monthSpend.values());
   setCustomStyles(categories);
   // The Business tab is there for those with a business, and only them.
@@ -477,7 +478,7 @@ function wireReview(container) {
 let monthSpend = new Map();
 let biggestSpend = 0;
 
-function spendThisMonth(transactions, accounts, lane) {
+function spendThisMonth(transactions, accounts, lane, cashFrom) {
   const business = new Set(accounts.filter(isBusinessAccount).map((a) => a.id));
   // Nothing leaving an account you do not spend from is spending (budgets.js).
   const putAway = new Set(accounts.filter(isPutAway).map((a) => a.id));
@@ -485,7 +486,7 @@ function spendThisMonth(transactions, accounts, lane) {
   const key = monthKeyOf(new Date());
   const totals = new Map();
   for (const t of transactions) {
-    if (t.direction !== 'debit' || t.isTransfer || t.date.slice(0, 7) !== key || putAway.has(t.accountId) || isCardBill(t, byId.get(t.accountId))) continue;
+    if (t.direction !== 'debit' || t.isTransfer || t.date.slice(0, 7) !== key || putAway.has(t.accountId) || isCardBill(t, byId.get(t.accountId)) || isNotSpending(t, byId.get(t.accountId), cashFrom)) continue;
     if (business.has(t.accountId) !== (lane === 'business')) continue;
     for (const slice of categorySlices(t)) {
       if (!slice.categoryId) continue;

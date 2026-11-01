@@ -1038,6 +1038,19 @@ test('spending by category leaves out an account you do not spend from', () => {
   equal(spendByCategoryForMonth(rows, accounts, '2026-09', false).get('food'), rupees(500), 'the EMI from the loan account is not spending');
 });
 
+test('spending by category leaves out what Left to spend leaves out: work costs, money lent, cash taken out', () => {
+  const accounts = [{ id: 'hdfc', type: 'bank' }];
+  const rows = [
+    { id: 'a', accountId: 'hdfc', date: '2026-09-10', direction: 'debit', amount: rupees(500), categoryId: 'food' },
+    { id: 'b', accountId: 'hdfc', date: '2026-09-11', direction: 'debit', amount: rupees(27932), categoryId: 'food', isReimbursable: true },
+    { id: 'c', accountId: 'hdfc', date: '2026-09-12', direction: 'debit', amount: rupees(3000), categoryId: 'food', personId: 'p1' },
+    { id: 'd', accountId: 'hdfc', date: '2026-09-13', direction: 'debit', amount: rupees(10000), categoryId: 'food', rawDescription: 'ATM WDL 123 MUMBAI' },
+    { id: 'e', accountId: 'hdfc', date: '2026-09-02', direction: 'debit', amount: rupees(2000), categoryId: 'food', rawDescription: 'ATM WDL 456 MUMBAI' },
+  ];
+  equal(spendByCategoryForMonth(rows, accounts, '2026-09', false, '2026-09-05').get('food'), rupees(2500), 'only the shop and the ATM withdrawal from before the cash rule began count');
+  equal(spendByCategoryForMonth(rows, accounts, '2026-09', false).get('food'), rupees(12500), 'no cash rule on this phone: a withdrawal counts as it always did');
+});
+
 test('SBI savings statement: a row missed is caught by the summary', () => {
   const missing = SBI_SAVINGS.replace('15/09/2026 15/09/2026 - - 12,000.00 32,000.00', 'a line the reader could not read');
   equal(sbiSavings.parse(missing).meta.reconciled, false);

@@ -1,11 +1,11 @@
-import { getAll } from '../db.js';
+import { getAll, getSetting } from '../db.js';
 import { formatRupees } from '../format.js';
 import { categoryStyle } from '../category-style.js';
 import { extractMerchantKey } from '../merchant-rules.js';
 import { categorySlices } from '../splits.js';
 import { categoryBars } from '../charts.js';
 import { spendingMonthOf, accountMap, monthKeyOf } from '../spending-month.js';
-import { cycleAwareEnabled } from '../budgets.js';
+import { cycleAwareEnabled, isNotSpending } from '../budgets.js';
 import { isPutAway } from '../account-metrics.js';
 import { isCardBill } from '../transfers.js';
 import { redraw } from '../redraw.js';
@@ -25,11 +25,12 @@ export async function render(container, params = {}) {
     monthOffset = 0;
     cardIndex = 0;
   }
-  const [transactions, categories, accounts, cycleAware] = await Promise.all([
+  const [transactions, categories, accounts, cycleAware, cashFrom] = await Promise.all([
     getAll('transactions'),
     getAll('categories'),
     getAll('accounts'),
     cycleAwareEnabled(),
+    getSetting('cashRuleFrom', null),
   ]);
   // Tag each transaction with the month it actually belongs to, so a card
   // purchase after the statement day is recapped in the month it gets billed.
@@ -37,7 +38,7 @@ export async function render(container, params = {}) {
   const spendable = transactions
     // Nothing leaving an account you do not spend from is spending (budgets.js).
     // ...nor a card bill, which is the card's purchases again.
-    .filter((t) => !t.isTransfer && !(t.direction === 'debit' && isPutAway(byId.get(t.accountId) || {})) && !isCardBill(t, byId.get(t.accountId)))
+    .filter((t) => !t.isTransfer && !(t.direction === 'debit' && isPutAway(byId.get(t.accountId) || {})) && !isCardBill(t, byId.get(t.accountId)) && !isNotSpending(t, byId.get(t.accountId), cashFrom))
     .map((t) => ({ ...t, month: spendingMonthOf(t, byId.get(t.accountId), cycleAware) }));
 
   const months = [...new Set(spendable.map((t) => t.month))].sort().reverse();

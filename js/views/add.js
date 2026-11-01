@@ -10,7 +10,7 @@ import { categoryStyle } from '../category-style.js';
 import { showToast } from '../toast.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, toMonthly, toYearly, isoLocal, clockOf } from '../frequency.js';
 import { formatCurrency, formatRupees } from '../format.js';
-import { MAX_PAISE } from '../records.js';
+import { MAX_PAISE, paiseFrom } from '../records.js';
 import { isLiveCommitment } from '../commitments.js';
 import { isBusinessCategory, isBusinessAccount, activeSpace, accountInSpace } from '../business.js';
 import { escapeHtml, invalidField, markFresh, slidingPill } from '../ui.js';
@@ -523,12 +523,11 @@ export async function render(container, params = {}) {
 
   const updateRepeatPreview = () => {
     repeatOptions.hidden = !repeatsEl.checked;
-    const raw = parseFloat(amountInput.value);
-    if (!repeatsEl.checked || !Number.isFinite(raw) || raw <= 0) {
+    const minor = paiseFrom(amountInput.value);
+    if (!repeatsEl.checked || minor == null) {
       freqPreview.hidden = true;
       return;
     }
-    const minor = Math.round(raw * 100);
     const monthly = toMonthly(minor, frequencyEl.value);
     const yearly = toYearly(minor, frequencyEl.value);
     freqPreview.hidden = false;

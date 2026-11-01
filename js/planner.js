@@ -19,7 +19,7 @@ const DISCRETIONARY_EXCLUDE = /rent|emi|loan|insurance|tax|income|transfer|atm|b
 // A single read of everything the other functions need, so a screen asking
 // four questions doesn't hit the database four times.
 export async function financialSnapshot(now = new Date()) {
-  const [allTransactions, categories, recurring, incomeSetting, budgets, accounts, cycleAware] = await Promise.all([
+  const [allTransactions, categories, recurring, incomeSetting, budgets, accounts, cycleAware, cashFrom] = await Promise.all([
     getAll('transactions'),
     getAll('categories'),
     getAll('recurring'),
@@ -27,6 +27,7 @@ export async function financialSnapshot(now = new Date()) {
     getBudgets(),
     getAll('accounts'),
     cycleAwareEnabled(),
+    getSetting('cashRuleFrom', null),
   ]);
 
   // The house's money only: a business's own accounts are its own.
@@ -40,7 +41,7 @@ export async function financialSnapshot(now = new Date()) {
   const daysElapsed = now.getDate();
   const daysLeft = Math.max(0, daysInMonth - daysElapsed);
 
-  const spentMap = spendByCategoryForMonth(transactions, accounts, currentMonthKey(now), cycleAware);
+  const spentMap = spendByCategoryForMonth(transactions, accounts, currentMonthKey(now), cycleAware, cashFrom);
 
   const fixedMonthly = fixed.reduce((s, r) => s + monthlyAmountOf(r), 0);
   let variableSpent = 0;
@@ -95,7 +96,7 @@ export async function financialSnapshot(now = new Date()) {
     spentMap,
     accounts,
     cycleAware,
-    categoryAverages: monthlyAveragesByCategory(transactions, accounts, cycleAware, now),
+    categoryAverages: monthlyAveragesByCategory(transactions, accounts, cycleAware, now, cashFrom),
     categoryName: (id) => (id === 'uncategorized' ? 'Uncategorized' : categories.find((c) => c.id === id)?.name || 'Uncategorized'),
   };
 }
@@ -103,7 +104,7 @@ export async function financialSnapshot(now = new Date()) {
 // Average monthly spend per category across the last three *complete* months.
 // The current month is excluded - halfway through, it would drag every average
 // down and make today's spending look unusually high.
-function monthlyAveragesByCategory(transactions, accounts, cycleAware, now) {
+function monthlyAveragesByCategory(transactions, accounts, cycleAware, now, cashFrom) {
   const months = [];
   let key = currentMonthKey(now);
   for (let i = 1; i <= 3; i++) {
@@ -114,7 +115,7 @@ function monthlyAveragesByCategory(transactions, accounts, cycleAware, now) {
   const totals = new Map();
   const monthsWithData = new Set();
   for (const month of months) {
-    const map = spendByCategoryForMonth(transactions, accounts, month, cycleAware);
+    const map = spendByCategoryForMonth(transactions, accounts, month, cycleAware, cashFrom);
     if (map.size === 0) continue;
     monthsWithData.add(month);
     for (const [categoryId, amount] of map) {
