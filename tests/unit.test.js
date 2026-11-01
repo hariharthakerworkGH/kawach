@@ -2719,6 +2719,11 @@ test('Kept back opened: one line for each set-aside with something left, most le
   const said = Number(/Kept aside<\/span><b class="hv-amt">₹([\d,]+)/.exec(plan.box)[1].replace(/,/g, ''));
   equal(said * 100, keptBack({ tracker }), 'Plan and Summary say the same Kept back / Kept aside');
   ok(plan.list.includes('Not tracked') && !/Untracked<\/span><span class="m">₹/.test(plan.list), 'an untracked pot does not claim money left');
+  // Found on the Android emulator, 1 Nov 2026: a skipped set-aside (left 0, nothing used) read "Used up" with a full bar under "Set aside this month".
+  const skippedPot = { id: 'fuel', label: 'Fuel', amount: rupees(3000), used: 0, left: 0, setAside: true, skipped: true, status: 'skipped' };
+  const skip = havenCommitments([skippedPot]);
+  ok(!skip.list.includes('Used up') && !skip.list.includes('Set aside this month'), 'a skipped set-aside is not shown as used up');
+  ok(/Paid and skipped[\s\S]*Fuel[\s\S]*Skipped/.test(skip.list), 'it sits with the skipped bills, tagged Skipped');
 });
 
 /* --- How it looks (5.93): five things in one card, each saved the moment it is touched ------------------------------------------------- */

@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.10.6',
+    items: [
+      {
+        icon: 'tick',
+        title: "Skipped plans sit with the skipped",
+        text: "A set-aside you skip this month now shows under Paid and skipped with a Skipped tag, instead of saying Used up. On a narrow phone the three figures in the Plan box (Paid, To pay, Kept aside) now line up.",
+      },
+    ],
+  },
+  {
     version: '7.10.5',
     items: [
       {

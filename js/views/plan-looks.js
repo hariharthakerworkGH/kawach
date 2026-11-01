@@ -51,7 +51,8 @@ export function planTop(f) {
  * group the order is the one chosen on the sort control (A to Z unless changed). Tapping a row opens what can be done with
  * it (mark paid, skip, see its payments, edit). `tracker` is free-to-spend.js's own list; nothing is calculated again.
  * Exported for a test. */
-const isProgress = (t) => t.setAside || ['ok', 'heading-over', 'over'].includes(t.status);
+// A skipped set-aside has left 0 and nothing used, so as a "progress" row it read "Used up" with a full bar; it belongs with the skipped bills.
+const isProgress = (t) => !t.skipped && (t.setAside || ['ok', 'heading-over', 'over'].includes(t.status));
 const UNPAID = new Set(['late', 'due', 'part']);
 
 export function havenCommitments(tracker, { order = new Map(), dayOf = () => null, markable = () => false, note = () => '', editingId = null, form = () => '' } = {}) {
