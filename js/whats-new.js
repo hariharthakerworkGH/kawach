@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.10.7',
+    items: [
+      {
+        icon: 'chart',
+        title: "The dashed line follows what is left",
+        text: "On Summary's chart the dashed line now runs from where your spending stands today to your whole budget on the last day. Stay on it and the month ends with nothing over. Before, it started at zero on day 1, so any spending on the first day sat above it.",
+        guide: [{ view: 'summary', target: '.lg-chart', text: "The dashed line is the way to the end of the month on budget. Press and slide along the chart to read each day." }],
+      },
+    ],
+  },
+  {
     version: '7.10.6',
     items: [
       {

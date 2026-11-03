@@ -1,6 +1,6 @@
 /* Haven's small behaviours (5.52): the header's extra buttons, the shortcuts, and the line you can drag across.
  * Nothing here draws a screen; the screens draw themselves (js/views/summary-looks.js ...) and this wires what they
- * ask for: [data-hv-go="view"] goes to that screen; .hv-chartwrap reads a day when dragged across. */
+ * ask for: [data-hv-go="view"] goes to that screen; svg.lg-chart reads a day when dragged across. */
 import { icon } from './icons.js';
 import { pendingAlerts } from './alert-inbox.js';
 import { categoryIcon } from './category-icons.js';
@@ -11,7 +11,6 @@ import { lifeDraw } from './haven-life.js';
 import { wireTabs } from './views/summary-looks.js';
 import { shortRupees } from './format.js';
 
-const inr = (paise) => Math.round(Math.abs(paise) / 100).toLocaleString('en-IN');
 const isHaven = () => document.documentElement.dataset.style === 'haven';
 
 /* Shortcuts and cards: one handler for everything marked data-hv-go. */
@@ -22,7 +21,6 @@ export function wireHaven(root) {
     el.dataset.hvWired = '1';
     el.addEventListener('click', () => el.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: el.dataset.hvGo } })));
   });
-  root.querySelectorAll('.hv-chartwrap').forEach(scrub);
   wireTabs(root);
   // Press and slide along the hero's chart to read the day under the finger (a tap reads one day): a line and a dot follow it, the day's bar
   // lights up and one line above says what it was. The nearest day always wins, so none can be missed. Vertical scrolling is left to the page.
@@ -130,35 +128,6 @@ export function saveMorph(btn, after, hold = 560) {
   buzzFor(btn.matches('[data-pay-step]') ? 'paid' : 'saved');
   setTimeout(() => { btn.classList.remove('saving'); btn.classList.add('saved'); }, reduced() ? 10 : hold);
   setTimeout(() => { if (after) after(); setTimeout(() => btn.classList.remove('saved'), 900); }, reduced() ? 20 : hold + 640);
-}
-
-/* Drag across the month's line to read a day: what was spent by then, and what an even pace would have been. */
-function scrub(wrap) {
-  if (wrap.dataset.hvWired) return;
-  wrap.dataset.hvWired = '1';
-  const W = Number(wrap.dataset.w), limit = Number(wrap.dataset.limit), days = Number(wrap.dataset.days), first = Number(wrap.dataset.first) || 1;
-  const cum = wrap.dataset.cum.split(',').map(Number), month = wrap.dataset.month;
-  const svg = wrap.querySelector('svg'), tip = wrap.querySelector('.hv-tip'), line = wrap.querySelector('.cur-line'), dot = wrap.querySelector('.cur-dot');
-  const x = (d) => 14 + ((d - 1) / Math.max(1, days - 1)) * (W - 28);
-  const yMax = limit * 0.7;
-  const y = (v) => 104 - (Math.min(v, yMax) / yMax) * 92;
-  const at = (e) => {
-    const r = svg.getBoundingClientRect();
-    const f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-    const d = Math.max(1, Math.min(cum.length, Math.round(((f * W - 14) / (W - 28)) * (days - 1)) + 1));
-    const v = cum[d - 1], px = x(d);
-    line.setAttribute('x1', px); line.setAttribute('x2', px); dot.setAttribute('cx', px); dot.setAttribute('cy', y(v));
-    line.classList.add('on'); dot.classList.add('on'); tip.classList.add('show');
-    tip.innerHTML = `<b>${first + d - 1 > 31 ? d : first + d - 1} ${month}</b> · ₹${inr(v)} spent<br><span>an even pace would be ₹${inr((limit * d) / days)}</span>`;
-    tip.style.left = `${Math.max(18, Math.min(82, (px / W) * 100))}%`;
-    if (navigator.vibrate) navigator.vibrate(4);
-  };
-  const off = () => { line.classList.remove('on'); dot.classList.remove('on'); tip.classList.remove('show'); };
-  svg.addEventListener('pointerdown', (e) => { svg.setPointerCapture(e.pointerId); at(e); });
-  svg.addEventListener('pointermove', (e) => { if (e.buttons || e.pointerType === 'mouse') at(e); });
-  svg.addEventListener('pointerup', off);
-  svg.addEventListener('pointerleave', off);
-  svg.addEventListener('pointercancel', off);
 }
 
 /* The header (the Ledger mockups): a greeting above the title on Summary, and on the right one group of small buttons. Summary's group is

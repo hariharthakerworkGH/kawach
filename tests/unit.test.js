@@ -2321,6 +2321,31 @@ test('the hero chart: a bar for each day, hatching for money not from the budget
   ok(heights.length === 6 && Math.min(...heights) > 6, `ordinary days stay readable beside the big one: ${JSON.stringify(heights)}`);
 });
 
+// 3 Nov 2026: the dashed line ran from 0 on day 1 to the budget on the last day, so a first-day spend sat above it however small and it said nothing about what was left.
+test('the hero chart: the dashed line runs from where the spending stands today to the whole budget on the last day', () => {
+  const f = {
+    limit: 3000000,
+    spendDays: [10000, 30000, 60000],
+    spendByDay: [{ date: '2026-10-01', amount: 10000, other: 0 }, { date: '2026-10-02', amount: 20000, other: 0 }, { date: '2026-10-03', amount: 30000, other: 0 }],
+    daysIntoCycle: 3,
+    daysToClose: 29,
+  };
+  const dashed = (svg) => (svg.match(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)" stroke="rgba\(255,255,255,\.7\)" stroke-width="1\.3" stroke-dasharray="4 4"\/>/) || []).slice(1).map(Number);
+  const todayAt = (svg) => (svg.match(/<line x1="([\d.]+)" y1="([\d.]+)" x2="[\d.]+" y2="[\d.]+" stroke="rgba\(255,255,255,\.35\)"/) || []).slice(1, 3).map(Number);
+  const under = heroChart(f, true);
+  const [x1, y1, x2, y2] = dashed(under);
+  const [tx, ty] = todayAt(under);
+  ok(x1 === tx && y1 === ty, `the dashed line starts on today's point: ${JSON.stringify({ x1, y1, tx, ty })}`);
+  ok(x2 === 328 && y2 === 12, `and ends on the whole budget on the last day: ${JSON.stringify({ x2, y2 })}`);
+  ok(y1 > y2, 'under budget it climbs');
+  const over = heroChart({ ...f, spendDays: [10000, 30000, 4000000] }, true);
+  const [, oy1, , oy2] = dashed(over);
+  ok(oy1 === oy2, `once the budget is used up it stays level: ${oy1} ${oy2}`);
+  const lastDay = heroChart({ ...f, daysToClose: 1 }, true);
+  equal(dashed(lastDay).length, 0, 'on the last day there is nothing further to draw');
+  ok(!/even pace/.test(under) && /way to the end of the month on budget/.test(under), 'its words say what the line is');
+});
+
 // 30 Oct 2026 shot of the owner's data: a month begun on the day a month-end salary landed ended its chart at "32".
 test('the hero chart: a month that begins on 30 Oct ends on 30 Nov, and a whole month still reads 1 to 31', () => {
   const rolled = { limit: 3000000, spendDays: [10000], spendByDay: [{ date: '2026-10-30', amount: 10000, other: 0 }], daysIntoCycle: 1, daysToClose: 32 };

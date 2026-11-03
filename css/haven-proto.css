@@ -295,13 +295,6 @@
 :root[data-style="haven"] .hv-pillbtn::before { content: ""; position: absolute; inset: -4px 0; }
 :root[data-style="haven"] .hv-pillbtn:active { transform: scale(0.96); }
 :root[data-style="haven"] .hv-pillbtn .hv-ic { width: 18px; height: 18px; color: var(--hv-link); }
-:root[data-style="haven"] .hv-chartwrap { position: relative; touch-action: pan-y; }
-:root[data-style="haven"] .hv-chart .cur-line { stroke: var(--hv-link); stroke-width: 1.4; opacity: 0; transition: opacity var(--hv-d-fast) var(--hv-ease-out); }
-:root[data-style="haven"] .hv-chart .cur-dot { fill: var(--hv-core); stroke: var(--hv-link); stroke-width: 2.4; opacity: 0; transition: opacity var(--hv-d-fast) var(--hv-ease-out); }
-:root[data-style="haven"] .hv-chart .cur-line.on, :root[data-style="haven"] .hv-chart .cur-dot.on { opacity: 1; }
-:root[data-style="haven"] .hv-tip { position: absolute; top: 4px; left: 50%; transform: translate(-50%, -4px) scale(0.96); padding: 7px 12px; border-radius: 14px; background: var(--hv-toast-bg); color: var(--hv-on-navy); font-size: 12px; line-height: 1.35; white-space: nowrap; opacity: 0; pointer-events: none; box-shadow: 0 14px 24px -12px var(--hv-sh-4); transition: opacity var(--hv-d-fast) var(--hv-ease-out), transform var(--hv-d-fast) var(--hv-ease-out); z-index: 2; }
-:root[data-style="haven"] .hv-tip.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
-:root[data-style="haven"] .hv-tip span { color: var(--hv-on-navy-2); }
 :root[data-style="haven"] .hv-grip { display: block; position: relative; width: 40px; height: 5px; margin: 0 auto 4px; border-radius: 3px; background: var(--hv-hair-strong); touch-action: none; }
 :root[data-style="haven"] .hv-grip::before { content: ""; position: absolute; inset: -14px -30px; }
 :root[data-style="haven"] .hv-sheet__head { touch-action: none; }
