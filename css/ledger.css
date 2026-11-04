@@ -226,6 +226,8 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .lg-row { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; min-height: 44px; padding: 0 12px; border: 0; background: none; font: inherit; text-align: left; color: var(--lg-ink); cursor: pointer; }
 :root[data-style=haven] .lg-row .n { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 :root[data-style=haven] .lg-row .n i { font-style: normal; font-weight: 400; font-size: 13px; color: var(--lg-ink3); margin-left: 6px; }
+/* Summary's latest payments: the category sits under the name, so a long name can never cut it off (it read "Uncategoris…"). */
+:root[data-style=haven] .hv-lp .lg-row .n i { display: block; margin: 2px 0 0; }
 :root[data-style=haven] .lg-row .amt { font-weight: 650; }
 :root[data-style=haven] .lg-row .amt.in { color: var(--lg-ok); }
 :root[data-style=haven] .hv-lp + .hv-lp .lg-row::before { content: ""; position: absolute; left: 50px; right: 0; top: 0; height: 1px; background: var(--lg-line); }
@@ -340,9 +342,6 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .lg-todo .lg-todo-pre { width: 100%; cursor: pointer; }
 :root[data-style=haven] .lg-todo .lg-todo-go { color: var(--lg-ink3); display: grid; }
 :root[data-style=haven] .lg-todo .lg-todo-go svg { width: 16px; height: 16px; }
-:root[data-style=haven] .lg-todo .todo-more { grid-column: 1 / -1; }
-:root[data-style=haven] .lg-todo .todo-more > summary { display: flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 600; color: var(--lg-ink2); cursor: pointer; list-style: none; }
-:root[data-style=haven] .lg-todo .todo-more > summary::-webkit-details-marker { display: none; }
 :root[data-style=haven] .lg-todo .sum-needs { padding: 0; }
 :root[data-style=haven] .lg-todo .sum-needs__head, :root[data-style=haven] .lg-todo .section-head { display: none; }
 :root[data-style=haven] .lg-todo .sum-calm { margin: 0; padding: 12px 14px; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--lg-ink2); }
@@ -438,7 +437,7 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 }
 :root[data-style=haven] .k .totals-card .totals-card { box-shadow: none; background: none; margin-inline: 0; }
 :root[data-style=haven] .k .totals-card.plan-month { background: none; box-shadow: none; padding: 0; margin-inline: 0; }
-:root[data-style=haven] .k-icon, :root[data-style=haven] .tl-ibox, :root[data-style=haven] .k .need-row__ic, :root[data-style=haven] .k .add-row > .add-row-ic, :root[data-style=haven] .k .k-context__mark {
+:root[data-style=haven] .k-icon, :root[data-style=haven] .tl-ibox, :root[data-style=haven] .k .need-row__ic, :root[data-style=haven] .k .k-context__mark {
   width: 32px; height: 32px; border-radius: 8px; box-shadow: none; color: var(--k-tint, var(--lg-tide)); background: color-mix(in srgb, var(--k-tint, var(--lg-tide)) 16%, transparent);
 }
 :root[data-style=haven] .k-icon svg, :root[data-style=haven] .tl-ibox svg, :root[data-style=haven] .k .need-row__ic svg { width: 16px; height: 16px; }
@@ -508,6 +507,7 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .k .plan-common { margin: 4px 0 0; }
 
 :root[data-style=haven] .lg-months { margin: 0; padding: 12px 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+:root[data-style=haven] .lg-months--one { grid-template-columns: minmax(0, 1fr); }
 :root[data-style=haven] .lg-m { min-width: 0; }
 :root[data-style=haven] .lg-m .mn { display: block; font-size: 12px; color: var(--lg-ink2); }
 :root[data-style=haven] .lg-m b { display: block; margin: 1px 0 6px; font-size: 16px; font-weight: 650; }
@@ -568,7 +568,6 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .lg-row .nm { display: block; min-width: 0; }
 :root[data-style=haven] .lg-row .nm .n { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 :root[data-style=haven] .lg-row .nm .m { display: block; margin-top: 1px; font-size: 12px; color: var(--lg-ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-:root[data-style=haven] .plan-ins .lg-calm { padding: 0 2px 8px; }
 :root[data-style=haven] .lg-card, :root[data-style=haven] .lg-sec, :root[data-style=haven] .lg-months, :root[data-style=haven] .hv-notes { line-height: 1.3; }
 :root[data-style=haven] .lg-clist .hv-bill, :root[data-style=haven] .lg-clist.hv-clist .hv-bill + .hv-bill, :root[data-style=haven] .lg-clist .hv-clabel + .hv-bill { min-height: 0; max-height: none; box-shadow: none; padding: 0; gap: 0; }
 :root[data-style=haven] .lg-clist .hv-bill--aside { padding: 0; }
@@ -607,9 +606,9 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .lg-ringcard .hv-ring__mid { position: absolute; inset: 0; padding: 0; display: grid; place-content: center; text-align: center; gap: 0; pointer-events: none; }
 :root[data-style=haven] .lg-ringcard .hv-ring__mid b { font-size: 16px; font-weight: 700; color: var(--lg-ink); letter-spacing: -0.01em; }
 :root[data-style=haven] .lg-ringcard .hv-ring__mid span { max-width: 62px; margin: 0 auto; font-size: 11px; line-height: 1.15; color: var(--lg-ink2); overflow-wrap: anywhere; }
-:root[data-style=haven] .lg-legend { display: grid; gap: 6px; font-size: 13px; min-width: 0; }
+:root[data-style=haven] .lg-legend { display: grid; gap: 0; font-size: 13px; min-width: 0; }
 :root[data-style=haven] .lg-legend .hv-ring__badge { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; padding: 0; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; text-align: left; font: inherit; font-size: 13px; color: var(--lg-ink2); cursor: pointer; transition: opacity 200ms; }
-:root[data-style=haven] .lg-legend .hv-ring__badge::after { content: ""; position: absolute; inset: -11px -4px; }
+:root[data-style=haven] .lg-legend .hv-ring__badge::after { content: ""; position: absolute; inset: 0 -4px; }
 :root[data-style=haven] .lg-legend .hv-ring__badge > i { width: 8px; height: 8px; border-radius: 3px; flex: none; }
 :root[data-style=haven] .lg-legend .hv-ring__badge > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 :root[data-style=haven] .lg-legend .hv-ring__badge > b { font-weight: 650; color: var(--lg-ink); }
@@ -660,11 +659,15 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .hist-row .txn-amount { font-weight: 650; font-size: 15px; color: var(--lg-ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
 :root[data-style=haven] .hist-row .txn-amount.in { color: var(--lg-ok); }
 :root[data-style=haven] .hist-row .txn-amount.muted { color: var(--lg-ink3); }
+/* A purchase and the refund that undid it: a "Refunded" or "Refund" tag under the name says so (js/views/transactions.js); the icon is
+   fainter and the amount quieter. The words are never faded: that fell to 2.5 to 1. */
+:root[data-style=haven] .hist-row.is-cancelled .txn-amount, :root[data-style=haven] .hist-row.is-cancelled .txn-amount.in { color: var(--lg-ink2); }
+:root[data-style=haven] .hist-row.is-cancelled .lg-ico { opacity: .5; }
 :root[data-style=haven] .hist-row .lg-ico { width: 28px; height: 28px; }
 :root[data-style=haven] .hist-row.open { background: var(--lg-s2); }
 :root[data-style=haven] .hist-row.open .hist-sub { white-space: normal; }
 :root[data-style=haven] .hist-row .hist-text { flex-direction: row; }
-:root[data-style=haven] .lg-legend .hv-ring__badge { min-height: 0; height: 22px; }
+:root[data-style=haven] .lg-legend .hv-ring__badge { min-height: 0; height: 44px; }
 :root[data-style=haven] .app-header #hist-month > button { min-width: 0; }
 :root[data-style=haven] .hv-histfold > summary { display: none; }
 :root[data-style=haven] .lg-ringcard { margin-top: 3px; }

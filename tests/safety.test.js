@@ -8,7 +8,7 @@ import { computeFreeToSpend } from '../js/free-to-spend.js';
 import { mergeSnapshots, mergeLists } from '../js/sync.js';
 import { restoreBackup, screenBackup, undoInfo, undoRestore } from '../js/backup.js';
 import { backupsToDelete } from '../js/drive.js';
-import { comingMonths } from '../js/views/plan.js';
+import { comingMonths, monthsAlike } from '../js/views/plan.js';
 import { bankAhead, forecast } from '../js/forecast.js';
 import { sortCommitments, sortAccounts, sortCategories, usageCounts, setOrderDir, flipOrder } from '../js/list-order.js';
 import { byYourOrder } from '../js/commitments.js';
@@ -482,6 +482,15 @@ test('forecast: a cost skipped for this month is counted in the months ahead, so
   equal([without[0].short, withIt[0].short], [false, true]);
   equal(withIt[0].free, without[0].free - 1350000);
   equal(comingMonths(figures, '2026-10-12', [rent]).map((m) => m.free), without.map((m) => m.free), 'one already in the budget is not counted twice');
+});
+
+test('forecast: three months that say the same are shown once, and any month that differs brings all three back', () => {
+  const m = (free, extra = {}) => ({ free, costs: 100, short: false, renewals: [], ...extra });
+  equal(monthsAlike([m(300), m(300), m(300)]), true);
+  equal(monthsAlike([m(300), m(300), m(310)]), false, 'a different amount free');
+  equal(monthsAlike([m(300), m(300, { renewals: [{ label: 'Insurance', amount: 5 }] }), m(300)]), false, 'something falls due');
+  equal(monthsAlike([m(-20, { short: true }), m(-20, { short: true }), m(-20, { short: true })]), false, 'a short month is always said');
+  equal(monthsAlike([m(300)]), false, 'one month is just one month');
 });
 
 test('forecast: the bank by each month follows what is in it now, and what is spent of the budget', () => {

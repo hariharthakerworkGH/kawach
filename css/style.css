@@ -2224,12 +2224,6 @@ details:has(> .muted-note:last-child) + .bank-card,
   font-variant-numeric: tabular-nums;
 }
 
-/* Yours but not for spending: quieter than the accounts in the total. */
-.bank-account.put-away span:last-child {
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
 .bank-figures .hero-label {
   display: block;
   margin: 0;
@@ -2308,16 +2302,14 @@ details:has(> .muted-note:last-child) + .bank-card,
 
 .commitment-row > summary,
 .section-fold > summary,
-.commitment-done > summary,
-.todo-more > summary {
+.commitment-done > summary {
   list-style: none;
   cursor: pointer;
 }
 
 .commitment-row > summary::-webkit-details-marker,
 .section-fold > summary::-webkit-details-marker,
-.commitment-done > summary::-webkit-details-marker,
-.todo-more > summary::-webkit-details-marker {
+.commitment-done > summary::-webkit-details-marker {
   display: none;
 }
 
@@ -2474,13 +2466,6 @@ details:has(> .muted-note:last-child) + .bank-card,
   color: var(--text);
   font: inherit;
   font-size: var(--text-meta);
-}
-
-.todo-more > summary {
-  padding: var(--space-xs) 0 var(--space-3xs);
-  font-size: var(--text-label);
-  font-weight: 600;
-  color: var(--text-muted);
 }
 
 .section-fold {
@@ -3153,17 +3138,6 @@ details:has(> .muted-note:last-child) + .bank-card,
   letter-spacing: var(--tracking-display, -0.02em);
 }
 
-.hist-step {
-  font-size: var(--icon-md);
-  line-height: 1;
-  min-width: 44px;
-  min-height: 44px;
-}
-
-.hist-step:disabled {
-  visibility: hidden;
-}
-
 /* Filters as a row of small pills. */
 .hist-chips {
   display: flex;
@@ -3534,27 +3508,6 @@ details:has(> .muted-note:last-child) + .bank-card,
 
 .install-card {
   margin-bottom: var(--space-sm);
-}
-
-.install-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-xs);
-}
-
-.install-logo {
-  flex-shrink: 0;
-  border-radius: var(--radius-md);
-}
-
-.install-title {
-  margin: 0;
-  font-weight: 700;
-}
-
-.install-head .muted-note {
-  margin-top: var(--space-4xs);
 }
 
 .install-steps {
@@ -5069,7 +5022,6 @@ select.chip {
 .disclose > summary,
 .section-fold > summary,
 .commitment-done > summary,
-.todo-more > summary,
 .fts-breakdown > summary,
 .loan-detail > summary,
 .setup-help > summary,
@@ -5087,7 +5039,6 @@ select.chip {
 .disclose > summary::-webkit-details-marker,
 .section-fold > summary::-webkit-details-marker,
 .commitment-done > summary::-webkit-details-marker,
-.todo-more > summary::-webkit-details-marker,
 .fts-breakdown > summary::-webkit-details-marker,
 .loan-detail > summary::-webkit-details-marker,
 .setup-help > summary::-webkit-details-marker,
@@ -5100,7 +5051,6 @@ select.chip {
 .disclose > summary::after,
 .section-fold > summary::after,
 .commitment-done > summary::after,
-.todo-more > summary::after,
 .fts-breakdown > summary::after,
 .loan-detail > summary::after,
 .setup-help > summary::after,
@@ -5122,7 +5072,6 @@ select.chip {
 .disclose[open] > summary::after,
 .section-fold[open] > summary::after,
 .commitment-done[open] > summary::after,
-.todo-more[open] > summary::after,
 .fts-breakdown[open] > summary::after,
 .loan-detail[open] > summary::after,
 .setup-help[open] > summary::after,
@@ -5381,18 +5330,7 @@ body::after {
 :root[data-style] .k .add-card { display: grid; gap: var(--k-3); padding: var(--k-4); margin-bottom: var(--k-3); }
 :root[data-style] .k .add-card .field,
 :root[data-style] .k .add-card .k-field { margin: 0; }
-:root[data-style] .k .add-card--amount .amount-field { display: grid; gap: var(--k-2); }
-:root[data-style] .k .add-card--amount .amount-input-wrap { display: flex; align-items: baseline; gap: 6px; padding: 10px 14px; border-radius: 12px; border: 0; }
-:root[data-style] .k .add-card--amount .amount-input { flex: 1; min-width: 0; width: 100%; padding: 0; border: 0; background: transparent; box-shadow: none; font-size: 44px; line-height: 1.1; color: var(--k-text); font-variant-numeric: tabular-nums; }
-:root[data-style] .k .add-card--amount .amount-input:focus-visible { outline: none; box-shadow: none; }
 :root[data-style] .k .add-card--category .k-picker { min-height: 44px; }
-:root[data-style] .k .add-rows { gap: 0; padding-top: var(--k-2); padding-bottom: var(--k-2); }
-:root[data-style] .k .add-row { display: grid; grid-template-columns: 36px 1fr; column-gap: 12px; row-gap: 4px; align-items: center; padding: var(--k-3) 0; }
-:root[data-style] .k .add-row + .add-row { border-top: 1px solid var(--k-hairline); }
-:root[data-style] .k .add-row > .add-row-ic { grid-row: 1 / span 2; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; }
-:root[data-style] .k .add-row > .add-row-ic svg { width: 18px; height: 18px; }
-:root[data-style] .k .add-row.k-switch-row { display: flex; gap: 12px; }
-:root[data-style] .k .add-row.k-switch-row .k-switch-row__text { flex: 1; }
 :root[data-style] .k .k-add-sms { margin: 0 0 var(--k-3); }
 :root[data-style] .k .accounts-actions .k-btn--ghost { font-size: 14px; }
 
@@ -5401,19 +5339,6 @@ body::after {
    each step drawing the stretch of line to the next one (lit once paid), so
    the line is right however many there are. */
 .pl-top { margin-bottom: var(--k-3); }
-.pl-month { margin-bottom: var(--k-3); }
-.pl-steps { display: flex; overflow-x: auto; scrollbar-width: none; padding: 6px 2px 4px; scroll-snap-type: x proximity; }
-.pl-steps::-webkit-scrollbar { display: none; }
-.pl-step { position: relative; flex: 0 0 76px; display: grid; justify-items: center; gap: 8px; text-align: center; scroll-snap-align: start; }
-.pl-step::after { content: ""; position: absolute; top: 19px; left: calc(50% + 21px); width: calc(100% - 42px); height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--k-text) 16%, transparent); }
-.pl-step:last-child::after { display: none; }
-.pl-step b { position: relative; z-index: 1; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; }
-.pl-step b svg { width: 17px; height: 17px; }
-.pl-step small { display: grid; gap: 1px; font-size: 11px; line-height: 1.25; color: var(--k-text-3); max-width: 72px; }
-.pl-step small strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; color: var(--k-text-2); }
-.pl-step small span { color: var(--k-text); font-variant-numeric: tabular-nums; }
-.pl-today { margin: 8px 2px 0; font-size: 12px; color: var(--k-text-3); }
-.pl-hint { margin: 2px 2px 0; font-size: 11px; color: var(--k-text-3); }
 .pl-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-top: 12px; font-size: 13px; color: var(--k-text-2); }
 .pl-legend > span { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; }
 .pl-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; }

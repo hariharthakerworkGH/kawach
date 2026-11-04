@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.10.8',
+    items: [
+      {
+        icon: 'check',
+        title: "Calmer Summary, Plan and History",
+        text: "Summary shows the category under the name, so a long name is never cut off. On Plan, three months that are the same show as one card, and Category budgets has its Add button in the heading. In History, a refunded purchase and its refund now carry a Refunded and a Refund tag instead of a line through the text, and the legend rows are easier to tap.",
+      },
+    ],
+  },
+  {
     version: '7.10.7',
     items: [
       {

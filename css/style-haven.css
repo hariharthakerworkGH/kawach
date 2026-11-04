@@ -105,7 +105,6 @@
 :root[data-style="haven"] .k-icon,
 :root[data-style="haven"] .tl-ibox,
 :root[data-style="haven"] .k .need-row__ic,
-:root[data-style="haven"] .k .add-row > .add-row-ic,
 :root[data-style="haven"] .k .k-context__mark {
   width: 42px; height: 42px; border: 0; border-radius: var(--hv-r-tile); color: var(--hv-on-navy);
   --hv-gem: color-mix(in oklab, var(--k-tint, var(--hv-gem-1)) 100%, #0b1530 var(--hv-gem-dark, 0%));
@@ -128,7 +127,6 @@
 
 /* the month picker: the prototype's .month */
 :root[data-style="haven"] .k .hist-month { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 0; height: 44px; padding: 0; border-radius: var(--hv-r-pill); background: var(--hv-shell); box-shadow: 0 0 0 1px var(--hv-hair), inset 0 1px 0 var(--hv-hl); text-align: center; font-weight: 600; }
-:root[data-style="haven"] .k .hist-month .hist-step { width: 44px; height: 44px; border: 0; background: none; box-shadow: none; color: var(--hv-ink-2); border-radius: 0; }
 :root[data-style="haven"] .k .hist-month .hist-month-name { padding: 0; background: none; box-shadow: none; font-size: var(--hv-fs-body); font-weight: 600; color: var(--hv-ink); }
 
 /* fields are wells; buttons are pills (the prototype's .input, .btn, .chip, .seg, .switch) */
@@ -189,22 +187,6 @@
 :root[data-style="haven"] .pl-top--tactile .is-flex { background: var(--hv-warn); }
 :root[data-style="haven"] .pl-top--tactile .is-free { background: linear-gradient(90deg, var(--hv-tide-a), var(--hv-tide-b)); }
 :root[data-style="haven"] .pl-top--tactile .is-saved { background: var(--hv-good); }
-:root[data-style="haven"] .k .plan-flex__track { background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair); }
-:root[data-style="haven"] .k .plan-flex__track i { background: linear-gradient(90deg, var(--hv-tide-a), var(--hv-tide-b)); box-shadow: none; }
-:root[data-style="haven"] .pl-month--tactile,
-:root[data-style="haven"] .plan-month .pl-month--tactile { background: none; box-shadow: none; padding: 0; }
-:root[data-style="haven"] .pl-steps { display: flex; gap: var(--hv-s2); overflow-x: auto; margin: 0 calc(var(--hv-s4) * -1); padding: 2px var(--hv-s4); scrollbar-width: none; }
-:root[data-style="haven"] .pl-steps::-webkit-scrollbar { display: none; }
-:root[data-style="haven"] .pl-step { flex: none; width: 172px; display: grid; gap: 6px; padding: var(--hv-s3); border: 0; border-radius: 22px; background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair); text-align: left; color: var(--hv-ink); }
-:root[data-style="haven"] .pl-step.is-late { background: var(--hv-bad-tile); box-shadow: none; }
-:root[data-style="haven"] .pl-step::after { display: none; }
-:root[data-style="haven"] .pl-step b { display: grid; place-items: center; width: 42px; height: 42px; border-radius: var(--hv-r-tile); color: var(--hv-on-navy); background: linear-gradient(150deg, color-mix(in oklab, var(--hv-gem-1) 78%, white), var(--hv-gem-1)); box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.35), 0 8px 14px -8px var(--hv-gem-1); }
-:root[data-style="haven"] .pl-step.is-late b { background: linear-gradient(150deg, color-mix(in oklab, var(--hv-gem-4) 78%, white), var(--hv-gem-4)); box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.35), 0 8px 14px -8px var(--hv-gem-4); }
-:root[data-style="haven"] .pl-step.is-paid b { background: linear-gradient(150deg, color-mix(in oklab, var(--hv-gem-6) 78%, white), var(--hv-gem-6)); box-shadow: inset 0 1px 0 oklch(100% 0 0 / 0.35), 0 8px 14px -8px var(--hv-gem-6); }
-:root[data-style="haven"] .pl-step small { display: grid; gap: 2px; font-size: var(--hv-fs-label); color: var(--hv-ink-2); }
-:root[data-style="haven"] .pl-step small strong { font-size: var(--hv-fs-body); font-weight: 650; color: var(--hv-ink); }
-:root[data-style="haven"] .pl-step small span { font-size: 22px; font-weight: 600; letter-spacing: -0.035em; color: var(--hv-ink); }
-:root[data-style="haven"] .pl-today, :root[data-style="haven"] .pl-hint, :root[data-style="haven"] .pl-clear, :root[data-style="haven"] .pl-done summary { text-align: left; color: var(--hv-ink-2); }
 
 /* one shell per group: the accounts inside a group and the payments inside a day are rows, not cards */
 :root[data-style="haven"] .k .account-group { padding: 4px 16px; }
@@ -448,11 +430,8 @@ html:root[data-style="haven"] .hv-addform #add-date { box-sizing: border-box; he
 :root[data-style="haven"] .hv-notice b { display: block; font-weight: 650; color: var(--hv-ink); }
 :root[data-style="haven"] .hv-notice .hv-ic { color: var(--hv-bad); }
 :root[data-style="haven"] .hv-due { text-align: left; border: 0; width: 100%; }
-:root[data-style="haven"] .hv-row--link { grid-template-columns: auto 1fr auto; min-height: 44px; color: var(--hv-link); }
-:root[data-style="haven"] .hv-row--link .hv-row__t { font-weight: 600; color: var(--hv-link); }
-:root[data-style="haven"] .hv-row--link .hv-ic { width: 18px; height: 18px; color: var(--hv-ink-3); }
 /* the eye covers every amount on the screen (one tap, remembered) */
-:root[data-style="haven"].hv-covered :is(.hv-amt, .hv-num, .hv-cur, .hv-row__v, .hv-card__fig, .tl-big, .tl-v, .tl-mid, .tl-cardamt, .stat-v, .hero-amount, .totals-row > span:last-child, .k-row__value, .account-balance, .plan-row__amount, .summary-row__v, .bank-amount, .waves__k b, .hv-step .hv-fig, .tl-stats b, .hv-muted b, .chart-readout, .hist-day-total, .txn-amount, .hist-amount) { filter: blur(9px); opacity: 0.55; user-select: none; }
+:root[data-style="haven"].hv-covered :is(.hv-amt, .hv-num, .hv-cur, .tl-big, .tl-v, .tl-mid, .tl-cardamt, .stat-v, .hero-amount, .totals-row > span:last-child, .k-row__value, .account-balance, .plan-row__amount, .summary-row__v, .bank-amount, .waves__k b, .hv-step .hv-fig, .tl-stats b, .hv-muted b, .chart-readout, .hist-day-total, .txn-amount, .hist-amount) { filter: blur(9px); opacity: 0.55; user-select: none; }
 :root[data-style="haven"] .waves-card .chart-head { padding: 0; margin: 0 0 6px; flex-wrap: wrap; row-gap: 2px; }
 :root[data-style="haven"] .waves-card .chart-head b { min-width: 0; }
 :root[data-style="haven"] .waves__fill.waves--pace { fill: none; }
@@ -468,12 +447,8 @@ html:root[data-style="haven"] .hv-addform #add-date { box-sizing: border-box; he
 /* Plan: each bill is a line, with a tick to say it is paid */
 :root[data-style="haven"] .hv-bill { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--hv-s2); padding: var(--hv-s2) var(--hv-s3) var(--hv-s2) var(--hv-s4); min-height: 60px; transition: opacity var(--hv-d-base) var(--hv-ease-settle), transform var(--hv-d-slow) var(--hv-ease-settle), max-height var(--hv-d-slow) var(--hv-ease-settle); max-height: 120px; overflow: clip; }
 :root[data-style="haven"] .hv-bill + .hv-bill { box-shadow: inset 0 1px 0 var(--hv-hair); }
-:root[data-style="haven"] .hv-bill.late .hv-bill__amt { color: var(--hv-bad); }
 :root[data-style="haven"] .hv-bill__open { all: unset; box-sizing: border-box; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--hv-s3); min-width: 0; cursor: pointer; }
 :root[data-style="haven"] .hv-bill__open .hv-gem { width: 38px; height: 38px; border-radius: 13px; }
-:root[data-style="haven"] .hv-bill__name { display: grid; min-width: 0; }
-:root[data-style="haven"] .hv-bill__name b { font-weight: 600; letter-spacing: -0.01em; }
-:root[data-style="haven"] .hv-bill__amt { font-weight: 600; font-variant-numeric: tabular-nums; }
 :root[data-style="haven"] .hv-paycheck, :root[data-style="haven"] .hv-paycheck-gap { width: 36px; height: 36px; }
 :root[data-style="haven"] .hv-paycheck { position: relative; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: var(--hv-well); box-shadow: inset 0 0 0 1px var(--hv-hair-strong); color: var(--hv-ink-2); cursor: pointer; transition: background var(--hv-d-base) var(--hv-ease-settle), color var(--hv-d-base) var(--hv-ease-settle), transform var(--hv-d-fast) var(--hv-ease-out); }
 :root[data-style="haven"] .hv-paycheck::before { content: ""; position: absolute; inset: -4px; }
@@ -484,10 +459,6 @@ html:root[data-style="haven"] .hv-addform #add-date { box-sizing: border-box; he
 :root[data-style="haven"] .hv-paycheck .spin { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--hv-hair-strong); border-top-color: var(--hv-link); opacity: 0; }
 :root[data-style="haven"] .hv-paycheck.saving .spin { opacity: 1; animation: hv-rot 520ms linear infinite; }
 /* Coming months */
-:root[data-style="haven"] .hv-row--month { grid-template-columns: 1fr auto; row-gap: 0; align-items: baseline; }
-:root[data-style="haven"] .hv-row--month .hv-row__m { grid-column: 1; }
-:root[data-style="haven"] .hv-row--month .hv-row__v { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
-:root[data-style="haven"] .hv-row__v.is-over { color: var(--hv-warn); }
 :root[data-style="haven"] .hv-meter.over i { background: var(--hv-warn); }
 :root[data-style="haven"] .hv-notes { padding: var(--hv-s3) var(--hv-s4); box-shadow: inset 0 1px 0 var(--hv-hair); display: grid; gap: 6px; }
 :root[data-style="haven"] .hv-monthnote { line-height: 1.4; }
@@ -500,8 +471,6 @@ html:root[data-style="haven"] .hv-addform #add-date { box-sizing: border-box; he
 :root[data-style="haven"] .hv-addback { display: flex; align-items: center; gap: var(--hv-s3); }
 :root[data-style="haven"] .hv-addback .hv-round { width: 36px; height: 36px; flex: none; }
 :root[data-style="haven"] .hv-addback .hv-ic { width: 18px; height: 18px; }
-:root[data-style="haven"] .hv-addback__sum { display: grid; line-height: 1.1; }
-:root[data-style="haven"] .hv-addback__sum b { font-size: 26px; font-weight: 600; letter-spacing: -0.035em; color: var(--hv-ink); }
 :root[data-style="haven"] .hv-addstep .hv-chips { margin-inline: 0; padding-inline: 0; }
 :root[data-style="haven"] .hv-addstep .k-field .k-label { font-size: var(--hv-fs-label); font-weight: 550; color: var(--hv-ink-2); }
 @media (prefers-reduced-motion: reduce) { :root[data-style="haven"] .hv-stepin { animation-duration: 1ms; } }
@@ -543,8 +512,6 @@ html:root[data-style="haven"] .hv-addform #add-date { box-sizing: border-box; he
 :root[data-style="haven"] .hv-clabel[hidden], :root[data-style="haven"] .hv-clist [data-kind][hidden] { display: none; }
 :root[data-style="haven"] .hv-bill[hidden] { display: none; }
 :root[data-style="haven"] .hv-clist .hv-bill + .hv-bill { box-shadow: inset 0 1px 0 var(--hv-hair); }
-:root[data-style="haven"] .hv-st-paid { color: var(--hv-good); display: flex; align-items: center; gap: 4px; line-height: 1; }
-:root[data-style="haven"] .hv-st-late { color: var(--hv-bad); }
 :root[data-style="haven"] .hv-tick { display: inline-grid; place-items: center; width: 14px; height: 14px; }
 :root[data-style="haven"] .hv-tick .icon { width: 100%; height: 100%; stroke-width: 2; }
 :root[data-style="haven"] .hv-bill--aside { position: relative; padding-bottom: 14px; }

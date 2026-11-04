@@ -280,7 +280,6 @@ export async function render(container) {
     }
 
     ${thisMonth ? `${sectionHead('This month')}<div class="totals-card plan-month">${thisMonth}</div>` : ''}
-    ${inBusiness ? '' : forecastList(figures, todayIso, skippedItems)}
     ${
       // How much of the month is spoken for, from the same figures the hero
       // above is made of. No second calculation.
@@ -421,16 +420,6 @@ export async function render(container) {
     }
     </div>
 
-    ${sectionHead('Category budgets')}
-    ${budgetRows.length ? budgetRows.map((b) => budgetCard(b)).join('') : '<p class="empty">No budgets set.</p>'}
-    ${
-      addingBudget
-        ? budgetForm(budgetable)
-        : budgetable.length
-          ? '<button type="button" id="budget-add-btn" class="btn-secondary btn-block">Set a budget</button>'
-          : ''
-    }
-
     ${
       detected.length
         ? `<details class="section-fold"><summary>${detected.length} payment${detected.length === 1 ? '' : 's'} look like they repeat</summary>
@@ -450,7 +439,11 @@ export async function render(container) {
                .join('')}
            </div></details>`
         : ''
-    }`
+    }
+
+    ${budgetRows.length || budgetable.length || addingBudget ? sectionHead('Category budgets', addingBudget || !budgetable.length ? '' : `<button type="button" id="budget-add-btn" class="lg-addlink">Add ${icon('add')}</button>`) : ''}
+    ${budgetRows.map((b) => budgetCard(b)).join('')}
+    ${addingBudget ? budgetForm(budgetable) : ''}`
     }
   `;
 
@@ -1028,7 +1021,7 @@ function moreLines(items, unpaidBills, today) {
     return `<button type="button" class="lg-row two policy-open" data-id="${r.id}"><span class="lg-ico t4">${categoryStyle('insurance').icon}</span><span class="nm"><span class="n">${escapeHtml(r.label)}</span><span class="m">${due ? `Renews ${formatDateNice(due)}` : escapeHtml(kindLabel(r))}</span></span><span class="amt">${formatRupees(yearlyPremium(r))}</span></button>`;
   };
   return `<div class="plan-ins">${sectionHead('Insurance', `<button type="button" id="plan-policies" class="lg-addlink">Add ${icon('add')}</button>`)}
-    ${policies.length ? `<div class="lg-card plan-policies-card">${policies.map(row).join('')}</div>` : '<p class="lg-calm">Health, life, vehicle: add one once, keep every detail in one place.</p>'}
+    ${policies.length ? `<div class="lg-card plan-policies-card">${policies.map(row).join('')}</div>` : ''}
     <div class="lg-card plan-bills-card"><button type="button" class="lg-row two" id="plan-bills"><span class="lg-ico t2">${icon('bill')}</span><span class="nm"><span class="n">One-time bills</span><span class="m">${
       unpaidBills.length
         ? `${unpaidBills.length} to pay · ${formatRupees(owed)} · next ${escapeHtml(next.label)} ${formatDateNice(next.once.dueOn)}`
@@ -1049,6 +1042,9 @@ export function comingMonths(figures, today, skipped = [], count = 3) {
   return forecast({ items, income, keep: figures.keep || 0, today, months: count });
 }
 
+/* Months that say the same thing (nothing due, the same amount free) are shown once; a month that differs brings them all back. */
+export const monthsAlike = (months) => months.length > 1 && months.every((m) => !m.short && !m.renewals.length && m.free === months[0].free && m.costs === months[0].costs);
+
 const monthWord = (key) => new Date(`${key}-01T12:00`).toLocaleDateString('en-IN', { month: 'long' });
 
 /* Haven (5.52): Plan in the prototype's order - what is short, what is still to pay, the commitments, the next three
@@ -1060,7 +1056,6 @@ function havenArrange(container, figures, todayIso, skipped) {
   const notes = kids().filter((n) => n.classList.contains('plan-flag'));
   const month = container.querySelector('[data-hv-box]');
   const monthWrap = container.querySelector('.plan-month');
-  const forecast = container.querySelector('.forecast');
   const commitHead = kids().find((n) => n.classList.contains('section-head') && /^(Commitments|Fixed costs)$/.test(n.querySelector('h3')?.textContent.trim() || ''));
   const commitList = commitHead && commitHead.nextElementSibling;
   const addBtn = commitList && commitList.nextElementSibling && commitList.nextElementSibling.id === 'plan-add-btn' ? commitList.nextElementSibling : null;
@@ -1071,7 +1066,6 @@ function havenArrange(container, figures, todayIso, skipped) {
   const insurance = container.querySelector(':scope > .plan-ins');
   // the old headings and wrappers that the prototype's blocks replace
   const oldMonthHead = headBefore(monthWrap);
-  const oldForecastHead = headBefore(forecast);
   const hvForecast = document.createElement('div');
   hvForecast.className = 'hv-screen hv-plan-forecast';
   hvForecast.innerHTML = havenForecast(figures, todayIso, skipped);
@@ -1085,8 +1079,6 @@ function havenArrange(container, figures, todayIso, skipped) {
   if (!keepWrap) monthWrap?.remove();
   else monthWrap.classList.add('hv-month-extra');
   if (!keepWrap) oldMonthHead?.remove();
-  forecast?.remove();
-  oldForecastHead?.remove();
   container.prepend(...ordered);
   wireHaven(container);
   // The Plan tab carries a dot while something is late or due within two days.
@@ -1122,6 +1114,8 @@ function havenForecast(figures, today, skipped) {
   const col = (m) => `<div class="lg-m${m.short ? ' over' : ''}"><span class="mn">${short(m.key)}</span><b class="hv-amt">${formatRupees(m.short ? -m.free : m.free)}</b><span class="lg-pbar"><i style="width:${(usedOf(m) * 100).toFixed(0)}%"></i></span><span class="cap" title="${m.short ? 'over' : 'free'} · ${what(m)}">${m.short ? 'over' : 'free'} · ${what(m)}</span></div>`;
   const yrow = (m) => `<div class="lg-yrow${m.short ? ' over' : ''}"><span class="n">${long(m.key)} ${m.key.slice(0, 4)}<i>${what(m)}</i></span><b class="hv-amt">${m.short ? `${formatRupees(-m.free)} over` : `${formatRupees(m.free)} free`}</b><span class="lg-edge" aria-hidden="true"><i style="width:${(usedOf(m) * 100).toFixed(0)}%"></i></span></div>`;
   const last = ahead ? ahead.spend[months.length - 1] : null;
+  const alike = monthsAlike(months);
+  const one = `<div class="lg-m"><span class="mn">${short(months[0].key)} to ${short(months[months.length - 1].key)}</span><b class="hv-amt">${formatRupees(months[0].free)}</b><span class="lg-pbar"><i style="width:${(usedOf(months[0]) * 100).toFixed(0)}%"></i></span><span class="cap">free each month, nothing due</span></div>`;
   const refund = figures.refundInBankCheck || 0;
   const over = months.filter((m) => m.short);
   const why = over.length
@@ -1129,37 +1123,7 @@ function havenForecast(figures, today, skipped) {
     : '';
   const bank = ahead && last < 0 ? `<p class="hv-muted hv-monthnote">Your bank by then, if you spend what is free: ${formatRupees(-last)} short${refund > 0 ? `, before the ${formatRupees(refund)} your employer owes you` : ''}.</p>` : '';
   return `<div class="lg-sec"><h2>Next 3 months</h2>${whole.length > 3 ? `<button type="button" class="lg-linkbtn" data-hv-fold="hv-year" aria-expanded="false">The whole year ${icon('forward')}</button>` : ''}</div>
-    <div class="lg-card lg-months">${months.map(col).join('')}</div>${why || bank ? `<div class="hv-notes">${why}${bank}</div>` : ''}${whole.length > 3 ? yearFold(rest, figures, today, skipped, yrow) : ''}`;
-}
-
-export function forecastList(figures, today, skipped = []) {
-  const months = comingMonths(figures, today, skipped);
-  if (!months.length) return '';
-  // What the bank will hold, following what has been spent so far (5.50).
-  const ahead = bankAhead({ bankAfter: figures.bankAfterBills, freeNow: figures.free, months, keep: figures.keep || 0 });
-  const level = (v) => (v < 0 ? `<b class="is-short">${formatRupees(-v)} short</b>` : `<b>${formatRupees(v)}</b>`);
-  const bankLine = (i) =>
-    ahead
-      ? `<span class="k-row__meta forecast-bank"><span>In your bank by then ${level(ahead.spend[i])}</span>${
-          i === 0 ? `<small>${level(ahead.stop)} if you spend nothing more this month${(figures.refundInBankCheck || 0) > 0 && ahead.stop < 0 ? `, ${formatRupees(figures.refundInBankCheck)} more when your employer pays back` : ''}</small>` : ''
-        }</span>`
-      : '';
-  const name = (key) => new Date(`${key}-01T12:00`).toLocaleDateString('en-IN', { month: 'long' });
-  return `${sectionHead('Next 3 months')}
-    <div class="totals-card forecast">
-      ${months
-        .map(
-          (m) => `<div class="k-row forecast-row${m.short ? ' is-short' : ''}">
-          <span class="k-row__body"><span class="k-row__title">${name(m.key)}</span><span class="k-row__meta">${
-            m.renewals.length ? `${escapeHtml(m.renewals[0].label)} ${formatRupees(m.renewals[0].amount)}${m.renewals.length > 1 ? ` and ${m.renewals.length - 1} more` : ''} due` : 'a usual month'
-          }</span></span>
-          <span class="k-row__value">${m.short ? `${formatRupees(-m.free)} short` : `${formatRupees(m.free)} to spend`}</span>
-          ${bankLine(months.indexOf(m))}
-        </div>`
-        )
-        .join('')}
-      ${ahead ? '<p class="muted-note forecast-note">Bank figures follow what you have spent so far and count each month\'s "to spend" as spent in full.</p>' : ''}
-    </div>`;
+    <div class="lg-card lg-months${alike ? ' lg-months--one' : ''}">${alike ? one : months.map(col).join('')}</div>${why || bank ? `<div class="hv-notes">${why}${bank}</div>` : ''}${whole.length > 3 ? yearFold(rest, figures, today, skipped, yrow) : ''}`;
 }
 
 /* NEW (5.30): the repeating payments you could cancel, biggest year first: what each

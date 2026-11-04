@@ -1081,8 +1081,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
   letter-spacing: var(--k-track-title);
   color: var(--k-text);
 }
-.k .hist-step { color: var(--k-text-3); }
-.k .hist-step:disabled { color: var(--k-text-3); opacity: 0.35; }
 
 /* --- the hero ------------------------------------------------------- */
 /* The month leads and the figure answers it, so the two labels are not
@@ -2598,7 +2596,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
    the arrows are full ink, not the muted grey History uses, because here
    they are the way back to what was spent yesterday. */
 .k .summary-month { margin: var(--k-1) 0 var(--k-2); }
-.k .summary-month .hist-step { color: var(--k-text); }
 
 /* A switch that is not available yet (the next-month one, until a
    commitment is chosen). */
@@ -2749,45 +2746,8 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
   .k .bill-urgent .bill-dot, .k .bill-overdue .bill-dot { animation: none; }
 }
 
-/* ---- Plan: this month at a glance (4.25) --------------------------------
- * The month's must-go-outs on their days (bright still to pay, dim paid, red
- * late) and a bar for each set-aside filling as it is spent. The budget bar,
- * the day bars and the set-aside bars grow in as the screen arrives. */
+/* ---- Plan: this month (4.25) ---- */
 .k .plan-month { padding: var(--k-4) var(--k-4) var(--k-3); }
-.k .plan-strip { margin: 0; }
-.k .plan-strip svg { display: block; width: 100%; height: auto; overflow: visible; }
-.k .plan-strip__axis { stroke: color-mix(in srgb, var(--k-text) 18%, transparent); stroke-width: 1.2; }
-.k .plan-strip__today { stroke: var(--k-cyan); stroke-width: 1.2; stroke-dasharray: 3 4; }
-.k .plan-strip__today-label { fill: var(--k-accent-text); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-anchor: middle; text-transform: uppercase; }
-.k .plan-strip__tick { fill: var(--k-text-3); font-size: 10px; text-anchor: middle; font-variant-numeric: tabular-nums; }
-.k .plan-strip__bar text { font-size: 10px; font-weight: 700; text-anchor: middle; letter-spacing: 0.03em; }
-.k .plan-strip__bar.is-due rect { fill: var(--k-cyan); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--k-cyan) 60%, transparent)); }
-.k .plan-strip__bar.is-due text { fill: var(--k-accent-text); }
-.k .plan-strip__bar.is-paid rect { fill: color-mix(in srgb, var(--k-text) 20%, transparent); }
-.k .plan-strip__bar.is-paid text { fill: var(--k-text-3); }
-.k .plan-strip__bar.is-late rect { fill: var(--k-negative); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--k-negative) 60%, transparent)); }
-.k .plan-strip__bar.is-late text { fill: var(--k-negative); }
-.k .plan-strip__key { display: flex; gap: var(--k-4); margin-top: var(--k-2); font-size: var(--k-caption); color: var(--k-text-3); }
-.k .plan-strip__key span::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 2px; vertical-align: 0; }
-.k .plan-strip__key .is-due::before { background: var(--k-cyan); }
-.k .plan-strip__key .is-paid::before { background: color-mix(in srgb, var(--k-text) 20%, transparent); }
-.k .plan-strip__key .is-late::before { background: var(--k-negative); }
-.k .plan-flex { margin-top: var(--k-4); border-top: 1px solid var(--k-hairline); }
-.k .plan-flex__row { padding: var(--k-3) 0; }
-.k .plan-flex__row + .plan-flex__row { border-top: 1px solid var(--k-hairline); }
-.k .plan-flex__top { display: flex; justify-content: space-between; gap: var(--k-3); align-items: baseline; }
-.k .plan-flex__name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.k .plan-flex__left { flex: none; font-size: var(--k-caption); color: var(--k-text-2); font-variant-numeric: tabular-nums; }
-.k .plan-flex__track { height: 8px; margin-top: var(--k-2); border-radius: 4px; background: color-mix(in srgb, var(--k-text) 7%, transparent); overflow: hidden; }
-.k .plan-flex__track i { display: block; height: 100%; border-radius: 4px; background: var(--k-positive); box-shadow: 0 0 10px color-mix(in srgb, var(--k-positive) 45%, transparent); transform-origin: left center; }
-.k .plan-flex__row.is-warn .plan-flex__track i { background: var(--k-warning); }
-.k .plan-flex__row.is-over .plan-flex__track i { background: var(--k-negative); }
-.k .plan-flex__row.is-over .plan-flex__left { color: var(--k-negative); }
-.is-arriving .plan-strip__bar rect { transform-box: fill-box; transform-origin: bottom center; animation: grow-up 640ms var(--k-ease) both; }
-.is-arriving .plan-strip__bar:nth-of-type(2) rect { animation-delay: 60ms; }
-.is-arriving .plan-strip__bar:nth-of-type(3) rect { animation-delay: 120ms; }
-.is-arriving .plan-strip__bar:nth-of-type(n + 4) rect { animation-delay: 180ms; }
-.is-arriving .plan-flex__track i { animation: grow-x 760ms var(--k-ease) 260ms both; }
 .is-arriving .committed-bar i { transform-origin: left center; animation: grow-x 700ms var(--k-ease) 120ms both; }
 @keyframes grow-up { from { transform: scaleY(0); } }
 @keyframes grow-x { from { transform: scaleX(0); } }
@@ -3005,18 +2965,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .is-arriving .gauge-tick--lit { animation: tick-in 500ms var(--k-ease) both; }
 @keyframes tick-in { from { opacity: 0.2; } }
 
-/* ---- Plan in the Charts style (5.3) --------------------------------------
- * The hero is the tracking card (shares of what comes in); the set-aside
- * bars and the month strip take the gradients. */
-.k .plan-flex__track i { background: linear-gradient(90deg, var(--k-grad-2a), var(--k-grad-2b)); box-shadow: 0 0 10px color-mix(in srgb, var(--k-grad-2a) 40%, transparent); }
-.k .plan-flex__row.is-warn .plan-flex__track i { background: linear-gradient(90deg, var(--k-grad-3a), var(--k-grad-3b)); }
-.k .plan-flex__row.is-over .plan-flex__track i { background: var(--k-negative); }
-.k .plan-strip__bar.is-due rect { fill: var(--k-grad-1a); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--k-grad-1a) 55%, transparent)); }
-.k .plan-strip__bar.is-due text { fill: var(--k-grad-1a); }
-.k .plan-strip__today { stroke: var(--k-grad-2a); }
-.k .plan-strip__today-label { fill: var(--k-grad-2a); }
-.k .plan-strip__key .is-due::before { background: var(--k-grad-1a); }
-
 /* ---- History in the Charts style (5.4) -----------------------------------
  * Money in and out on the second and first gradients, the month day by day
  * on the first gradient with the biggest day lit, the net figure in light
@@ -3126,7 +3074,6 @@ body:has(#view-container.k) .nav-btn.active .nav-icon {
 .k .sum-more > summary::after { content: "+"; grid-row: 1 / span 2; grid-column: 2; color: var(--k-text-3); font-size: 18px; }
 .k .sum-more[open] > summary::after { content: "−"; }
 .k .sum-more__t { font-weight: 600; }
-.k .sum-more__s { grid-column: 1; font-size: var(--k-label); color: var(--k-text-3); }
 .k .sum-more__body { padding: 0 var(--k-3) var(--k-3); display: grid; gap: var(--k-3); }
 .k .sum-more__body > * { margin-top: 0; margin-bottom: 0; }
 .k.settings-k .version-line, .settings-k .version-line { display: flex; justify-content: center; align-items: center; gap: var(--k-3); margin-top: var(--k-5); font-size: var(--k-label); color: var(--k-text-3); }
@@ -3249,15 +3196,7 @@ body:has(#view-container.k) .app-header {
 .k .card-split__key b { margin-left: 2px; font-weight: 600; color: var(--k-text); font-variant-numeric: tabular-nums; }
 .k .card-split__note { margin: 0; padding: 0 0 var(--k-3); font-size: var(--k-caption); color: var(--k-positive); }
 
-/* --- this month's steps: tappable, with a sheet ----------------------------- */
-.k button.pl-step { margin: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
-.k button.pl-step:focus-visible { outline-offset: 3px; }
-.k .pl-step.is-skipped b { border-style: dashed; opacity: .6; }
-.k .pl-step.is-skipped small { opacity: .6; }
-.k .plan-strip__bar { cursor: pointer; }
-.k .plan-strip__bar.is-skipped rect { fill: color-mix(in srgb, var(--k-text) 14%, transparent); }
-.k .plan-strip__bar.is-skipped text { fill: var(--k-text-2); }
-.k .plan-strip__key .is-skipped { color: var(--k-text-2); }
+/* --- this month's sheet ----------------------------- */
 #month-sheet .k-scrim, #quick-sheet .k-scrim { z-index: 40; }
 #month-sheet .k-sheet, #quick-sheet .k-sheet { z-index: 41; max-height: 78vh; display: flex; flex-direction: column; }
 .month-sheet__line { margin: var(--k-3) 0 var(--k-2); font-size: var(--k-label); color: var(--k-text-2); }
@@ -3310,7 +3249,7 @@ body:has(#view-container.k) .app-header {
 .k .hist-edit .rv-field { width: 100%; }
 
 /* Small text that was already here, brought up to AA on the light looks. */
-.k .waves__key, .k .pl-today, .k .pl-step small { color: var(--k-text-2); }
+.k .waves__key { color: var(--k-text-2); }
 .k button.waves__k { min-height: 36px; }
 .k .waves__key { gap: 2px; }
 .k .hist-days__bar.is-cut { clip-path: polygon(0 4px, 25% 0, 50% 4px, 75% 0, 100% 4px, 100% 100%, 0 100%); }
@@ -3327,7 +3266,7 @@ body:has(#view-container.k) .app-header {
 .k .people-late { color: color-mix(in srgb, var(--k-warning) 55%, var(--k-text)); }
 .k .people-sums span { color: var(--k-text-2); }
 .k .people-sums b.pos { color: color-mix(in srgb, var(--k-positive) 70%, var(--k-text)); }
-.k .sum-needs__head, .k .need-row__t small, .k .sum-more__s, .k .setup-card__sub, .k .setup-step__body small { color: var(--k-text-2); }
+.k .sum-needs__head, .k .need-row__t small, .k .setup-card__sub, .k .setup-step__body small { color: var(--k-text-2); }
 
 /* --- Tap targets, the last few without one (5.26) ------------------------
  * The app widens small controls with an invisible strip (see the 44px rules
@@ -3335,7 +3274,7 @@ body:has(#view-container.k) .app-header {
  * dead margin, so a thumb between two labels hit nothing. The margin is now a
  * transparent border, which keeps the look and puts the gap inside the target. */
 .nav-btn { margin-inline: 0; border-inline: var(--space-3xs) solid transparent; background-clip: padding-box; }
-.k .k-quick__chip, .k button.waves__k, .k .hist-step, .pf-month, .money-kind, .btn-secondary.btn-block { min-height: var(--k-tap); }
+.k .k-quick__chip, .k button.waves__k, .pf-month, .money-kind, .btn-secondary.btn-block { min-height: var(--k-tap); }
 .muted-note a { display: inline-block; padding: 14px 4px; margin: -14px -4px; }
 
 /* --- Charts: the cards as rows of yours, owed by the company and planned (5.28) --- */
@@ -3401,9 +3340,6 @@ html.is-locked .app-header, html.is-locked #view-container, html.is-locked #tabs
 .k .card-facts p, .k .bill-payby { margin: 0; font-size: 12px; color: var(--k-text-2); }
 .k .bill-payby { padding: 0 0 var(--k-2); }
 .k .bill-payby.is-overdue { color: var(--k-negative); }
-
-/* The next three months on Plan (5.32): a month that comes up short is red, in words as well. */
-.k .forecast-row.is-short .k-row__value { color: var(--k-negative); }
 
 /* What you did not spend, in the month in review (5.32): a name, its figures, what was left. */
 .recap-flex { list-style: none; margin: var(--k-3) 0 0; padding: 0; display: grid; }
@@ -3522,15 +3458,7 @@ html.is-locked .app-header, html.is-locked #view-container, html.is-locked #tabs
 .alert-card.is-fresh .field::after, .alert-card.is-fresh .alert-amount::after { animation-delay: calc(var(--i, 0) * 80ms + 340ms); }
 @media (prefers-reduced-motion: reduce) { .alert-sms mark { animation: none; } }
 
-/* 25. A purchase and the refund that undid it: dimmed, one thin line across each. It draws itself the first time. */
-.k .hist-row.is-cancelled .hist-main { position: relative; opacity: 0.55; }
-.k .hist-row.is-cancelled .hist-main::after { content: ""; position: absolute; left: 12px; right: 12px; top: 50%; height: 1.5px; background: var(--k-text-2); transform-origin: left; }
-@media (prefers-reduced-motion: no-preference) {
-  .k .hist-row.is-struck-new .hist-main { animation: row-dim 300ms var(--k-ease-io) 120ms both; }
-  .k .hist-row.is-struck-new .hist-main::after { animation: strike-in 300ms var(--k-ease-io) both; }
-}
-@keyframes strike-in { from { transform: scaleX(0); } }
-@keyframes row-dim { from { opacity: 1; } }
+/* 25. A purchase and the refund that undid it: a tag says so (js/views/transactions.js); the icon and amount are in fit.css. */
 
 /* 26. A slow screen: grey shapes where the figures will be, one shimmer crossing them all together. */
 .view-skeleton { display: grid; gap: 14px; justify-items: center; align-content: start; padding: 28px 16px; }

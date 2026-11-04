@@ -137,7 +137,7 @@ export function buildDemo(today = new Date()) {
   // Money moved to the fixed deposit: not spending.
   add({ accountId: A.bank, date: dateOf(1, 15), rawDescription: 'TRANSFER TO FIXED DEPOSIT', amount: 10000, isTransfer: true, categoryId: 'cat-transfer' });
 
-  // A card refund that undid a purchase: both are struck through in History.
+  // A card refund that undid a purchase: both carry a Refund tag in History.
   add({ accountId: A.card1, date: daysAgo(9), rawDescription: 'ONLINE ORDER GADGET STORE', amount: 1299, categoryId: 'cat-shopping' });
   add({ accountId: A.card1, date: daysAgo(6), rawDescription: 'REFUND GADGET STORE', amount: 1299, direction: 'credit', categoryId: 'cat-shopping' });
   // A work cost still owed back by the employer, and an older one that has been.

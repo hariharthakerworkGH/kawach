@@ -21,13 +21,7 @@
 
 /* --- Add -------------------------------------------------------------------------------------------- */
 :root[data-style] .k .add-card { gap: var(--k-2); padding: var(--k-3); margin-bottom: var(--k-2); }
-:root[data-style] .k .add-card--amount .amount-input-wrap { padding: 6px 12px; }
-:root[data-style] .k .add-card--amount .amount-input { font-size: 34px; }
 :root[data-style] .k .add-card--category .k-picker { min-height: var(--k-ctl-md); }
-:root[data-style] .k .add-rows { padding-top: 0; padding-bottom: 0; }
-:root[data-style] .k .add-row { padding: var(--k-2) 0; }
-:root[data-style] .k .add-row > .add-row-ic { width: 30px; height: 30px; }
-:root[data-style] .k .add-row > .add-row-ic svg { width: 16px; height: 16px; }
 
 /* Account and date, side by side. */
 .k .add-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--k-2); }
@@ -137,7 +131,6 @@
 /* Buttons: smaller type, lighter weight, full-width ones no taller than a field. */
 .k .k-btn, .k .btn-secondary { font-size: 13px; }
 .k .btn-block, .k .k-btn--primary.btn-primary { min-height: var(--k-ctl-lg); }
-:root[data-style] .k .add-card--amount .amount-input { font-size: 28px; }
 .k .hist-actions .hist-save { min-height: var(--k-ctl-sm); padding: 0 var(--k-4); font-size: 13px; }
 .k .hist-actions .link-btn { font-size: 13px; }
 .k .hist-edit .dir-btn { font-size: 11px; }
@@ -175,7 +168,6 @@
 .k .hist-edit .rv-field:not([type="checkbox"]),
 .k .hist-edit select.hist-catsel,
 .k .hist-amount { box-sizing: border-box; height: var(--k-ctl-md); min-height: var(--k-ctl-md); }
-.k .add-card--amount .amount-input-wrap { box-sizing: border-box; min-height: 48px; }
 
 /* The open payment's last row: the three small actions together on the left, Save on the right, one centre line. */
 .k .hist-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--k-3); padding: var(--k-2) 0 0; border-top: 1px solid var(--k-hairline); margin-top: var(--k-2); }
@@ -185,25 +177,8 @@
 
 /* Plan: what is still to pay, then the paid ones tucked under a line. */
 .k .plan-flag { margin-bottom: 12px; }
-.k .pl-clear { margin: 4px 2px 0; color: var(--k-text-2); font-size: 14px; }
-.k .pl-done, .k .plan-used { margin-top: var(--k-2); border-top: 1px solid var(--k-hairline); }
-.k .pl-done > summary, .k .plan-used > summary { padding: var(--k-2) 0; color: var(--k-text-2); font-size: 13px; }
-.k .pl-done__list { display: grid; }
-.k .pl-done__row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: var(--k-3); align-items: center; width: 100%; min-height: var(--k-ctl-md); padding: 0; border: 0; background: none; color: var(--k-text); font: inherit; font-size: 13px; text-align: left; }
-.k .pl-done__row + .pl-done__row { border-top: 1px solid var(--k-hairline); }
-.k .pl-done__row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.k .pl-done__row small { color: var(--k-text-3); }
-.k .pl-done__row span { font-variant-numeric: tabular-nums; }
-.k .pl-done__row em { color: var(--k-text-3); font-style: normal; min-width: 44px; text-align: right; }
 
 /* --- 5.50: the coming months, with what the bank will hold ----------------------------------------- */
-.k .forecast-bank { display: block; margin-top: 2px; line-height: 1.35; }
-.k .forecast-bank b { font-weight: 600; color: var(--k-text); font-variant-numeric: tabular-nums; }
-.k .forecast-bank b.is-short { color: var(--k-negative); }
-.k .forecast-note { margin: var(--k-2) 0 0; font-size: 12px; }
-.k .forecast-row { flex-wrap: wrap; row-gap: 4px; }
-.k .forecast-bank { flex: 1 1 100%; display: grid; gap: 1px; margin: 0; padding-top: 6px; border-top: 1px solid var(--k-hairline); }
-.k .forecast-bank small { font-size: 12px; color: var(--k-text-3); }
 
 /* --- 5.51: how a list is ordered -------------------------------------------------------------------- */
 .k .sort-pick { height: var(--k-ctl-md); min-height: var(--k-ctl-md); padding: 0 var(--k-6) 0 var(--k-3); border-radius: var(--k-r-pill); border: 1px solid var(--k-border-subtle); background-color: var(--k-glass-1); color: var(--k-text-2); font: inherit; font-size: 12px; font-weight: 600; width: auto; }

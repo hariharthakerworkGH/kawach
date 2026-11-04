@@ -82,13 +82,5 @@ button.tl-item { cursor: pointer; }
 .pl-top--tactile .is-flex { background: linear-gradient(180deg, var(--k-warning), color-mix(in srgb, var(--k-warning), black 32%)); }
 .pl-top--tactile .is-free { background: linear-gradient(180deg, #d9d2cb, #8e857e); }
 .pl-top--tactile .is-saved { background: linear-gradient(180deg, var(--k-positive), color-mix(in srgb, var(--k-positive), black 25%)); }
-.pl-month--tactile { padding: 14px 10px 12px; border-radius: 18px; background: var(--t-raise); box-shadow: var(--t-shadow); }
-.pl-month--tactile .pl-step::after { background: color-mix(in srgb, var(--k-text) 12%, var(--k-bg)); }
-.pl-month--tactile .pl-step.is-paid::after { background: linear-gradient(90deg, var(--k-accent), var(--k-violet)); box-shadow: 0 0 8px color-mix(in srgb, var(--k-violet) 60%, transparent); }
-.pl-month--tactile .pl-step b { color: var(--k-text-2); background: var(--t-raise); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px color-mix(in srgb, var(--k-text) 22%, transparent), 0 4px 8px rgb(0 0 0 / 0.5); }
-.pl-month--tactile .pl-step.is-paid b { color: #fff; background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--k-accent), white 18%), color-mix(in srgb, var(--k-accent), black 18%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--k-accent), 0 0 16px color-mix(in srgb, var(--k-violet) 55%, transparent); }
-.pl-month--tactile .pl-step.is-late b { color: #fff; background: radial-gradient(circle at 40% 30%, var(--k-negative), color-mix(in srgb, var(--k-negative), black 35%)); box-shadow: 0 0 0 2px var(--k-bg), 0 0 0 3.5px var(--k-negative), 0 0 16px color-mix(in srgb, var(--k-negative) 55%, transparent); }
-.pl-month--tactile .pl-step.is-due b { color: var(--k-accent-text); }
-.plan-month .pl-month--tactile { background: var(--t-well); box-shadow: var(--t-well-shadow); }
 
 /* Tactile (5.38): the raised pill of the tab bar and of a toggle glides to the choice. */

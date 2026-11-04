@@ -554,7 +554,7 @@ function totals(rows) {
 
 function renderList(container) {
   // A card refund for exactly what was charged cancels that purchase (js/card-refunds.js): both rows
-  // are dimmed and struck through, the line drawing itself the first time it is seen.
+  // carry a tag saying so, and their icon and amount go quiet.
   const cardIds = new Set(cache.accounts.filter((a) => a.type === 'card').map((a) => a.id));
   cache.cancelled = new Set(refundPairs(cache.transactions, cardIds, isoLocal(new Date())).flatMap((p) => [p.purchase.id, p.refund.id]));
   const rows = matching();
@@ -798,14 +798,10 @@ function catName(id) {
   return cache.categories.find((c) => c.id === id)?.name || null;
 }
 
-// A purchase and the refund that undid it. The strike draws itself the first time a row is shown.
-const struck = new Set();
 let offLongPressScroll = null;
+// A purchase and the refund that undid it.
 function cancelledClass(t) {
-  if (!cache.cancelled || !cache.cancelled.has(t.id)) return '';
-  const first = !struck.has(t.id);
-  struck.add(t.id);
-  return ` is-cancelled${first ? ' is-struck-new' : ''}`;
+  return cache.cancelled && cache.cancelled.has(t.id) ? ' is-cancelled' : '';
 }
 
 function rowTemplate(t) {
@@ -859,10 +855,13 @@ function subHtml(t) {
           ? '<span class="hist-tag hist-tag--in">Paid back by someone</span>'
           : '';
   const bill = cardBill(t);
-  const text = [account ? escapeHtml(account.label) : '', bill ? 'card bill paid' : t.isTransfer ? moveWord(t, account) : '', isSplit(t) ? 'split' : '', cache.cancelled && cache.cancelled.has(t.id) ? (t.direction === 'credit' ? 'cancels a purchase' : 'refunded') : ''].filter(Boolean).join(' · ');
+  const text = [account ? escapeHtml(account.label) : '', bill ? 'card bill paid' : t.isTransfer ? moveWord(t, account) : '', isSplit(t) ? 'split' : ''].filter(Boolean).join(' · ');
+  // A purchase and the refund that undid it say so in a tag (a line through the row hid the words and the amount).
+  const refundTag = cache.cancelled && cache.cancelled.has(t.id) ? `<span class="hist-tag">${t.direction === 'credit' ? 'Refund' : 'Refunded'}</span>` : '';
+  const tags = workTag + refundTag;
   // With a tag, the words go in their own box so that on a narrow screen it is
   // the account name that is cut short, never the tag.
-  return workTag ? `<span class="hist-sub-text">${text}</span>${workTag}` : text;
+  return tags ? `<span class="hist-sub-text">${text}</span>${tags}` : text;
 }
 
 // The categories that fit a payment's account: business or home.

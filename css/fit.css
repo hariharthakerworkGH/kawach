@@ -180,12 +180,6 @@
 :root:is([data-style="tactile"], [data-style="instrument"]) .k-context--alert .k-context__k,
 :root:is([data-style="tactile"], [data-style="instrument"]) .k-context--attention .k-context__k { color: color-mix(in srgb, var(--t-alarm) 18%, var(--k-text)); }
 .k-context__note { color: color-mix(in srgb, var(--k-text-2) 75%, var(--k-text)); }
-/* A purchase and the refund that undid it: marked by the line through it and a fainter icon, not by fading the
-   words, which fell to 2.5 to 1. */
-.k .hist-row.is-cancelled .hist-main { opacity: 1; }
-.k .hist-row.is-cancelled .hist-main > .k-icon, .k .hist-row.is-cancelled .hist-main .k-icon { opacity: .5; }
-.k .hist-row.is-cancelled .hist-name, .k .hist-row.is-cancelled .hist-sub, .k .hist-row.is-cancelled .txn-amount { color: var(--k-text-2); }
-.k .hist-row.is-struck-new .hist-main { animation: none; }
 
 /* Six tabs, none under a fingertip wide. */
 .nav-btn { flex: 1 1 auto; min-width: 44px; margin-inline: 0; border-inline-width: 1px; }

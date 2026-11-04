@@ -135,9 +135,7 @@
 :root[data-style="haven"][data-liquid="mint"] .tide[data-mood="calm"] { --hv-tide-a: oklch(52% 0.12 170); --hv-tide-b: oklch(80% 0.13 165); }
 
 /* ---- days ahead of pace: a small chip in the vault's top row ---- */
-:root[data-style="haven"] .hv-vault__top { gap: 8px; flex-wrap: wrap; }
 :root[data-style="haven"] .hv-streak { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px 0 7px; border-radius: 999px; background: oklch(100% 0 0 / 0.14); font-size: 12px; font-weight: 650; color: var(--hv-on-navy); margin-inline-end: auto; }
-:root[data-style="haven"] .hv-vault__top > .hv-pill + .hv-streak { margin-inline-start: 0; }
 /* ---- the evening note and the "Hidden" word share one quiet line under the figure ---- */
 :root[data-style="haven"] .hv-vault__eve { min-height: 16px; margin-top: 4px; font-size: var(--hv-fs-label, 13px); color: var(--hv-on-navy-2); }
 :root[data-style="haven"] .hv-vault__eve:empty { min-height: 0; margin: 0; }
@@ -175,7 +173,6 @@
 /* ---- goals: a small shield beside each ---- */
 :root[data-style="haven"] .hv-goal { width: 100%; text-align: left; grid-template-columns: auto 1fr; }
 :root[data-style="haven"] .hv-goal .tide.hv-goal__tide { width: 44px; height: 54px; flex: none; }
-:root[data-style="haven"] .hv-goal__when { color: var(--hv-link); }
 
 /* ---- the chart: last month, faint, while pressed ---- */
 .waves__ghost { fill: none; stroke: var(--hv-ink-3, #889); stroke-width: 2.2; stroke-dasharray: 3 5; stroke-linecap: round; opacity: 0; transition: opacity 500ms; pointer-events: none; }
@@ -305,9 +302,6 @@ svg.waves:focus-visible:not(.by-pointer) { outline: 2px solid var(--hv-link, cur
 :root[data-style="haven"] .hv-hold > div { display: grid; gap: 2px; padding: 10px 14px; border-radius: 20px; background: var(--hv-shell); box-shadow: 0 0 0 1px var(--hv-hair); }
 :root[data-style="haven"] .hv-hold small { font-size: 12px; color: var(--hv-ink-3); }
 :root[data-style="haven"] .hv-hold b { font-size: 22px; font-weight: 650; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-:root[data-style="haven"] .hv-hold__bar { display: block; height: 5px; border-radius: 3px; background: var(--hv-well); overflow: hidden; margin-top: 4px; }
-:root[data-style="haven"] .hv-hold__bar > i { display: block; height: 100%; border-radius: 3px; transform-origin: left; background: linear-gradient(90deg, var(--hv-tide-a), var(--hv-tide-b)); }
-:root[data-style="haven"] .hv-hold__bar.owe > i { background: linear-gradient(90deg, oklch(60% 0.15 55), oklch(75% 0.13 70)); }
 :root[data-style="haven"] .hv-filter { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; align-items: center; }
 :root[data-style="haven"] .hv-filter [data-f] { flex: none; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--hv-shell); box-shadow: 0 0 0 1px var(--hv-hair); font: inherit; font-weight: 600; color: var(--hv-ink-2); transition: transform 400ms var(--hv-spring-snap); }
 :root[data-style="haven"] .hv-filter [data-f].on { background: var(--hv-primary); color: var(--hv-on-primary); box-shadow: none; transform: scale(1.04); }
@@ -323,9 +317,6 @@ svg.waves:focus-visible:not(.by-pointer) { outline: 2px solid var(--hv-link, cur
 .hv-rowwater { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, transparent 55%, rgba(110, 200, 235, 0.3)); }
 :root[data-style="haven"] .account-block .account-detail { padding: 8px 14px 12px; }
 :root[data-style="haven"] .hv-lead { flex: none; display: grid; place-items: center; }
-:root[data-style="haven"] .hv-lead--tank { position: relative; width: 36px; height: 44px; }
-:root[data-style="haven"] .hv-lead--line { width: 70px; }
-:root[data-style="haven"] .account-block.is-open .hv-lead--line svg path { stroke: #fff; }
 
 /* ---- where it went (layers) and the budget tanks ---- */
 .hv-ins__layers { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
@@ -412,7 +403,6 @@ html.hv-sweeping::view-transition-new(root) { z-index: 2; }
 :root[data-style="haven"] .hist-row .hist-main { padding-block: 5px; min-height: 48px; }
 :root[data-style="haven"] .k .hist-day-head { margin: 6px 6px 4px; }
 :root[data-style="haven"] .k .hist-day { margin-bottom: 4px; }
-:root[data-style="haven"] .install-card .install-head .muted-note { display: none; }
 :root[data-style="haven"] .install-card { padding-block: 10px; }
 :root[data-style="haven"] .dupe-fold { margin: 0 0 8px; }
 :root[data-style="haven"] .dupe-fold .totals-card { margin-top: 6px; }
@@ -484,33 +474,10 @@ html:root[data-style="haven"] .view-container.k { background: transparent; }
 :root[data-style="haven"][data-theme="dark"] { --hv-card-a: #1a3a78; --hv-card-b: #0f2352; }
 .hv-deckwrap { margin: 2px 0 6px; }
 .hv-dk { position: relative; height: 178px; margin: 6px 28px 0 6px; touch-action: pan-y; user-select: none; -webkit-user-select: none; outline-offset: 6px; }
-.hv-dk__card { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 16px 18px; border-radius: 22px; color: #fff; background: linear-gradient(150deg, var(--hv-card-a), var(--hv-card-b)); box-shadow: 0 14px 30px #0006, inset 0 1px 0 #ffffff26; transition: transform .45s cubic-bezier(.22, 1, .36, 1), opacity .35s; will-change: transform; cursor: grab; touch-action: pan-y; }
-.hv-dk__top { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; min-width: 0; }
-.hv-dk__top > span { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.hv-dk__chip { width: 26px; height: 26px; flex: none; border-radius: 8px; background: #ffffff22; display: grid; place-items: center; }
-.hv-dk__chip svg { width: 16px; height: 16px; }
-/* 44px to press, a 34px disc to look at */
-.hv-dk__edit { position: relative; display: grid; place-items: center; flex: none; width: 44px; height: 44px; margin: -12px -13px -12px 0; padding: 0; border: 0; background: none; color: #fff; cursor: pointer; }
-.hv-dk__edit[hidden] { display: none; }
-.hv-dk__edit::before { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: #ffffff1f; }
-.hv-dk__edit svg { position: relative; width: 17px; height: 17px; }
 .hv-count { display: inline-block; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 5px; border-radius: 9px; background: var(--hv-bad); color: var(--hv-on-navy); font: 650 11px/18px var(--hv-font); font-style: normal; text-align: center; }
 html:root[data-style="haven"] #tabs .nav-btn[data-view="add"] .nav-icon { position: relative; }
 html:root[data-style="haven"] #tabs .nav-btn[data-view="add"][data-waiting] .nav-icon::after { content: ""; position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--hv-bad); box-shadow: 0 0 0 3px var(--hv-paper); }
-.hv-dk__bal { font-size: 30px; font-weight: 650; letter-spacing: -0.03em; }
-.hv-dk__meta { display: flex; justify-content: space-between; align-items: end; gap: 10px; font-size: 12.5px; opacity: 0.85; letter-spacing: 0.02em; }
-.hv-dk__meta > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-width: 0; }
-.hv-dk__meta b { flex: none; font-size: 14px; letter-spacing: 0.12em; }
-.hv-dk__dots { display: flex; gap: 6px; justify-content: center; align-items: center; min-height: 18px; margin: 12px 0 4px; color: var(--hv-ink-2); font-size: 13px; }
-.hv-dk__dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--hv-ink-2); opacity: 0.4; transition: all .3s; }
-.hv-dk__dots i.on { width: 18px; border-radius: 4px; background: var(--hv-L1); opacity: 1; }
 .hv-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; clip-path: inset(50%); white-space: nowrap; }
-/* with the stack on, only the account in front is drawn below it, without its own row (the card is that) or its group's title */
-.hv-deckmode .account-group-sec.deck-off { display: none; }
-.hv-deckmode .account-group-sec:not(.people-sec) .account-group-label { display: none; }
-.hv-deckmode .account-group-sec:not(.people-sec) { margin-top: 0; }
-.hv-deckmode .account-block[hidden] { display: none; }
-.hv-deckmode .account-block > .account-row { display: none; }
 
 /* ---- History's ring (5.74, mockups/7.12-cards-and-ring) ---- */
 .hv-ringcard { background: linear-gradient(180deg, var(--hv-core), var(--hv-core-2)); border-radius: 24px; padding: 12px 10px 14px; margin: 4px 0 10px; box-shadow: 0 0 0 1px var(--hv-hair); }
@@ -531,12 +498,6 @@ html:root[data-style="haven"] #tabs .nav-btn[data-view="add"][data-waiting] .nav
 .hv-ring__badge.on { transform: scale(1.15); }
 .hv-ring__badge.on .hv-ic { box-shadow: 0 0 0 2px var(--hv-L1), 0 6px 16px #0005; }
 .hv-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 10px; }
-.hv-pair__t { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 18px; background: linear-gradient(180deg, var(--hv-core), var(--hv-core-2)); box-shadow: 0 0 0 1px var(--hv-hair); min-width: 0; }
-.hv-pair__t i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
-.hv-pair__t i.in { background: var(--hv-L1); }
-.hv-pair__t i.out { background: var(--hv-L4); }
-.hv-pair__t small { display: block; font-size: 12px; color: var(--hv-ink-2); }
-.hv-pair__t b { font-size: 18px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--hv-ink); }
 .hv-histfold { margin: 0 0 10px; }
 
 /* The app does not zoom: a two-finger pinch or a double tap changes nothing (5.74.1). */
