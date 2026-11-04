@@ -43,8 +43,10 @@ export function wireHaven(root) {
       days.forEach((g) => g.setAttribute('opacity', g === best ? '1' : '0.35'));
       const guide = svg.querySelector('.lg-guide');
       const dot = svg.querySelector('.lg-pickdot');
-      guide.setAttribute('x1', best.dataset.x); guide.setAttribute('x2', best.dataset.x); guide.setAttribute('opacity', '0.8');
-      dot.setAttribute('cx', best.dataset.x); dot.setAttribute('cy', best.dataset.y); dot.setAttribute('opacity', '1');
+      // the day is found by the middle of its column (data-x); the guide and dot sit where the money-left line turns that day (data-gx)
+      const gx = best.dataset.gx || best.dataset.x;
+      guide.setAttribute('x1', gx); guide.setAttribute('x2', gx); guide.setAttribute('opacity', '0.8');
+      dot.setAttribute('cx', gx); dot.setAttribute('cy', best.dataset.y); dot.setAttribute('opacity', '1');
       read.textContent = best.dataset.t;
       read.hidden = false;
       clearTimeout(svg._t);

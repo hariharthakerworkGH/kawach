@@ -378,39 +378,43 @@ export function weekRecap(f) {
   return { total, under: Math.round((f.limit * by.length) / D) - total, days: by.map((d) => d.amount || 0), big: { date: big.date, amount: big.amount || 0 }, from: by[0].date, to: by[by.length - 1].date };
 }
 
-/* The month as a chart inside the hero (mockups/7.0-ledger/summary-chart.html, A): a bar for each day (the hatched part is money out that is not
- * from the budget), what was spent so far as a line that fills, the way from today to the end of the month on budget as a dashed line, and today as the sun by day or the moon, in its
- * real phase, by night. It carries almost no words: the first and last day, and the day you tap, read under your finger. Pure: it is drawn
- * from figures free-to-spend.js already worked out. Exported for a test. */
+/* The month as two pictures sharing one row of days inside the hero (mockups/7.16-hero-chart, E2). Above, the money left: a line that starts at the whole
+ * budget and drops by what each day took, with a dashed run from today to nothing on the last day (that is what a day can take from here), and today as
+ * the sun by day or the moon, in its real phase, by night. Under it, one column for each day against the even day (the budget over the days of the
+ * month, the dashed line across the columns): a day far past it is cut with a zigzag and drawn amber, and the biggest one says what it was. The hatched
+ * part of a column is money out that is not from the budget. The day you press reads under your finger. Pure: drawn from figures
+ * free-to-spend.js already worked out. Exported for a test. */
 let heroHatches = 0;
 export function heroChart(f, dark = document.documentElement.dataset.theme === 'dark') {
   const tot = f.spendDays || [];
   const days = monthLen(f);
   if (!(f.limit > 0) || !tot.length || !(days > 0)) return '';
   const by = f.spendByDay || [];
-  const W = 334, H = 128, L = 6, R = 6, T = 8, B = 16;
-  const iw = W - L - R, ih = H - T - B, base = T + ih;
-  const x = (i) => L + (i / Math.max(1, days - 1)) * iw;
-  const top = Math.max(f.limit, ...tot) * 1.04;
-  const y = (v) => base - (Math.max(0, v) / top) * ih;
-  // The bars stand on the line and share one ceiling (the cap, a little above what most days reach): a day that goes past it is cut, with a
-  // zigzag top and a slanted gap across the bar, so one EMI or a big bill cannot flatten every other day. Drag across the chart for the true amount.
-  const zone = ih * 0.6;
-  const sums = by.map((d) => (d.amount || 0) + (d.other || 0)).filter((v) => v > 0).sort((p, q) => p - q);
-  const cap = sums.length >= 4 ? Math.max(1, sums[Math.floor(sums.length * 0.8)] * 1.5) : Math.max(1, ...sums);
-  const bw = Math.max(3, Math.min(8, (iw / days) * 0.6));
+  const W = 334, H = 116, L = 8, R = 8, TOP = 14, BASE = 58, CB = 112, ZONE = 26;
+  const iw = W - L - R, cw = iw / days;
+  const xe = (n) => L + n * cw; // where day n ends (0 is the start of the month)
+  const xc = (i) => L + (i + 0.5) * cw; // the middle of day i (0 is the first)
+  const y = (v) => BASE - (Math.max(0, v) / f.limit) * (BASE - TOP);
+  const even = f.limit / days;
+  // A column is its day's spending against the even day (ZONE tall). One EMI or a big bill past 1.5 times that is cut with a zigzag top and a
+  // slanted gap and drawn amber, so it cannot flatten every other day. Press the day for the true amount.
+  const CEIL = ZONE * 1.5;
+  const bw = Math.max(3, Math.min(8, cw * 0.6));
   const hid = `hh${(heroHatches += 1)}`;
-  const ZZ = 6.5; // the zigzag's depth: deep enough to read as a break at a glance
-  const MINT = 'rgba(127,235,221,.55)';
+  const ZZ = 4; // the zigzag's depth: deep enough to read as a break at a glance
+  const MINT = '#7FEBDD';
+  const AMBER = '#F4B541';
+  const HALO = 'rgba(11,29,68,.85)'; // the card's own dark, round a label a line passes behind
   const HATCH = `url(#${hid})`;
-  // One block of a bar: from `bottom` up `h`; its top a zigzag when it is cut. A break (the slanted gap) is drawn across a cut block.
+  const colH = (v) => (v > 0 ? Math.max(1.5, (v / even) * ZONE) : 0);
+  // One block of a column: from `bottom` up `h`; its top a zigzag when it is cut. A break (the slanted gap) is drawn across a cut block.
   const block = (cx, bottom, h, fill, edge, cut) => {
     const l = cx - bw / 2;
     const q = bw / 6; // three teeth across the top
     const t = bottom - h;
     const teeth = `l${q.toFixed(1)} ${-ZZ} l${q.toFixed(1)} ${ZZ} `.repeat(3);
     const shape = cut
-      ? `<path d="M${l.toFixed(1)} ${bottom.toFixed(1)} V${(t + ZZ).toFixed(1)} ${teeth}V${bottom.toFixed(1)} Z" fill="${fill}"${edge || ' stroke="rgba(255,255,255,.55)" stroke-width=".6" stroke-linejoin="round"'}/>`
+      ? `<path d="M${l.toFixed(1)} ${bottom.toFixed(1)} V${(t + ZZ).toFixed(1)} ${teeth}V${bottom.toFixed(1)} Z" fill="${fill}"${edge}/>`
       : `<rect x="${l.toFixed(1)}" y="${t.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${fill}"${edge}/>`;
     // the break: a slanted gap across the bar, in the card's own colour, a little below the teeth
     const gap = cut ? `<line x1="${(l - 1.4).toFixed(1)}" y1="${(t + ZZ + 7).toFixed(1)}" x2="${(l + bw + 1.4).toFixed(1)}" y2="${(t + ZZ + 3).toFixed(1)}" stroke="rgba(10,24,60,.95)" stroke-width="2.2"/>` : '';
@@ -423,30 +427,26 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
   const bars = by.map((d, i) => {
     const a = d.amount || 0;
     const o = d.other || 0;
-    const cx = x(i);
-    // a small amount is drawn at least 1.5px (2px hatched) high; the top comes from the height drawn, so every bar stands on the line
-    const hA = a > 0 ? Math.max(1.5, (Math.min(a, cap) / cap) * zone) : 0;
-    const cutA = a > cap;
-    let drawn = a > 0 ? block(cx, base, cutA ? zone : hA, MINT, '', cutA) : '';
+    const cx = xc(i);
+    const hA = colH(a);
+    const cutA = hA > CEIL;
+    let drawn = a > 0 ? block(cx, CB, cutA ? CEIL : hA, cutA ? AMBER : MINT, '', cutA) : '';
     if (o > 0 && !cutA) {
-      const room = zone - hA;
-      const want = Math.max(2, (o / cap) * zone);
+      const room = CEIL - hA;
+      const want = Math.max(2, (o / even) * ZONE);
       const cutO = want > room;
-      drawn += block(cx, base - hA, cutO ? Math.max(2, room) : want, HATCH, ' stroke="#F4B541" stroke-width=".7"', cutO);
+      drawn += block(cx, CB - hA, cutO ? Math.max(2, room) : want, HATCH, ` stroke="${AMBER}" stroke-width=".7"`, cutO);
     }
     const say = `${day(d.date)} · ${money(a)}${o > 0 ? ` and ${money(o)} not from the budget` : ''}`;
-    return `<g class="b" data-x="${cx.toFixed(1)}" data-y="${y(tot[Math.min(i, tot.length - 1)]).toFixed(1)}" data-t="${escapeHtml(say)}">${drawn}</g>`;
+    // data-x finds the day under a finger (the middle of its column); the guide line and dot go to where the money-left line turns that day
+    return `<g class="b" data-x="${cx.toFixed(1)}" data-gx="${xe(i + 1).toFixed(1)}" data-y="${y(f.limit - tot[Math.min(i, tot.length - 1)]).toFixed(1)}" data-t="${escapeHtml(say)}">${drawn}</g>`;
   }).join('');
-  const pts = tot.map((v, i) => [x(i), y(v)]);
-  // a curve, not a polyline: each stretch leaves and arrives level (as in "More about this month"), so it never overshoots a day's value
-  const line = pts.reduce((d, [px, py], i) => {
-    if (!i) return `M${px.toFixed(1)} ${py.toFixed(1)}`;
-    const [qx, qy] = pts[i - 1];
-    const m = (px - qx) / 2;
-    return `${d} C${(qx + m).toFixed(1)} ${qy.toFixed(1)} ${(px - m).toFixed(1)} ${py.toFixed(1)} ${px.toFixed(1)} ${py.toFixed(1)}`;
-  }, '');
+  const spent = tot[tot.length - 1];
+  const leftNow = f.limit - spent;
+  const pts = [[L, y(f.limit)], ...tot.map((v, i) => [xe(i + 1), y(f.limit - v)])];
+  const line = pts.map(([px, py], i) => `${i ? 'L' : 'M'}${px.toFixed(1)} ${py.toFixed(1)}`).join(' ');
   const [tx, ty] = pts[pts.length - 1];
-  const area = `${line} L${tx.toFixed(1)} ${base} L${pts[0][0].toFixed(1)} ${base} Z`;
+  const area = `${line} L${tx.toFixed(1)} ${BASE} L${L} ${BASE} Z`;
   let dot;
   if (!dark) {
     dot = `<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="10" fill="rgba(255,210,94,.22)"/><circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="5.2" fill="#FFD25E" stroke="#fff" stroke-opacity=".7" stroke-width="1"/>`;
@@ -459,26 +459,80 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
   const startDate = new Date(`${by.length ? by[0].date : isoLocal(new Date())}T12:00:00`);
   const endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + days - 1, 12);
   const crosses = endDate.getMonth() !== startDate.getMonth();
-  const endName = (d) => (crosses ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : String(d.getDate()));
-  const first = endName(startDate);
-  const lastLabel = endName(endDate);
-  // The dashed line is the way on from today: a straight run from where the spending stands to the whole budget on the last day, so staying on
-  // it ends the month with nothing over. It used to run from 0 on day 1, so any spending on the first day sat above it however small. With the
-  // budget used up it stays level: nothing more can be spent without going over.
-  const spent = tot[tot.length - 1];
-  const route = tot.length < days
-    ? `<line x1="${tx.toFixed(1)}" y1="${ty.toFixed(1)}" x2="${x(days - 1).toFixed(1)}" y2="${y(Math.max(f.limit, spent)).toFixed(1)}" stroke="rgba(255,255,255,.7)" stroke-width="1.3" stroke-dasharray="4 4"/>`
-    : '';
-  const routeSays = !route ? '' : f.limit > spent ? ' The dashed line is the way to the end of the month on budget.' : ' The budget is used up, so the dashed line stays level.';
-  return `<div class="lg-chartbox"><svg class="lg-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(`This month so far: ${money(spent)} spent of ${money(f.limit)}.${routeSays} Press and slide along it to read each day.`)}">
+  const endName = (d) => (crosses ? `on ${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : `on day ${d.getDate()}`);
+  // The dashed run is the way on from today: straight to nothing on the last day, so staying on it ends the month with nothing over. Once the
+  // budget is used up there is no way on to draw.
+  const running = tot.length < days && leftNow > 0;
+  const route = running ? `<line x1="${tx.toFixed(1)}" y1="${ty.toFixed(1)}" x2="${(L + iw).toFixed(1)}" y2="${BASE}" stroke="rgba(255,255,255,.75)" stroke-width="1.3" stroke-dasharray="4 4"/>` : '';
+  const perDay = running && f.free >= 0 && f.perDay > 0 ? f.perDay : 0;
+  const CH = 5.6; // about how wide a character of the labels is, to keep one from running into the next
+  // what the line says about today: right of its point, or left of it when there is no room on the right
+  const todaySays = tot.length >= days ? (leftNow >= 0 ? `${money(leftNow)} left at the end` : `${money(-leftNow)} over`) : leftNow > 0 ? `${money(leftNow)} left today` : leftNow === 0 ? 'Budget used up' : `${money(-leftNow)} over budget`;
+  const todayRight = tx + 12 + todaySays.length * CH <= W - R;
+  // left of the point the line comes down from higher up, so the label rides above the highest of it under the label and the line never runs through the letters
+  const lo = todayRight ? ty : Math.min(...pts.filter(([px]) => px >= tx - 12 - todaySays.length * CH).map(([, py]) => py));
+  const todayY = Math.max(TOP - 4, Math.min(ty - 8, lo - 6));
+  const startSays = `${money(f.limit)} ${endName(startDate)}`;
+  // the first label gives way when today's own label would sit on top of it (a month only just begun)
+  const startClash = todayY - (TOP - 4) < 12 && todayRight && tx + 12 < L + 2 + startSays.length * CH;
+  const startClash2 = todayY - (TOP - 4) < 12 && !todayRight && tx - 12 - todaySays.length * CH < L + 2 + startSays.length * CH;
+  const labels = [
+    startClash || startClash2 ? '' : `<text x="${L + 2}" y="${TOP - 4}" font-size="10.5" fill="rgba(255,255,255,.8)">${startSays}</text>`,
+    `<text x="${(todayRight ? tx + 12 : tx - 12).toFixed(1)}" y="${todayY.toFixed(1)}" font-size="10.5" font-weight="650"${todayRight ? '' : ' text-anchor="end"'} fill="#fff">${todaySays}</text>`,
+    // the dashed run comes down to this corner, so the label has the card's colour round it: the line passes behind it, never through the letters
+    running && L + iw - tx >= 90 ? `<text x="${L + iw}" y="${BASE - 6}" font-size="10.5" text-anchor="end" fill="rgba(255,255,255,.8)" stroke="${HALO}" stroke-width="3" stroke-linejoin="round" paint-order="stroke">${money(0)} ${endName(endDate)}</text>` : '',
+  ].join('');
+  // The even day: a dashed line across the columns, named at the right.
+  const ey = CB - ZONE;
+  const evenSays = `An even day is ${money(even)}`;
+  const evenX = W - R - evenSays.length * 5;
+  // The biggest cut day says what it was, beside its column and clear of the even-day label; it rises over a taller neighbour, but never to the line above.
+  let big = -1;
+  by.forEach((d, i) => { if (colH(d.amount || 0) > CEIL && (big < 0 || (d.amount || 0) > (by[big].amount || 0))) big = i; });
+  let bigText = '';
+  if (big >= 0) {
+    const bigSays = money(by[big].amount);
+    const bigW = bigSays.length * 6.2;
+    // how high each day's column stands, hatched part included
+    const stand = (d) => Math.min(CEIL, colH(d.amount || 0) + ((d.other || 0) > 0 ? Math.max(2, ((d.other || 0) / even) * ZONE) : 0));
+    const MAXRISE = CB - BASE - 14; // above this the label would crowd the money-left chart's floor
+    // beside the column on its right, or on its left; the first side with room (inside the card, clear of the even-day label and of any taller column) wins, else it is not drawn
+    for (const right of [true, false]) {
+      const from = right ? xc(big) + 7 : xc(big) - 7 - bigW;
+      if (from < L || from + bigW > (right ? evenX - 6 : W - R)) continue;
+      const tall = Math.max(0, ...by.map((d, i) => (i !== big && xc(i) + bw / 2 > from && xc(i) - bw / 2 < from + bigW ? stand(d) : 0)));
+      if (tall + 5 > MAXRISE) continue;
+      bigText = `<text x="${(right ? from : from + bigW).toFixed(1)}" y="${CB - Math.max(ZONE + 8, tall + 5)}" font-size="10.5" font-weight="650"${right ? '' : ' text-anchor="end"'} fill="${AMBER}">${bigSays}</text>`;
+      break;
+    }
+  }
+  // What a day can take from here, drawn as the outline of a column for each day still to come; named in the middle of them when there is room.
+  let ahead = '';
+  let aheadText = '';
+  if (perDay > 0) {
+    const hp = Math.min(CEIL, colH(perDay));
+    for (let i = tot.length; i < days; i += 1) ahead += `<rect x="${(xc(i) - bw / 2).toFixed(1)}" y="${(CB - hp).toFixed(1)}" width="${bw.toFixed(1)}" height="${hp.toFixed(1)}" rx="1.5" fill="none" stroke="rgba(127,235,221,.7)" stroke-dasharray="2 2"/>`;
+    const says = `${money(perDay)} a day from here`;
+    const w = says.length * CH;
+    if ((days - tot.length) * cw >= w) {
+      // in the middle of the days to come; when a day can take nearly an even day the label rides above the columns, on the even-day label's row, so it moves left of that label
+      const mid = (xe(tot.length) + xe(days)) / 2;
+      const cx = hp + 5 > 14 ? Math.max(xe(tot.length) + w / 2, Math.min(mid, evenX - 8 - w / 2)) : mid;
+      aheadText = `<text x="${cx.toFixed(1)}" y="${CB - Math.max(14, hp + 5)}" font-size="10.5" font-weight="650" text-anchor="middle" fill="${MINT}" stroke="${HALO}" stroke-width="3" stroke-linejoin="round" paint-order="stroke">${says}</text>`;
+    }
+  }
+  const routeSays = running ? ` At ${money(perDay || 0)} a day the money left lasts to the end of the month.` : leftNow > 0 ? '' : ' The budget is used up.';
+  return `<div class="lg-chartbox"><svg class="lg-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(`This month so far: ${money(spent)} spent of ${money(f.limit)}, ${leftNow >= 0 ? `${money(leftNow)} left` : `${money(-leftNow)} over`}.${routeSays} Under the line, one column for each day against an even day of ${money(even)}. Press and slide along it to read each day.`)}">
     <defs><pattern id="${hid}" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" fill="rgba(244,181,65,.14)"/><rect width="1.6" height="4" fill="#F4B541"/></pattern></defs>
-    <line x1="${L}" y1="${base}" x2="${W - R}" y2="${base}" stroke="rgba(255,255,255,.25)"/>
-    ${bars}
-    ${route}
-    <path d="${area}" fill="rgba(63,216,198,.2)"/><path d="${line}" fill="none" stroke="#7FEBDD" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <line x1="${tx.toFixed(1)}" y1="${ty.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${base}" stroke="rgba(255,255,255,.35)" stroke-dasharray="2 3"/>${dot}
-    <text x="${L}" y="${H - 3}" font-size="10" fill="rgba(255,255,255,.6)">${first}</text><text x="${W - R}" y="${H - 3}" font-size="10" text-anchor="end" fill="rgba(255,255,255,.6)">${lastLabel}</text>
-    <line class="lg-guide" y1="${T}" y2="${base}" stroke="#fff" stroke-width="1" opacity="0"/><circle class="lg-pickdot" r="4" fill="#fff" opacity="0"/></svg><p class="lg-chartread" hidden aria-live="polite"></p></div>`;
+    <line x1="${L}" y1="${BASE}" x2="${W - R}" y2="${BASE}" stroke="rgba(255,255,255,.25)"/>
+    <path d="${area}" fill="rgba(63,216,198,.2)"/>${route}<path d="${line}" fill="none" stroke="#7FEBDD" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dot}
+    ${labels}
+    <line x1="${L}" y1="${CB}" x2="${W - R}" y2="${CB}" stroke="rgba(255,255,255,.25)"/>
+    <line x1="${L}" y1="${ey}" x2="${W - R}" y2="${ey}" stroke="rgba(255,255,255,.45)" stroke-dasharray="4 4"/>
+    ${bars}${ahead}
+    <text x="${W - R}" y="${ey - 4}" font-size="10" text-anchor="end" fill="rgba(255,255,255,.85)" stroke="${HALO}" stroke-width="3" stroke-linejoin="round" paint-order="stroke">${evenSays}</text>
+    ${bigText}${aheadText}
+    <line class="lg-guide" y1="${TOP}" y2="${CB}" stroke="#fff" stroke-width="1" opacity="0"/><circle class="lg-pickdot" r="4" fill="#fff" opacity="0"/></svg><p class="lg-chartread" hidden aria-live="polite"></p></div>`;
 }
 
 // What a payment's tile is tinted: the gem number of its category, in the Ledger's five tones.

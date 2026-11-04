@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.11',
+    items: [
+      {
+        icon: 'chart',
+        title: "A clearer chart on Summary",
+        text: "The chart is now two pictures in one, and shorter than before. The line on top is the money you have left, stepping down each day and running to zero on the last day. Under it, one column for each day shows what you spent: a day far above an even day is cut short and shown in amber with its amount.",
+        guide: [{ view: 'summary', target: '.lg-chart', text: "The line is your money left. The columns below are each day's spending, against the dashed even-day line. Press and slide along it to read any day." }],
+      },
+    ],
+  },
+  {
     version: '7.10.8',
     items: [
       {

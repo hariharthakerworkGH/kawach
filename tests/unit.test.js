@@ -2306,53 +2306,84 @@ test('the hero chart: a bar for each day, hatching for money not from the budget
   equal((svg.match(/<g class="b"/g) || []).length, 3, 'a group for each day, the nearest to a finger is the one read');
   ok(svg.includes('url(#hh') && svg.includes('stroke-dasharray="4 4"'), 'hatched bars, and the dashed pace line');
   ok(svg.includes('Fri 2 Oct') && svg.includes('not from the budget'), 'a tapped day reads its date and the hatched part');
-  equal((svg.replace(/<title>[\s\S]*?<\/title>/g, '').match(/<text[^>]*>[^<]*<\/text>/g) || []).length, 2, 'two words on the chart: the first and last day');
+  const spentMore = heroChart({ ...f, spendDays: [1000000, 1500000, 2000000] }, true);
+  const words = (spentMore.replace(/<title>[\s\S]*?<\/title>/g, '').match(/<text[^>]*>[^<]*<\/text>/g) || []).map((t) => t.replace(/<[^>]*>/g, ''));
+  ok(words.length === 4 && words.includes('₹30,000 on day 1') && words.includes('₹0 on day 31') && words.includes('An even day is ₹968') && words.some((w) => w.endsWith('left today')), `four short labels: the budget on the first day, what is left today, nothing on the last day and the even day: ${JSON.stringify(words)}`);
   equal(heroChart({ ...f, limit: 0 }, true), '', 'no budget, no chart');
-  // every bar, even a tiny one, stands on the line: no bar's foot is lower than the line
+  // every column, even a tiny one, stands on the line under the money-left line: no column's foot is lower than it
   const big = { ...f, spendByDay: [{ date: '2026-10-01', amount: 0, other: 6800000 }, { date: '2026-10-02', amount: 20000, other: 150 }, { date: '2026-10-03', amount: 40, other: 900 }] };
-  const baseY = Number((heroChart(big, true).match(/<line x1="6" y1="([\d.]+)"/) || [])[1]);
+  const baseY = Number([...heroChart(big, true).matchAll(/<line x1="8" y1="([\d.]+)" x2="326" y2="[\d.]+" stroke="rgba\(255,255,255,\.25\)"/g)].map((m) => m[1]).pop());
   const feet = [...heroChart(big, true).matchAll(/<rect x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="([\d.]+)" rx="1.5"/g)].map((m) => Number(m[1]) + Number(m[2]));
-  ok(baseY > 0 && feet.length >= 4 && feet.every((foot) => foot <= baseY + 0.06), `a bar's foot sank below the line: ${JSON.stringify({ baseY, feet })}`);
+  ok(baseY > 0 && feet.length >= 4 && feet.every((foot) => foot <= baseY + 0.06), `a column's foot sank below the line: ${JSON.stringify({ baseY, feet })}`);
   // one huge day (an EMI) is cut with a zigzag top and a slanted gap, and does not flatten the ordinary days
-  const six = { ...f, spendDays: [100, 300, 450, 570, 750, 820], daysIntoCycle: 6, spendByDay: [100, 200, 150, 120, 180, 70].map((a, i) => ({ date: `2026-10-0${i + 1}`, amount: a * 100, other: i === 0 ? 6800000 : 0 })) };
+  const six = { ...f, limit: 1000000, spendDays: [100, 300, 450, 570, 750, 820], daysIntoCycle: 6, spendByDay: [100, 200, 150, 120, 180, 70].map((a, i) => ({ date: `2026-10-0${i + 1}`, amount: a * 100, other: i === 0 ? 6800000 : 0 })) };
   const cutSvg = heroChart(six, true);
-  ok((cutSvg.match(/l[\d.]+ -6\.5/g) || []).length === 3 && cutSvg.includes('rgba(10,24,60,.95)'), 'the day that passes the ceiling is cut: a zigzag top and a gap');
-  const heights = [...cutSvg.matchAll(/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)" rx="1.5" fill="rgba\(127/g)].map((m) => Number(m[1]));
+  ok((cutSvg.match(/l[\d.]+ -4 /g) || []).length === 3 && cutSvg.includes('rgba(10,24,60,.95)'), 'the day that passes the ceiling is cut: a zigzag top and a gap');
+  const heights = [...cutSvg.matchAll(/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)" rx="1.5" fill="#7FEBDD"/g)].map((m) => Number(m[1]));
   ok(heights.length === 6 && Math.min(...heights) > 6, `ordinary days stay readable beside the big one: ${JSON.stringify(heights)}`);
 });
 
-// 3 Nov 2026: the dashed line ran from 0 on day 1 to the budget on the last day, so a first-day spend sat above it however small and it said nothing about what was left.
-test('the hero chart: the dashed line runs from where the spending stands today to the whole budget on the last day', () => {
+// 7.11: the chart is the money left (a line from the whole budget down to what is left today, then dashed to nothing on the last day) over one
+// column for each day. 3 Nov 2026 it was spending against a dashed line from 0, which owners found confusing (mockups/7.16-hero-chart).
+test('the hero chart: money left falls from the whole budget, then runs dashed to nothing on the last day', () => {
   const f = {
     limit: 3000000,
-    spendDays: [10000, 30000, 60000],
-    spendByDay: [{ date: '2026-10-01', amount: 10000, other: 0 }, { date: '2026-10-02', amount: 20000, other: 0 }, { date: '2026-10-03', amount: 30000, other: 0 }],
+    spendDays: [100000, 300000, 600000],
+    spendByDay: [{ date: '2026-10-01', amount: 100000, other: 0 }, { date: '2026-10-02', amount: 200000, other: 0 }, { date: '2026-10-03', amount: 300000, other: 0 }],
     daysIntoCycle: 3,
     daysToClose: 29,
+    perDay: 90000,
+    free: 2400000,
   };
-  const dashed = (svg) => (svg.match(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)" stroke="rgba\(255,255,255,\.7\)" stroke-width="1\.3" stroke-dasharray="4 4"\/>/) || []).slice(1).map(Number);
-  const todayAt = (svg) => (svg.match(/<line x1="([\d.]+)" y1="([\d.]+)" x2="[\d.]+" y2="[\d.]+" stroke="rgba\(255,255,255,\.35\)"/) || []).slice(1, 3).map(Number);
+  const dashed = (svg) => (svg.match(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)" stroke="rgba\(255,255,255,\.75\)" stroke-width="1\.3" stroke-dasharray="4 4"\/>/) || []).slice(1).map(Number);
+  const lastPoint = (svg) => [...(svg.match(/<path d="([^"]+)" fill="none" stroke="#7FEBDD"/) || [])[1].matchAll(/L([\d.]+) ([\d.]+)/g)].pop().slice(1, 3).map(Number);
   const under = heroChart(f, true);
   const [x1, y1, x2, y2] = dashed(under);
-  const [tx, ty] = todayAt(under);
-  ok(x1 === tx && y1 === ty, `the dashed line starts on today's point: ${JSON.stringify({ x1, y1, tx, ty })}`);
-  ok(x2 === 328 && y2 === 12, `and ends on the whole budget on the last day: ${JSON.stringify({ x2, y2 })}`);
-  ok(y1 > y2, 'under budget it climbs');
-  const over = heroChart({ ...f, spendDays: [10000, 30000, 4000000] }, true);
-  const [, oy1, , oy2] = dashed(over);
-  ok(oy1 === oy2, `once the budget is used up it stays level: ${oy1} ${oy2}`);
-  const lastDay = heroChart({ ...f, daysToClose: 1 }, true);
+  const [tx, ty] = lastPoint(under);
+  ok(x1 === tx && y1 === ty, `the dashed run starts on today's point: ${JSON.stringify({ x1, y1, tx, ty })}`);
+  ok(x2 === 326 && y2 === 58, `and ends on nothing on the last day: ${JSON.stringify({ x2, y2 })}`);
+  ok(y1 < y2, 'money is left, so the point is above the end');
+  const startY = Number((under.match(/<path d="M8\.0 ([\d.]+) /) || [])[1]);
+  ok(startY === 14 && ty > startY, `the line starts at the whole budget (top) and falls: ${startY} ${ty}`);
+  const over = heroChart({ ...f, spendDays: [100000, 300000, 4000000], free: -1000000, perDay: 0 }, true);
+  equal(dashed(over).length, 0, 'once the budget is used up there is no way on to draw');
+  ok(over.includes('over budget') && !over.includes(' on day 31<'), 'it says it is over, and does not promise nothing on the last day');
+  const lastDay = heroChart({ ...f, daysToClose: 1, spendDays: [100000, 300000, 600000] }, true);
   equal(dashed(lastDay).length, 0, 'on the last day there is nothing further to draw');
-  ok(!/even pace/.test(under) && /way to the end of the month on budget/.test(under), 'its words say what the line is');
+  ok(/lasts to the end of the month/.test(under) && /even day of/.test(under), 'its words say what the line and the columns are');
+});
+
+// The numbers of the mockup the owner chose (E2, 4 Nov 2026): day 4 of 30, budget 13,542, spent 11,562 (10,717 of it on day 1).
+test('the hero chart: the owner\'s month reads as in the mockup, and the big day\'s label keeps clear of the line above', () => {
+  const f = {
+    limit: 1354200,
+    spendDays: [1071700, 1116700, 1130700, 1156200],
+    spendByDay: [1071700, 45000, 14000, 25500].map((a, i) => ({ date: `2026-11-0${i + 1}`, amount: a, other: 0 })),
+    daysIntoCycle: 4,
+    daysToClose: 27,
+    perDay: 7333,
+    free: 198000,
+  };
+  const svg = heroChart(f, true);
+  const words = (svg.match(/<text[^>]*>[^<]*<\/text>/g) || []).map((t) => t.replace(/<[^>]*>/g, ''));
+  for (const w of ['₹13,542 on day 1', '₹1,980 left today', '₹0 on day 30', 'An even day is ₹451', '₹73 a day from here', '₹10,717']) ok(words.includes(w), `the label "${w}" is on the chart: ${JSON.stringify(words)}`);
+  const amber = svg.match(/<text x="([\d.]+)" y="([\d.]+)"[^>]*fill="#F4B541">₹10,717</);
+  ok(amber && Number(amber[2]) - 10.5 - 58 >= 7, `the amber label sits at least 7px under the line chart's floor: ${amber && amber[2]}`);
+  ok(/<path d="M[\d.]+ 112\.0 V[\d.]+ (l[\d.]+ -4 l[\d.]+ 4 ){3}V112\.0 Z" fill="#F4B541"/.test(svg), 'the big day is a cut amber column');
+  // late in a month the labels turn round or give way rather than run off the edge or onto each other
+  const late = heroChart({ ...f, spendDays: Array.from({ length: 28 }, (_, i) => 1000000 + i * 10000), spendByDay: Array.from({ length: 28 }, (_, i) => ({ date: `2026-11-${String(i + 1).padStart(2, '0')}`, amount: i ? 10000 : 1000000, other: 0 })), daysIntoCycle: 28, daysToClose: 3, perDay: 20000 }, true);
+  ok(/text-anchor="end" fill="#fff">₹[\d,]+ left today</.test(late) && !/ on day 30</.test(late.replace(/>₹[\d,]+ on day 1</, '')), 'late in the month: today\'s label turns left and the last-day label gives way');
+  const first = heroChart({ ...f, spendDays: [10000], spendByDay: [{ date: '2026-11-01', amount: 10000, other: 0 }], daysIntoCycle: 1, daysToClose: 30, perDay: 44500 }, true);
+  ok(!first.includes(' on day 1<') && first.includes('left today'), 'a month only just begun: the first label gives way to today\'s, they are never on each other');
 });
 
 // 30 Oct 2026 shot of the owner's data: a month begun on the day a month-end salary landed ended its chart at "32".
-test('the hero chart: a month that begins on 30 Oct ends on 30 Nov, and a whole month still reads 1 to 31', () => {
-  const rolled = { limit: 3000000, spendDays: [10000], spendByDay: [{ date: '2026-10-30', amount: 10000, other: 0 }], daysIntoCycle: 1, daysToClose: 32 };
+test('the hero chart: a month that begins on 30 Oct ends on 30 Nov, and a whole month still reads day 1 to day 31', () => {
+  const rolled = { limit: 3000000, spendDays: [1500000, 1700000], spendByDay: [{ date: '2026-10-30', amount: 1500000, other: 0 }, { date: '2026-10-31', amount: 200000, other: 0 }], daysIntoCycle: 2, daysToClose: 31 };
   const svg = heroChart(rolled, true);
-  ok(svg.includes('>30 Oct</text>') && svg.includes('>30 Nov</text>'), `the ends should be dates: ${(svg.match(/<text[^>]*>[^<]*<\/text>/g) || []).join(' ')}`);
-  const whole = heroChart({ ...rolled, spendByDay: [{ date: '2026-10-01', amount: 10000, other: 0 }], daysIntoCycle: 1, daysToClose: 31 }, true);
-  ok(whole.includes('>1</text>') && whole.includes('>31</text>'), 'an ordinary month keeps plain day numbers');
+  ok(svg.includes('on 30 Oct</text>') && svg.includes('on 30 Nov</text>'), `the ends should be dates: ${(svg.match(/<text[^>]*>[^<]*<\/text>/g) || []).join(' ')}`);
+  const whole = heroChart({ ...rolled, spendByDay: [{ date: '2026-10-01', amount: 1500000, other: 0 }, { date: '2026-10-02', amount: 200000, other: 0 }], daysToClose: 30 }, true);
+  ok(whole.includes('on day 1</text>') && whole.includes('on day 31</text>'), 'an ordinary month keeps plain day numbers');
 });
 
 test('a payment moved to another account keeps its category unless that account cannot use it', () => {
