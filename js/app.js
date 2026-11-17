@@ -17,7 +17,8 @@ import { fillIcons, icon } from './icons.js';
 import { redraw } from './redraw.js';
 import { isoLocal } from './frequency.js';
 import { keepDataSafe, isInstalled } from './install.js';
-import { signIn, rememberGoogleAccount } from './drive.js';
+import { renewPassOnce, rememberGoogleAccount } from './drive.js';
+import { runAutoBackup } from './auto-backup.js';
 import { showIfUpdated } from './whats-new.js';
 import { loadMarkerKey } from './marker.js';
 import { moneyProfile, businesses, activeSpace, setCurrentSpace, settleSpaces } from './business.js';
@@ -56,6 +57,7 @@ const views = {
   recap: { title: 'Month in review', module: null, load: () => import('./views/recap.js') },
   policies: { title: 'Policies', module: null, load: () => import('./views/policies.js') },
   bills: { title: 'One-time bills', module: null, load: () => import('./views/bills.js') },
+  workreport: { title: 'Work costs', module: null, load: () => import('./views/workreport.js') },
   categories: { title: 'Categories', module: null, load: () => import('./views/categories.js') },
   import: { title: 'Import Statement', module: null, load: () => import('./views/import.js') },
   settings: { title: 'Backup & Settings', module: null, load: () => import('./views/settings.js') },
@@ -385,18 +387,8 @@ function typingInView() {
 // Google's sign-in pass lasts about an hour. When it has run out as the app
 // opens, Google's page is shown for a moment to renew it - silently, and only
 // once per visit, so being offline or signed out can never send you round in
-// a loop. Syncs later in the visit just wait for the next open.
-const RENEW_TRIED = 'kawach-sync-renew-tried';
-function renewGooglePassOnce() {
-  try {
-    if (!navigator.onLine || sessionStorage.getItem(RENEW_TRIED)) return false;
-    sessionStorage.setItem(RENEW_TRIED, '1');
-  } catch {
-    return false;
-  }
-  signIn('sync', { silent: true });
-  return true;
-}
+// a loop. Syncs later in the visit just wait for the next open (renewPassOnce, js/drive.js).
+const renewGooglePassOnce = () => renewPassOnce('sync');
 
 async function runSync({ silent = true, opening = false } = {}) {
   if (syncing || isDemo()) return;
@@ -509,11 +501,16 @@ function wireSync() {
   });
 
   runSync({ silent: false, opening: true });
+  // The day's backup, a few seconds after opening so the screen is never slower (js/auto-backup.js).
+  setTimeout(() => runAutoBackup(), 8000);
 
   // Coming back to the app after it's been in the background is exactly when
-  // the other device is most likely to have moved on.
+  // the other device is most likely to have moved on - and, after a night, when the day's backup is due.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') runSync({ silent: false });
+    if (document.visibilityState === 'visible') {
+      runSync({ silent: false });
+      runAutoBackup();
+    }
   });
 }
 

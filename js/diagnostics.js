@@ -220,6 +220,7 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
       // seen in a report before. "paysStatement" is a card id and a date.
       isReimbursable: t.isReimbursable === true ? true : undefined,
       isSettlement: t.isSettlement === true ? true : undefined,
+      claimSubmitted: t.claimSubmitted === true ? true : undefined,
       forNextMonth: t.forNextMonth === true ? true : undefined,
       // The month a payment counts in when it is not its own (salary at a
       // month's end, 5.21.1), and whose money it was (lent and borrowed, 5.20).

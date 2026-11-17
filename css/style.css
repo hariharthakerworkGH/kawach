@@ -3639,7 +3639,8 @@ details:has(> .muted-note:last-child) + .bank-card,
   border-top: 1px solid var(--border);
 }
 
-.restore-panel > .btn-secondary:first-child {
+/* By id, not :first-child: the copies kept on this phone can sit above the button. */
+.restore-panel > #drive-restore-btn {
   margin-bottom: var(--space-sm);
 }
 

@@ -16,6 +16,16 @@ import { looksLikeCardPayment } from '../transfers.js';
 import { redraw } from '../redraw.js';
 import { escapeHtml, escapeAttr, sectionHead, invalidField, slidingPill } from '../ui.js';
 import { MAX_PAISE } from '../records.js';
+import { isInstalled, isIPhone } from '../install.js';
+
+// Why Kawach may be missing from the phone's Share list, said for this phone (4 Nov 2026: "sharing from Messages doesn't work").
+// Android lists a web app in Share only once it is installed to the home screen, and iPhones have no Share to a web app at all.
+// `ok` means the steps below should work as they are, so they stay folded; otherwise the reason is open to be read.
+export function shareAdvice({ installed, iphone }) {
+  if (iphone) return { ok: false, text: 'iPhones cannot share to Kawach. Copy the message instead, then tap <strong>Paste from clipboard</strong> above.' };
+  if (!installed) return { ok: false, text: 'Kawach is open in a browser tab, so it is not in the Share list yet. Add it to the home screen first (Chrome menu, <strong>Install app</strong>), then share again.' };
+  return { ok: true, text: '' };
+}
 
 // Bank alerts you've shared or pasted, each shown as a draft to check and
 // save. Nothing here counts towards any total until you tap Save.
@@ -79,6 +89,7 @@ export async function render(container) {
   context = { accounts, categories, transactions, importBatches, commitments: recurring.filter((r) => isLiveCommitment(r)).sort(byYourOrder) };
 
   const ready = drafts.filter(isReady);
+  const advice = shareAdvice({ installed: isInstalled(), iphone: isIPhone() });
 
   // Everything sits inside a root that is rebuilt on each render. Listeners go
   // on that root, not on the shared view container - otherwise every re-render
@@ -105,9 +116,10 @@ export async function render(container) {
       <button type="button" class="btn-tiny" id="inbox-read">Read it</button>
     </div>
 
-    <details class="section-fold">
+    <details class="section-fold" ${advice.ok ? '' : 'open'}>
     <summary>Share straight from Messages</summary>
     <div class="totals-card">
+    ${advice.ok ? '' : `<p class="share-advice">${advice.text}</p>`}
     <ol class="setup-steps">
       <li>In Messages, long-press the bank SMS.</li>
       <li>Tap <strong>Share</strong> - if you don't see it, it's in the <strong>⋮</strong> menu.</li>

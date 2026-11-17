@@ -44,7 +44,8 @@
   history.replaceState(null, '', location.pathname);
   try {
     const purpose = acceptSignIn(hash);
-    location.replace(`./?drive=${encodeURIComponent(purpose)}#${purpose === 'sync' ? 'summary' : 'settings'}`);
+    // Sync and the daily backup renew the pass quietly and go home; the rest carry on in Settings.
+    location.replace(`./?drive=${encodeURIComponent(purpose)}#${purpose === 'sync' || purpose === 'auto-backup' ? 'summary' : 'settings'}`);
   } catch (err) {
     // A quiet renewal for sync that Google couldn't give without asking:
     // straight back to the app, which says so beside sync.

@@ -608,7 +608,8 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .lg-ringcard .hv-ring__mid span { max-width: 62px; margin: 0 auto; font-size: 11px; line-height: 1.15; color: var(--lg-ink2); overflow-wrap: anywhere; }
 :root[data-style=haven] .lg-legend { display: grid; gap: 0; font-size: 13px; min-width: 0; }
 :root[data-style=haven] .lg-legend .hv-ring__badge { position: relative; display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; padding: 0; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; text-align: left; font: inherit; font-size: 13px; color: var(--lg-ink2); cursor: pointer; transition: opacity 200ms; }
-:root[data-style=haven] .lg-legend .hv-ring__badge::after { content: ""; position: absolute; inset: 0 -4px; }
+/* The row is 30px tall to read; the finger still gets 44px (7px of invisible reach above and below, shared with the next row). */
+:root[data-style=haven] .lg-legend .hv-ring__badge::after { content: ""; position: absolute; inset: -7px -4px; }
 :root[data-style=haven] .lg-legend .hv-ring__badge > i { width: 8px; height: 8px; border-radius: 3px; flex: none; }
 :root[data-style=haven] .lg-legend .hv-ring__badge > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 :root[data-style=haven] .lg-legend .hv-ring__badge > b { font-weight: 650; color: var(--lg-ink); }
@@ -667,7 +668,7 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .hist-row.open { background: var(--lg-s2); }
 :root[data-style=haven] .hist-row.open .hist-sub { white-space: normal; }
 :root[data-style=haven] .hist-row .hist-text { flex-direction: row; }
-:root[data-style=haven] .lg-legend .hv-ring__badge { min-height: 0; height: 44px; }
+:root[data-style=haven] .lg-legend .hv-ring__badge { min-height: 0; height: 30px; }
 :root[data-style=haven] .app-header #hist-month > button { min-width: 0; }
 :root[data-style=haven] .hv-histfold > summary { display: none; }
 :root[data-style=haven] .lg-ringcard { margin-top: 3px; }
@@ -765,6 +766,28 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .hist-row .hist-flag { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 0; padding: 0; font-size: 13px; color: var(--lg-ink2); }
 :root[data-style=haven] .hist-row .hist-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 12px -12px 0; padding: 8px 12px 0; border-top: 1px solid var(--lg-line); }
 :root[data-style=haven] .hist-row .hist-actions__more { display: flex; flex-wrap: wrap; align-items: center; gap: 0 14px; }
+
+/* Work costs by kind (js/views/workreport.js): two dates, a few ranges, a total card, then a card per kind with a tick on each payment.
+   A whole row is the tick's label, so the finger has the full 52px. */
+:root[data-style=haven] .wr { display: grid; gap: 10px; }
+:root[data-style=haven] .wr .section-head { margin: 0; }
+:root[data-style=haven] .wr-dates { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+:root[data-style=haven] .wr-dates .field { margin: 0; min-width: 0; }
+:root[data-style=haven] .wr-chips { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+:root[data-style=haven] .wr-chips .wr-chip { min-width: 0; justify-content: center; text-align: center; }
+/* The file box took its own width and ran past the card's right edge (seen 16 Nov 2026, Settings > Restore). */
+:root[data-style=haven] .restore-panel input[type="file"] { width: 100%; min-width: 0; box-sizing: border-box; }
+:root[data-style=haven] .wr-total, :root[data-style=haven] .wr-group { margin: 0; }
+:root[data-style=haven] .wr-total .lg-row { grid-template-columns: minmax(0, 1fr) auto; min-height: 52px; padding: 6px 14px; cursor: default; }
+:root[data-style=haven] .wr-total .lg-row + .lg-row::before, :root[data-style=haven] .wr-row + .wr-row::before { content: ""; position: absolute; left: 14px; right: 0; top: 0; height: 1px; background: var(--lg-line); }
+:root[data-style=haven] .wr-row + .wr-row::before { left: 50px; }
+:root[data-style=haven] .wr-total .n i, :root[data-style=haven] .wr-row .n i { display: block; margin: 2px 0 0; }
+:root[data-style=haven] .wr-group .hv-clabel { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 14px 6px; }
+:root[data-style=haven] .wr-group .hv-clabel b { font-size: 13px; color: var(--lg-ink); font-variant-numeric: tabular-nums; }
+:root[data-style=haven] .wr-guess { font-style: normal; font-weight: 400; color: var(--lg-ink3); }
+:root[data-style=haven] .wr-row { grid-template-columns: 28px minmax(0, 1fr) auto; min-height: 52px; padding: 6px 12px; }
+:root[data-style=haven] .wr-tick { width: 22px; height: 22px; margin: 0; accent-color: var(--lg-tide); }
+:root[data-style=haven] .wr-actions { display: grid; gap: 8px; }
 
 /* 320 wide at the largest text: names wrap instead of being cut with an ellipsis */
 @media (max-width: 360px) {

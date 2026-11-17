@@ -84,13 +84,23 @@ export async function setBackupPassphrase(passphrase) {
 }
 
 export async function backupStatus() {
-  const [passphrase, driveLastAt, fileLastAt, email] = await Promise.all([
+  const [passphrase, driveLastAt, fileLastAt, email, localLastAt, auto] = await Promise.all([
     backupPassphrase(),
     meta('driveLastBackupAt'),
     meta('fileLastBackupAt'),
     meta('googleEmail'),
+    meta('localLastBackupAt'),
+    meta('autoBackup'),
   ]);
-  return { passphraseSet: Boolean(passphrase), driveLastAt: driveLastAt || null, fileLastAt: fileLastAt || null, email: email || null };
+  return {
+    passphraseSet: Boolean(passphrase),
+    driveLastAt: driveLastAt || null,
+    fileLastAt: fileLastAt || null,
+    email: email || null,
+    // The daily backup (js/auto-backup.js): on unless switched off on this phone, and when its copy here was last made.
+    autoOn: auto !== 'off',
+    localLastAt: localLastAt || null,
+  };
 }
 
 export async function markFileBackup() {
@@ -122,27 +132,55 @@ export const hasGooglePass = () => Boolean(currentPass());
 // Off to Google's sign-in page. `purpose` is what to do on return (see
 // oauth.html and app.js). `silent` asks Google not to show anything if the
 // user is already signed in and has said yes before - used to renew the pass
-// for sync when the app opens - and to come straight back if it can't.
+// for sync and for the daily backup when the app opens - and to come straight
+// back if it can't.
 // The random `state` proves the answer that comes back is the one this visit
 // asked for.
-export async function signIn(purpose, { silent = false } = {}) {
-  const state = crypto.getRandomValues(new Uint32Array(4)).join('-');
-  sessionStorage.setItem(PENDING_KEY, JSON.stringify({ purpose, state, silent }));
+//
+// A person who has connected before is never asked to pick an account again:
+// with the account named (login_hint) and no `prompt`, Google sends them
+// straight back when they are signed in and have already said yes, and shows
+// its sign-in only when it truly needs them. `select_account` (the first
+// time only) made Google show its account list on every single backup.
+export function signInUrl({ email, silent, state, redirect }) {
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
-    redirect_uri: new URL('./oauth.html', location.href).href,
+    redirect_uri: redirect,
     response_type: 'token',
     scope: SCOPE,
     include_granted_scopes: 'true',
-    prompt: silent ? 'none' : 'select_account',
     state,
   });
-  // The same account as last time, so a phone signed in to several doesn't
-  // stop to ask which.
-  const email = await meta('googleEmail');
+  if (silent) params.set('prompt', 'none');
+  else if (!email) params.set('prompt', 'select_account');
   if (email) params.set('login_hint', email);
-  location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 }
+
+export async function signIn(purpose, { silent = false } = {}) {
+  const state = crypto.getRandomValues(new Uint32Array(4)).join('-');
+  sessionStorage.setItem(PENDING_KEY, JSON.stringify({ purpose, state, silent }));
+  const email = await meta('googleEmail');
+  location.assign(signInUrl({ email, silent, state, redirect: new URL('./oauth.html', location.href).href }));
+}
+
+// A quiet renewal of the pass when the app opens: Google's page is shown for a moment, only once per visit (so being
+// offline or signed out can never send anyone round in a loop). Sync (js/app.js) and the daily backup
+// (js/auto-backup.js) share it, so one trip serves both.
+const RENEW_TRIED = 'kawach-sync-renew-tried';
+export function renewPassOnce(purpose) {
+  try {
+    if (!navigator.onLine || sessionStorage.getItem(RENEW_TRIED)) return false;
+    sessionStorage.setItem(RENEW_TRIED, '1');
+  } catch {
+    return false;
+  }
+  signIn(purpose, { silent: true });
+  return true;
+}
+
+// Small per-phone facts (never synced, never in a backup): the daily backup keeps its own dates here.
+export { meta as readDriveMeta, setMeta as writeDriveMeta };
 
 // Called by oauth.html with what Google sent back. Returns the purpose to
 // carry on with, or throws when the answer can't be trusted or was a "no"
@@ -232,11 +270,12 @@ export async function listBackups() {
 
 // One backup: encrypted on the phone, then uploaded. Needs a pass from
 // Google (signIn first) and the backup passphrase set on this phone.
-export async function backUpToDrive() {
+// `made` is a backup already locked by the daily run (js/auto-backup.js), so the same copy goes to the phone and to Drive.
+export async function backUpToDrive(made = null) {
   const passphrase = await backupPassphrase();
   if (!passphrase) throw new Error('Set a backup passphrase first.');
   if (!currentPass()) throw Object.assign(new Error('Sign in to Google first.'), { needsSignIn: true });
-  const { envelope, counts } = await exportEncrypted(passphrase);
+  const { envelope, counts } = made || (await exportEncrypted(passphrase));
   const name = `${BACKUP_PREFIX}${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`;
   await createFile(name, JSON.stringify(envelope));
   // Tidy up: the newest few and one a month are kept (backupsToDelete).

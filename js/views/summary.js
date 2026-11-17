@@ -580,6 +580,7 @@ async function renderDashboard(container) {
   on('#owed-back-stat', (btn) => showOwed(btn.getAttribute('aria-expanded') !== 'true'));
   // The list stays open when the screen draws itself again (a sync, a tap on Mark paid).
   if (owedOpen) showOwed(true);
+  on('.owed-report', () => dashboardEl.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'workreport' } })));
   // One tap: this money in was the employer paying back (the same flag as ticking "This pays back a work cost").
   on('.owed-yes', async (btn) => {
     const txn = (await getAll('transactions')).find((t) => t.id === btn.dataset.txn);
@@ -1468,6 +1469,7 @@ function owedListHtml(f) {
              ${guesses.map((x) => `<div class="owed-row owed-row--in"><span class="owed-row__d">${formatDateNice(x.date)}</span><span class="owed-row__t">From your salary sender<small>${escapeHtml(x.account)}</small></span><span class="owed-row__v">${formatRupees(x.amount)}</span><span class="owed-ask"><button type="button" class="btn-tiny owed-yes" data-txn="${x.id}">Yes, paid back</button><button type="button" class="btn-tiny owed-no" data-txn="${x.id}">No, not for these</button></span></div>`).join('')}`
           : '<p class="owed-list__tip">Got paid back? Open the payment in History or when adding it, and tick "This pays back a work cost".</p>'
       }
+      <button type="button" class="btn-tiny owed-report">Work costs by kind</button>
     </div>`;
 }
 

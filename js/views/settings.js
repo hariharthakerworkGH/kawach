@@ -25,6 +25,8 @@ import { backupStatus, backupPassphrase, setBackupPassphrase, markFileBackup, si
 import { escapeHtml } from '../ui.js';
 import { getRecord, bioAvailable, enableLock, disableLock, setFingerprint, setAway, confirmPin, newRecoveryKey, AWAY } from '../lock.js';
 import { showSecret } from '../secret-sheet.js';
+import { setAutoBackup, runAutoBackup } from '../auto-backup.js';
+import { listLocalCopies, readLocalCopy } from '../local-copies.js';
 
 // Loaded each time the screen is drawn: the copy kept before the last restore, if any (js/backup.js).
 let undoCopy = null;
@@ -35,6 +37,8 @@ let undoableImports = [];
 // backups found for a restore, whether Restore is open, and whether the
 // passphrase is being changed.
 let driveList = null;
+// The daily copies kept on this phone, listed when Restore opens (js/local-copies.js).
+let localList = null;
 let restoreOpen = false;
 let changingPass = false;
 
@@ -170,6 +174,16 @@ export async function render(container, params = {}) {
         </button>
       </div>
 
+      <!-- NEW (7.12): what a trip or a month cost the company, by kind, with a tick for each bill handed in. -->
+      <h3>Work costs</h3>
+      <div class="totals-card settings-card">
+        <button type="button" class="k-row settings-row" id="open-workreport">
+          <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('bill')}</span>
+          <span class="k-row__body"><span class="k-row__title">Work costs by kind</span><span class="k-row__meta">Food, travel, hotel: what you spent between two dates, and which bills you handed in</span></span>
+          <span class="settings-chev">${icon('forward')}</span>
+        </button>
+      </div>
+
       <!-- NEW (5.21): a month or a financial year, for a chartered accountant. -->
       <h3>For your CA</h3>
       <div class="totals-card settings-card ca-card">
@@ -237,6 +251,8 @@ export async function render(container, params = {}) {
   enhancePasswords(container);
   wireBackup(container, params);
   wireSync(container, params);
+
+  container.querySelector('#open-workreport').addEventListener('click', () => container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'workreport' } })));
 
   container.querySelector('#cycle-toggle').addEventListener('click', async () => {
     await setSetting(CYCLE_SETTING_KEY, !cycleAware);
@@ -634,6 +650,13 @@ function backupSection(backup) {
                <span>This phone<br><span class="muted-note">${backup.fileLastAt ? timeAgo(backup.fileLastAt) : 'Not yet'}</span></span>
                <button type="button" class="btn-tiny" id="file-backup-btn">Save file</button>
              </div>
+             <div class="backup-row">
+               ${icon('restore')}
+               <span id="auto-label">Back up every day<br><span class="muted-note">${
+                 backup.autoOn ? `${backup.email ? 'Drive and this phone' : 'This phone'}, when you first open Kawach each day${backup.localLastAt ? `. Last: ${timeAgo(backup.localLastAt)}` : ''}` : 'Off'
+               }</span></span>
+               <button type="button" class="k-toggle" id="auto-backup-toggle" role="switch" aria-checked="${backup.autoOn}" aria-labelledby="auto-label"></button>
+             </div>
              <button type="button" class="btn-secondary btn-block" id="backup-share-btn" hidden>Choose where to save it</button>`
           : `<label class="field">
                <span>${changingPass ? 'New passphrase' : 'Backup passphrase'}</span>
@@ -682,6 +705,7 @@ function backupSection(backup) {
 function restorePanel() {
   return `
     <div class="restore-panel">
+      ${localList && localList.length ? localChoices(localList, !driveList) : ''}
       <button type="button" id="drive-restore-btn" class="btn-secondary btn-block">From Google Drive</button>
       ${driveList ? driveChoices(driveList) : ''}
       <label class="field">
@@ -693,6 +717,22 @@ function restorePanel() {
         <input type="password" id="restore-pass" placeholder="Leave empty for this phone's" autocomplete="current-password">
       </label>
       <button type="button" id="restore-btn" class="btn-secondary btn-block">Restore</button>
+    </div>`;
+}
+
+// The daily copies kept on this phone, newest first. Their value starts with "local:" so Restore knows where to read it.
+function localChoices(list, pickFirst) {
+  return `
+    <div class="drive-restore">
+      <p class="muted-note">Kept on this phone</p>
+      ${list
+        .map(
+          (c, i) => `<label class="drive-file">
+            <input type="radio" name="drive-file" value="local:${escapeHtml(c.day)}" ${pickFirst && i === 0 ? 'checked' : ''}>
+            <span>${formatDateNice(c.day)}, ${c.transactions} payments${i === 0 ? ' <span class="muted">(latest)</span>' : ''}</span>
+          </label>`
+        )
+        .join('')}
     </div>`;
 }
 
@@ -823,14 +863,24 @@ function wireBackup(container, params) {
   if (shareBtn) shareBtn.addEventListener('click', save);
 
   // Restore.
-  container.querySelector('#restore-toggle').addEventListener('click', () => {
+  container.querySelector('#restore-toggle').addEventListener('click', async () => {
     restoreOpen = !restoreOpen;
+    if (restoreOpen) localList = await listLocalCopies();
+    again();
+  });
+  // The daily backup on or off, for this phone.
+  container.querySelector('#auto-backup-toggle')?.addEventListener('click', async (e) => {
+    const turnOn = e.currentTarget.getAttribute('aria-checked') !== 'true';
+    await setAutoBackup(turnOn);
+    showToast(turnOn ? 'Daily backup on' : 'Daily backup off');
+    if (turnOn) void runAutoBackup();
     again();
   });
   const loadList = async () => {
     try {
       showStatus(statusEl, 'Looking in your Google Drive…', false);
       driveList = await listBackups();
+      localList = await listLocalCopies();
       restoreOpen = true;
       again();
     } catch (err) {
@@ -891,10 +941,15 @@ function wireBackup(container, params) {
       if (!passphrase) return showStatus(statusEl, 'Enter the passphrase for that backup.', true);
       const chosen = container.querySelector('input[name="drive-file"]:checked');
       const file = container.querySelector('#restore-file').files[0];
-      if (!file && !chosen) return showStatus(statusEl, 'Choose a backup file, or one from Google Drive.', true);
+      if (!file && !chosen) return showStatus(statusEl, 'Choose a backup file, or one from this phone or Google Drive.', true);
       try {
         showStatus(statusEl, 'Opening the backup…', false);
-        const { data, createdAt, counts } = file ? await decryptBackup(await file.text(), passphrase) : await openDriveBackup(chosen.value, passphrase);
+        const onPhone = !file && chosen.value.startsWith('local:');
+        const { data, createdAt, counts } = file
+          ? await decryptBackup(await file.text(), passphrase)
+          : onPhone
+            ? await decryptBackup(await readLocalCopy(chosen.value.slice(6)), passphrase)
+            : await openDriveBackup(chosen.value, passphrase);
         const ok = await askConfirm({
           title: 'Replace everything with this backup?',
           message: `From ${formatDateNice(createdAt)}, ${counts.transactions} payments. Everything in the app now is replaced. This cannot be undone.`,

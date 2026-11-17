@@ -77,6 +77,8 @@ export function repaymentCandidates(transactions, { income = 0, bankIds, today }
 export function tidyFlags(t) {
   if (t.direction === 'credit') {
     delete t.isReimbursable;
+    // "Handed in to the company" (js/work-report.js) belongs to a work cost only.
+    delete t.claimSubmitted;
     // "Apply to next month's commitments" is for a payment out as well.
     delete t.forNextMonth;
   } else {

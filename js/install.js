@@ -47,7 +47,7 @@ export function isInstalled() {
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
 
-const isIPhone = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+export const isIPhone = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 
 // Returns true once the user has said yes.
 export async function install() {

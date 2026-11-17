@@ -1266,6 +1266,8 @@ async function handleChange(e, container) {
     }
     if (e.target.checked) t[field] = true;
     else delete t[field];
+    // No longer a work cost: it has nothing to be handed in for (js/work-report.js).
+    if (field === 'isReimbursable' && !e.target.checked) delete t.claimSubmitted;
     // Money in is an employer paying back or someone else, never both.
     if (e.target.checked && field === 'isSettlement') delete t.isShareBack;
     if (e.target.checked && field === 'isShareBack') delete t.isSettlement;
@@ -1284,6 +1286,7 @@ async function handleChange(e, container) {
     if (person) {
       t.personId = person.id;
       delete t.isReimbursable;
+      delete t.claimSubmitted;
       delete t.isSettlement;
       if (!cache.people.some((p) => p.id === person.id)) cache.people.push(person);
     } else delete t.personId;

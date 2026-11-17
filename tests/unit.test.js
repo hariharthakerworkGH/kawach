@@ -2896,3 +2896,97 @@ test('to do: what was seen does not come back as new until it is clearly worse, 
   equal(Object.keys(await getSeen()).sort(), ['z'], 'entries past their month are dropped when the next one is written');
   await setSettingForSeen('todoSeen', {});
 });
+
+// 7.12: staying connected to Google, the daily backup, the work-cost report, share advice.
+import { signInUrl } from '../js/drive.js';
+import { dueToday } from '../js/auto-backup.js';
+import { copiesToDelete, saveLocalCopy, listLocalCopies, readLocalCopy, useCopiesDatabase } from '../js/local-copies.js';
+import { workReport, oldestWaiting, reportCsv, guessKind } from '../js/work-report.js';
+import { shareAdvice } from '../js/views/inbox.js';
+
+test('google sign-in: a returning person is not shown the account list again', () => {
+  const base = { state: 's1', redirect: 'https://x.test/oauth.html' };
+  const first = new URL(signInUrl({ ...base, email: null, silent: false }));
+  equal(first.searchParams.get('prompt'), 'select_account', 'the first time, they choose the account');
+  const back = new URL(signInUrl({ ...base, email: 'me@example.com', silent: false }));
+  equal(back.searchParams.get('prompt'), null, 'a known account is sent with no prompt, so Google skips its list');
+  equal(back.searchParams.get('login_hint'), 'me@example.com', 'and the account is named');
+  const quiet = new URL(signInUrl({ ...base, email: 'me@example.com', silent: true }));
+  equal(quiet.searchParams.get('prompt'), 'none', 'a quiet renewal asks Google to show nothing');
+});
+
+test('daily backup: due on the first open of each day, not again that day', () => {
+  const now = new Date(2026, 10, 16, 9, 0);
+  ok(dueToday(null, now), 'never backed up is due');
+  ok(dueToday(new Date(2026, 10, 15, 23, 59).getTime(), now), 'last night is due');
+  ok(!dueToday(new Date(2026, 10, 16, 0, 1).getTime(), now), 'just after midnight today is done');
+  ok(!dueToday(new Date(2026, 10, 16, 8, 59).getTime(), now), 'this morning is done');
+  ok(dueToday(new Date(2026, 9, 31, 12, 0).getTime(), new Date(2026, 10, 1, 7, 0)), 'across a month end');
+});
+
+test('daily backup: only the newest week of copies stays on the phone', async () => {
+  const days = ['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09'];
+  equal(copiesToDelete(days.slice().reverse()).sort(), ['2026-11-01', '2026-11-02'], 'the two oldest of nine go, in any order');
+  equal(copiesToDelete(['notes', '2026-11-01']), [], 'anything that is not a dated copy is left alone');
+  const name = `kawach-copies-test-${Date.now()}`;
+  useCopiesDatabase(name);
+  for (const day of days) ok(await saveLocalCopy({ day, text: `file ${day}`, transactions: 5 }), `saved ${day}`);
+  const kept = await listLocalCopies();
+  equal(kept.map((c) => c.day), days.slice(2).reverse(), 'seven stay, newest first');
+  equal(await readLocalCopy('2026-11-09'), 'file 2026-11-09', 'a copy reads back as it was saved');
+  let threw = false;
+  try {
+    await readLocalCopy('2026-11-01');
+  } catch {
+    threw = true;
+  }
+  ok(threw, 'a copy that was pruned says so');
+  await saveLocalCopy({ day: '2026-11-09', text: 'second run', transactions: 6 });
+  equal((await listLocalCopies()).length, 7, 'a second run the same day replaces, it does not add');
+  equal(await readLocalCopy('2026-11-09'), 'second run', 'and keeps the newer file');
+  await new Promise((resolve) => {
+    const req = indexedDB.deleteDatabase(name);
+    req.onsuccess = req.onerror = req.onblocked = () => resolve();
+  });
+  useCopiesDatabase('kawach-copies');
+});
+
+test('work costs: by kind, between two dates, with what was handed in', () => {
+  const categories = [{ id: 'c-food', name: 'Food & Dining' }, { id: 'cat-other', name: 'Other' }, { id: 'c-tr', name: 'Transport' }];
+  const accounts = [{ id: 'a1', label: 'HDFC card' }];
+  const base = { accountId: 'a1', direction: 'debit', isReimbursable: true };
+  const list = [
+    { ...base, id: '1', date: '2026-11-01', amount: 50000, categoryId: 'c-food', merchant: 'Dhaba' },
+    { ...base, id: '2', date: '2026-11-04', amount: 420000, categoryId: 'cat-other', rawDescription: 'HOTEL TAJ RESIDENCY 1234567', claimSubmitted: true },
+    { ...base, id: '3', date: '2026-11-05', amount: 90000, categoryId: null, rawDescription: 'UBER TRIP' },
+    { ...base, id: '4', date: '2026-11-06', amount: 77700, categoryId: 'c-food' },
+    { ...base, id: '5', date: '2026-11-03', amount: 11100, categoryId: 'c-food', isTransfer: true },
+    { id: '6', date: '2026-11-03', amount: 22200, direction: 'debit', categoryId: 'c-food', accountId: 'a1' },
+    { id: '7', date: '2026-11-03', amount: 33300, direction: 'credit', isSettlement: true, accountId: 'a1' },
+    { ...base, id: '8', date: '2026-10-31', amount: 44400, categoryId: 'c-food' },
+  ];
+  const r = workReport(list, categories, accounts, { from: '2026-11-01', to: '2026-11-05' });
+  equal([r.total, r.count], [560000, 3], 'three work costs, both end days included; the day after, a transfer, a plain spend and a refund are not');
+  equal([r.handedIn, r.waiting, r.handedInCount, r.waitingCount], [420000, 140000, 1, 2], 'handed in and still waiting add up to the total');
+  equal(r.groups.map((g) => g.name), ['Hotel & stay', 'Transport', 'Food & Dining'], 'biggest kind first; a hotel with no category is read from its name');
+  equal(r.groups.map((g) => g.guessed), [true, true, false], 'a guess is marked; a real category is not');
+  equal(r.groups[0].rows[0].label, 'HOTEL TAJ RESIDENCY', 'the reference number is left off the line');
+  equal(r.groups[0].rows[0].account, 'HDFC card', 'with the account it was paid from');
+  equal(oldestWaiting(list), '2026-10-31', 'the page opens at the oldest cost not handed in');
+  equal(oldestWaiting(list.filter((t) => t.id === '2')), null, 'and has none when everything is handed in');
+  equal([guessKind('Marriott Pune'), guessKind('Ola cab'), guessKind('Swiggy order'), guessKind('Amazon')], ['Hotel & stay', 'Transport', 'Food & Dining', null], 'wording guesses');
+  const csv = reportCsv(workReport(list, categories, [{ id: 'a1', label: '=SUM(A1)' }], { from: '2026-11-01', to: '2026-11-05' }));
+  ok(csv.includes('"\'=SUM(A1)"'), 'a name that starts like a formula is not run as one');
+  ok(csv.split('\r\n').length === 5, 'a header, three payments and a total line');
+});
+
+test('work costs: the "handed in" tick goes when the payment stops being a work cost', () => {
+  equal('claimSubmitted' in tidyFlags({ direction: 'credit', isSettlement: true, claimSubmitted: true }), false, 'money in cannot be handed in');
+  equal(tidyFlags({ direction: 'debit', isReimbursable: true, claimSubmitted: true }).claimSubmitted, true, 'a work cost keeps it');
+});
+
+test('share from Messages: the reason is said for this phone', () => {
+  ok(shareAdvice({ installed: true, iphone: false }).ok, 'installed on Android: the steps stand as they are');
+  ok(/home screen/.test(shareAdvice({ installed: false, iphone: false }).text), 'in a browser tab: install first');
+  ok(/Paste from clipboard/.test(shareAdvice({ installed: true, iphone: true }).text), 'iPhone: copy and paste instead');
+});

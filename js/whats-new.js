@@ -13,6 +13,38 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.12',
+    items: [
+      {
+        icon: 'backup',
+        title: "A backup every day, on its own",
+        text: "The first time you open Kawach each day it now saves a locked backup by itself: a copy kept on this phone (the last 7 days, listed under Restore) and, if Google Drive is connected, one in your Drive. A closed app cannot run at night, so it happens when you open Kawach. You can switch it off under Settings, Backup.",
+        guide: [{ view: 'settings', target: '#backup-card', text: "Back up every day is the switch. Restore now also lists the daily copies kept on this phone." }],
+      },
+      {
+        icon: 'cloud',
+        title: "Google Drive stays connected",
+        text: "Once Google Drive is connected, Kawach no longer shows the list of Google accounts every time. When the hour-long pass has run out, it renews it quietly as you open the app. If Google itself wants you to approve something, you will see its page once.",
+      },
+      {
+        icon: 'bill',
+        title: "Work costs by kind",
+        text: "See what a work trip cost, split into hotel, travel and food, between two dates you choose, and tick each bill you have handed in to your company. Open it from Settings, or from Owed back on Summary. The ticks are only your checklist: they change no figure.",
+        guide: [{ view: 'settings', target: '#open-workreport', text: "Pick the dates, then tick each bill as you hand it in. Mark all handed in ticks the whole list." }],
+      },
+      {
+        icon: 'inbox',
+        title: "Sharing a bank message",
+        text: "If Kawach is missing from your phone's Share list, the Inbox now says why and what to do: add it to the home screen first. iPhones do not allow sharing to an app like this, so there the Inbox says to copy the message and paste it.",
+      },
+      {
+        icon: 'history',
+        title: "A tighter History ring card",
+        text: "The rows under the History ring sit closer together, so the card is shorter and more of your payments show without scrolling.",
+      },
+    ],
+  },
+  {
     version: '7.11',
     items: [
       {
