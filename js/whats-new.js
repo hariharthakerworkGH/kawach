@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.12.1',
+    items: [
+      {
+        icon: 'sync',
+        title: "Updates arrive by themselves",
+        text: "When a new version of Kawach is ready, it now replaces the old one on its own, the next time you leave the app or leave the screen alone for a few seconds, and brings you back to the screen you were on. You no longer have to go to Settings and tap Check for update. It never reloads while you are typing, in the middle of an import, or with a box open.",
+      },
+    ],
+  },
+  {
     version: '7.12',
     items: [
       {

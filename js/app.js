@@ -563,43 +563,90 @@ function reloadedAlreadyFor(build) {
   return false;
 }
 
-async function showUpdateBannerIfStale({ mayReload = false } = {}) {
-  const status = await versionStatus();
-  if (!status.stale) return;
-  // Taking it automatically is only right when the new worker is already in
-  // control, which is what mayReload means. Asked at any other moment the
-  // reload would fetch the same old files again. Mid-import, or with
-  // something typed in, reloading would throw that away, so those screens are
-  // told instead and pick it up when they move on.
-  if (mayReload && SAFE_TO_REFRESH.has(currentView) && !typingInView() && !reloadedAlreadyFor(status.cached)) {
-    location.reload();
-    return;
+/* A new version replaces the old one by itself (17 Nov 2026: on History, Plan and Settings it only downloaded, and a person had to find
+ * "Check for update" in Settings to get it). Reloading is right as soon as the new worker is in charge, unless it would throw something away,
+ * and it should not happen under a finger:
+ *   - out of sight (the app in the background), any time: nobody sees it;
+ *   - in sight, once the screen has been left alone for four seconds;
+ *   - never with something typed, an import being checked, or a box open;
+ * and it comes back to the screen the person was on. */
+let touchedAt = Date.now();
+for (const ev of ['pointerdown', 'keydown', 'input', 'scroll']) window.addEventListener(ev, () => { touchedAt = Date.now(); }, { capture: true, passive: true });
+
+function workInProgress() {
+  return typingInView() || currentView === 'import' || currentView === 'setup' || Boolean(document.querySelector('.dialog-backdrop, #month-sheet, #quick-sheet, #add-cat-sheet:not([hidden])'));
+}
+
+// A reload lands on the new files only once the new worker has taken over, and it deletes the older copies when it does: no copy older
+// than the newest one means it has.
+async function newCopyIsInCharge(newest) {
+  try {
+    const builds = (await caches.keys()).map((k) => Number((k.match(/v(\d+)$/) || [])[1])).filter(Number.isFinite);
+    return builds.every((b) => b >= newest);
+  } catch {
+    return false;
   }
-  showNotice('A new version is ready', 'Reload');
+}
+
+const AFTER_UPDATE = 'kawach-after-update';
+const COMES_BACK_TO = new Set(['summary', 'accounts', 'plan', 'transactions', 'coach', 'settings', 'categories', 'recap']);
+
+// The screen the person was on when the new copy swapped in, once: read and cleared on the next start.
+function takeAfterUpdate() {
+  try {
+    const x = JSON.parse(sessionStorage.getItem(AFTER_UPDATE));
+    sessionStorage.removeItem(AFTER_UPDATE);
+    return x && Date.now() - x.at < 60000 && COMES_BACK_TO.has(x.view) && views[x.view] ? x.view : null;
+  } catch {
+    return null;
+  }
+}
+
+let movingToNewCopy = false;
+async function moveToNewCopy() {
+  if (movingToNewCopy) return true;
+  const status = await versionStatus();
+  if (!status.stale || !(await newCopyIsInCharge(status.cached)) || workInProgress()) return false;
+  if (document.visibilityState === 'visible' && Date.now() - touchedAt < 4000) return false;
+  // Last, because asking uses it up: one reload per version, so a copy that somehow did not take can never make the page flicker through loads.
+  if (reloadedAlreadyFor(status.cached)) return false;
+  movingToNewCopy = true;
+  try { sessionStorage.setItem(AFTER_UPDATE, JSON.stringify({ view: currentView, at: Date.now() })); } catch { /* no storage: it opens on the usual screen */ }
+  location.reload();
+  return true;
 }
 
 function wireUpdateBanner() {
-  // At startup the new worker, if there is one, has not taken over yet, so
-  // this only ever offers.
-  showUpdateBannerIfStale();
+  let waitingSince = 0;
+  let timer = null;
+  // Looks now; if the moment is not right, looks again in a few seconds. The strip with a button is only for a copy that has waited a
+  // while because the person has been busy the whole time.
+  const check = async () => {
+    if (await moveToNewCopy()) return;
+    if (!(await versionStatus()).stale) {
+      clearInterval(timer);
+      timer = null;
+      waitingSince = 0;
+      return;
+    }
+    waitingSince ||= Date.now();
+    if (Date.now() - waitingSince > 20000) showNotice('A new version is ready', 'Reload');
+    timer ||= setInterval(check, 4000);
+  };
+  check();
 
   if ('serviceWorker' in navigator) {
-    // The one moment a reload is certain to land on the new files: a new
-    // worker has taken control of this page. Only meaningful if something was
-    // already controlling it - on a first-ever install there is no older
-    // version to be stale against.
+    // Only meaningful if something was already controlling the page: on a first-ever install there is no older version to be stale against.
     const hadController = Boolean(navigator.serviceWorker.controller);
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (hadController) showUpdateBannerIfStale({ mayReload: true });
+      if (hadController) check();
     });
   }
 
-  // Returning to the app is a natural moment to have picked up a new version.
+  // Leaving the app is the best moment (nobody sees the reload); coming back is a natural moment to ask for a newer copy.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      showUpdateBannerIfStale();
-      pokeUpdate();
-    }
+    if (document.visibilityState === 'visible') pokeUpdate();
+    check();
   });
 }
 
@@ -830,7 +877,8 @@ async function init() {
     // land on, the rest are somewhere you go from here.
     // In Haven "Add" is a sheet over a screen, never a screen of its own: the home-screen shortcut opens Summary with the sheet up.
     const sheetShortcut = openedAt === 'add' && haven();
-    await showView(['summary', 'add', 'accounts', 'plan', 'transactions'].includes(openedAt) && !sheetShortcut ? openedAt : appearance('opening'), {}, true);
+    const afterUpdate = takeAfterUpdate();
+    await showView(['summary', 'add', 'accounts', 'plan', 'transactions'].includes(openedAt) && !sheetShortcut ? openedAt : afterUpdate || appearance('opening'), {}, true);
     if (sheetShortcut) openAddSheet();
     // After an update, once: what changed, for this person.
     if (!isDemo()) setTimeout(async () => showIfUpdated(APP_VERSION, await moneyProfile(), { isNew: false }), 600);
