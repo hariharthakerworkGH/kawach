@@ -436,7 +436,8 @@ export function keypadLife(pad, input, wrap) {
 
 /* ---- History: a payment that needs a category comes with a guess; swipe right to accept it --------------------------------- */
 const guessed = new Map();
-export function filingSwipe(container, { find, needs, nameOf, apply }) {
+// `fallback(t)`: a guess from somewhere other than the wording (7.13: the shape of the earlier payments to people), asked first; null means no guess.
+export function filingSwipe(container, { find, needs, nameOf, apply, fallback = null }) {
   if (document.documentElement.dataset.style !== 'haven') return;
   container.querySelectorAll('.hist-row:not(.open)').forEach(async (rowEl) => {
     const t = find(rowEl.dataset.id);
@@ -444,7 +445,7 @@ export function filingSwipe(container, { find, needs, nameOf, apply }) {
     rowEl.dataset.filing = '1';
     const key = `${t.direction}|${t.rawDescription}`;
     if (!guessed.has(key)) guessed.set(key, matchCategoryForDescription(t.rawDescription, t.direction).catch(() => null));
-    const categoryId = await guessed.get(key);
+    const categoryId = (fallback && fallback(t)) || (await guessed.get(key));
     const name = categoryId && nameOf(categoryId);
     if (!name || !rowEl.isConnected) return;
     const sub = rowEl.querySelector('.hist-sub');

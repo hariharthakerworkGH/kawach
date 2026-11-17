@@ -32,6 +32,7 @@ import { inOutBars, cashRiver } from '../charts.js';
 import { appearance } from '../appearance.js';
 import { escapeHtml, escapeAttr, emptyState, monthSwap, unfold, foldAway, takeFresh, washRow, slidingPill } from '../ui.js';
 import { refundPairs } from '../card-refunds.js';
+import { upiShape, upiPeopleRows, groupGuess, oneTap } from '../upi-people.js';
 
 // History: one month at a time, newest first, grouped by day, one line per
 // payment. It used to be every transaction ever in one list, with a category
@@ -166,6 +167,7 @@ export async function render(container, params = {}) {
       <span id="select-note"></span>
       <button type="button" id="txn-select-all" class="btn-tiny">Select all</button>
     </div>
+    <div id="upi-card"></div>
     <div id="txn-list" class="hist-list"></div>
     <button type="button" id="txn-more" class="btn-secondary btn-block" hidden></button>
     <button type="button" id="month-older" class="link-btn hist-older" hidden></button>
@@ -355,6 +357,7 @@ export async function render(container, params = {}) {
   listEl.addEventListener('change', (e) => { inflight = handleChange(e, container); });
   listEl.addEventListener('input', (e) => { inflight = handleChange(e, container); });
   wireQuick(listEl, container);
+  container.querySelector('#upi-card').addEventListener('click', (e) => { inflight = handleUpiCard(e, container); });
 
   renderList(container);
 }
@@ -669,7 +672,155 @@ function renderList(container) {
   bar.hidden = selected.size === 0;
   container.querySelector('#bulk-count').textContent = `${selected.size} selected`;
   // Haven: a payment that needs a category comes with a guess, and a swipe right accepts it.
-  filingSwipe(container, { find: (id) => cache.transactions.find((x) => x.id === id), needs: needsCategory, nameOf: catName, apply: (t, categoryId, rowEl) => setCategory(t, categoryId, container, rowEl) });
+  const shape = upiShape(cache.transactions);
+  renderUpiCard(container, shape);
+  filingSwipe(container, { find: (id) => cache.transactions.find((x) => x.id === id), needs: needsCategory, nameOf: catName, fallback: shape, apply: (t, categoryId, rowEl) => setCategory(t, categoryId, container, rowEl) });
+}
+
+/* ---- UPI payments to people (7.13): one card above the list, one tap files the lot --------------------------------------------- */
+// What the card files is what the list shows: this month's (or the search's) payments to people that still have no category.
+function upiState(shape = upiShape(cache.transactions)) {
+  const rows = document.documentElement.dataset.style === 'haven' && !selecting ? upiPeopleRows(matching()) : [];
+  return { rows, guess: groupGuess(rows, shape), tap: oneTap(rows, shape) };
+}
+
+function renderUpiCard(container, shape) {
+  const host = container.querySelector('#upi-card');
+  const { rows, guess, tap } = upiState(shape);
+  // One payment has its own row and its own "Looks like"; a card is for the pile.
+  if (rows.length < 2) {
+    host.innerHTML = '';
+    return;
+  }
+  const amounts = rows.map((t) => t.amount);
+  const [lo, hi] = [Math.min(...amounts), Math.max(...amounts)];
+  const days = rows.map((t) => t.date).sort();
+  const [first, last] = [days[0], days[days.length - 1]];
+  const range = first === last ? formatDateNice(last) : first.slice(0, 7) === last.slice(0, 7) ? `${Number(first.slice(8))} to ${formatDateNice(last)}` : `${formatDateNice(first)} to ${formatDateNice(last)}`;
+  const name = tap && catName(tap);
+  // A guess that is not safe to file in one tap (a big payment among them, or one that looks like something else) still opens the sheet with it picked.
+  const act = name
+    ? `<button type="button" class="upi-go" data-upi="all">${escapeHtml(name)} for all ${rows.length}</button><button type="button" class="upi-pick" data-upi="pick">Choose…</button>`
+    : `<button type="button" class="upi-go" data-upi="pick">${guess ? `Review ${rows.length}…` : 'Choose a category…'}</button>`;
+  host.innerHTML = `<div class="upi-card" role="group" aria-label="UPI payments to people">
+    <div class="upi-card__top"><span class="lg-ico t3">${icon('accounts')}</span><div class="upi-card__txt"><b>${rows.length} UPI payments to people</b><span>${lo === hi ? `${formatRupees(lo)} each` : `${formatRupees(lo)} to ${formatRupees(hi)} each`} · ${range} · no category yet</span></div></div>
+    <div class="upi-card__act">${act}</div>
+  </div>`;
+}
+
+async function handleUpiCard(e, container) {
+  const btn = e.target.closest('[data-upi]');
+  if (!btn) return;
+  const { rows, guess, tap } = upiState();
+  if (btn.dataset.upi === 'all' && tap) await fileUpi(rows, tap, container);
+  else openUpiSheet(container, rows, guess);
+}
+
+// One category for these payments, with an Undo: a pile filed in one tap can be taken back in one tap.
+// (The merchant rules learn only each person's own id, so this never spreads to strangers: see learnText in js/upi-people.js.)
+async function fileUpi(rows, categoryId, container) {
+  for (const t of rows) {
+    t.categoryId = categoryId;
+    await save(t);
+    await learnFromAssignment(t.rawDescription, categoryId, t.direction);
+  }
+  expanded = null;
+  renderList(container);
+  showToast(`${rows.length} payment${rows.length === 1 ? '' : 's'} filed as ${catName(categoryId)}`, {
+    ms: 6000,
+    action: {
+      label: 'Undo',
+      run: async () => {
+        for (const t of rows) {
+          t.categoryId = null;
+          await save(t);
+        }
+        renderList(container);
+      },
+    },
+  });
+}
+
+// The sheet: pick the category, untick any payment that was not one of these (a friend, not a driver), file the rest.
+function openUpiSheet(container, rows, guess) {
+  document.querySelector('#upi-sheet')?.remove();
+  const off = new Set();
+  let chosen = guess;
+  let all = false;
+  const fits = sortCategories(cache.categories.filter((c) => rows.every((t) => fitting(t).some((x) => x.id === c.id))), 'used', usageCounts(cache.transactions));
+  const ordered = [...fits.filter((c) => c.id === guess), ...fits.filter((c) => c.id !== guess)];
+  const accountName = (t) => cache.accounts.find((a) => a.id === t.accountId)?.label || '';
+  const wrap = document.createElement('div');
+  wrap.id = 'upi-sheet';
+  wrap.innerHTML = `<div class="upi-back" data-close></div>
+    <div class="upi-sheet" role="dialog" aria-modal="true" aria-label="File ${rows.length} UPI payments">
+      <div class="upi-sheet__grip k-sheet__grip"></div>
+      <h3 class="k-sheet__head">File ${rows.length} UPI payments<small>Pick one category for all the ticked ones</small></h3>
+      <div class="upi-chips"></div>
+      <div class="upi-list">${rows
+        .map((t) => `<button type="button" role="checkbox" aria-checked="true" class="upi-row" data-id="${escapeAttr(t.id)}"><span class="upi-tick">${icon('tick')}</span><span class="upi-row__n"><b>${escapeHtml(displayName(t.rawDescription))}</b><span>${formatDateNice(t.date)} · ${escapeHtml(accountName(t))}</span></span><span class="upi-row__a">−${formatRupees(t.amount)}</span></button>`)
+        .join('')}</div>
+      <button type="button" class="upi-file"></button>
+    </div>`;
+  document.body.append(wrap);
+  const chipsEl = wrap.querySelector('.upi-chips');
+  const drawChips = () => {
+    const shown = all ? ordered : ordered.slice(0, 5);
+    chipsEl.classList.toggle('all', all);
+    chipsEl.innerHTML = shown.map((c) => `<button type="button" class="upi-chip" data-cat="${escapeAttr(c.id)}">${escapeHtml(c.name)}</button>`).join('') + (!all && ordered.length > 5 ? '<button type="button" class="upi-chip" data-more>More…</button>' : '');
+  };
+  const sync = () => {
+    const k = rows.length - off.size;
+    chipsEl.querySelectorAll('[data-cat]').forEach((b) => {
+      const on = b.dataset.cat === chosen;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    wrap.querySelectorAll('.upi-row').forEach((r) => {
+      const skip = off.has(r.dataset.id);
+      r.classList.toggle('skip', skip);
+      r.setAttribute('aria-checked', String(!skip));
+      r.querySelector('.upi-tick').classList.toggle('off', skip);
+    });
+    const file = wrap.querySelector('.upi-file');
+    file.disabled = !chosen || k === 0;
+    file.textContent = !chosen ? 'Pick a category' : k === 0 ? 'Nothing ticked' : `File ${k} as ${catName(chosen)}`;
+  };
+  drawChips();
+  sync();
+  let release = () => {};
+  const close = () => {
+    release();
+    wrap.remove();
+    window.removeEventListener('hashchange', close);
+  };
+  window.addEventListener('hashchange', close);
+  wrap.addEventListener('keydown', (e) => e.key === 'Escape' && close());
+  wrap.querySelector('.upi-back').addEventListener('click', close);
+  chipsEl.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.more !== undefined) {
+      all = true;
+      drawChips();
+    } else chosen = b.dataset.cat;
+    sync();
+  });
+  wrap.querySelector('.upi-list').addEventListener('click', (e) => {
+    const r = e.target.closest('.upi-row');
+    if (!r) return;
+    if (off.has(r.dataset.id)) off.delete(r.dataset.id);
+    else off.add(r.dataset.id);
+    sync();
+  });
+  wrap.querySelector('.upi-file').addEventListener('click', async () => {
+    const mine = rows.filter((t) => !off.has(t.id));
+    if (!chosen || !mine.length) return;
+    close();
+    await fileUpi(mine, chosen, container);
+  });
+  dragToClose(wrap.querySelector('.upi-sheet'), close, wrap.querySelector('.upi-back'));
+  release = holdFocus(wrap, { initial: '.upi-chip.on' });
 }
 
 // Day by day, each day's payments in one card under its date and total.

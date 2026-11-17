@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.13',
+    items: [
+      {
+        icon: 'history',
+        title: "UPI payments to people, filed in one tap",
+        text: "When you pay several people by UPI (a rickshaw or cab driver, a helper), History now gathers the ones with no category into one card: how many, the range of amounts, and a button to file them all under the category you usually use. Choose lets you pick the category and untick any you do not want in it. After that, a new payment to a person that looks like earlier ones shows Looks like Transport; swipe it right to accept. Nothing is ever filed without your tap.",
+        guide: [{ view: 'transactions', target: '#upi-card .upi-card, .hist-main', text: "Payments to people with no category are gathered here. Tap the category button to file them all, or Choose to pick and untick." }],
+      },
+    ],
+  },
+  {
     version: '7.12.1',
     items: [
       {

@@ -801,3 +801,37 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
   :root[data-style=haven] .lg-clist .hv-bill__open.lg-row:not(.two) > :nth-child(4) { grid-column: 3; grid-row: 1 / span 2; }
 }
 :root[data-style=haven] .hv-recrow button, :root[data-style=haven] .hv-rec button, :root[data-style=haven] .hv-recdlg button { background: var(--lg-tide); color: var(--lg-tide-ink); }
+
+/* 7.13: UPI payments to people. One card above History's list, and the sheet it opens (mockups/7.17-upi-people). */
+:root[data-style=haven] .upi-card { margin: 1px 0 10px; padding: 14px; display: grid; gap: 12px; background: var(--lg-s1); border-radius: 14px; box-shadow: 0 0 0 1px var(--lg-line); color: var(--lg-ink); }
+:root[data-style=haven] .upi-card__top { display: flex; gap: 12px; align-items: center; min-width: 0; }
+:root[data-style=haven] .upi-card__txt { display: grid; gap: 2px; min-width: 0; }
+:root[data-style=haven] .upi-card__txt b { font-size: 15px; font-weight: 600; line-height: 1.25; }
+:root[data-style=haven] .upi-card__txt span { font-size: 13px; color: var(--lg-ink2); line-height: 1.3; }
+:root[data-style=haven] .upi-card__act { display: flex; gap: 8px; }
+:root[data-style=haven] .upi-go, :root[data-style=haven] .upi-pick { min-height: 44px; border: 0; border-radius: 12px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+:root[data-style=haven] .upi-go { flex: 1; background: var(--lg-tide); color: var(--lg-tide-ink); }
+:root[data-style=haven] .upi-pick { padding: 0 16px; background: var(--lg-s2); color: var(--lg-ink); }
+:root[data-style=haven] .upi-back { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.5); }
+/* The list row is the one that scrolls (minmax(0, 1fr)), so forty payments scroll inside the sheet instead of pushing it off the screen. */
+:root[data-style=haven] .upi-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 61; max-height: 82vh; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto; gap: 12px; padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--lg-s1); color: var(--lg-ink); border-radius: 20px 20px 0 0; box-shadow: 0 -1px 0 var(--lg-line); }
+:root[data-style=haven] .upi-sheet .upi-sheet__grip { width: 36px; height: 4px; margin: 0; border-radius: 2px; background: var(--lg-line); justify-self: center; }
+:root[data-style=haven] .upi-sheet h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--lg-ink); }
+:root[data-style=haven] .upi-sheet h3 small { display: block; margin-top: 2px; font-size: 13px; font-weight: 400; color: var(--lg-ink2); }
+:root[data-style=haven] .upi-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0; }
+:root[data-style=haven] .upi-chips.all { flex-wrap: wrap; overflow-x: visible; max-height: 30vh; overflow-y: auto; }
+:root[data-style=haven] .upi-chip { flex: none; min-height: 40px; padding: 0 14px; border: 0; border-radius: 20px; background: var(--lg-s2); color: var(--lg-ink); font: inherit; font-size: 14px; cursor: pointer; box-shadow: inset 0 0 0 1px var(--lg-line); }
+:root[data-style=haven] .upi-chip.on { background: var(--lg-tide-soft); color: var(--lg-tide); box-shadow: inset 0 0 0 2px var(--lg-tide); font-weight: 600; }
+:root[data-style=haven] .upi-list { overflow-y: auto; margin: 0 -16px; padding: 0 16px; }
+:root[data-style=haven] .upi-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 0; border: 0; border-top: 1px solid var(--lg-line); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+:root[data-style=haven] .upi-row:first-child { border-top: 0; }
+:root[data-style=haven] .upi-tick { flex: none; width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: var(--lg-tide); color: var(--lg-tide-ink); box-shadow: inset 0 0 0 2px var(--lg-tide); }
+:root[data-style=haven] .upi-tick svg { width: 14px; height: 14px; }
+:root[data-style=haven] .upi-tick.off { background: none; color: transparent; box-shadow: inset 0 0 0 2px var(--lg-ink3); }
+:root[data-style=haven] .upi-row__n { flex: 1; min-width: 0; display: grid; }
+:root[data-style=haven] .upi-row__n b { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root[data-style=haven] .upi-row__n span { font-size: 13px; color: var(--lg-ink2); }
+:root[data-style=haven] .upi-row__a { font-size: 15px; font-variant-numeric: tabular-nums; }
+:root[data-style=haven] .upi-row.skip .upi-row__n, :root[data-style=haven] .upi-row.skip .upi-row__a { opacity: 0.45; }
+:root[data-style=haven] .upi-file { width: 100%; min-height: 48px; border: 0; border-radius: 12px; background: var(--lg-tide); color: var(--lg-tide-ink); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+:root[data-style=haven] .upi-file:disabled { background: var(--lg-s2); color: var(--lg-ink3); cursor: default; }

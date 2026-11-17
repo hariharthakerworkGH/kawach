@@ -1,5 +1,6 @@
 import { getAll, put, newId } from './db.js';
 import { SEED_MERCHANTS } from './merchant-seed.js';
+import { learnText } from './upi-people.js';
 
 // Words that show up constantly in narrations but never identify a merchant
 // (payment-gateway prefixes, corporate suffixes, generic connectors).
@@ -92,6 +93,10 @@ function matchWithRules(rawDescription, rules, direction = null, incomeIds = new
     // CREDIT CARD CASHBACK" fits a plain "SWIGGY" line by one word in four, and
     // used to score the same as the built-in rule that is just "swiggy" - and,
     // being yours, won the tie.
+    // A rule that names a phone number is that person's alone: the other words in it (the bank's code, a common surname) are not enough, or one
+    // rider filed as Transport pre-fills every stranger paid through the same bank (rules taught before 7.13 are whole lines).
+    const phone = ruleTokens.find((r) => /^\d{10}$/.test(r));
+    if (phone && !hit.has(phone)) continue;
     score *= ruleTokens.length ? hit.size / ruleTokens.length : 0;
     if (score > bestScore || (score === bestScore && score > 0 && rule.hitCount > (best?.hitCount || 0))) {
       bestScore = score;
@@ -131,7 +136,9 @@ export async function applyLearnedCategories({ dryRun = false } = {}) {
 // `direction` ('debit' or 'credit') is remembered with the rule, so what is
 // learned from a payment in is not applied to a payment out.
 export async function learnFromAssignment(rawDescription, categoryId, direction = null) {
-  const key = extractMerchantKey(rawDescription);
+  // A payment to a person is taught by that person's own id only (js/upi-people.js).
+  const text = learnText(rawDescription);
+  const key = text && extractMerchantKey(text);
   if (!key) return;
   // A payment out filed under Income is a mistake, not something to learn.
   if (direction === 'debit' && isIncomeCategory((await getAll('categories')).find((c) => c.id === categoryId))) return;
