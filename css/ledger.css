@@ -864,6 +864,9 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .chg-sec .upi-chips.all { max-height: none; }
 /* in this sheet every choice is in view: a row that scrolls sideways hid "More" and cut names in half */
 :root[data-style=haven] .chg-sec .upi-chips { flex-wrap: wrap; overflow-x: visible; }
+
+/* 7.13.2: the fixed-cost form is scrolled to when it opens; leave room for the header above it or the first field hides under it. */
+#fixed-form { scroll-margin-top: calc(var(--header-h, 72px) + 56px); }
 :root[data-style=haven] .chg-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 :root[data-style=haven] .chg-seg button { min-height: 44px; border: 0; border-radius: 12px; background: var(--lg-s2); color: var(--lg-ink); font: inherit; font-size: 15px; box-shadow: inset 0 0 0 1px var(--lg-line); cursor: pointer; }
 :root[data-style=haven] .chg-seg button.on { background: var(--lg-tide-soft); color: var(--lg-tide); box-shadow: inset 0 0 0 2px var(--lg-tide); font-weight: 600; }

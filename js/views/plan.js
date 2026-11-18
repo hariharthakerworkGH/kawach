@@ -472,12 +472,20 @@ export async function render(container) {
     });
   }
 
+  // The form is opened where the person is looking, and ready for the next thing to type: the name, or the amount when a common cost
+  // already gave the name.
+  const showAddForm = () => {
+    const form = container.querySelector('#fixed-form');
+    if (!form) return;
+    form.scrollIntoView({ block: 'start' });
+    form.querySelector(form.querySelector('.ff-label').value ? '.ff-amount' : '.ff-label').focus({ preventScroll: true });
+  };
   container.querySelectorAll('.common-cost').forEach((chip) => {
     chip.addEventListener('click', () => {
       draft = { label: chip.dataset.label, frequency: chip.dataset.frequency };
       adding = true;
       editingId = null;
-      redraw(container, () => render(container));
+      redraw(container, () => render(container)).then(showAddForm);
     });
   });
 
@@ -528,7 +536,7 @@ export async function render(container) {
       draft = null;
       adding = true;
       editingId = null;
-      redraw(container, () => render(container));
+      redraw(container, () => render(container)).then(showAddForm);
     });
   }
 
@@ -1058,7 +1066,10 @@ function havenArrange(container, figures, todayIso, skipped) {
   const monthWrap = container.querySelector('.plan-month');
   const commitHead = kids().find((n) => n.classList.contains('section-head') && /^(Commitments|Fixed costs)$/.test(n.querySelector('h3')?.textContent.trim() || ''));
   const commitList = commitHead && commitHead.nextElementSibling;
-  const addBtn = commitList && commitList.nextElementSibling && commitList.nextElementSibling.id === 'plan-add-btn' ? commitList.nextElementSibling : null;
+  // What sits under the list: the Add button and the common costs, or the form that takes the button's place while adding. The form used
+  // to be left out of this, so it stayed behind when the rest was moved up and opened at the bottom of the page, out of sight.
+  const addEls = [];
+  for (let n = commitList && commitList.nextElementSibling; n && (n.id === 'plan-add-btn' || n.id === 'fixed-form' || n.classList.contains('plan-common')); n = n.nextElementSibling) addEls.push(n);
   // the budget, its amounts, the goals and the insurance follow the months, in the order of the shown screens
   const budget = kids().find((n) => n.classList.contains('pl-top') || n.classList.contains('hero'));
   const sums = container.querySelector(':scope > .plan-sums');
@@ -1071,7 +1082,7 @@ function havenArrange(container, figures, todayIso, skipped) {
   hvForecast.innerHTML = havenForecast(figures, todayIso, skipped);
   const ordered = [...notes.map((n) => { n.classList.add('hv-note-wrap'); return n; })];
   if (month) ordered.push(month);
-  if (commitHead && commitList) ordered.push(commitHead, commitList, ...(addBtn ? [addBtn] : []));
+  if (commitHead && commitList) ordered.push(commitHead, commitList, ...addEls);
   if (hvForecast.innerHTML.trim()) ordered.push(hvForecast);
   ordered.push(...[budget, sums, goals, insurance].filter(Boolean));
   if (month && monthWrap) monthWrap.before(month); // keep it inside the page while the wrapper is checked
@@ -1245,6 +1256,8 @@ function fixedForm(categories, accounts, item) {
         <span>Next due</span>
         <input type="date" class="ff-renews" value="${v.renewsOn ? nextRenewal(v, isoLocal(new Date())) : ''}">
       </label>
+      <details class="k-disclose ff-more" ${v.accountId || v.endDate || v.matchText || v.categoryId ? 'open' : ''}>
+      <summary>More details <span class="muted">(optional)</span></summary>
       <label class="field">
         <span>Paid from</span>
         <select class="ff-account">
@@ -1276,6 +1289,7 @@ function fixedForm(categories, accounts, item) {
           ${sortCategories(categories).map((c) => `<option value="${c.id}" ${selected(c.id, v.categoryId)}>${escapeHtml(c.name)}</option>`).join('')}
         </select>
       </label>
+      </details>
       <button type="submit" class="btn-primary">${item ? 'Save' : 'Add'}</button>
       <button type="button" class="btn-tiny ff-cancel btn-block" style="margin-top:var(--space-xs)">Cancel</button>
       ${item ? '<button type="button" class="btn-tiny ff-remove btn-block" data-id="' + item.id + '" style="margin-top:var(--space-xs);color:var(--out)">Remove this commitment</button>' : ''}

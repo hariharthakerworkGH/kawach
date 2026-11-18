@@ -28,7 +28,7 @@ export function ringHtml(slices, income = 0) {
   const total = slices.reduce((s, x) => s + x.amount, 0);
   const track = `<circle cx="52" cy="52" r="${R}" fill="none" stroke="var(--lg-s2)" stroke-width="12"/>`;
   if (!total) {
-    return `<div class="hv-ring__wrap"><svg class="hv-ring__svg" viewBox="0 0 104 104" width="104" height="104" aria-hidden="true">${track}</svg><div class="hv-ring__mid"><b>Nothing</b><span>spent</span></div></div>`;
+    return `<div class="hv-ring__wrap"><svg class="hv-ring__svg" viewBox="0 0 104 104" width="104" height="104" aria-hidden="true">${track}</svg><div class="hv-ring__mid"><b>Nothing</b><span>went out</span></div></div>`;
   }
   let off = 0;
   let arcs = '';
@@ -41,7 +41,7 @@ export function ringHtml(slices, income = 0) {
     off += len;
   });
   const money = income > 0 ? `<div class="lg-lin"><span>In</span><b>+${inr(income)}</b></div>` : '';
-  return `<div class="hv-ring__wrap" data-total="${total}"><svg class="hv-ring__svg" viewBox="0 0 104 104" width="104" height="104" role="img" aria-label="Where this month's spending went">${track}${arcs}</svg><div class="hv-ring__mid" aria-live="polite">${mid(total, 'spent')}</div></div><div class="lg-legend">${rows}${money}</div>`;
+  return `<div class="hv-ring__wrap" data-total="${total}"><svg class="hv-ring__svg" viewBox="0 0 104 104" width="104" height="104" role="img" aria-label="Where the money that left your bank this month went">${track}${arcs}</svg><div class="hv-ring__mid" aria-live="polite">${mid(total, 'went out')}</div></div><div class="lg-legend">${rows}${money}</div>`;
 }
 
 export function wireRing(root, slices) {
@@ -54,7 +54,7 @@ export function wireRing(root, slices) {
   let pick = -1;
   const paint = () => {
     root.querySelectorAll('.hv-ring__arc, .hv-ring__badge').forEach((a) => { a.classList.toggle('dim', pick >= 0 && +a.dataset.i !== pick); a.classList.toggle('on', +a.dataset.i === pick); });
-    middle.innerHTML = pick < 0 ? mid(total, 'spent') : mid(slices[pick].amount, esc(slices[pick].name));
+    middle.innerHTML = pick < 0 ? mid(total, 'went out') : mid(slices[pick].amount, esc(slices[pick].name));
   };
   root.addEventListener('click', (e) => {
     const t = e.target.closest('[data-i]');

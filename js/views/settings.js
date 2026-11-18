@@ -16,7 +16,7 @@ import { CYCLE_SETTING_KEY } from '../spending-month.js';
 import { redraw } from '../redraw.js';
 import { dataIsKept } from '../install.js';
 import { playTour, shareKawach } from '../tour.js';
-import { APP_VERSION, versionStatus, checkForUpdate } from '../version.js';
+import { APP_VERSION, versionStatus, checkForUpdate, startFresh } from '../version.js';
 import { wireRecordRow } from '../haven-record.js';
 import { enhancePasswords, checkPair, MIN_PASSPHRASE } from '../password-field.js';
 import { moneyProfile, addBusiness, renameBusiness, removeBusiness, setBusinessGst, setCurrentSpace } from '../business.js';
@@ -1174,7 +1174,8 @@ async function renderVersionLine(container) {
     note.textContent = status.stale ? 'New version ready' : status.cached != null ? 'Up to date' : '';
     note.classList.toggle('stale', status.stale);
     btn.textContent = status.stale ? 'Reload' : 'Check for updates';
-    btn.onclick = status.stale ? () => window.location.reload() : null;
+    // behind: the browser has not fetched the new copy, so a plain reload would show the old one again.
+    btn.onclick = status.stale ? (status.behind ? () => startFresh() : () => window.location.reload()) : null;
   };
   paint(await versionStatus());
   btn.addEventListener('click', async () => {

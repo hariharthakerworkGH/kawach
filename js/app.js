@@ -12,7 +12,7 @@ import { statementDayFixes } from './account-metrics.js';
 import { forgetOldUndo } from './import-safety.js';
 import { showToast } from './toast.js';
 import { setCustomStyles } from './category-style.js';
-import { versionStatus, APP_VERSION, pokeUpdate } from './version.js';
+import { versionStatus, APP_VERSION, BUILD, pokeUpdate, newestBuild, startFresh } from './version.js';
 import { fillIcons, icon } from './icons.js';
 import { redraw } from './redraw.js';
 import { isoLocal } from './frequency.js';
@@ -616,7 +616,43 @@ async function moveToNewCopy() {
   return true;
 }
 
+/* The safety net under all of the above (18 Nov 2026: a phone still needed Settings -> Check for updates -> Reload). Everything above
+ * waits for the browser to notice a new worker, and a phone can go a long time without doing so. So the app asks the server itself:
+ * latest.json (written by every release, never cached) names the newest build. Behind it, it prods the browser, gives the normal
+ * hand-over 20 seconds, and if the new copy still has not taken over, starts fresh: forgets the worker and offline copy and loads from
+ * the server. The person's data lives in the database and is not touched. Same moments as the hand-over (hidden, or left alone for four
+ * seconds, nothing open), once per build per tab so it can never loop. */
+let newestKnown = 0;
+let netWaiting = false;
+const FRESH_KEY = 'kawach-fresh-for';
+async function keepCurrent() {
+  const newest = await newestBuild();
+  if (newest == null || newest <= BUILD) return;
+  newestKnown = newest;
+  if (netWaiting) return;
+  netWaiting = true;
+  pokeUpdate();
+  setTimeout(async () => {
+    netWaiting = false;
+    if (await moveToNewCopy()) return;
+    if (movingToNewCopy || workInProgress()) return;
+    if (document.visibilityState === 'visible' && Date.now() - touchedAt < 4000) return;
+    try {
+      if (sessionStorage.getItem(FRESH_KEY) === String(newest)) return;
+      sessionStorage.setItem(FRESH_KEY, String(newest));
+    } catch { return; /* no storage, so no way to promise it happens once */ }
+    // Starting fresh with no network would leave nothing to load: only when the server answers right now.
+    if ((await newestBuild()) == null) return;
+    movingToNewCopy = true;
+    try { sessionStorage.setItem(AFTER_UPDATE, JSON.stringify({ view: currentView, at: Date.now() })); } catch { /* opens on the usual screen */ }
+    await startFresh();
+  }, 20000);
+}
+
 function wireUpdateBanner() {
+  setTimeout(keepCurrent, 3000);
+  setInterval(keepCurrent, 120000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepCurrent(); });
   let waitingSince = 0;
   let timer = null;
   // Looks now; if the moment is not right, looks again in a few seconds. The strip with a button is only for a copy that has waited a
@@ -722,7 +758,11 @@ async function init() {
   // Wired first thing, so the banner's Reload works even if startup stalls
   // below - which is exactly when it's needed.
   const bannerBtn = document.getElementById('update-banner-btn');
-  if (bannerBtn) bannerBtn.addEventListener('click', () => window.location.reload());
+  // A plain reload shows the old copy again when the browser never fetched the new one; then start fresh.
+  if (bannerBtn) bannerBtn.addEventListener('click', async () => {
+    if (newestKnown > BUILD && !(await newCopyIsInCharge(newestKnown))) startFresh();
+    else window.location.reload();
+  });
 
   // A failure nothing caught (a button, a background step) is said once in a while, in plain words. It
   // used to be silent: the tap simply did nothing.

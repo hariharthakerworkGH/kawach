@@ -41,7 +41,14 @@ export async function render(container, params = {}) {
   // before, and on the 1st of the month, filed under the previous month.
   const now = new Date();
   const today = isoLocal(now);
-  const initialAccountId = params.accountId && accounts.some((a) => a.id === params.accountId) ? params.accountId : CASH_ACCOUNT_ID;
+  // With no account asked for: the cash pocket if there is one under the fixed id, else the first bank you spend from.
+  // Leaving it to the list put whichever account came first, often one kept aside, so a typed-in lunch never touched Left to spend.
+  const spendable = (a) => a.type === 'bank' && a.spending !== false;
+  const initialAccountId = params.accountId && accounts.some((a) => a.id === params.accountId)
+    ? params.accountId
+    : accounts.some((a) => a.id === CASH_ACCOUNT_ID)
+      ? CASH_ACCOUNT_ID
+      : (sortAccounts(accounts).find(spendable) || sortAccounts(accounts).find((a) => ['card', 'cash'].includes(a.type)) || {}).id || CASH_ACCOUNT_ID;
 
   // The categories live in a sheet now rather than in a wall of twenty
   // chips. The list itself is unchanged, and so is the order it arrives in.
@@ -67,6 +74,7 @@ export async function render(container, params = {}) {
       </label>
 
       <p class="muted-note add-cash-note" id="add-cash-note" hidden></p>
+      <p class="muted-note add-cash-note" id="add-aside-note" hidden>This account is kept aside, so a payment from it is not counted in Left to spend.</p>
 
       <label class="k-field field field-date">
         <span class="k-label">Date</span>
@@ -487,8 +495,15 @@ export async function render(container, params = {}) {
     const chosen = accountSelect.options[accountSelect.selectedIndex];
     accountMark.innerHTML = brandMark(chosen ? chosen.textContent : '', { size: 'sm' });
   };
+  const asideNote = container.querySelector('#add-aside-note');
+  const paintAside = () => {
+    const chosen = accounts.find((a) => a.id === accountSelect.value);
+    asideNote.hidden = !(chosen && chosen.type === 'bank' && chosen.spending === false);
+  };
   accountSelect.addEventListener('change', paintAccount);
+  accountSelect.addEventListener('change', paintAside);
   paintAccount();
+  paintAside();
   paintCategory();
 
   accountSelect.addEventListener('change', fitCategories);

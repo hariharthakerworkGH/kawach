@@ -13,6 +13,27 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.13.2',
+    items: [
+      {
+        icon: 'bill',
+        title: "Adding a fixed cost is simpler",
+        text: "On Plan, Add a commitment now opens its form right under your list of fixed costs, with the cursor already in the name box. It asks only what it must: what it is, the amount, how often, and whether it must be paid or is set aside. Paid from, last payment, statement words and category are folded behind More details.",
+        guide: [{ view: 'plan', target: '#plan-add-btn', text: "Tap Add a commitment. The form opens right below, ready to type the name. Open More details only if you need it." }],
+      },
+      {
+        icon: 'check',
+        title: "Kawach updates itself",
+        text: "When a new version is published, Kawach now fetches it and switches over on its own, even if your phone did not notice the update. You no longer have to open Settings and reload. If you are in the middle of typing, it waits until you stop.",
+      },
+      {
+        icon: 'wallet',
+        title: "Add picks the right account, and History says went out",
+        text: "A new payment now starts on your cash or your main spending account, never an account you keep aside. If you choose an account kept aside, Add says its payments do not count in Left to spend. The History ring now reads went out instead of spent, because it shows what left your bank accounts.",
+      },
+    ],
+  },
+  {
     version: '7.13.1',
     items: [
       {

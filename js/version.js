@@ -10,12 +10,12 @@
 // The version people see, written the way apps are: 3.0, then 3.1 for
 // features, then 3.1.1 for a fix. No leading zeros, no third number until
 // there is a fix to number. Major (4.0) is the app rebuilt.
-export const APP_VERSION = '7.13.1';
+export const APP_VERSION = '7.13.2';
 
 // A counter one higher with every release, never shown. The offline copy is
 // named after it (CACHE_NAME in sw.js), so a newer download can be told from
 // the one running. IMPORTANT: bump BUILD and CACHE_NAME together.
-export const BUILD = 326;
+export const BUILD = 327;
 
 // What's running versus what's downloaded and waiting.
 //
@@ -59,6 +59,32 @@ export function pokeUpdate() {
   navigator.serviceWorker.getRegistration().then((reg) => reg && reg.update()).catch(() => {});
 }
 
+// The newest build the server holds, asked for plainly. Every release writes latest.json, and the service worker never answers for it.
+// The cache names above cannot say this: a phone whose browser has not noticed the new worker has nothing waiting to read.
+// null when offline or unreadable, which is never taken to mean "behind".
+export async function newestBuild() {
+  try {
+    const r = await fetch(`latest.json?t=${Date.now()}`, { cache: 'no-store' });
+    const j = r.ok ? await r.json() : null;
+    return j && Number.isFinite(j.build) ? j.build : null;
+  } catch {
+    return null;
+  }
+}
+
+// Throw away what this device holds of the app (the worker and its offline copy, nothing of the person's data) and load it again from
+// the server. The way out when a new version is out but the browser's own hand-over has not happened.
+export async function startFresh() {
+  try {
+    for (const reg of await navigator.serviceWorker.getRegistrations()) await reg.unregister();
+    // share-inbox holds bank alerts shared in and not yet read; it is not the app.
+    for (const key of await caches.keys()) if (key !== 'share-inbox') await caches.delete(key);
+  } catch {
+    // Nothing to clear (no worker support): the reload below still fetches from the server.
+  }
+  location.reload();
+}
+
 // Ask the browser to look for a new service worker right now, rather than
 // waiting for it to check on its own schedule.
 export async function checkForUpdate() {
@@ -75,6 +101,10 @@ export async function checkForUpdate() {
     // moment before reading the cache list back.
     await new Promise((r) => setTimeout(r, 1500));
   }
-  return versionStatus();
+  const status = await versionStatus();
+  // A newer version is out but the browser has not fetched it: still "new version ready", and Reload then starts fresh.
+  const newest = await newestBuild();
+  if (!status.stale && newest != null && newest > BUILD) return { ...status, stale: true, behind: true };
+  return status;
 }
 
