@@ -13,13 +13,36 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.14',
+    items: [
+      {
+        icon: 'bill',
+        title: "Plan is in three parts",
+        text: "Plan used to be one long scroll. Now This month stays on top, and a switch below it shows Costs (your commitments, renewals and subscriptions), Budget (the month's budget, what is behind it, the months ahead and category budgets) or Goals (goals, insurance and one-time bills). Each part shows a count, so you can see what is in it before you open it.",
+        guide: [{ view: 'plan', target: '#plan-layers', text: "Tap Costs, Budget or Goals to move between the parts of Plan. This month stays above them." }],
+      },
+      {
+        icon: 'add',
+        title: "Adding a commitment is three questions",
+        text: "Add a commitment now asks one thing at a time: what it is, how much and how often, then whether it must be paid on a day or is just kept aside. Common costs are one tap. Paid from, last payment, statement words and category wait behind More details. When it is added you see it highlighted in your list, with Undo for a few seconds.",
+        guide: [{ view: 'plan', target: '#plan-add-btn', text: "Tap Add a commitment. Answer the three questions; the amount and day are checked before it is saved." }],
+      },
+      {
+        icon: 'check',
+        title: "Insurance and one-time bills no longer run together",
+        text: "On Plan, Insurance and One-time bills now have a heading each. With no policies yet, Insurance says so instead of showing nothing, and a one-time bill is no longer drawn as if it were a policy.",
+        guide: [{ view: 'plan', target: '#plan-bills', text: "One-time bills are under Goals. Tap this line to add or settle a bill due once." }],
+      },
+    ],
+  },
+  {
     version: '7.13.2',
     items: [
       {
         icon: 'bill',
         title: "Adding a fixed cost is simpler",
-        text: "On Plan, Add a commitment now opens its form right under your list of fixed costs, with the cursor already in the name box. It asks only what it must: what it is, the amount, how often, and whether it must be paid or is set aside. Paid from, last payment, statement words and category are folded behind More details.",
-        guide: [{ view: 'plan', target: '#plan-add-btn', text: "Tap Add a commitment. The form opens right below, ready to type the name. Open More details only if you need it." }],
+        text: "On Plan, Add a commitment asks only what it must: what it is, the amount, how often, and whether it must be paid or is set aside. Paid from, last payment, statement words and category are folded behind More details.",
+        guide: [{ view: 'plan', target: '#plan-add-btn', text: "Tap Add a commitment and type the name. Open More details only if you need it." }],
       },
       {
         icon: 'check',

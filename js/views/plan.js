@@ -1,6 +1,7 @@
 import { getAll, put, remove, newId, getSetting, setSetting } from '../db.js';
 import { holdFocus } from '../overlay.js';
 import { planTop, havenCommitments } from './plan-looks.js';
+import { openAddSheet, moreFields } from './plan-add.js';
 import { wireHaven } from '../haven-ui.js';
 import { paidOut, setDueDot } from '../haven-motion.js';
 import { icon } from '../icons.js';
@@ -16,7 +17,7 @@ import { appearance, setAppearance } from '../appearance.js';
 import { sortCommitments, sortAccounts, sortCategories, sortPicker, flipOrder } from '../list-order.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
-import { COMMON_COSTS, RENEWAL_MONTHS, renews, nextRenewal, renewalsAhead } from '../calendar.js';
+import { RENEWAL_MONTHS, renews, nextRenewal, renewalsAhead } from '../calendar.js';
 import { getGoals, saveGoals, goalProgress, GOAL_IDEAS } from '../goals.js';
 import { committedBar, radialMeter } from '../charts.js';
 import { categoryIcon } from '../category-icons.js';
@@ -33,13 +34,12 @@ import { dragRows } from '../reorder-drag.js';
 import { showToast } from '../toast.js';
 import { MAX_PAISE, paiseFrom } from '../records.js';
 
-let adding = false;
 let editingId = null;
 let addingBudget = false;
-// A common cost tapped below the Add button, waiting in the form.
-let draft = null;
 let addingGoal = false;
 let reordering = false;
+// Which part of Plan is showing (7.14): costs, budget or goals. Kept while the app is open, so a redraw does not send you back to Costs.
+let layer = 'costs';
 
 // Fixed commitments live in the `recurring` store alongside auto-detected
 // bills; `source` tells them apart so detection never clobbers what you
@@ -348,16 +348,7 @@ export async function render(container) {
                 : 'Without rent, EMIs and bills, your whole income looks free to spend.',
             })
     }
-    ${
-      adding
-        ? fixedForm(laneCategories, laneAccounts, draft)
-        : `<button type="button" id="plan-add-btn" class="lg-btn s block">${icon('add')} ${inBusiness ? 'Add a fixed cost' : 'Add a commitment'}</button>
-           <details class="k-disclose plan-common"><summary>Common costs</summary>
-           <div class="common-costs">${COMMON_COSTS[inBusiness ? 'business' : 'home']
-             .filter((c) => !fixed.some((f) => f.label.toLowerCase() === c.label.toLowerCase()))
-             .map((c) => `<button type="button" class="plan-chip common-cost" data-label="${escapeHtml(c.label)}" data-frequency="${c.frequency}">+ ${escapeHtml(c.label)}</button>`)
-             .join('')}</div></details>`
-    }
+    <button type="button" id="plan-add-btn" class="lg-btn s block">${icon('add')} ${inBusiness ? 'Add a fixed cost' : 'Add a commitment'}</button>
     ${renewalsList(fixed.filter((f) => renews(f)), todayIso)}
     ${moreLines(fixed, recurring.filter((r) => inLane(r) && isOneTime(r) && !r.once.paidOn), todayIso)}
     ${inBusiness ? '' : subscriptionsList(subscriptionsOf(fixed, new Set(accounts.filter((a) => a.type === 'card').map((a) => a.id)), transactions, todayIso))}
@@ -373,6 +364,7 @@ export async function render(container) {
       inBusiness
         ? ''
         : `<div class="plan-goals">${sectionHead('Goals', addingGoal ? '' : `<button type="button" id="goal-add-btn" class="lg-addlink">Add ${icon('add')}</button>`)}
+    ${goals.length || addingGoal ? '' : '<p class="muted-note ps-none">No goals yet. Add one to see what saving a month gets you there.</p>'}
     ${goals.length ? '<div class="goals-list">' : ''}
     ${goals
       .map((g) => {
@@ -447,7 +439,23 @@ export async function render(container) {
     }
   `;
 
-  if (!inBusiness) havenArrange(container, figures, todayIso, skippedItems);
+  if (!inBusiness) {
+    havenArrange(container, figures, todayIso, skippedItems);
+    // Plan in three parts (7.14), so one scroll no longer holds fifteen blocks. What is being edited or added is always in sight.
+    if (editingId) layer = 'costs';
+    if (addingBudget) layer = 'budget';
+    if (addingGoal) layer = 'goals';
+    const plural = (n, one, many) => (n ? `${n} ${n === 1 ? one : many}` : 'none yet');
+    const showLayer = layerPlan(container, {
+      costs: plural(fixed.length + loanItems.length, 'item', 'items'),
+      budget: budget == null ? 'set income' : budget < 0 ? `${formatRupees(-budget)} over` : `${formatRupees(budget)} free`,
+      goals: plural(goals.length, 'goal', 'goals'),
+    });
+    // Show me (js/guide.js) asks for a part when the thing it points at is in one that is out of sight.
+    if (container._plLayer) container.removeEventListener('plan-layer', container._plLayer);
+    container._plLayer = (e) => showLayer(e.detail);
+    container.addEventListener('plan-layer', container._plLayer);
+  }
   container.querySelector('#plan-coach')?.addEventListener('click', () => container.dispatchEvent(new CustomEvent('navigate', { bubbles: true, detail: { view: 'coach' } })));
   const incomeEl = container.querySelector('#plan-income');
   incomeEl?.addEventListener('change', async () => {
@@ -472,22 +480,44 @@ export async function render(container) {
     });
   }
 
-  // The form is opened where the person is looking, and ready for the next thing to type: the name, or the amount when a common cost
-  // already gave the name.
-  const showAddForm = () => {
-    const form = container.querySelector('#fixed-form');
-    if (!form) return;
-    form.scrollIntoView({ block: 'start' });
-    form.querySelector(form.querySelector('.ff-label').value ? '.ff-amount' : '.ff-label').focus({ preventScroll: true });
+  // The one way a fixed cost is written, for the edit form and for the stepped Add sheet (js/views/plan-add.js), so the two can never
+  // disagree about a record. `v.day` is NaN when the cost has no day to ask for; the day it had before is then kept.
+  const saveFixed = async (v, existing) => {
+    // A renewal's date gives its day as well, so everything that reads the day keeps working.
+    const renewsOn = RENEWAL_MONTHS[v.frequency] ? v.renewsOn || null : null;
+    const dayOfMonth = renewsOn ? Number(renewsOn.slice(8, 10)) : Number.isInteger(v.day) && v.day >= 1 && v.day <= 31 ? v.day : existing ? existing.dayOfMonth : 1;
+    const record = {
+      ...(existing || {}),
+      id: existing ? existing.id : `fixed-${newId()}`,
+      label: v.label,
+      amount: v.amount,
+      frequency: v.frequency,
+      dayOfMonth,
+      renewsOn,
+      // One question on screen, the two fields the app has always used.
+      // `spread` is what actually stops a thing being called late (it has
+      // no due date), and `flexible` is what puts it in the "can flex"
+      // half of the budget. Asking twice is what let a set-aside be
+      // entered as a dated bill and then be reported overdue.
+      spread: v.frequency === 'monthly' && v.aside,
+      flexible: v.aside,
+      categoryId: v.categoryId || null,
+      accountId: v.accountId || null,
+      matchText: v.matchText || null,
+      endDate: v.endMonth ? lastPaymentInMonth(v.endMonth, dayOfMonth) : null,
+      active: true,
+      source: 'fixed',
+      // A business's fixed cost belongs to its lane.
+      ...(existing ? {} : inBusiness ? { space } : {}),
+      // A statement re-import leaves figures you changed by hand alone.
+      amountEdited: existing ? existing.amountEdited || v.amount !== existing.amount : undefined,
+      dayEdited: existing ? existing.dayEdited || dayOfMonth !== existing.dayOfMonth : undefined,
+      // A policy's own premium date follows the date typed here, so the two never disagree.
+      ...(existing && existing.policy ? { policy: { ...existing.policy, dueOn: renewsOn || existing.policy.dueOn || null, day: renewsOn ? Number(renewsOn.slice(8, 10)) : existing.policy.day } } : {}),
+    };
+    await put('recurring', record);
+    return record;
   };
-  container.querySelectorAll('.common-cost').forEach((chip) => {
-    chip.addEventListener('click', () => {
-      draft = { label: chip.dataset.label, frequency: chip.dataset.frequency };
-      adding = true;
-      editingId = null;
-      redraw(container, () => render(container)).then(showAddForm);
-    });
-  });
 
   const goalAddBtn = container.querySelector('#goal-add-btn');
   if (goalAddBtn) {
@@ -533,10 +563,27 @@ export async function render(container) {
   const addBtn = container.querySelector('#plan-add-btn');
   if (addBtn) {
     addBtn.addEventListener('click', () => {
-      draft = null;
-      adding = true;
-      editingId = null;
-      redraw(container, () => render(container)).then(showAddForm);
+      openAddSheet({
+        inBusiness,
+        categories: laneCategories,
+        accounts: laneAccounts,
+        taken: [...fixed, ...loanItems].map((f) => f.label),
+        save: (v) => saveFixed(v, null),
+        done: (rec) => {
+          // Said in one line, with a way back: an added cost changes the budget, so it is never silent.
+          const redrawn = () => redraw(container, () => render(container));
+          showToast(`${rec.label} added`, { ms: 6000, action: { label: 'Undo', run: async () => { await remove('recurring', rec.id); redrawn(); } } });
+          redrawn().then(() => {
+            const hit = container.querySelector(`[data-month-item="${rec.id}"], .plan-row[data-id="${rec.id}"]`);
+            // The row's own wrapper takes the mark: the button inside it draws no shadow of its own.
+            const row = hit && (hit.closest('.hv-bill') || hit);
+            if (!row) return;
+            row.scrollIntoView({ block: 'center' });
+            row.classList.add('ps-new');
+            setTimeout(() => row.classList.remove('ps-new'), 3000);
+          });
+        },
+      });
     });
   }
 
@@ -603,7 +650,6 @@ export async function render(container) {
     on('.month-edit', () => {
       close();
       editingId = t.id;
-      adding = false;
       redraw(container, () => render(container)).then(() => container.querySelector('#fixed-form')?.scrollIntoView({ block: 'center' }));
     });
   };
@@ -659,7 +705,6 @@ export async function render(container) {
   container.querySelectorAll('.fixed-edit').forEach((btn) => {
     btn.addEventListener('click', async () => {
       editingId = btn.dataset.id;
-      adding = false;
       await redraw(container, () => render(container));
       // From the Renewals list the form opens up among the commitments, so
       // it is brought to where the eye is.
@@ -703,48 +748,25 @@ export async function render(container) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const existing = editingId ? recurring.find((r) => r.id === editingId) : null;
-      const aside = setAside();
       const label = form.querySelector('.ff-label').value.trim();
-      const amount = Math.round(parseFloat(amountEl.value) * 100);
-      const day = parseInt(form.querySelector('.ff-day').value, 10);
-      if (!label || !Number.isFinite(amount) || amount <= 0 || amount > MAX_PAISE) return;
-      const endMonth = form.querySelector('.ff-end').value; // YYYY-MM or ''
-      // A renewal's date gives its day as well, so everything that reads the
-      // day keeps working.
-      const renewsOn = RENEWAL_MONTHS[freqEl.value] ? form.querySelector('.ff-renews').value || null : null;
-      const dayOfMonth = renewsOn ? Number(renewsOn.slice(8, 10)) : Number.isInteger(day) && day >= 1 && day <= 31 ? day : existing ? existing.dayOfMonth : 1;
-      await put('recurring', {
-        ...(existing || {}),
-        id: existing ? existing.id : `fixed-${newId()}`,
-        label,
-        amount,
-        frequency: freqEl.value,
-        dayOfMonth,
-        renewsOn,
-        // One question on screen, the two fields the app has always used.
-        // `spread` is what actually stops a thing being called late (it has
-        // no due date), and `flexible` is what puts it in the "can flex"
-        // half of the budget. Asking twice is what let a set-aside be
-        // entered as a dated bill and then be reported overdue.
-        spread: freqEl.value === 'monthly' && aside,
-        flexible: aside,
-        categoryId: form.querySelector('.ff-category').value || null,
-        accountId: form.querySelector('.ff-account').value || null,
-        matchText: form.querySelector('.ff-match').value.trim() || null,
-        endDate: endMonth ? lastPaymentInMonth(endMonth, dayOfMonth) : null,
-        active: true,
-        source: 'fixed',
-        // A business's fixed cost belongs to its lane.
-        ...(existing ? {} : inBusiness ? { space } : {}),
-        // A statement re-import leaves figures you changed by hand alone.
-        amountEdited: existing ? existing.amountEdited || amount !== existing.amount : undefined,
-        dayEdited: existing ? existing.dayEdited || dayOfMonth !== existing.dayOfMonth : undefined,
-        // A policy's own premium date follows the date typed here, so the two never disagree.
-        ...(existing && existing.policy ? { policy: { ...existing.policy, dueOn: renewsOn || existing.policy.dueOn || null, day: renewsOn ? Number(renewsOn.slice(8, 10)) : existing.policy.day } } : {}),
-      });
-      adding = false;
+      const amount = paiseFrom(amountEl.value);
+      if (!label || amount == null) return;
+      await saveFixed(
+        {
+          label,
+          amount,
+          frequency: freqEl.value,
+          aside: setAside(),
+          day: parseInt(form.querySelector('.ff-day').value, 10),
+          renewsOn: form.querySelector('.ff-renews').value,
+          categoryId: form.querySelector('.ff-category').value,
+          accountId: form.querySelector('.ff-account').value,
+          matchText: form.querySelector('.ff-match').value.trim(),
+          endMonth: form.querySelector('.ff-end').value, // YYYY-MM or ''
+        },
+        existing
+      );
       editingId = null;
-      draft = null;
       redraw(container, () => render(container));
     });
     // Removing is asked about first, and lives here (in the edit form) rather than as a cross on every row.
@@ -753,12 +775,10 @@ export async function render(container) {
       const ok = await askConfirm({ title: 'Remove this commitment?', message: `"${going ? going.label : 'It'}" comes off your plan. Payments already saved are not touched.`, confirmLabel: 'Remove', danger: true });
       if (!ok) return;
       await remove('recurring', e.currentTarget.dataset.id);
-      adding = false;
       editingId = null;
       redraw(container, () => render(container));
     });
     form.querySelector('.ff-cancel').addEventListener('click', () => {
-      adding = false;
       editingId = null;
       redraw(container, () => render(container));
     });
@@ -1028,11 +1048,15 @@ function moreLines(items, unpaidBills, today) {
     const due = policyDue(r);
     return `<button type="button" class="lg-row two policy-open" data-id="${r.id}"><span class="lg-ico t4">${categoryStyle('insurance').icon}</span><span class="nm"><span class="n">${escapeHtml(r.label)}</span><span class="m">${due ? `Renews ${formatDateNice(due)}` : escapeHtml(kindLabel(r))}</span></span><span class="amt">${formatRupees(yearlyPremium(r))}</span></button>`;
   };
+  // Two headings, one card each: the bills card used to sit straight under "Insurance" and read as part of it.
   return `<div class="plan-ins">${sectionHead('Insurance', `<button type="button" id="plan-policies" class="lg-addlink">Add ${icon('add')}</button>`)}
-    ${policies.length ? `<div class="lg-card plan-policies-card">${policies.map(row).join('')}</div>` : ''}
-    <div class="lg-card plan-bills-card"><button type="button" class="lg-row two" id="plan-bills"><span class="lg-ico t2">${icon('bill')}</span><span class="nm"><span class="n">One-time bills</span><span class="m">${
+    ${policies.length ? `<div class="lg-card plan-policies-card">${policies.map(row).join('')}</div>` : '<p class="muted-note ps-none">No policies yet. Add one to see when its premium is due.</p>'}
+    ${sectionHead('One-time bills')}
+    <div class="lg-card plan-bills-card"><button type="button" class="lg-row two" id="plan-bills"><span class="lg-ico t2">${icon('bill')}</span><span class="nm"><span class="n">${
+      unpaidBills.length ? `${unpaidBills.length} to pay · ${formatRupees(owed)}` : 'Nothing due once'
+    }</span><span class="m">${
       unpaidBills.length
-        ? `${unpaidBills.length} to pay · ${formatRupees(owed)} · next ${escapeHtml(next.label)} ${formatDateNice(next.once.dueOn)}`
+        ? `next ${escapeHtml(next.label)} ${formatDateNice(next.once.dueOn)}`
         : 'A school fee, a repair, a supplier: due once, held out of Left to spend in its month'
     }</span></span><span class="amt">${icon('forward')}</span></button></div></div>`;
 }
@@ -1066,10 +1090,10 @@ function havenArrange(container, figures, todayIso, skipped) {
   const monthWrap = container.querySelector('.plan-month');
   const commitHead = kids().find((n) => n.classList.contains('section-head') && /^(Commitments|Fixed costs)$/.test(n.querySelector('h3')?.textContent.trim() || ''));
   const commitList = commitHead && commitHead.nextElementSibling;
-  // What sits under the list: the Add button and the common costs, or the form that takes the button's place while adding. The form used
-  // to be left out of this, so it stayed behind when the rest was moved up and opened at the bottom of the page, out of sight.
+  // What sits under the list: the Add button. (Until 7.14 the form took its place while adding and had to be carried up with it, or it opened
+  // at the bottom of the page; adding is a sheet now.)
   const addEls = [];
-  for (let n = commitList && commitList.nextElementSibling; n && (n.id === 'plan-add-btn' || n.id === 'fixed-form' || n.classList.contains('plan-common')); n = n.nextElementSibling) addEls.push(n);
+  for (let n = commitList && commitList.nextElementSibling; n && n.id === 'plan-add-btn'; n = n.nextElementSibling) addEls.push(n);
   // the budget, its amounts, the goals and the insurance follow the months, in the order of the shown screens
   const budget = kids().find((n) => n.classList.contains('pl-top') || n.classList.contains('hero'));
   const sums = container.querySelector(':scope > .plan-sums');
@@ -1083,8 +1107,10 @@ function havenArrange(container, figures, todayIso, skipped) {
   const ordered = [...notes.map((n) => { n.classList.add('hv-note-wrap'); return n; })];
   if (month) ordered.push(month);
   if (commitHead && commitList) ordered.push(commitHead, commitList, ...addEls);
+  // In the Budget part (7.14) the month's budget comes first, then the amounts behind it, then the months ahead.
+  ordered.push(...[budget, sums].filter(Boolean));
   if (hvForecast.innerHTML.trim()) ordered.push(hvForecast);
-  ordered.push(...[budget, sums, goals, insurance].filter(Boolean));
+  ordered.push(...[goals, insurance].filter(Boolean));
   if (month && monthWrap) monthWrap.before(month); // keep it inside the page while the wrapper is checked
   const keepWrap = monthWrap && [...monthWrap.children].some((c) => c !== month);
   if (!keepWrap) monthWrap?.remove();
@@ -1095,6 +1121,54 @@ function havenArrange(container, figures, todayIso, skipped) {
   // The Plan tab carries a dot while something is late or due within two days.
   const in2 = isoLocal(new Date(Date.now() + 2 * 86400000));
   setDueDot(((figures && figures.tracker) || []).filter((t) => !t.setAside && !t.skipped && (t.status === 'late' || ((t.status === 'due' || t.status === 'part') && t.due && t.due <= in2))).length);
+}
+
+/* Plan in three parts (7.14). "This month" and anything that needs attention stay on top whatever is chosen; below them a switch
+ * shows Costs (the commitments, adding one, renewals, subscriptions, what may be listed twice), Budget (the month's budget, the amounts
+ * behind it, the next months, category budgets) or Goals (goals, insurance, one-time bills). Blocks are tagged, never moved, so every
+ * button keeps working, and a block that is not named here lands in Costs rather than vanishing. Drawn first as mockups/7.18-plan-steps.
+ * Returns the function that shows a part by name. */
+const LAYERS = [['costs', 'Costs'], ['budget', 'Budget'], ['goals', 'Goals']];
+function layerPlan(container, counts) {
+  const kids = [...container.children];
+  const layers = new Map();
+  // Backwards, so a heading takes the part of what follows it.
+  for (let i = kids.length - 1; i >= 0; i--) {
+    const n = kids[i];
+    const head = n.classList.contains('section-head') ? n.querySelector('h3')?.textContent.trim() : null;
+    let l = 'costs';
+    if (n.matches('.plan-flag, .hv-note-wrap, [data-hv-box], .plan-month, .hv-month-extra, #plan-coach') || head === 'This month') l = null;
+    else if (n.matches('.pl-top, .hero, .plan-sums, .plan-meter, .hv-plan-forecast, #budget-form, .budget-card') || head === 'Category budgets') l = 'budget';
+    else if (n.matches('.plan-goals, .plan-ins')) l = 'goals';
+    else if (head) l = layers.get(kids[i + 1]) || 'costs';
+    layers.set(n, l);
+  }
+  const bar = document.createElement('div');
+  bar.className = 'pl-layers';
+  bar.id = 'plan-layers';
+  bar.setAttribute('role', 'group');
+  bar.setAttribute('aria-label', 'Parts of Plan');
+  bar.innerHTML = LAYERS.map(([key, name]) => `<button type="button" data-layer-tab="${key}" aria-pressed="false">${name}<small>${escapeHtml(counts[key])}</small></button>`).join('');
+  container.insertBefore(bar, kids.find((n) => layers.get(n)) || null);
+  const show = (name) => {
+    layer = LAYERS.some(([key]) => key === name) ? name : 'costs';
+    container.dataset.layer = layer;
+    for (const n of kids) {
+      const l = layers.get(n);
+      if (l) n.dataset.pl = l;
+      n.classList.toggle('pl-off', Boolean(l) && l !== layer);
+    }
+    bar.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.layerTab === layer)));
+  };
+  bar.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    show(b.dataset.layerTab);
+    // The part is shorter or longer than the one before: bring its top into view when the switch has scrolled out of it.
+    if (bar.getBoundingClientRect().top < 0) bar.scrollIntoView({ block: 'start' });
+  });
+  show(layer);
+  return show;
 }
 
 /* The rest of the year (5.84), behind the "The whole year" link: the same calm rows, each month with its year, and the money a policy pays back
@@ -1258,37 +1332,7 @@ function fixedForm(categories, accounts, item) {
       </label>
       <details class="k-disclose ff-more" ${v.accountId || v.endDate || v.matchText || v.categoryId ? 'open' : ''}>
       <summary>More details <span class="muted">(optional)</span></summary>
-      <label class="field">
-        <span>Paid from</span>
-        <select class="ff-account">
-          <option value="">Any bank account</option>
-          <option value="cash" ${selected('cash', v.accountId)}>Cash (from your ATM money)</option>
-          ${sortAccounts(accounts)
-            .filter((a) => a.type === 'bank')
-            .map((a) => `<option value="${a.id}" ${selected(a.id, v.accountId)}>${escapeHtml(a.label)}</option>`)
-            .join('')}
-          ${sortAccounts(accounts)
-            .filter((a) => a.type === 'card')
-            .map((a) => `<option value="${a.id}" ${selected(a.id, v.accountId)}>${escapeHtml(a.label)}</option>`)
-            .join('')}
-        </select>
-      </label>
-      <label class="field">
-        <span>Last payment <span class="muted">(optional - for an EMI or loan that ends)</span></span>
-        <input type="month" class="ff-end" value="${v.endDate ? v.endDate.slice(0, 7) : ''}">
-      </label>
-      <label class="field">
-        <span>Its line on the bank or card statement contains <span class="muted">(optional, e.g. "Home Loan EMI", "DYSON")</span></span>
-        <input type="text" class="ff-match" autocomplete="off" spellcheck="false" placeholder="Words from its line on your statement" value="${escapeHtml(v.matchText || '')}">
-      </label>
-      <p class="muted-note">Words in its payment, so it isn't counted twice. Leave empty to match by amount.</p>
-      <label class="field">
-        <span>Category <span class="muted">(so this spend isn't counted twice)</span></span>
-        <select class="ff-category">
-          <option value="">None</option>
-          ${sortCategories(categories).map((c) => `<option value="${c.id}" ${selected(c.id, v.categoryId)}>${escapeHtml(c.name)}</option>`).join('')}
-        </select>
-      </label>
+      ${moreFields(categories, accounts, v)}
       </details>
       <button type="submit" class="btn-primary">${item ? 'Save' : 'Add'}</button>
       <button type="button" class="btn-tiny ff-cancel btn-block" style="margin-top:var(--space-xs)">Cancel</button>

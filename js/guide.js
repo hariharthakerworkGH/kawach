@@ -92,10 +92,11 @@ export async function runGuide(steps) {
 async function open(step) {
   if (location.hash !== `#${step.view}`) document.dispatchEvent(new CustomEvent('navigate', { detail: { view: step.view } }));
   for (let tries = 0; tries < 40; tries++) {
-    const found = step.target
-      .split(',')
-      .map((q) => document.querySelector(`#view-container ${q.trim()}`))
-      .find((el) => el && el.offsetParent !== null);
+    const els = step.target.split(',').map((q) => document.querySelector(`#view-container ${q.trim()}`));
+    // Plan is in parts (7.14): when the thing is in a part that is out of sight, ask Plan to show that part first.
+    const hidden = els.find((el) => el && el.closest('.pl-off'));
+    if (hidden) document.querySelector('#view-container').dispatchEvent(new CustomEvent('plan-layer', { detail: hidden.closest('.pl-off').dataset.pl }));
+    const found = els.find((el) => el && el.offsetParent !== null);
     if (found) return found;
     await new Promise((r) => setTimeout(r, 75));
   }

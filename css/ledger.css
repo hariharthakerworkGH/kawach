@@ -872,3 +872,71 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .chg-seg button.on { background: var(--lg-tide-soft); color: var(--lg-tide); box-shadow: inset 0 0 0 2px var(--lg-tide); font-weight: 600; }
 :root[data-style=haven] .chg-hint { margin: 0; font-size: 13px; color: var(--lg-ink2); }
 :root[data-style=haven] .chg-done { width: 100%; }
+
+/* 7.14: Plan in three parts, and a stepped Add sheet. Drawn first as mockups/7.18-plan-steps; the same tokens, so day and night follow. */
+.pl-off { display: none !important; }
+#plan-layers { margin-block: 14px 6px; }
+.pl-layers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; background: var(--lg-s1); border-radius: 14px; box-shadow: 0 0 0 1px var(--lg-line); }
+.pl-layers button { min-height: 44px; min-width: 0; border: 0; border-radius: 10px; font: inherit; font-size: 15px; font-weight: 600; background: transparent; color: var(--lg-ink2); cursor: pointer; display: grid; gap: 0; align-content: center; line-height: 1.15; padding: 0 4px; }
+.pl-layers button small { font-size: 12px; font-weight: 500; color: var(--lg-ink2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-layers button[aria-pressed=true] { background: var(--lg-s2); color: var(--lg-ink); box-shadow: 0 0 0 1px var(--lg-line); }
+.pl-layers button:focus-visible { outline: 2px solid var(--lg-tide); outline-offset: 2px; }
+.ps-none { margin: 4px 0 12px; font-size: 14px; color: var(--lg-ink2); }
+/* An outline, not a shadow: the row's own button paints over an inset shadow. Plan takes the class off again after three seconds. */
+.ps-new { outline: 2px solid var(--lg-tide); outline-offset: -2px; border-radius: 12px; }
+@media (prefers-reduced-motion: no-preference) { .ps-new { animation: ps-new 2.8s ease-out 1 forwards; } }
+@keyframes ps-new { 0%, 60% { outline-color: var(--lg-tide); } 100% { outline-color: transparent; } }
+#fixed-form .type-field { margin-bottom: 14px; }
+/* 320 px: "Kept aside" broke onto two lines in This month; the three figures now keep their label on one line. */
+:root[data-style=haven] .hv-sum__keys > button > span { white-space: nowrap; }
+@media (max-width: 359px) { :root[data-style=haven] .hv-sum__keys > button { padding: 0 4px; } :root[data-style=haven] .hv-sum__keys > button:first-child { padding-left: 0; } :root[data-style=haven] .hv-sum__keys > button > span { gap: 4px; } }
+
+#plan-add-sheet .ps-back { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.5); }
+#plan-add-sheet .ps-sheet { position: fixed; left: 0; right: 0; bottom: var(--ps-kb, 0px); z-index: 61; max-height: calc(var(--ps-vh, 100dvh) - 12px); overflow-y: auto; overscroll-behavior: contain; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--lg-s1); color: var(--lg-ink); border-radius: 20px 20px 0 0; box-shadow: 0 -1px 0 var(--lg-line); outline: none; box-sizing: border-box; max-width: 640px; margin: 0 auto; /* a form carries a bottom margin of its own: it left a strip of page under the sheet */ }
+#plan-add-sheet [hidden] { display: none !important; }
+#plan-add-sheet .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#plan-add-sheet .ps-grip { width: 36px; height: 4px; border-radius: 2px; background: var(--lg-line); margin: 0 auto; }
+#plan-add-sheet .ps-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; min-height: 44px; }
+#plan-add-sheet .ps-bk, #plan-add-sheet .ps-x { min-width: 44px; min-height: 44px; border: 0; background: transparent; color: var(--lg-ink2); font: inherit; font-size: 15px; cursor: pointer; text-align: left; }
+#plan-add-sheet .ps-x { text-align: right; }
+#plan-add-sheet .ps-mid { display: flex; align-items: center; gap: 8px; }
+#plan-add-sheet .ps-dots { display: flex; gap: 6px; }
+#plan-add-sheet .ps-dots i { width: 26px; height: 4px; border-radius: 2px; background: var(--lg-line); }
+#plan-add-sheet .ps-dots i.on { background: var(--lg-tide); }
+#plan-add-sheet .ps-count { font-size: 12px; color: var(--lg-ink2); white-space: nowrap; }
+#plan-add-sheet .ps-step { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+#plan-add-sheet .ps-step h3 { margin: 0; font-size: 22px; font-weight: 650; line-height: 1.2; overflow-wrap: anywhere; }
+#plan-add-sheet .ps-step h3 small { display: block; margin-top: 4px; font-size: 14px; font-weight: 400; color: var(--lg-ink2); line-height: 1.3; }
+#plan-add-sheet .ps-field { position: relative; min-height: 52px; display: flex; align-items: center; padding: 0 14px; background: var(--lg-s2); border-radius: 12px; box-shadow: 0 0 0 1px var(--lg-line); font-size: 18px; color: var(--lg-ink); }
+#plan-add-sheet .ps-field:focus-within { box-shadow: 0 0 0 2px var(--lg-tide); }
+#plan-add-sheet .ps-field input { flex: 1; width: auto; min-width: 0; min-height: 50px; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: inherit; font: inherit; outline: none; padding: 0; }
+#plan-add-sheet .ps-field.big { min-height: 64px; font-size: 30px; font-weight: 650; }
+#plan-add-sheet .ps-field.big input { min-height: 62px; }
+#plan-add-sheet .ps-field .cur { color: var(--lg-ink2); margin-right: 6px; font-weight: 500; }
+#plan-add-sheet .ps-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+#plan-add-sheet .ps-chip { min-height: 44px; padding: 0 14px; display: inline-flex; align-items: center; border: 0; border-radius: 12px; font: inherit; font-size: 15px; background: var(--lg-s2); color: var(--lg-ink); box-shadow: 0 0 0 1px var(--lg-line); cursor: pointer; }
+#plan-add-sheet .ps-chip.on { background: var(--lg-tide); color: var(--lg-tide-ink); font-weight: 600; box-shadow: none; }
+#plan-add-sheet .ps-freq-all, #plan-add-sheet .field select, #plan-add-sheet .field input { min-height: 44px; border: 0; border-radius: 12px; padding: 0 12px; font: inherit; font-size: 16px; background: var(--lg-s2); color: var(--lg-ink); box-shadow: 0 0 0 1px var(--lg-line); width: 100%; box-sizing: border-box; }
+#plan-add-sheet .ps-preview { margin: 0; font-size: 14px; color: var(--lg-ink2); }
+#plan-add-sheet .ps-opt { display: grid; gap: 8px; padding: 14px; border-radius: 14px; background: var(--lg-s2); box-shadow: 0 0 0 1px var(--lg-line); }
+#plan-add-sheet .ps-opt.on { box-shadow: 0 0 0 2px var(--lg-tide); }
+#plan-add-sheet .ps-opt label { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 4px 12px; align-items: center; cursor: pointer; min-height: 44px; }
+#plan-add-sheet .ps-opt input[type=radio] { position: absolute; opacity: 0; width: 1px; height: 1px; }
+#plan-add-sheet .ps-opt .rd { grid-column: 1; grid-row: 1; width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--lg-line); }
+#plan-add-sheet .ps-opt.on .rd { box-shadow: inset 0 0 0 6px var(--lg-tide); }
+#plan-add-sheet .ps-opt input:focus-visible + .rd { outline: 2px solid var(--lg-tide); outline-offset: 2px; }
+#plan-add-sheet .ps-opt b { grid-column: 2; grid-row: 1; font-size: 16px; font-weight: 600; }
+#plan-add-sheet .ps-opt .d { grid-column: 2; font-size: 13px; color: var(--lg-ink2); line-height: 1.3; }
+#plan-add-sheet .ps-day, #plan-add-sheet .ps-when { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-left: 34px; font-size: 14px; color: var(--lg-ink2); }
+#plan-add-sheet .ps-day input { width: 72px; text-align: center; min-height: 44px; border: 0; border-radius: 12px; background: var(--lg-s1); color: var(--lg-ink); font: inherit; font-size: 18px; box-shadow: 0 0 0 1px var(--lg-line); }
+#plan-add-sheet .ps-when { margin-left: 0; }
+#plan-add-sheet .ps-when input { width: auto; flex: 1; min-width: 150px; }
+#plan-add-sheet .ps-err { margin: 0; padding: 10px 12px; border-radius: 10px; font-size: 14px; color: var(--lg-coral); box-shadow: inset 0 0 0 1px var(--lg-coral); }
+#plan-add-sheet .ps-go { min-height: 52px; border: 0; border-radius: 14px; font: inherit; font-size: 16px; font-weight: 650; background: var(--lg-tide); color: var(--lg-tide-ink); cursor: pointer; overflow-wrap: anywhere; }
+#plan-add-sheet .ps-go:disabled { opacity: 0.6; }
+#plan-add-sheet .ps-more > summary { min-height: 44px; display: flex; align-items: center; justify-content: center; color: var(--lg-ink2); font-size: 14px; cursor: pointer; list-style: none; text-align: center; }
+#plan-add-sheet .ps-more > summary::-webkit-details-marker { display: none; }
+#plan-add-sheet .ps-more[open] > summary { margin-bottom: 8px; }
+#plan-add-sheet .ps-more .field { display: grid; gap: 6px; margin-bottom: 12px; font-size: 14px; color: var(--lg-ink2); }
+#plan-add-sheet .ps-more .muted-note { margin: 0 0 12px; font-size: 13px; color: var(--lg-ink2); }
+@media (prefers-reduced-motion: no-preference) { #plan-add-sheet .ps-sheet { animation: ps-up 0.22s ease-out 1; } @keyframes ps-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } } }
