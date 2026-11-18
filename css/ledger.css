@@ -835,3 +835,37 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .upi-row.skip .upi-row__n, :root[data-style=haven] .upi-row.skip .upi-row__a { opacity: 0.45; }
 :root[data-style=haven] .upi-file { width: 100%; min-height: 48px; border: 0; border-radius: 12px; background: var(--lg-tide); color: var(--lg-tide-ink); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
 :root[data-style=haven] .upi-file:disabled { background: var(--lg-s2); color: var(--lg-ink3); cursor: default; }
+
+/* 7.13.1: Change many. Found from the owner's phone screenshot: a 16 px category box, ticked rows pushed 12 px out of their card with a
+   clipped box, "2 selected" wrapping, and the mode button drawn like Settings. */
+:root[data-style=haven] .hist-row.selected { margin-inline: 0; padding-inline: 0; background: var(--lg-tide-soft); border-radius: 10px; }
+:root[data-style=haven] .txn-check { -webkit-appearance: none; appearance: none; flex: none; display: grid; place-content: center; width: 24px; height: 24px; margin: 0 0 0 6px; border-radius: 7px; background: none; box-shadow: inset 0 0 0 2px var(--lg-ink3); cursor: pointer; }
+:root[data-style=haven] .txn-check:checked { background: var(--lg-tide); box-shadow: inset 0 0 0 2px var(--lg-tide); }
+:root[data-style=haven] .txn-check:checked::after { content: ''; width: 11px; height: 6px; margin-top: -2px; border-left: 2.5px solid var(--lg-tide-ink); border-bottom: 2.5px solid var(--lg-tide-ink); transform: rotate(-45deg); }
+:root[data-style=haven] .txn-check:focus-visible { outline: 2px solid var(--lg-tide); outline-offset: 2px; }
+:root[data-style=haven] .txn-summary-row { align-items: center; gap: 8px; }
+:root[data-style=haven] #select-note { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; color: var(--lg-ink2); }
+:root[data-style=haven] #txn-select-all, :root[data-style=haven] #txn-select-done { flex: none; min-height: 40px; padding: 0 14px; border: 0; border-radius: 20px; background: var(--lg-s2); color: var(--lg-ink); font: inherit; font-size: 14px; font-weight: 600; box-shadow: inset 0 0 0 1px var(--lg-line); cursor: pointer; }
+:root[data-style=haven] #txn-select-done { background: var(--lg-tide-soft); color: var(--lg-tide); box-shadow: inset 0 0 0 2px var(--lg-tide); }
+/* The list ends above the bar, so the last rows are never under it. */
+:root[data-style=haven] [data-selecting="1"] #txn-list { padding-bottom: 92px; }
+:root[data-style=haven] .bulk-bar { display: flex; align-items: center; gap: 8px; left: 12px; right: 12px; padding: 10px 12px; background: var(--lg-s1); border: 0; border-radius: 16px; box-shadow: 0 0 0 1px var(--lg-line), 0 8px 24px rgba(0, 0, 0, 0.35); color: var(--lg-ink); }
+:root[data-style=haven] .bulk-bar[hidden] { display: none; }
+:root[data-style=haven] #bulk-count { flex: 1; min-width: 0; white-space: nowrap; font-size: 15px; font-weight: 600; }
+:root[data-style=haven] .bulk-go, :root[data-style=haven] .bulk-del { flex: none; min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+@media (max-width: 359px) { :root[data-style=haven] .bulk-bar { padding: 8px 10px; gap: 6px; left: 8px; right: 8px; } :root[data-style=haven] .bulk-go, :root[data-style=haven] .bulk-del { padding: 0 12px; } }
+:root[data-style=haven] .bulk-go { background: var(--lg-tide); color: var(--lg-tide-ink); }
+:root[data-style=haven] .bulk-del { background: none; color: var(--lg-coral); box-shadow: inset 0 0 0 1px var(--lg-line); }
+/* The sheet: three sections, each a row of chips or a two-way switch. */
+:root[data-style=haven] .chg-sheet { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+:root[data-style=haven] .chg-body { overflow-y: auto; display: grid; gap: 18px; align-content: start; }
+:root[data-style=haven] .chg-sec { display: grid; gap: 8px; }
+:root[data-style=haven] .chg-sec h4 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--lg-ink2); }
+:root[data-style=haven] .chg-sec .upi-chips.all { max-height: none; }
+/* in this sheet every choice is in view: a row that scrolls sideways hid "More" and cut names in half */
+:root[data-style=haven] .chg-sec .upi-chips { flex-wrap: wrap; overflow-x: visible; }
+:root[data-style=haven] .chg-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+:root[data-style=haven] .chg-seg button { min-height: 44px; border: 0; border-radius: 12px; background: var(--lg-s2); color: var(--lg-ink); font: inherit; font-size: 15px; box-shadow: inset 0 0 0 1px var(--lg-line); cursor: pointer; }
+:root[data-style=haven] .chg-seg button.on { background: var(--lg-tide-soft); color: var(--lg-tide); box-shadow: inset 0 0 0 2px var(--lg-tide); font-weight: 600; }
+:root[data-style=haven] .chg-hint { margin: 0; font-size: 13px; color: var(--lg-ink2); }
+:root[data-style=haven] .chg-done { width: 100%; }

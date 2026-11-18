@@ -148,7 +148,7 @@ export async function render(container, params = {}) {
     <div id="hist-days"></div>
     <div class="hist-top">
       <label class="lg-search">${icon('history')}<input type="search" id="txn-search" class="hist-search" placeholder="Name or amount" value="${escapeAttr(filters.search)}" aria-label="Search all months"></label>
-      <button type="button" id="txn-select" class="lg-ib hist-select-btn" aria-label="Change many" title="Change many" aria-pressed="false">${icon('settings')}</button>
+      <button type="button" id="txn-select" class="lg-ib hist-select-btn" aria-label="Select payments to change together" title="Select payments" aria-pressed="false">${icon('tick')}</button>
     </div>
     <div class="hist-chips">
       <button type="button" id="txn-needs" class="hist-chip hist-needs lg-tag warn" hidden></button>
@@ -166,6 +166,7 @@ export async function render(container, params = {}) {
     <div class="txn-summary-row" id="select-row" hidden>
       <span id="select-note"></span>
       <button type="button" id="txn-select-all" class="btn-tiny">Select all</button>
+      <button type="button" id="txn-select-done" class="btn-tiny">Done</button>
     </div>
     <div id="upi-card"></div>
     <div id="txn-list" class="hist-list"></div>
@@ -173,12 +174,8 @@ export async function render(container, params = {}) {
     <button type="button" id="month-older" class="link-btn hist-older" hidden></button>
     <div id="bulk-bar" class="bulk-bar" hidden>
       <span id="bulk-count"></span>
-      <select id="bulk-category">
-        <option value="">Set category…</option>
-        ${categoryOptions(null)}
-      </select>
-      <button type="button" id="bulk-transfer" class="btn-tiny">Moved</button>
-      <button type="button" id="bulk-delete" class="btn-tiny danger">Delete</button>
+      <button type="button" id="bulk-change" class="bulk-go">Change…</button>
+      <button type="button" id="bulk-delete" class="bulk-del">Delete</button>
     </div>
   `;
   if (document.documentElement.dataset.style === 'haven') arrangeHistory(container);
@@ -262,45 +259,11 @@ export async function render(container, params = {}) {
     renderList(container);
   });
 
-  container.querySelector('#bulk-category').addEventListener('change', async (e) => {
-    const categoryId = e.target.value;
-    if (!categoryId) return;
-    const category = cache.categories.find((c) => c.id === categoryId);
-    let kept = 0;
-    for (const id of selected) {
-      const t = cache.transactions.find((x) => x.id === id);
-      if (!t) continue;
-      // A split was set up deliberately; a bulk assign shouldn't flatten it.
-      if (isSplit(t)) continue;
-      // Income is for money in: a payment out ticked among the rest keeps what it had.
-      if (!fitsDirection(category, t.direction)) {
-        kept += 1;
-        continue;
-      }
-      t.categoryId = categoryId;
-      await save(t);
-      await learnFromAssignment(t.rawDescription, categoryId, t.direction);
-    }
-    if (kept) showToast(`${kept} payment${kept === 1 ? '' : 's'} going out can't be Income, so ${kept === 1 ? 'it was' : 'they were'} left as ${kept === 1 ? 'it was' : 'they were'}`);
+  // 7.13.1: one sheet for everything a pile of ticked payments can become (category, spending or moved, a fixed cost), each with an Undo.
+  container.querySelector('#bulk-change').addEventListener('click', () => openChangeSheet(container));
+  container.querySelector('#txn-select-done').addEventListener('click', () => {
+    selecting = false;
     selected.clear();
-    e.target.value = '';
-    renderList(container);
-  });
-
-  // Moving money to your own investment or savings account isn't spending, and
-  // there are usually several at once to clean up - hence a bulk action.
-  container.querySelector('#bulk-transfer').addEventListener('click', async () => {
-    let n = 0;
-    for (const id of selected) {
-      const t = cache.transactions.find((x) => x.id === id);
-      if (!t || t.isTransfer) continue;
-      t.isTransfer = true;
-      t.transferManual = true;
-      await save(t);
-      n++;
-    }
-    selected.clear();
-    showToast(`${n} marked as moved, not spent`);
     renderList(container);
   });
 
@@ -640,8 +603,9 @@ function renderList(container) {
   needsChip.classList.toggle('on', filters.categoryId === 'uncategorized');
 
   container.querySelector('#txn-select').setAttribute('aria-pressed', String(selecting));
+  container.dataset.selecting = selecting ? '1' : '';
   container.querySelector('#select-row').hidden = !selecting || rows.length === 0;
-  container.querySelector('#select-note').textContent = selected.size ? `${selected.size} ticked` : 'Tick payments to categorise or delete together';
+  container.querySelector('#select-note').textContent = selected.size ? `${selected.size} ticked` : 'Tick to change';
   container.querySelector('#txn-select-all').textContent = selected.size === rows.length && rows.length ? 'Clear' : `Select all ${rows.length}`;
 
   container.querySelector('#txn-list').innerHTML = cache.transactions.length
@@ -821,6 +785,131 @@ function openUpiSheet(container, rows, guess) {
   });
   dragToClose(wrap.querySelector('.upi-sheet'), close, wrap.querySelector('.upi-back'));
   release = holdFocus(wrap, { initial: '.upi-chip.on' });
+}
+
+/* ---- Change many (7.13.1) ---------------------------------------------------------------------------------------------------- */
+// Every change here goes to the ticked payments it fits, at once, and comes with an Undo: nothing in this sheet is a one-way door
+// (before 7.13.1 "Moved" could be put on many payments but taken off only one at a time, in a panel nobody found).
+async function applyBulk(rows, change, said, container) {
+  const before = rows.map((t) => ({ t, was: structuredClone(t) }));
+  for (const t of rows) {
+    await change(t);
+    await save(t);
+  }
+  selected.clear();
+  renderList(container);
+  showToast(said, {
+    ms: 6000,
+    action: {
+      label: 'Undo',
+      run: async () => {
+        for (const { t, was } of before) {
+          for (const k of Object.keys(t)) delete t[k];
+          Object.assign(t, was);
+          await save(t);
+        }
+        renderList(container);
+      },
+    },
+  });
+}
+
+function openChangeSheet(container) {
+  document.querySelector('#chg-sheet')?.remove();
+  const rows = [...selected].map((id) => cache.transactions.find((x) => x.id === id)).filter(Boolean);
+  if (!rows.length) return;
+  const some = (n) => `${n} payment${n === 1 ? '' : 's'}`;
+  // A split was set up on purpose and is left as it is; a payment out is never Income (fitting() knows).
+  const forCat = rows.filter((t) => !isSplit(t));
+  const cats = sortCategories(cache.categories.filter((c) => forCat.every((t) => fitting(t).some((x) => x.id === c.id))), 'used', usageCounts(cache.transactions));
+  const movable = rows.filter((t) => !cardBill(t));
+  const forCost = rows.filter((t) => t.direction === 'debit' && !paysCardLike(t) && !t.personId);
+  const costs = cache.commitments;
+  const open = { cat: false, cost: false };
+  const wrap = document.createElement('div');
+  wrap.id = 'chg-sheet';
+  wrap.innerHTML = `<div class="upi-back" data-close></div>
+    <div class="upi-sheet chg-sheet" role="dialog" aria-modal="true" aria-label="Change ${some(rows.length)}">
+      <div class="upi-sheet__grip k-sheet__grip"></div>
+      <h3 class="k-sheet__head">Change ${some(rows.length)}<small>A choice applies at once, and Undo is offered after it</small></h3>
+      <div class="chg-body">
+        ${forCat.length && cats.length ? '<section class="chg-sec"><h4>Category</h4><div class="upi-chips" data-sec="cat"></div></section>' : ''}
+        ${movable.length ? '<section class="chg-sec"><h4>Counts as</h4><div class="chg-seg" data-sec="moved"><button type="button" data-v="0">Spending</button><button type="button" data-v="1">Moved, not spent</button></div><p class="chg-hint">Moved is cash taken out, or money between your own accounts.</p></section>' : ''}
+        ${forCost.length && costs.length ? '<section class="chg-sec"><h4>Pays a fixed cost</h4><div class="upi-chips" data-sec="cost"></div></section>' : costs.length && rows.some((t) => t.direction === 'debit' && t.isTransfer && !cardBill(t)) ? '<section class="chg-sec"><h4>Pays a fixed cost</h4><p class="chg-hint">Moved payments cannot pay a fixed cost. Choose Spending above first.</p></section>' : ''}
+      </div>
+      <button type="button" class="upi-pick chg-done" data-close>Done</button>
+    </div>`;
+  document.body.append(wrap);
+  const chips = (sec, items, on) => {
+    const el = wrap.querySelector(`[data-sec="${sec}"]`);
+    if (!el) return;
+    const shown = open[sec] ? items : items.slice(0, 6);
+    el.classList.toggle('all', open[sec]);
+    el.innerHTML = shown.map(([id, name]) => `<button type="button" class="upi-chip${on(id) ? ' on' : ''}" aria-pressed="${on(id)}" data-id="${escapeAttr(id)}">${escapeHtml(name)}</button>`).join('') + (!open[sec] && items.length > 6 ? '<button type="button" class="upi-chip" data-more>More…</button>' : '');
+  };
+  const drawCat = () => chips('cat', cats.map((c) => [c.id, c.name]), (id) => forCat.every((t) => t.categoryId === id));
+  const drawCost = () => chips('cost', [['', 'None']].concat(costs.map((c) => [c.id, c.label])), (id) => forCost.every((t) => (t.commitmentId || '') === id));
+  const drawMoved = () =>
+    wrap.querySelectorAll('.chg-seg button').forEach((b) => {
+      const on = movable.every((t) => Boolean(t.isTransfer) === (b.dataset.v === '1'));
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+  drawCat();
+  drawCost();
+  drawMoved();
+  let release = () => {};
+  const close = () => {
+    release();
+    wrap.remove();
+    window.removeEventListener('hashchange', close);
+  };
+  window.addEventListener('hashchange', close);
+  wrap.addEventListener('keydown', (e) => e.key === 'Escape' && close());
+  wrap.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
+  wrap.addEventListener('click', async (e) => {
+    const b = e.target.closest('button');
+    const sec = b?.closest('[data-sec]')?.dataset.sec;
+    if (!b || !sec) return;
+    if (b.dataset.more !== undefined) {
+      open[sec] = true;
+      (sec === 'cat' ? drawCat : drawCost)();
+      return;
+    }
+    if (sec === 'cat') {
+      const id = b.dataset.id;
+      close();
+      await applyBulk(forCat, async (t) => {
+        t.categoryId = id;
+        await learnFromAssignment(t.rawDescription, id, t.direction);
+      }, `${some(forCat.length)} filed as ${catName(id)}${rows.length > forCat.length ? ` (${some(rows.length - forCat.length)} with a split left as it was)` : ''}`, container);
+    } else if (sec === 'moved') {
+      const want = b.dataset.v === '1';
+      const todo = movable.filter((t) => Boolean(t.isTransfer) !== want);
+      close();
+      if (!todo.length) return showToast(want ? 'Already counted as moved' : 'Already counted as spending');
+      // Said by the person, so no later import or app start overrules it (the same flag the single-payment switch sets).
+      await applyBulk(todo, (t) => {
+        t.isTransfer = want;
+        t.transferManual = true;
+      }, want ? `${some(todo.length)} marked as moved, not spent` : `${some(todo.length)} count as spending again`, container);
+    } else if (sec === 'cost') {
+      const id = b.dataset.id;
+      close();
+      await applyBulk(forCost, (t) => {
+        if (id) {
+          t.commitmentId = id;
+          // Picking it overrides an earlier "Not this" for the same commitment, as the single-payment field does.
+          if (t.notCommitmentIds) t.notCommitmentIds = t.notCommitmentIds.filter((x) => x !== id);
+        } else {
+          delete t.commitmentId;
+          delete t.forNextMonth;
+        }
+      }, id ? `${some(forCost.length)} count towards ${costs.find((c) => c.id === id)?.label || 'that cost'}` : `Fixed cost cleared on ${some(forCost.length)}`, container);
+    }
+  });
+  dragToClose(wrap.querySelector('.upi-sheet'), close, wrap.querySelector('.upi-back'));
+  release = holdFocus(wrap, { initial: '.chg-done' });
 }
 
 // Day by day, each day's payments in one card under its date and total.
@@ -1348,7 +1437,8 @@ async function handleChange(e, container) {
     rowEl.classList.toggle('selected', e.target.checked);
     container.querySelector('#bulk-bar').hidden = selected.size === 0;
     container.querySelector('#bulk-count').textContent = `${selected.size} selected`;
-    container.querySelector('#select-note').textContent = selected.size ? `${selected.size} ticked` : 'Tick the ones to change';
+    container.querySelector('#select-note').textContent = selected.size ? `${selected.size} ticked` : 'Tick to change';
+    container.querySelector('#txn-select-all').textContent = selected.size === matching().length ? 'Clear' : `Select all ${matching().length}`;
     return;
   }
 

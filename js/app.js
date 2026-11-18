@@ -293,7 +293,7 @@ let leaving = false;
 let hiddenAt = 0;
 
 // The topmost thing open over the screen, closed the way its own close button would: true when something was closed.
-const OVERLAYS = ['.hv-recdlg', '.hv-sheet', '.hv-story', '.hv-recap', '.hv-ask', '.dialog-backdrop', '.notes-sheet', '.tour-box', '.guide-tip', '#month-sheet', '#quick-sheet', '#upi-sheet', '#add-cat-sheet:not([hidden])', '.secret-dialog', '.lock'];
+const OVERLAYS = ['.hv-recdlg', '.hv-sheet', '.hv-story', '.hv-recap', '.hv-ask', '.dialog-backdrop', '.notes-sheet', '.tour-box', '.guide-tip', '#month-sheet', '#quick-sheet', '#upi-sheet', '#chg-sheet', '#add-cat-sheet:not([hidden])', '.secret-dialog', '.lock'];
 function dismissOverlay() {
   const shown = (el) => el && el.getClientRects().length > 0;
   const el = OVERLAYS.map((s) => document.querySelector(s)).find(shown);
@@ -453,7 +453,7 @@ function wirePull() {
       SAFE_TO_REFRESH.has(currentView) &&
       !typingInView() &&
       !document.documentElement.classList.contains('is-locked') &&
-      !document.querySelector('.dialog-backdrop, .lock, #month-sheet, #quick-sheet, #upi-sheet, #add-cat-sheet:not([hidden])'),
+      !document.querySelector('.dialog-backdrop, .lock, #month-sheet, #quick-sheet, #upi-sheet, #chg-sheet, #add-cat-sheet:not([hidden])'),
     refresh: async () => {
       pokeUpdate();
       await runSync({ silent: true });
@@ -574,7 +574,7 @@ let touchedAt = Date.now();
 for (const ev of ['pointerdown', 'keydown', 'input', 'scroll']) window.addEventListener(ev, () => { touchedAt = Date.now(); }, { capture: true, passive: true });
 
 function workInProgress() {
-  return typingInView() || currentView === 'import' || currentView === 'setup' || Boolean(document.querySelector('.dialog-backdrop, #month-sheet, #quick-sheet, #upi-sheet, #add-cat-sheet:not([hidden])'));
+  return typingInView() || currentView === 'import' || currentView === 'setup' || Boolean(document.querySelector('.dialog-backdrop, #month-sheet, #quick-sheet, #upi-sheet, #chg-sheet, #add-cat-sheet:not([hidden])'));
 }
 
 // A reload lands on the new files only once the new worker has taken over, and it deletes the older copies when it does: no copy older

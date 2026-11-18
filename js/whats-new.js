@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.13.1',
+    items: [
+      {
+        icon: 'history',
+        title: "Change many payments at once, and put them back",
+        text: "On History, the tick button beside the search box lets you tick several payments and press Change. One sheet then offers three things: a category, whether the payments count as Spending or as Moved (so a payment marked Moved can be put back), and which fixed cost on Plan they pay. Each choice applies at once and Undo is offered after it. Ticked rows no longer slide out of their card, the count stays on one line, and the last row is never hidden under the bar.",
+        guide: [{ view: 'transactions', target: '#txn-select', text: "Tap the tick, tick the payments, then Change. Category, Spending or Moved, and fixed cost are all in one sheet, each with Undo." }],
+      },
+    ],
+  },
+  {
     version: '7.13',
     items: [
       {
