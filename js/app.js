@@ -908,6 +908,9 @@ async function init() {
   const openedAt = new URLSearchParams(location.search).get('open');
   // (A bank alert shared to the phone belongs to the person, never to the demo.)
   const sharedCount = isDemo() ? 0 : await collectSharedAlerts();
+  // What a share did, kept in the update log (it goes into the diagnostic report), so a phone where Share failed can say what happened:
+  // opened from the share sheet, how many alerts reached the inbox, and whether the worker was in charge when it opened.
+  if (openedFromShare) noteUpdate(`share: opened from the share sheet, ${sharedCount} new alert(s), worker in charge: ${navigator.serviceWorker && navigator.serviceWorker.controller ? 'yes' : 'no'}`);
 
   wireBackButton();
   // Back from Google's sign-in page for a Drive backup or restore
@@ -918,7 +921,8 @@ async function init() {
   if (driveReturn === 'backup' || driveReturn === 'restore' || driveReturn === 'sync-on') {
     await showView('settings', { drive: driveReturn });
   } else if (openedFromShare || sharedCount > 0) {
-    await showView('inbox');
+    // A share that brought nothing new says so on the Inbox (a repeat, or text with nothing in it) instead of showing an empty list.
+    await showView('inbox', openedFromShare ? { fromShare: sharedCount } : {});
   } else if (await (views.setup.module || (views.setup.module = await views.setup.load())).needsSetup()) {
     // Someone opening the link in a browser for the first time sees what
     // Kawach is and how to install it before any setup. Once only.

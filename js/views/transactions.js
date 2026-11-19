@@ -495,6 +495,22 @@ function arrangeHistory(container) {
   container.querySelector('#hist-stats')?.setAttribute('hidden', '');
 }
 
+// A name for every slice of the ring (7.16). Money that left the bank with no category used to pour into one "No category" slice, which
+// counted a card bill, a cash withdrawal and a move to savings and said nothing about any of them. The category wins when there is one;
+// then what the money was: a card bill, cash, a move (and to what), the commitment it counts towards (an EMI, rent).
+function ringName(t) {
+  const named = catName(t.categoryId);
+  if (named) return named;
+  if (cardBill(t)) return 'Card bill';
+  if (/\b(ATW|NWD|ATM)\b/i.test(t.rawDescription || '')) return 'Cash withdrawal';
+  if (t.isTransfer) {
+    const to = cache.accounts.find((a) => a.id === t.movedTo);
+    return to && to.type === 'savings' ? 'Moved to savings' : to && isLoanAccount(to) ? 'Loan payment' : 'Moved elsewhere';
+  }
+  const c = commitmentFor(t, towardsList(), cache.accounts);
+  return c ? c.label || 'A commitment' : 'No category';
+}
+
 // What the ring and its legend say for the rows shown.
 function drawRing(container, rows, sum, across) {
   const ring = container.querySelector('#hist-ring');
@@ -503,7 +519,7 @@ function drawRing(container, rows, sum, across) {
   if (across) return;
   const byName = new Map();
   for (const x of rows.filter((r) => sideOf(r) === 'out')) {
-    const name = catName(x.categoryId) || 'No category';
+    const name = ringName(x);
     const cur = byName.get(name) || { name, amount: 0, icon: categoryStyle(catName(x.categoryId)).icon };
     cur.amount += x.amount;
     byName.set(name, cur);

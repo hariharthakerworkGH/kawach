@@ -13,6 +13,28 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.16',
+    items: [
+      {
+        icon: 'bill',
+        title: "Insurance and one-time bills are now under Costs",
+        text: "They are bills, so they sit on Plan's Costs part, under your commitments. Goals now holds only what you are saving towards: a holiday, a gadget, a down payment.",
+        guide: [{ view: 'plan', target: '#plan-bills', text: "Insurance and one-time bills are under Costs, below your commitments. Goals is only for what you are saving towards." }],
+      },
+      {
+        icon: 'history',
+        title: "History's ring names everything that left your bank",
+        text: "Cash withdrawals, card bill payments, EMIs and money moved to savings or a loan each show under their own name in the ring, instead of all of them being listed as \"No category\". The total is the same as before: every one of them was already counted.",
+        guide: [{ view: 'transactions', target: '#hist-ring', text: "Each slice is a place your money went. Tap a name in the list to pick out its slice." }],
+      },
+      {
+        icon: 'inbox',
+        title: "Share to Kawach says what happened",
+        text: "When a message comes through Share but nothing new could be read from it, the inbox now says so and tells you to copy the message and tap Paste from clipboard. Backup & Settings → Save diagnostic report records each share, so a share that does not arrive can be traced. On an iPhone, sharing straight into Kawach is not possible; copy the message and paste it in the inbox.",
+      },
+    ],
+  },
+  {
     version: '7.15',
     items: [
       {
@@ -34,7 +56,7 @@ const NOTES = [
       {
         icon: 'bill',
         title: "Plan is in three parts",
-        text: "Plan used to be one long scroll. Now This month stays on top, and a switch below it shows Costs (your commitments, renewals and subscriptions), Budget (the month's budget, what is behind it, the months ahead and category budgets) or Goals (goals, insurance and one-time bills). Each part shows a count, so you can see what is in it before you open it.",
+        text: "Plan used to be one long scroll. Now This month stays on top, and a switch below it shows Costs (your commitments, renewals and subscriptions), Budget (the month's budget, what is behind it, the months ahead and category budgets) or Goals (what you are saving towards). Each part shows a count, so you can see what is in it before you open it.",
         guide: [{ view: 'plan', target: '#plan-layers', text: "Tap Costs, Budget or Goals to move between the parts of Plan. This month stays above them." }],
       },
       {
@@ -47,7 +69,7 @@ const NOTES = [
         icon: 'check',
         title: "Insurance and one-time bills no longer run together",
         text: "On Plan, Insurance and One-time bills now have a heading each. With no policies yet, Insurance says so instead of showing nothing, and a one-time bill is no longer drawn as if it were a policy.",
-        guide: [{ view: 'plan', target: '#plan-bills', text: "One-time bills are under Goals. Tap this line to add or settle a bill due once." }],
+        guide: [{ view: 'plan', target: '#plan-bills', text: "One-time bills are under Costs. Tap this line to add or settle a bill due once." }],
       },
     ],
   },

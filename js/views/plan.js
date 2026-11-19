@@ -1098,7 +1098,6 @@ function havenArrange(container, figures, todayIso, skipped) {
   const budget = kids().find((n) => n.classList.contains('pl-top') || n.classList.contains('hero'));
   const sums = container.querySelector(':scope > .plan-sums');
   const goals = container.querySelector(':scope > .plan-goals');
-  const insurance = container.querySelector(':scope > .plan-ins');
   // the old headings and wrappers that the prototype's blocks replace
   const oldMonthHead = headBefore(monthWrap);
   const hvForecast = document.createElement('div');
@@ -1110,7 +1109,8 @@ function havenArrange(container, figures, todayIso, skipped) {
   // In the Budget part (7.14) the month's budget comes first, then the amounts behind it, then the months ahead.
   ordered.push(...[budget, sums].filter(Boolean));
   if (hvForecast.innerHTML.trim()) ordered.push(hvForecast);
-  ordered.push(...[goals, insurance].filter(Boolean));
+  // Insurance and one-time bills are bills, so they stay where the source puts them, under the commitments (7.16), not with the goals.
+  ordered.push(...[goals].filter(Boolean));
   if (month && monthWrap) monthWrap.before(month); // keep it inside the page while the wrapper is checked
   const keepWrap = monthWrap && [...monthWrap.children].some((c) => c !== month);
   if (!keepWrap) monthWrap?.remove();
@@ -1124,8 +1124,9 @@ function havenArrange(container, figures, todayIso, skipped) {
 }
 
 /* Plan in three parts (7.14). "This month" and anything that needs attention stay on top whatever is chosen; below them a switch
- * shows Costs (the commitments, adding one, renewals, subscriptions, what may be listed twice), Budget (the month's budget, the amounts
- * behind it, the next months, category budgets) or Goals (goals, insurance, one-time bills). Blocks are tagged, never moved, so every
+ * shows Costs (the commitments, adding one, renewals, insurance, one-time bills, subscriptions, what may be listed twice), Budget (the
+ * month's budget, the amounts behind it, the next months, category budgets) or Goals (only what is being saved towards: a trip, a thing
+ * to buy; an insurance premium or a one-time bill is a bill, so it is a cost). Blocks are tagged, never moved, so every
  * button keeps working, and a block that is not named here lands in Costs rather than vanishing. Drawn first as mockups/7.18-plan-steps.
  * Returns the function that shows a part by name. */
 const LAYERS = [['costs', 'Costs'], ['budget', 'Budget'], ['goals', 'Goals']];
@@ -1139,7 +1140,7 @@ function layerPlan(container, counts) {
     let l = 'costs';
     if (n.matches('.plan-flag, .hv-note-wrap, [data-hv-box], .plan-month, .hv-month-extra, #plan-coach') || head === 'This month') l = null;
     else if (n.matches('.pl-top, .hero, .plan-sums, .plan-meter, .hv-plan-forecast, #budget-form, .budget-card') || head === 'Category budgets') l = 'budget';
-    else if (n.matches('.plan-goals, .plan-ins')) l = 'goals';
+    else if (n.matches('.plan-goals')) l = 'goals';
     else if (head) l = layers.get(kids[i + 1]) || 'costs';
     layers.set(n, l);
   }

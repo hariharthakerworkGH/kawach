@@ -668,7 +668,8 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .hist-row.open { background: var(--lg-s2); }
 :root[data-style=haven] .hist-row.open .hist-sub { white-space: normal; }
 :root[data-style=haven] .hist-row .hist-text { flex-direction: row; }
-:root[data-style=haven] .lg-legend .hv-ring__badge { min-height: 0; height: 30px; }
+/* 30px for a name on one line, taller when a long one wraps (7.16: "Cash withdrawal", an EMI's name): a fixed 30px let a wrapped name run into the row below. */
+:root[data-style=haven] .lg-legend .hv-ring__badge { min-height: 30px; height: auto; }
 :root[data-style=haven] .app-header #hist-month > button { min-width: 0; }
 :root[data-style=haven] .hv-histfold > summary { display: none; }
 :root[data-style=haven] .lg-ringcard { margin-top: 3px; }

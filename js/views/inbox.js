@@ -46,7 +46,7 @@ let context = { accounts: [], categories: [], commitments: [] };
 // without this two of them would fill the same list and show a card twice.
 let generation = 0;
 
-export async function render(container) {
+export async function render(container, params = {}) {
   const mine = ++generation;
   await loadLearned(); // wordings taught earlier are read silently; nothing about them is shown
   const [items, accounts, transactions, categories, recurring, importBatches] = await Promise.all([
@@ -96,6 +96,7 @@ export async function render(container) {
   // would stack another handler (saving an alert twice) and the handlers would
   // keep firing on whatever screen is shown next.
   container.innerHTML = `<div class="inbox-root">
+    ${params.fromShare === 0 ? '<p class="share-advice" id="share-empty">Nothing new came through Share. It may already be in the list, or the message had no text. Copy the message and tap <strong>Paste from clipboard</strong> below.</p>' : ''}
     ${
       drafts.length
         ? `<div class="inbox-head">
