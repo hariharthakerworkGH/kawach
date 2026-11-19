@@ -5,7 +5,7 @@ import { txn, commitment, rupees } from './fixtures.js';
 import { nextOccurrence } from '../js/frequency.js';
 import { passwordErrorKind } from '../js/pdf-text.js';
 import { sameTransaction, findDuplicates } from '../js/duplicates.js';
-import { coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments, salaryDayPayments, paidAhead, movesAhead, aheadPayments } from '../js/commitments.js';
+import { commitmentFor, coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments, salaryDayPayments, paidAhead, movesAhead, aheadPayments } from '../js/commitments.js';
 import { searchHit, newestFirst, dayChart } from '../js/views/transactions.js';
 import { reimbursableTally, tidyFlags, unsettledCosts, repaymentCandidates } from '../js/reimbursable.js';
 import { STEPS } from '../js/demo-script.js';
@@ -786,6 +786,28 @@ test('a whole statement line as match words still recognises next month\'s payme
   ok(!matches(txn({ amount: 2700, rawDescription: 'UPI-grocer-grocer@okicici-UTIB0000001-661234567891-Groceries Value Dt 02/09/2026 Ref 661234567891' })));
   const cash = commitmentMatcher(commitment({ label: 'ATM', amount: 10000, spread: true, matchText: 'my atm words' }));
   ok(cash(txn({ amount: 2000, rawDescription: 'NWD-400000XXXXXX1111-12041HHR-MUMBAI Value Dt 12/09/2026 Ref 000000621812' })), 'cash withdrawal recognised');
+});
+
+test('History names the commitment a payment counts towards: tagged, by words, by amount, by category; and none for the rest (7.15)', () => {
+  const accounts = [{ id: 'bank', type: 'bank' }, { id: 'bank2', type: 'bank' }, { id: 'card', type: 'card' }];
+  const rent = commitment({ id: 'rent', label: 'Rent', amount: 25000, matchText: 'LANDLORD', accountId: 'bank' });
+  const netflix = commitment({ id: 'nf', label: 'Netflix', amount: 499, matchText: 'NETFLIX' });
+  const emi = commitment({ id: 'emi', label: 'Car EMI', amount: 15000 });
+  const groc = commitment({ id: 'groc', label: 'Groceries', amount: 12000, spread: true, categoryId: 'cat-g' });
+  const all = [rent, netflix, emi, groc];
+  const of = (t) => commitmentFor(txn({ accountId: 'bank', direction: 'debit', ...t }), all, accounts)?.id ?? null;
+  equal(of({ amount: 25000, rawDescription: 'LANDLORD RENT' }), 'rent', 'words on its own account');
+  equal(of({ accountId: 'bank2', amount: 25000, rawDescription: 'LANDLORD RENT' }), null, 'a commitment tied to one bank ignores another bank');
+  equal(of({ accountId: 'card', amount: 499, rawDescription: 'NETFLIX.COM' }), 'nf', 'a named bill paid by card is the bill');
+  equal(of({ accountId: 'card', amount: 15000, rawDescription: 'SOME SHOP' }), null, 'the same amount alone on a card is spending, not the EMI');
+  equal(of({ amount: 15000, rawDescription: 'LOAN DEBIT' }), 'emi', 'a dated bill by its amount');
+  equal(of({ accountId: 'card', amount: 900, categoryId: 'cat-g', rawDescription: 'SUPERMARKET' }), 'groc', 'an allowance by category, any card');
+  equal(of({ amount: 777, rawDescription: 'RANDOM', commitmentId: 'rent' }), 'rent', 'a tag wins whatever it says');
+  equal(of({ amount: 25000, rawDescription: 'LANDLORD RENT', notCommitmentIds: ['rent'] }), null, '"not this" is respected');
+  equal(of({ amount: 25000, rawDescription: 'LANDLORD RENT', direction: 'credit' }), null, 'money in is never a commitment payment');
+  equal(of({ amount: 25000, rawDescription: 'LANDLORD RENT', isReimbursable: true }), null, 'a work cost is not');
+  equal(of({ amount: 25000, rawDescription: 'LANDLORD RENT', personId: 'p1' }), null, 'money to a person is not');
+  equal(of({ amount: 12345, rawDescription: 'NOTHING' }), null, 'ordinary spending maps to nothing');
 });
 
 test('references: a shared phone number in a UPI id is not a copy; a NetBanking row with an extra number is', () => {

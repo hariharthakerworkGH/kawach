@@ -740,6 +740,12 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 :root[data-style=haven] .hist-row .hist-text { flex-wrap: wrap; row-gap: 0; }
 :root[data-style=haven] .hist-row .hist-name { white-space: normal; overflow-wrap: anywhere; }
 :root[data-style=haven] .hist-row .hist-sub { flex: 1 1 auto; white-space: normal; overflow: visible; text-overflow: clip; }
+/* 7.15: the commitment a payment counts towards, on its own line under the account; no line = ordinary spending (js/views/transactions.js towardsHtml). */
+:root[data-style=haven] .hist-row .hist-towards-slot { flex: 0 0 100%; min-width: 0; }
+:root[data-style=haven] .hist-row .hist-towards-slot:empty { display: none; }
+:root[data-style=haven] .hist-row .hist-towards { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--lg-tide, var(--lg-ink2)); }
+:root[data-style=haven] .hist-row .hist-towards svg { flex: none; width: 14px; height: 14px; }
+:root[data-style=haven] .hist-row .hist-towards-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 :root[data-style=haven] .lg-row .nm .m, :root[data-style=haven] .lg-acclist .account-row .k-row__meta { white-space: normal; overflow: visible; text-overflow: clip; }
 :root[data-style=haven] .k .attention-row .muted-note, :root[data-style=haven] .k .attention-row small { color: var(--lg-ink2); }
 /* the button beside a sort control that turns the list round: an arrow down for the order as chosen, up when it is reversed */

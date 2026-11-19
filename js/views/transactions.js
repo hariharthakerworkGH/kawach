@@ -18,7 +18,7 @@ import { isSplit, categorySlices, needsCategory, splitTotal } from '../splits.js
 import { showToast } from '../toast.js';
 import { askConfirm } from '../dialog.js';
 import { dragToClose } from '../sheet-drag.js';
-import { isLiveCommitment, salaryDayPayments, aheadPayments } from '../commitments.js';
+import { isLiveCommitment, salaryDayPayments, aheadPayments, commitmentFor } from '../commitments.js';
 import { markOf } from '../marker.js';
 import { commitmentField, cardPaymentField, isMonthEnd } from './add.js';
 import { looksLikeCardPayment, cashSide, spendMoves, moveWord } from '../transfers.js';
@@ -1062,6 +1062,7 @@ function rowTemplate(t) {
           <span class="hist-text">
             <span class="hist-name">${escapeHtml(displayName(t.rawDescription))}</span>
             <span class="hist-sub">${sub}</span>
+            <span class="hist-towards-slot">${towardsHtml(t)}</span>
           </span>
           <span class="txn-amount ${tone}">${sign}${formatRupees(t.amount)}</span>
         </button>
@@ -1102,6 +1103,31 @@ function subHtml(t) {
   // With a tag, the words go in their own box so that on a narrow screen it is
   // the account name that is cut short, never the tag.
   return tags ? `<span class="hist-sub-text">${text}</span>${tags}` : text;
+}
+
+// The commitment a payment counts towards, on its own line under the account. A payment that is not one shows nothing there, so a row
+// with the line is mapped and a row without it is ordinary spending. The list is built once per set of records, not per row.
+let towardsFor = { commitments: null, accounts: null, list: [] };
+function towardsList() {
+  if (towardsFor.commitments !== cache.commitments || towardsFor.accounts !== cache.accounts) {
+    const loans = cache.accounts.filter(isLoanAccount).map(loanCommitment).filter(Boolean);
+    towardsFor = { commitments: cache.commitments, accounts: cache.accounts, list: [...cache.commitments, ...loans] };
+  }
+  return towardsFor.list;
+}
+
+function towardsHtml(t) {
+  if (t.direction !== 'debit' || t.isTransfer || cardBill(t) || (cache.cancelled && cache.cancelled.has(t.id))) return '';
+  const c = commitmentFor(t, towardsList(), cache.accounts);
+  return c ? `<span class="hist-towards">${icon('bill')}<span class="hist-towards-name">${escapeHtml(c.label || 'A commitment')}</span></span>` : '';
+}
+
+// Redraws the two small lines of a row in place after an edit, so an open Edit panel keeps the finger's place.
+function refreshRowLines(rowEl, t) {
+  const subEl = rowEl.querySelector('.hist-sub');
+  if (subEl) subEl.innerHTML = subHtml(t);
+  const towardsEl = rowEl.querySelector('.hist-towards-slot');
+  if (towardsEl) towardsEl.innerHTML = towardsHtml(t);
 }
 
 // The categories that fit a payment's account: business or home.
@@ -1514,8 +1540,7 @@ async function handleChange(e, container) {
     if (e.target.checked && field === 'isShareBack') delete t.isSettlement;
     await save(t);
     // Refreshed in place, so the Edit panel stays open under the finger.
-    const subEl = rowEl.querySelector('.hist-sub');
-    if (subEl) subEl.innerHTML = subHtml(t);
+    refreshRowLines(rowEl, t);
     return;
   }
 
@@ -1577,6 +1602,7 @@ async function handleChange(e, container) {
       delete t.forNextMonth;
     }
     await save(t);
+    refreshRowLines(rowEl, t);
     // The next-month box follows the choice, in place.
     const nextBox = rowEl.querySelector('input[data-field="forNextMonth"]');
     if (nextBox && !t.commitmentId) nextBox.checked = false;
@@ -1611,6 +1637,9 @@ async function handleChange(e, container) {
     if (nameEl) nameEl.textContent = displayName(t.rawDescription);
   }
   await save(t);
+  // A new amount, day or wording can change which commitment the payment fits.
+  const towardsEl = rowEl.querySelector('.hist-towards-slot');
+  if (towardsEl) towardsEl.innerHTML = towardsHtml(t);
 }
 
 // Live feedback while typing split amounts, without re-rendering the row and

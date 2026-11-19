@@ -12,7 +12,7 @@ import { statementDayFixes } from './account-metrics.js';
 import { forgetOldUndo } from './import-safety.js';
 import { showToast } from './toast.js';
 import { setCustomStyles } from './category-style.js';
-import { versionStatus, APP_VERSION, BUILD, pokeUpdate, newestBuild, startFresh } from './version.js';
+import { versionStatus, APP_VERSION, BUILD, pokeUpdate, newestBuild, startFresh, noteUpdate } from './version.js';
 import { fillIcons, icon } from './icons.js';
 import { redraw } from './redraw.js';
 import { isoLocal } from './frequency.js';
@@ -377,11 +377,21 @@ const SAFE_TO_REFRESH = new Set(['summary', 'accounts', 'coach', 'recap', 'categ
 let pushTimer = null;
 let syncing = false;
 
+// Only what the person typed counts: a box the app filled in itself (a date, a remembered filter) differs from its default too, and
+// that held the update back for good on screens that fill boxes (19 Nov 2026: the phone stayed on 7.13.2 until reloaded by hand).
+// A focused box counts while it is in use (a minute), not for as long as it stays focused; a picker likewise (30 s).
+const typedInto = new WeakSet();
+window.addEventListener('input', (e) => typedInto.add(e.target), { capture: true, passive: true });
+let touchedAt = Date.now();
 function typingInView() {
   const view = document.getElementById('view-container');
   if (!view) return false;
-  if (view.contains(document.activeElement) && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) return true;
-  return [...view.querySelectorAll('input:not([type=checkbox]):not([type=radio]), textarea')].some((el) => el.value !== el.defaultValue);
+  const on = document.activeElement;
+  if (view.contains(on)) {
+    if (on.matches('input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=range]), textarea') && Date.now() - touchedAt < 60000) return true;
+    if (on.tagName === 'SELECT' && Date.now() - touchedAt < 30000) return true;
+  }
+  return [...view.querySelectorAll('input:not([type=checkbox]):not([type=radio]), textarea')].some((el) => typedInto.has(el) && el.value !== el.defaultValue);
 }
 
 // Google's sign-in pass lasts about an hour. When it has run out as the app
@@ -570,7 +580,6 @@ function reloadedAlreadyFor(build) {
  *   - in sight, once the screen has been left alone for four seconds;
  *   - never with something typed, an import being checked, or a box open;
  * and it comes back to the screen the person was on. */
-let touchedAt = Date.now();
 for (const ev of ['pointerdown', 'keydown', 'input', 'scroll']) window.addEventListener(ev, () => { touchedAt = Date.now(); }, { capture: true, passive: true });
 
 function workInProgress() {
@@ -606,10 +615,13 @@ let movingToNewCopy = false;
 async function moveToNewCopy() {
   if (movingToNewCopy) return true;
   const status = await versionStatus();
-  if (!status.stale || !(await newCopyIsInCharge(status.cached)) || workInProgress()) return false;
-  if (document.visibilityState === 'visible' && Date.now() - touchedAt < 4000) return false;
+  if (!status.stale) return false;
+  if (!(await newCopyIsInCharge(status.cached))) { noteUpdate(`waits: build ${status.cached} downloaded, the old copy still in charge`); return false; }
+  if (workInProgress()) { noteUpdate(`waits: ${currentView} has something open or typed`); return false; }
+  if (document.visibilityState === 'visible' && Date.now() - touchedAt < 4000) { noteUpdate('waits: screen in use'); return false; }
   // Last, because asking uses it up: one reload per version, so a copy that somehow did not take can never make the page flicker through loads.
-  if (reloadedAlreadyFor(status.cached)) return false;
+  if (reloadedAlreadyFor(status.cached)) { noteUpdate(`waits: already reloaded once for ${status.cached}`); return false; }
+  noteUpdate(`reloads for ${status.cached}`);
   movingToNewCopy = true;
   try { sessionStorage.setItem(AFTER_UPDATE, JSON.stringify({ view: currentView, at: Date.now() })); } catch { /* no storage: it opens on the usual screen */ }
   location.reload();
@@ -631,18 +643,25 @@ async function keepCurrent() {
   newestKnown = newest;
   if (netWaiting) return;
   netWaiting = true;
+  noteUpdate(`server has ${newest}`);
   pokeUpdate();
   setTimeout(async () => {
     netWaiting = false;
     if (await moveToNewCopy()) return;
-    if (movingToNewCopy || workInProgress()) return;
+    if (movingToNewCopy) return;
+    if (workInProgress()) { noteUpdate('fresh start waits: something open or typed'); return; }
     if (document.visibilityState === 'visible' && Date.now() - touchedAt < 4000) return;
+    // Starting fresh with no network would leave nothing to load: only when the server answers right now. Asked BEFORE the once-only
+    // promise is used, or a dropped connection here used it up and the phone never tried again.
+    if ((await newestBuild()) == null) { noteUpdate('fresh start waits: server not answering'); return; }
+    // Once per build per ten minutes, not once per tab for good: a start that did not take is tried again later, and a loop is still
+    // impossible (a phone that is still behind is reloaded at most six times an hour).
     try {
-      if (sessionStorage.getItem(FRESH_KEY) === String(newest)) return;
-      sessionStorage.setItem(FRESH_KEY, String(newest));
+      const [was, at] = String(sessionStorage.getItem(FRESH_KEY) || '').split('@');
+      if (was === String(newest) && Date.now() - Number(at) < 600000) return;
+      sessionStorage.setItem(FRESH_KEY, `${newest}@${Date.now()}`);
     } catch { return; /* no storage, so no way to promise it happens once */ }
-    // Starting fresh with no network would leave nothing to load: only when the server answers right now.
-    if ((await newestBuild()) == null) return;
+    noteUpdate(`starts fresh for ${newest}`);
     movingToNewCopy = true;
     try { sessionStorage.setItem(AFTER_UPDATE, JSON.stringify({ view: currentView, at: Date.now() })); } catch { /* opens on the usual screen */ }
     await startFresh();

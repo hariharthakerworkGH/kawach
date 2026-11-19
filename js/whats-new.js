@@ -13,6 +13,22 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.15',
+    items: [
+      {
+        icon: 'bill',
+        title: "History shows which commitment a payment counts towards",
+        text: "Under each payment's account, History now names the commitment it counts towards (rent, an EMI, Netflix, groceries). A payment with no such line is ordinary spending, so you can see at a glance which entries are mapped and which are not. Open a payment and change the commitment, and the line follows at once.",
+        guide: [{ view: 'transactions', target: '.hist-row', text: "A green line under the account names the commitment a payment counts towards. No line means it is ordinary spending. Tap a payment to change it." }],
+      },
+      {
+        icon: 'check',
+        title: "Updates reach your phone more reliably",
+        text: "A new version now swaps in by itself even when a box on the screen was filled in by the app, or a picker was left open. If it still waits, Backup & Settings → Save diagnostic report says why.",
+      },
+    ],
+  },
+  {
     version: '7.14',
     items: [
       {

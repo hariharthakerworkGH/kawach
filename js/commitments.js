@@ -303,6 +303,33 @@ export function namesCommitment(item, t) {
   return tokens.length > 0 && tokens.every((w) => text.includes(w));
 }
 
+// Which commitment one payment counts towards, whatever month it is in (History shows it; free-to-spend.js `matchedTo` is the same rule
+// but only for the month on screen). A payment you tagged belongs to that commitment alone; otherwise the first commitment whose words,
+// amount or category fit it and whose account fits where it was paid. null: it counts as ordinary spending.
+export function commitmentFor(t, commitments, accounts = []) {
+  if (t.direction !== 'debit' || t.isTransfer || t.personId || t.isReimbursable) return null;
+  if (t.commitmentId) return commitments.find((c) => c.id === t.commitmentId) || null;
+  const kind = (id) => accounts.find((a) => a.id === id)?.type;
+  const paidOn = kind(t.accountId);
+  return (
+    commitments.find((c) => {
+      if ((t.notCommitmentIds || []).includes(c.id) || isAtmPlan(c)) return false;
+      const holds = c.accountId && ['bank', 'savings'].includes(kind(c.accountId));
+      if (paidOn === 'card') {
+        // A card pays an allowance, its own card's commitment, or a named bill that is not set to a card or cash (free-to-spend.js cardNamedFor).
+        const own = c.accountId === t.accountId;
+        const allowance = isSetAside(c) && !holds;
+        const named = !isSetAside(c) && !['card', 'cash'].includes(kind(c.accountId)) && c.accountId !== 'cash' && namesCommitment(c, t);
+        if (!own && !allowance && !named) return false;
+      } else if (c.accountId && c.accountId !== t.accountId) {
+        return false;
+      }
+      const matches = commitmentMatcher(c);
+      return Boolean(matches && matches(t));
+    }) || null
+  );
+}
+
 export function commitmentMatcher(item) {
   const words = entryMatcher(item);
   if (words) {

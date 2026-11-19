@@ -1,6 +1,6 @@
 import { redactPolicy } from './policies.js';
 import { getAll } from './db.js';
-import { APP_VERSION, BUILD } from './version.js';
+import { APP_VERSION, BUILD, updateLog } from './version.js';
 import { computeFreeToSpend, spareInBank } from './free-to-spend.js';
 import { isFixed } from './commitments.js';
 import { isoLocal } from './frequency.js';
@@ -134,6 +134,12 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
       spareInBank: spareInBank(figures),
     },
     importReading,
+    // Why a phone is still on an old version: what the self-update did and waited for, and which offline copies the device holds.
+    update: {
+      log: updateLog(),
+      controlled: Boolean(globalThis.navigator?.serviceWorker?.controller),
+      copies: await (globalThis.caches ? caches.keys().catch(() => []) : []),
+    },
     // Your commitments, and apart from them the repeating payments the app
     // spotted on its own (suggestions, including ones you dismissed).
     counts: {
