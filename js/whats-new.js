@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.17',
+    items: [
+      {
+        icon: 'history',
+        title: "Tap a commitment to see its last three payments",
+        text: "On Plan, tap any commitment: under its amount you see the three most recent payments counted towards it, newest first. Quick to tell whether the latest one has been recorded.",
+        guide: [{ view: 'plan', target: '.hv-clist', text: "Tap a commitment: its last three payments show under the amount." }],
+      },
+    ],
+  },
+  {
     version: '7.16',
     items: [
       {

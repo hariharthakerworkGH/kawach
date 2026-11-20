@@ -3202,6 +3202,18 @@ body:has(#view-container.k) .app-header {
 .month-sheet__line { margin: var(--k-3) 0 var(--k-2); font-size: var(--k-label); color: var(--k-text-2); }
 .month-sheet__line b { color: var(--k-text); font-variant-numeric: tabular-nums; }
 .month-act { width: 100%; text-align: left; }
+/* On a short phone the sheet is capped at 78% of the screen; the actions scroll inside it instead of running off the bottom (7.17: the
+   payment lines made it taller than a 320 x 568 screen allows). Title, amount and the last payments stay in place. */
+#month-sheet .k-rows { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+#month-sheet .k-sheet > :not(.k-rows) { flex: none; }
+/* The last three payments under the amount (7.17): date, name, amount on one line each; a long name is cut, never wrapped. */
+.month-last { margin: 0 0 var(--k-2); padding: var(--k-2) 0; border-block: 1px solid var(--k-hairline); }
+.month-last__h { margin: 0 0 var(--k-1); font-size: var(--k-caption); color: var(--k-text-2); }
+.month-last__row { display: flex; align-items: baseline; gap: var(--k-3); min-height: 26px; font-size: var(--k-label); }
+.month-last__d { flex: none; min-width: 3.6em; color: var(--k-text-2); font-variant-numeric: tabular-nums; }
+.month-last__n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.month-last__row b { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+.month-last__none { margin: 0; font-size: var(--k-label); color: var(--k-text-2); }
 
 /* --- the week's columns say what each day was -------------------------------- */
 .k .tl-cols { height: 98px; }

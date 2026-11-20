@@ -12,7 +12,8 @@ import { getBudgets, setBudget, budgetStatusForMonth } from '../budgets.js';
 import { DEFAULT_KEEP_IN_BANK, computeFreeToSpend } from '../free-to-spend.js';
 import { currentMonthKey } from '../spending-month.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequencyShort, hasDueDate, toMonthly, toYearly, isoLocal } from '../frequency.js';
-import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, isSetAside, isAtmPlan, duplicateCommitments, clearSkip } from '../commitments.js';
+import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, isSetAside, isAtmPlan, duplicateCommitments, clearSkip, commitmentFor } from '../commitments.js';
+import { displayName } from './transactions.js';
 import { appearance, setAppearance } from '../appearance.js';
 import { sortCommitments, sortAccounts, sortCategories, sortPicker, flipOrder } from '../list-order.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
@@ -600,11 +601,23 @@ export async function render(container) {
     const state = t.status === 'skipped' ? 'Skipped this month: not in the budget' : t.status === 'late' ? 'Late' : t.status === 'paid' ? (t.marked ? 'Marked paid' : 'Paid') : t.status === 'part' ? `Part paid, ${formatRupees(t.left)} to go` : 'Still to pay';
     const own = t.kind !== 'loan' && fixed.some((f) => f.id === t.id);
     const btn = (cls, text, hint) => `<button type="button" class="k-row month-act ${cls}"><span class="k-row__body"><span class="k-row__title">${text}</span><span class="k-row__meta">${hint}</span></span></button>`;
+    // The last three payments counted towards it, newest first: a glance to see the latest ones are in. The rule is History's own
+    // (commitmentFor, same list and order), so this sheet and the line under each History payment never disagree.
+    const every = [...sortCommitments(recurring.filter((r) => isLiveCommitment(r, todayIso))), ...accounts.filter(isLoanAccount).map(loanCommitment).filter(Boolean)];
+    const lastThree = [];
+    for (const x of [...transactions].sort((a, b) => b.date.localeCompare(a.date))) {
+      if (commitmentFor(x, every, accounts)?.id === t.id) lastThree.push(x);
+      if (lastThree.length === 3) break;
+    }
+    const lastHtml = `<div class="month-last"><p class="month-last__h">Last payments</p>${lastThree.length
+      ? lastThree.map((x) => `<div class="month-last__row"><span class="month-last__d">${formatDateNice(x.date)}</span><span class="month-last__n">${escapeHtml(displayName(x.rawDescription))}</span><b>${formatRupees(x.amount)}</b></div>`).join('')
+      : '<p class="month-last__none">No payment matched yet.</p>'}</div>`;
     sheet.innerHTML = `<div class="k-scrim" data-close></div>
       <div class="k-sheet" role="dialog" aria-modal="true" aria-label="${escapeHtml(t.label)}">
         <div class="k-sheet__grip"></div>
         <div class="k-sheet__head"><span class="k-sheet__title">${escapeHtml(t.label)}</span><button type="button" class="k-btn k-btn--ghost k-sheet__close" data-close>Done</button></div>
         <p class="month-sheet__line"><b>${formatRupees(t.amount)}</b> · ${state}</p>
+        ${lastHtml}
         <div class="k-rows">
           ${own && t.status !== 'skipped' ? (t.marked ? btn('month-unpaid', 'Back to unpaid', 'You had marked it paid') : t.status === 'paid' ? '' : btn('month-paid', 'Mark paid', 'Paid in cash or from somewhere Kawach cannot see')) : ''}
           ${own ? (t.status === 'skipped' ? btn('month-unskip', 'Count it again', 'Put it back in this month') : btn('month-skip', 'Skip this month', 'Not paying it this month: it comes out of the budget')) : ''}
