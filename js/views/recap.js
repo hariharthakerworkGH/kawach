@@ -12,6 +12,8 @@ import { redraw } from '../redraw.js';
 import { flexReport } from '../flex-report.js';
 import { computeFreeToSpend } from '../free-to-spend.js';
 import { escapeHtml, emptyState } from '../ui.js';
+import { displayName } from './transactions.js';
+import { openShareSheet } from '../share-month.js';
 
 // A month's spending told as a handful of single-idea cards you step through,
 // instead of a wall of figures. Everything is computed on the device from
@@ -60,6 +62,7 @@ export async function render(container, params = {}) {
   const month = months[Math.min(monthOffset, months.length - 1)];
   const prevMonth = months[Math.min(monthOffset + 1, months.length - 1)];
   const cards = buildCards(spendable, categories, month, prevMonth === month ? null : prevMonth);
+  const facts = cards.facts;
   const flex = await flexFor(month);
   if (flex) cards.splice(1, 0, flexCard(flex, month));
   cardIndex = Math.min(cardIndex, cards.length - 1);
@@ -79,8 +82,9 @@ export async function render(container, params = {}) {
       </div>
       <button type="button" class="btn-tiny primary" id="recap-next" ${cardIndex === cards.length - 1 ? 'disabled' : ''}>Next</button>
     </div>
+    ${cardIndex === cards.length - 1 ? '<button type="button" class="recap-share" id="recap-share">Share this month</button>' : ''}
   `;
-
+  container.querySelector('#recap-share')?.addEventListener('click', () => openShareSheet(facts));
   const go = (i) => {
     cardIndex = Math.max(0, Math.min(cards.length - 1, i));
     redraw(container, () => render(container, { reset: false }));
@@ -193,7 +197,7 @@ function buildCards(transactions, categories, month, prevMonth) {
   for (const t of debits) {
     const key = extractMerchantKey(t.rawDescription);
     if (!key) continue;
-    if (!byMerchant.has(key)) byMerchant.set(key, { count: 0, total: 0, label: t.rawDescription });
+    if (!byMerchant.has(key)) byMerchant.set(key, { count: 0, total: 0, label: t.rawDescription, name: displayName(t.rawDescription) });
     const m = byMerchant.get(key);
     m.count++;
     m.total += t.amount;
@@ -236,6 +240,16 @@ function buildCards(transactions, categories, month, prevMonth) {
         : `${quietDays} day${quietDays === 1 ? '' : 's'} out of ${daysElapsed} where nothing left your accounts.`
     )
   );
+
+  // What the share picture says (js/share-month.js): the same figures as the cards, so the picture never disagrees with the review.
+  cards.facts = {
+    month: `${monthLabel(month)}${isCurrentMonth ? ' so far' : ''}`,
+    ahead: received >= spent,
+    net: Math.abs(received - spent),
+    quiet: `${quietDays} of ${daysElapsed}`,
+    category: topCat ? { name: topCat[0] === 'uncategorized' ? 'Uncategorized' : categories.find((c) => c.id === topCat[0])?.name || 'Uncategorized', amount: topCat[1] } : null,
+    regular: topMerchant && topMerchant.count > 1 ? { name: topMerchant.name, count: topMerchant.count } : null,
+  };
 
   // 6. Net position
   cards.push(

@@ -979,4 +979,24 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 .cat-row-main .cat-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; line-height: 1.2; }
 .cat-row-main .cat-chip { flex: none; }
 .cat-actions .icon-btn { padding-inline: 8px; min-height: 44px; margin-block: -6px; }
+/* 7.24: Share this month (js/share-month.js). The button under the review deck, and the sheet with the picture, one switch and Share. */
+.recap-share, .sm-go { width: 100%; min-height: 48px; border: 0; border-radius: 12px; background: var(--lg-tide); color: var(--lg-tide-ink); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.recap-share { margin-top: 12px; }
+.sm-back { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.5); }
+.sm-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 61; max-height: 94vh; overflow-y: auto; overscroll-behavior: contain; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--lg-s1); color: var(--lg-ink); border-radius: 20px 20px 0 0; box-shadow: 0 -1px 0 var(--lg-line); box-sizing: border-box; max-width: 640px; margin: 0 auto; }
+.sm-grip { width: 36px; height: 4px; margin: 0; border-radius: 2px; background: var(--lg-line); justify-self: center; }
+.sm-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sm-head h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--lg-ink); }
+.sm-close { min-height: 44px; margin-block: -8px; padding: 0 4px; border: 0; background: none; color: var(--lg-ink2); font: inherit; font-size: 15px; cursor: pointer; }
+.sm-pic { width: min(300px, 100%, 34vh); height: auto; aspect-ratio: 4 / 5; justify-self: center; border-radius: 16px; box-shadow: 0 8px 28px rgb(0 0 0 / 0.3); }
+.sm-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 48px; padding: 0 4px; border: 0; background: none; color: var(--lg-ink); font: inherit; text-align: left; cursor: pointer; }
+.sm-switch b { display: block; font-size: 15px; font-weight: 500; }
+.sm-switch small { display: block; font-size: 13px; font-weight: 400; color: var(--lg-ink2); }
+.sm-tog { flex: none; width: 52px; height: 32px; border-radius: 16px; background: var(--lg-s3); box-shadow: inset 0 0 0 1px var(--lg-line); position: relative; }
+.sm-tog::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 13px; background: var(--lg-ink2); }
+.sm-switch[aria-checked="true"] .sm-tog { background: var(--lg-tide); }
+.sm-switch[aria-checked="true"] .sm-tog::after { left: 23px; background: var(--lg-tide-ink); }
+.sm-said { margin: 0; font-size: 13px; color: var(--lg-ink2); text-align: center; }
+.sm-said:empty { display: none; }
+@media (prefers-reduced-motion: no-preference) { .sm-sheet { animation: ps-up 0.22s ease-out 1; } }
 @media (prefers-reduced-motion: no-preference) { #plan-add-sheet .ps-sheet { animation: ps-up 0.22s ease-out 1; } @keyframes ps-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } } }

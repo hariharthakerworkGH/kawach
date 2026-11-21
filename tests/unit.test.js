@@ -24,6 +24,7 @@ import { limitUse, bestDay, payBy } from '../js/card-smarts.js';
 import { forecast, costInMonth } from '../js/forecast.js';
 import { flexReport } from '../js/flex-report.js';
 import { flexCard } from '../js/views/recap.js';
+import { monthRows, monthHeadline } from '../js/share-month.js';
 import { cancelledByRefund, isCardRefund } from '../js/budgets.js';
 import { makeRecord, checkPin, waitFor, mustLock, makeKeyText, normaliseKey, formatKey, makeKeyRecord, checkKey } from '../js/lock.js';
 import { comingUp, keptBack, keptItems, keptBlock, topFigures, tactileTop, havenTop, tideMood, tideSvg, chartsCards, aheadStreak, keptToday, yesterdayFacts, longestAhead, monthStory, weekRecap, heroChart } from '../js/views/summary-looks.js';
@@ -2748,6 +2749,17 @@ test('what you did not spend: each set-aside with what was left, the month total
   const html = flexCard(r, '2026-09', new Date('2026-10-08T12:00'));
   ok(html.includes('What you did not spend') && html.includes('₹12,900') && html.includes('of ₹27,000 set aside') && html.includes('₹500 over') && html.includes('₹3,600 left') && !html.includes('so far'), 'a finished month');
   ok(flexCard(r, '2026-10', new Date('2026-10-08T12:00')).includes(', so far.'), 'the month in progress says so far');
+});
+
+test('share your month: amounts are off by default, a missing fact is left out, and nothing is shown that the month does not have', () => {
+  const facts = { month: 'November 2026 so far', ahead: true, net: 2876200, quiet: '5 of 21', category: { name: 'Rent', amount: 2200000 }, regular: { name: 'Fresh Basket', count: 4 } };
+  equal(monthHeadline(facts, false), ['Ahead', 'more came in than went out'], 'words only, no figure');
+  equal(monthHeadline(facts, true), ['+₹28,762', 'came in more than went out'], 'amounts on');
+  equal(monthHeadline({ ...facts, ahead: false }, false), ['Behind', 'more went out than came in'], 'a month behind says so');
+  equal(monthRows(facts, false), [['Quiet days', '5 of 21'], ['Biggest category', 'Rent'], ['A regular', 'Fresh Basket, 4 times']], 'no rupee sign anywhere with amounts off');
+  ok(!JSON.stringify([monthHeadline(facts, false), monthRows(facts, false)]).includes('₹'), 'nothing with a rupee sign leaves with amounts off');
+  equal(monthRows(facts, true)[1], ['Biggest category', 'Rent ₹22,000'], 'amounts on adds the figure');
+  equal(monthRows({ ...facts, category: null, regular: null }, true), [['Quiet days', '5 of 21']], 'no category and no regular: those lines are left out');
 });
 
 test('a payment out cannot carry the paid-back flag, and money in cannot be both an employer and friends', () => {

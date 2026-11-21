@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.24',
+    items: [
+      {
+        icon: 'history',
+        title: "Share your month as a picture",
+        text: "On the last card of Month in review, Share this month turns your month into a picture you can send to anyone: how it went in a word, your quiet days, your biggest category and a regular. Amounts stay hidden unless you switch them on for that one picture. The picture is drawn on your phone and goes nowhere until you pick where to send it.",
+        guide: [{ view: 'recap', target: '.recap-dots', text: "Go to the last card: Share this month makes a picture. Amounts stay hidden unless you switch them on." }],
+      },
+    ],
+  },
+  {
     version: '7.23',
     items: [
       {
