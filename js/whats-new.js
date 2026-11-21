@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.22',
+    items: [
+      {
+        icon: 'history',
+        title: "Smaller warnings, tighter screens",
+        text: "Warning notices on Plan and Coach are now a title and a short line, about a quarter smaller, and lists, rows and text are one step tighter so more fits on a screen. Nothing was removed and no figure changed.",
+      },
+    ],
+  },
+  {
     version: '7.21',
     items: [
       {
