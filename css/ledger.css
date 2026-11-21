@@ -971,4 +971,12 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 .cat-name { font-size: 14px; }
 .cat-actions .icon-btn { font-size: 12px; }
 .k-coach .coach-q { min-height: 48px; }
+/* 7.23 Categories: a category stays one line (chip, name, Edit, Delete); a long name wraps in its own space instead of pushing Edit and
+   Delete onto a line of their own (fit.css did that, 212 px a row at 320). Each button is 44 px to touch (it was 32), taken from the row's own
+   padding with a negative margin so no row grows. Large and largest text keep fit.css's wrapping. */
+:root:not([data-text="large"]):not([data-text="largest"]) .cat-row-main { flex-wrap: nowrap; align-items: center; }
+:root:not([data-text="large"]):not([data-text="largest"]) .cat-actions { flex-wrap: nowrap; gap: 0; }
+.cat-row-main .cat-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; line-height: 1.2; }
+.cat-row-main .cat-chip { flex: none; }
+.cat-actions .icon-btn { padding-inline: 8px; min-height: 44px; margin-block: -6px; }
 @media (prefers-reduced-motion: no-preference) { #plan-add-sheet .ps-sheet { animation: ps-up 0.22s ease-out 1; } @keyframes ps-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } } }

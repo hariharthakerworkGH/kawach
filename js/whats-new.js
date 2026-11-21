@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.23',
+    items: [
+      {
+        icon: 'history',
+        title: "Categories fit small phones",
+        text: "On narrow phones a category with a long name no longer pushes Edit and Delete onto a line of their own, and both buttons are bigger to touch. Nothing else on the screen changed.",
+      },
+    ],
+  },
+  {
     version: '7.22',
     items: [
       {
