@@ -63,7 +63,9 @@ function sectionKeys(container) {
   const seen = new Map();
   return [...container.querySelectorAll('details')].map((d) => {
     const heading = (d.querySelector(':scope > summary')?.textContent || '').replace(/[\d,.₹−-]+/g, '').replace(/\s+/g, ' ').trim();
-    const base = `${d.className}|${heading}`;
+    // A section with an id is known by it: its status ("Drive 2 min ago") changes with what you just did.
+    // A section with an id is known by it: its status ("Drive 2 min ago") changes with what you just did.
+    const base = d.id ? `#${d.id}` : `${d.className}|${heading}`;
     const n = seen.get(base) || 0;
     seen.set(base, n + 1);
     return { d, key: `${base}|${n}` };

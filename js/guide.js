@@ -96,6 +96,8 @@ async function open(step) {
     // Plan is in parts (7.14): when the thing is in a part that is out of sight, ask Plan to show that part first.
     const hidden = els.find((el) => el && el.closest('.pl-off'));
     if (hidden) document.querySelector('#view-container').dispatchEvent(new CustomEvent('plan-layer', { detail: hidden.closest('.pl-off').dataset.pl }));
+    // A thing inside a closed section (Settings, 7.19): open the section so it can be pointed at.
+    els.forEach((el) => el?.closest('details:not([open])') && (el.closest('details:not([open])').open = true));
     const found = els.find((el) => el && el.offsetParent !== null);
     if (found) return found;
     await new Promise((r) => setTimeout(r, 75));

@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.19',
+    items: [
+      {
+        icon: 'eye',
+        title: "Settings, folded away until you need it",
+        text: "Settings is now about a screen shorter. Backup and restore, Sync between devices, For your accountant and Help are now closed sections with their state on the right (for example Drive 2 min ago). Tap one to open it. Backup opens by itself while you have not set a passphrase yet, and the Back up button at the top opens it for you.",
+        guide: [{ view: 'settings', target: '#fold-backup', text: "Each closed section says how it stands on the right. Tap Backup and restore to open it." }],
+      },
+    ],
+  },
+  {
     version: '7.18',
     items: [
       {

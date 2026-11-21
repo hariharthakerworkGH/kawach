@@ -97,12 +97,15 @@ export async function render(container, params = {}) {
     </div>`
         : ''
     }
-    ${backupSection(backup)}
-    ${syncSection(sync, syncPass, backup)}
-
     <!-- Everything else, one line each. Switches act at once; a row with an
-         arrow opens a screen; the rest folds away until you want it. -->
+         arrow opens a screen; the rest folds away until you want it (7.19: Backup and Sync too, inside the same
+         wrapper so every folded section is drawn alike). -->
     <div class="k settings-k">
+      ${foldOf('fold-backup', 'Backup and restore', backup.driveLastAt ? `Drive ${timeAgo(backup.driveLastAt)}` : backup.fileLastAt ? `File ${timeAgo(backup.fileLastAt)}` : backup.passphraseSet ? 'Not yet' : 'Set a passphrase', backupSection(backup),
+        // Open by itself while there is something to do here: no passphrase yet, a passphrase being changed, Restore open, or back from Google's sign-in.
+        !backup.passphraseSet || changingPass || restoreOpen || Boolean(params.drive))}
+      ${foldOf('fold-sync', 'Sync between devices', sync.provider === 'google' ? (sync.lastSync ? `Synced ${timeAgo(sync.lastSync)}` : 'Not synced yet') : sync.provider === 'github' ? 'GitHub' : 'Off', syncSection(sync, syncPass, backup),
+        params.drive === 'sync-on' || Boolean(clockNote(sync)))}
       <h3>Settings</h3>
       <div class="totals-card settings-card">
         <div class="k-switch-row settings-switch">
@@ -174,8 +177,8 @@ export async function render(container, params = {}) {
         </button>
       </div>
 
-      <!-- NEW (7.12): what a trip or a month cost the company, by kind, with a tick for each bill handed in. -->
-      <h3>Work costs</h3>
+      <!-- 7.19: work costs (7.12) and the month or financial year for a chartered accountant (5.21), folded away until wanted. -->
+      ${foldOf('fold-acct', 'For your accountant', 'work costs, CA export', `
       <div class="totals-card settings-card">
         <button type="button" class="k-row settings-row" id="open-workreport">
           <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('bill')}</span>
@@ -183,9 +186,6 @@ export async function render(container, params = {}) {
           <span class="settings-chev">${icon('forward')}</span>
         </button>
       </div>
-
-      <!-- NEW (5.21): a month or a financial year, for a chartered accountant. -->
-      <h3>For your CA</h3>
       <div class="totals-card settings-card ca-card">
         <label class="k-field field">
           <span class="k-label">Period</span>
@@ -199,9 +199,9 @@ export async function render(container, params = {}) {
           <button type="button" class="k-btn k-btn--secondary" id="ca-pdf">${icon('file')} PDF</button>
         </div>
         <p class="muted-note">Income by kind, deductions, tax paid and every payment, sorted the way a return is. Not locked with your passphrase: share it only with your CA.</p>
-      </div>
+      </div>`)}
 
-      <h3>Help</h3>
+      ${foldOf('fold-help', 'Help', 'tour, setup, report a problem', `
       <div class="totals-card settings-card">
         <button type="button" class="k-row settings-row" id="watch-tour">
           <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('play')}</span>
@@ -219,7 +219,7 @@ export async function render(container, params = {}) {
           <span class="settings-chev">${icon('forward')}</span>
         </button>
         <p id="diagnostic-status" class="status" hidden></p>
-      </div>
+      </div>`)}
 
       <details class="section-fold settings-fold">
         <summary>Privacy <span class="summary-sub">stays on this phone</span></summary>
@@ -344,6 +344,7 @@ export async function render(container, params = {}) {
   renderVersionLine(container);
   wireRecordRow(container);
   container.querySelector('#safe-backup')?.addEventListener('click', () => {
+    container.querySelector('#fold-backup').open = true;
     const go = container.querySelector('#drive-backup-btn') || container.querySelector('#file-backup-btn');
     if (go) go.click();
     else container.querySelector('#backup-card')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -612,6 +613,7 @@ async function nudgeBackup(container) {
     confirmLabel: 'Back up now',
     cancelLabel: 'Later',
   });
+  if (yes) container.querySelector('#fold-backup').open = true;
   if (yes) container.querySelector('#backup-card')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
@@ -632,10 +634,14 @@ async function revealPassphrase(title, intro, value, fileName) {
 // One passphrase, set once, locks every backup. Then two places to keep one -
 // Google Drive and this phone - side by side, and one way back from either.
 
+// A closed section with its state on the right (7.19); the id is what redraw.js keeps it open by.
+function foldOf(id, title, status, body, open = false) {
+  return `<details class="section-fold settings-fold" id="${id}"${open ? ' open' : ''}><summary>${title} <span class="summary-sub">${status}</span></summary>${body}</details>`;
+}
+
 function backupSection(backup) {
   const setUp = backup.passphraseSet && !changingPass;
   return `
-    <h3>Backup</h3>
     ${setUp ? '' : '<p class="group-subtitle">One passphrase for all your backups.</p>'}
     <div class="totals-card" id="backup-card">
       ${
@@ -1026,7 +1032,6 @@ function clockNote(sync) {
 function syncSection(sync, syncPass, backup) {
   if (sync.provider === 'google') {
     return `
-      <h3>Sync</h3>
       <div class="totals-card">
         <div class="backup-row solo">
           ${icon('sync')}
@@ -1040,7 +1045,6 @@ function syncSection(sync, syncPass, backup) {
   }
   if (sync.provider === 'github') {
     return `
-      <h3>Sync</h3>
       <div class="totals-card">
         <div class="backup-row solo">
           ${icon('sync')}
@@ -1061,7 +1065,6 @@ function syncSection(sync, syncPass, backup) {
       <p class="muted-note backup-foot">${syncPass ? '<button type="button" class="link-btn" id="sync-pass-show">Show passphrase</button> · ' : ''}<button type="button" class="link-btn" id="sync-disconnect">Disconnect GitHub sync</button></p>`;
   }
   return `
-    <h3>Sync</h3>
     <p class="group-subtitle">Phone and laptop, same Google account.</p>
     <div class="totals-card">
       <button type="button" class="btn-secondary btn-block" id="sync-google-on">Turn on sync</button>
