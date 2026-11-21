@@ -256,7 +256,7 @@ export async function render(container) {
       }
       ${shown ? '' : `<div class="totals-row"><span><span class="seg-dot seg-must"></span>Must go out</span><span class="out">−${formatRupees(mustTotal)}</span></div>`}
       ${flexTotal && !shown ? `<div class="totals-row"><span><span class="seg-dot seg-flex"></span>Can flex</span><span class="out">−${formatRupees(flexTotal)}</span></div>` : ''}
-      <div class="totals-row"><span>Saved each month</span><span class="saved-row">${keep > 0 ? '−' : ''}${formatRupees(keep)}</span></div>
+      <div class="totals-row"><span>Kept in the bank each month</span><span class="saved-row">${keep > 0 ? '−' : ''}${formatRupees(keep)}</span></div>
       ${cashTotal > 0 ? `<p class="muted-note">${formatRupees(cashTotal)} paid in cash comes out of your ATM money.</p>` : ''}
       <details class="fts-breakdown plan-amounts" ${income == null || (!variable && !salaryDay) ? 'open' : ''}>
         <summary>Change amounts</summary>
@@ -273,7 +273,7 @@ export async function render(container) {
         </label>`
         }
         <label class="field">
-          <span>Save each month</span>
+          <span>Keep in the bank each month</span>
           <input type="number" id="plan-keep" inputmode="decimal" step="1" min="0" placeholder="10000" value="${(keep / 100).toFixed(0)}">
         </label>
       </details>

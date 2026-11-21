@@ -141,7 +141,7 @@ function incomeStep(kind, bizList, income, salaryDay, keep) {
     </label>
     <p class="muted-note setup-field-note" id="setup-business-note" ${isVariableIncome(chosen.id) ? '' : 'hidden'}>After 3 months, Kawach plans on your lowest month.</p>
     <label class="field">
-      <span>Save each month</span>
+      <span>Keep in the bank each month</span>
       <input type="number" id="setup-keep" inputmode="decimal" min="0" step="1" value="${Math.round((keep ?? DEFAULT_KEEP_IN_BANK) / 100)}">
     </label>
     ${nav()}

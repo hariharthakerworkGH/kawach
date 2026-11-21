@@ -1308,7 +1308,7 @@ function renderCardsHero(f, opts = {}) {
           ${f.sideBusiness && f.businessExtra ? line(`From the business, lowest month (${monthShort(f.plan.lowestMonth)})`, f.businessExtra, '+') : ''}
           ${group('Must go out', mustItems)}
           ${group('Can flex', flexItems)}
-          ${f.keep ? line('Saved each month', f.keep, '-') : ''}
+          ${f.keep ? line('Kept in the bank each month', f.keep, '-') : ''}
           <div class="totals-row net"><span>Budget</span><span>${formatRupees(f.limit)}</span></div>
           ${f.cards
             .filter((c) => c.owed !== 0)

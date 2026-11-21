@@ -105,7 +105,8 @@ import { MIN_DAYS_FOR_PACE, addDays, dateOf, daysBetweenInclusive, trackCommitme
 
 const SALARY_EARLY_DAYS = 7;
 const SALARY_LATE_DAYS = 5;
-// Saved each month (stored as "keepInBank"), unless changed on Plan: ₹10,000.
+// Kept in the bank each month (stored as "keepInBank"; called "Saved each month" until 7.20), unless changed on Plan: ₹10,000. It stays in the bank, so it
+// is not a savings plan: a monthly SIP or recurring deposit typed on Plan is a fixed cost and comes out as well.
 export const DEFAULT_KEEP_IN_BANK = 1000000;
 
 // What is in the home bank accounts once card bills and fixed costs due before money comes in are paid, and the amount you

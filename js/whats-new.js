@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.20',
+    items: [
+      {
+        icon: 'eye',
+        title: "Clearer names, easier ticks",
+        text: "The amount you keep back from your budget is now called Kept in the bank each month on Summary, Plan and Setup, so it is not mixed up with a savings plan you list under your costs. In Coach, the Safe per day figure no longer breaks across two lines on common phones. In History, ticking payments to change many at once is easier: the tick box now catches a tap just beside it too.",
+      },
+    ],
+  },
+  {
     version: '7.19',
     items: [
       {

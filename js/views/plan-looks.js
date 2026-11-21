@@ -23,7 +23,7 @@ export function planParts({ income, must, flex, budget, keep }) {
     { id: 'must', label: 'Must go out', amount: must },
     { id: 'flex', label: 'Can flex', amount: flex },
     { id: 'free', label: 'Free', amount: Math.max(0, budget || 0) },
-    { id: 'saved', label: 'Saved', amount: keep || 0 },
+    { id: 'saved', label: 'Kept', amount: keep || 0 }, // 7.20: "Saved" read like a savings plan; it is the amount kept in the bank
   ].map((p) => ({ ...p, share: share(p.amount, income) }));
 }
 
