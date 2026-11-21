@@ -595,13 +595,13 @@ export function syncTodo(root) {
   const card = root.querySelector?.('.lg-act');
   if (!card) return;
   const panel = card.querySelector('[data-lg-panel="todo"]');
-  const n = panel.querySelectorAll('.todo-row, .need-row').length;
+  const n = panel.querySelectorAll('.todo-row:not(.todo-tip), .need-row').length; // a feature tip is not a thing to do
   // The badge counts what has not been seen yet. A row with no key (the ones that have their own "stop asking") counts as it always did.
   const unread = panel.querySelectorAll('.todo-row:not([data-todo-key]), .need-row:not([data-todo-key]), [data-todo-new]').length;
   const badge = card.querySelector('[data-lg-count]');
   if (badge) { badge.textContent = String(unread); badge.hidden = unread === 0 || card.dataset.tab === 'todo'; }
   let calm = panel.querySelector('.lg-calm');
-  if (!n && !calm) { calm = document.createElement('p'); calm.className = 'lg-calm'; calm.textContent = 'Nothing needs you today.'; panel.append(calm); }
+  if (!n && !calm) { calm = document.createElement('p'); calm.className = 'lg-calm'; calm.textContent = 'Nothing needs you today.'; const att = panel.querySelector('#attention-section'); if (att) att.before(calm); else panel.append(calm); }
   else if (n && calm) calm.remove();
   // A large payment nobody has said the purpose of moves the headline figure: open on the question instead of hiding it behind a tab.
   if (panel.querySelector('[data-todo-new] .assign-lump') && card.dataset.tab !== 'todo') {

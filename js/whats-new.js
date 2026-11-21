@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.18',
+    items: [
+      {
+        icon: 'bell',
+        title: "Tips that turn up when they fit",
+        text: "At the foot of Summary's To do tab, Kawach now suggests one feature at a time when it fits what you are doing: Coach when a month runs over, picking many payments in History when several have no category, goals on Plan when you have savings and no goal. Tap Got it and it stays away. It never adds to the red count on To do.",
+        guide: [{ view: 'summary', target: '.lg-act', text: "To do now ends with one quiet tip when a feature fits what you are doing. Got it hides it." }],
+      },
+    ],
+  },
+  {
     version: '7.17',
     items: [
       {

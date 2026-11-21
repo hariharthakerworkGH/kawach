@@ -1,6 +1,7 @@
 import { getAll, put, remove, getSetting, setSetting, newId } from '../db.js';
 import { havenTop, keptBack, chartsComing, chartsCards, tideSvg, monthStory, syncTodo } from './summary-looks.js';
 import { getSeen, seenState, rowMeta } from '../todo-seen.js';
+import { TIPS, pickTip } from '../tips.js';
 import { isDemo } from '../demo-flag.js';
 import { displayName } from './transactions.js';
 import { wireHaven } from '../haven-ui.js';
@@ -1790,10 +1791,12 @@ async function renderAttention(container, transactions, fts = null) {
   // meta {key, val, tol, notice}: what the row is, how big it is now, and whether it is only news (then it gets "Got it"). js/todo-seen.js
   const seen = await getSeen();
   const todo = (icon, title, sub, action = '', tone = '', meta = null) => {
-    const state = meta ? seenState(seen, meta.key, meta.val, meta.tol) : 'new';
+    let state = meta ? seenState(seen, meta.key, meta.val, meta.tol) : 'new';
     if (state === 'hidden') return '';
+    // A quiet row (a feature tip) is never "new", so it never lifts the To do badge.
+    if (meta && meta.quiet) state = 'read';
     const acts = meta && meta.notice ? `${action}<button type="button" class="btn-tiny" data-todo-gotit>Got it</button>` : action;
-    const mark = `${meta && state === 'new' ? ' is-new' : ''}"${rowMeta(meta, state)}`;
+    const mark = `${meta && state === 'new' ? ' is-new' : ''}${meta && meta.cls ? ` ${meta.cls}` : ''}"${rowMeta(meta, state)}`;
     return short
       ? `<div class="need-row ${tone}${mark}><span class="need-row__ic" aria-hidden="true">${icon}</span><span class="need-row__t"><span>${title}</span>${sub ? `<small>${sub}</small>` : ''}</span>${acts ? `<span class="need-row__go">${acts}</span>` : ''}</div>`
       : `<div class="todo-row${mark}><span class="todo-icon" aria-hidden="true">${icon}</span><span class="todo-text"><span>${title}</span>${sub ? `<span class="muted-note ${tone}">${sub}</span>` : ''}</span>${acts ? `<span class="attention-actions">${acts}</span>` : ''}</div>`;
@@ -1891,6 +1894,16 @@ async function renderAttention(container, transactions, fts = null) {
   rows.unshift(...urgent);
 
   const unusual = anomalies.slice(0, 5);
+  // One feature tip at the foot, only on Home and only in the full list (js/tips.js). Home only because Plan's goals and fixed costs
+  // are not the business lane's.
+  let tipRow = '';
+  el.dataset.tip = 'none'; // which tip was chosen, or none: set on every draw, so a check can wait for the draw instead of guessing
+  if (!short && fts && (await activeSpace()) === 'home') {
+    const hiddenTips = new Set(TIPS.map((t) => t.key).filter((k) => seenState(seen, k, 1) === 'hidden'));
+    const tip = pickTip({ uncategorized: uncategorized.length, hasSavings: accounts.some((a) => a.type === 'savings'), goals: (await getGoals()).length, free: fts.free }, hiddenTips);
+    if (tip) el.dataset.tip = tip.key;
+    if (tip) tipRow = todo(icon(tip.ico), `Tip · ${tip.title}`, tip.sub, `<button type="button" class="btn-tiny" data-hv-go="${tip.go}">${tip.label}</button>`, '', { key: tip.key, val: 1, notice: true, quiet: true, cls: 'todo-tip' });
+  }
   if (short) {
     // Three at most; the rest one tap away, with any unusual spends.
     const more = rows.length - 3 + (unusual.length ? 1 : 0);
@@ -1909,7 +1922,7 @@ async function renderAttention(container, transactions, fts = null) {
       if (fold) fold.open = true;
       container.querySelector('.bank-card')?.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     });
-  } else if (!rows.length && !unusual.length) {
+  } else if (!rows.length && !unusual.length && !tipRow) {
     el.innerHTML = '';
     return;
   } else el.innerHTML = `
@@ -1927,8 +1940,10 @@ async function renderAttention(container, transactions, fts = null) {
           )
         )
         .join('')}
+      ${tipRow}
     </div>
   `;
+  wireHaven(el);
 
   // Saying which card a bill payment paid: it's money moved, and yours to decide.
   el.querySelectorAll('.assign-card').forEach((select) => {
