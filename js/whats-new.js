@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.21',
+    items: [
+      {
+        icon: 'history',
+        title: "Updates arrive when you open the app",
+        text: "When a newer version is out, the app now switches to it while the opening screen is still showing, instead of opening the old version and waiting for a quiet moment. Your data is not touched. If the new version cannot be fetched, the app opens as before and tries again.",
+      },
+    ],
+  },
+  {
     version: '7.20',
     items: [
       {

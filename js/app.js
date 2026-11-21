@@ -668,6 +668,29 @@ async function keepCurrent() {
   }, 20000);
 }
 
+/* 7.21 (21 Nov 2026: a phone sat on 7.16 with 7.20 out; the splash said "updating" and the old version opened anyway). Everything above
+ * waits for a quiet moment on a screen that is already showing, and a phone is rarely left alone for four seconds, so the old copy could
+ * stay for days. The one moment nobody is using the app is the opening itself, with the splash up and nothing drawn: if the server already
+ * holds a newer build, switch to it there, before the first screen, instead of drawing the old one. It loads straight from the server
+ * (the worker and its offline copy are forgotten, the person's data is not touched) and the new worker installs afterwards in the
+ * background. Once per build per ten minutes (kept on the device, not in the tab), so a copy that does not take can never loop; no answer
+ * from the server in 1.5 s means open as usual (offline, or a bad line); never over a share or a Google sign-in coming back. */
+const SPLASH_FRESH = 'kawach-splash-fresh';
+async function freshAtSplash() {
+  const q = new URLSearchParams(location.search);
+  if (q.has('shared') || q.has('drive')) return false;
+  const newest = await Promise.race([newestBuild(), new Promise((r) => setTimeout(() => r(null), 1500))]);
+  if (newest == null || newest <= BUILD) return false;
+  try {
+    const [was, at] = String(localStorage.getItem(SPLASH_FRESH) || '').split('@');
+    if (was === String(newest) && Date.now() - Number(at) < 600000) { noteUpdate(`opening: server has ${newest}, already tried a minute ago`); return false; }
+    localStorage.setItem(SPLASH_FRESH, `${newest}@${Date.now()}`);
+  } catch { return false; /* no storage, so no way to promise it happens once */ }
+  noteUpdate(`opening: server has ${newest}, starting fresh before the first screen`);
+  await startFresh();
+  return true;
+}
+
 function wireUpdateBanner() {
   setTimeout(keepCurrent, 3000);
   setInterval(keepCurrent, 120000);
@@ -696,6 +719,18 @@ function wireUpdateBanner() {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (hadController) check();
     });
+    // Where a download of the new copy gets to (installing, installed, activated, or redundant = it failed), kept in the update log:
+    // a phone that never updates can then say whether the download starts, finishes or dies (7.21).
+    const track = (w) => {
+      if (!w || !hadController) return;
+      noteUpdate(`new copy ${w.state}`);
+      w.addEventListener('statechange', () => noteUpdate(`new copy ${w.state}`));
+    };
+    navigator.serviceWorker.getRegistration().then((reg) => {
+      if (!reg) return;
+      track(reg.installing || reg.waiting);
+      reg.addEventListener('updatefound', () => track(reg.installing));
+    }).catch(() => {});
   }
 
   // Leaving the app is the best moment (nobody sees the reload); coming back is a natural moment to ask for a newer copy.
@@ -759,6 +794,8 @@ async function init() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch((err) => console.error('SW registration failed', err));
   }
+  // A newer build is out: take it now, behind the opening, before anything is drawn (see freshAtSplash).
+  if (await freshAtSplash()) return;
 
   // The chosen light or dark. index.html has already done this inline before
   // the first paint; this is the same decision made from the one module that
