@@ -618,6 +618,27 @@ test('the diagnostic report builds from a real month, and carries the figures', 
   ok(!text.includes('111111111111'), 'a bank reference is redacted');
 });
 
+// The full report (26 Nov 2026) keeps the real words so the owner and a helper can read the same rows; it is a separate choice, off by default.
+test('the full diagnostic report keeps real names, notes and ids; the ordinary one still hides them', async () => {
+  await seedMonth();
+  await putAll('transactions', [
+    txn({ id: 'shoes', accountId: 'card', date: '2026-09-10', amount: 3000, rawDescription: 'SHOES AT ZARA', bankRef: '111111111111', notes: 'for the tailor' }),
+  ]);
+  const masked = await buildDiagnosticReport(day('2026-09-16'));
+  const full = await buildDiagnosticReport(day('2026-09-16'), null, true);
+  const text = JSON.stringify(masked);
+  ok(!text.includes('ZARA') && !text.includes('tailor') && !text.includes('111111111111'), 'the ordinary report shows none of it');
+  equal(masked.masked, true);
+  const row = full.transactions.find((t) => t.amount === rupees(3000));
+  equal(row.rawDescription, 'SHOES AT ZARA', 'the full report keeps the description');
+  equal(row.notes, 'for the tailor', 'and the note');
+  equal(row.id, 'shoes', 'and the real id');
+  equal(String(row.bankRef), '111111111111', 'and the bank reference');
+  equal(full.masked, false);
+  paise(full.figures.left, (await computeFreeToSpend(day('2026-09-16'))).free, 'the figures are the same either way');
+  ok(!JSON.stringify(full).match(/passphrase|token|syncMeta/i), 'no secret goes in even the full one');
+});
+
 test('the diagnostic report names every record with a code that stays the same from one report to the next', async () => {
   await seedMonth();
   setMarkerKey('0123456789abcdef');

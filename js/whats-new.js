@@ -13,6 +13,22 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.26',
+    items: [
+      {
+        icon: 'file',
+        title: "A report with real names, when you want one",
+        text: "Settings has a second report button, Report a problem with real names. It keeps payment names, notes and account names exactly as they are, so a figure can be traced row by row. Use it only when you are sending the report to the person helping you; the ordinary button still hides everything.",
+        guide: [{ view: 'settings', target: '#fold-help', text: "Open Help: Report a problem, with real names, saves everything as it reads in the app. Send it only to whoever is helping you." }],
+      },
+      {
+        icon: 'check',
+        title: "Categories are A to Z everywhere",
+        text: "The Categories screen, its sub-categories and the Change many chips now list categories A to Z. History keeps its own order, newest first.",
+      },
+    ],
+  },
+  {
     version: '7.25.1',
     items: [
       {

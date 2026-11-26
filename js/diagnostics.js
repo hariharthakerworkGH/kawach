@@ -36,7 +36,9 @@ const BANKING_WORDS = new Set(
 );
 
 // `describe` (optional) adds what an import screen was about to save, written with this report's own redaction: (redact, numberFor) => object.
-export async function buildDiagnosticReport(now = new Date(), describe = null) {
+// `full` (26 Nov 2026, the owner's own choice, off by default) keeps the real descriptions, account names, notes, ids and bank references so
+// a figure can be traced row by row (last four digits too); loan and PF account numbers, passphrases and tokens stay out of it.
+export async function buildDiagnosticReport(now = new Date(), describe = null, full = false) {
   const [accounts, transactions, categories, recurring, importBatches, settings] = await Promise.all([
     getAll('accounts'),
     getAll('transactions'),
@@ -61,7 +63,7 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
   };
   const wordMap = new Map();
   const numberMap = new Map();
-  const numberFor = (digits) => {
+  const maskNumber = (digits) => {
     if (!numberMap.has(digits)) {
       if (stable) {
         // The same digits give the same stand-in in every report; never starting with 0.
@@ -74,16 +76,18 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
     }
     return numberMap.get(digits);
   };
-  const redact = (text) =>
+  const maskText = (text) =>
     text == null
       ? text
       : String(text).replace(/[A-Za-z]+|\d+/g, (token) => {
-          if (/^\d+$/.test(token)) return token.length <= 2 ? token : numberFor(token);
+          if (/^\d+$/.test(token)) return token.length <= 2 ? token : maskNumber(token);
           const upper = token.toUpperCase();
           if (BANKING_WORDS.has(upper)) return token;
           if (!wordMap.has(upper)) wordMap.set(upper, stable ? stand(upper, (id) => `W${markCode('w', id, 7, CONSONANTS)}`) : `W${wordMap.size + 1}`);
           return wordMap.get(upper);
         });
+  const numberFor = full ? (digits) => digits : maskNumber;
+  const redact = full ? (text) => text : maskText;
 
   const accountNames = new Map();
   const counters = {};
@@ -92,7 +96,7 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
     // Every type gets its own plain name, so a loan or the provident fund
     // doesn't come out labelled "Cash 3" in a report.
     const kind = { card: 'Card', bank: 'Bank', cash: 'Cash', savings: 'Savings', loan: 'Loan', pf: 'PF' }[a.type] || 'Account';
-    accountNames.set(a.id, `${kind} ${counters[a.type]}`);
+    accountNames.set(a.id, (full && a.label) || `${kind} ${counters[a.type]}`);
   }
 
   // Record ids can carry private words: an EMI's id is built from its card
@@ -102,6 +106,7 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
   const idMaps = { a: new Map(), t: new Map(), r: new Map(), i: new Map(), c: new Map(), p: new Map() };
   const idFor = (kind, id) => {
     if (id == null || id === 'cash') return id ?? null;
+    if (full) return id;
     const map = idMaps[kind];
     if (!map.has(id)) map.set(id, stable ? stand(`${kind}:${id}`, (x) => `${kind}-${showMark(markCode(kind, x.slice(kind.length + 1)))}`) : `${kind}${map.size + 1}`);
     return map.get(id);
@@ -117,6 +122,8 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
     // 2: stable markers, `flagged`, `screen` and each payment's `filedFor`. Reports without a format are the older kind.
     format: 2,
     stableMarkers: stable,
+    // false: real names, notes and ids are in this file; send it only to the person helping with the figures.
+    masked: !full,
     appVersion: APP_VERSION,
     build: BUILD,
     generatedAt: new Date().toISOString(),
@@ -199,7 +206,7 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
       fromRecurringId: r.fromRecurringId ? idFor('r', r.fromRecurringId) : undefined,
       label: redact(r.label),
       matchText: redact(r.matchText),
-      notes: undefined,
+      notes: full ? r.notes || undefined : undefined,
       emi: r.emi ? { ...r.emi } : undefined,
       policy: redactPolicy(r.policy),
     })),
@@ -210,7 +217,8 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
       amount: t.amount,
       direction: t.direction,
       rawDescription: redact(t.rawDescription),
-      bankRef: t.bankRef ? numberFor(String(t.bankRef).replace(/\D/g, '') || '0') : null,
+      bankRef: t.bankRef ? (full ? t.bankRef : numberFor(String(t.bankRef).replace(/\D/g, '') || '0')) : null,
+      notes: full ? t.notes || undefined : undefined,
       categoryId: idFor('c', t.categoryId),
       splits: Array.isArray(t.splits) ? t.splits.map((s) => ({ categoryId: idFor('c', s.categoryId), amount: s.amount })) : undefined,
       source: t.source,
@@ -295,12 +303,12 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
 }
 
 // Builds the report and saves it as a file the person can send. Nothing leaves the device by itself.
-export async function downloadDiagnosticReport(describe = null) {
-  const report = await buildDiagnosticReport(new Date(), describe);
+export async function downloadDiagnosticReport(describe = null, full = false) {
+  const report = await buildDiagnosticReport(new Date(), describe, full);
   const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 1)], { type: 'application/json' }));
   const a = document.createElement('a');
   a.href = url;
-  a.download = `kawach-diagnostic-v${report.appVersion}-${isoLocal(new Date())}.json`;
+  a.download = `kawach-diagnostic-v${report.appVersion}-${isoLocal(new Date())}${full ? '-full' : ''}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();

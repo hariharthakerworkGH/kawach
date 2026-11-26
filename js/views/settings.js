@@ -218,6 +218,11 @@ export async function render(container, params = {}) {
           <span class="k-row__body"><span class="k-row__title">Report a problem</span><span class="k-row__meta">Saves a report with names and numbers hidden</span></span>
           <span class="settings-chev">${icon('forward')}</span>
         </button>
+        <button type="button" class="k-row settings-row" id="diagnostic-full-btn">
+          <span class="k-icon" style="--k-tint:var(--k-accent)">${icon('file')}</span>
+          <span class="k-row__body"><span class="k-row__title">Report a problem, with real names</span><span class="k-row__meta">Nothing hidden: send it only to whoever is helping you</span></span>
+          <span class="settings-chev">${icon('forward')}</span>
+        </button>
         <p id="diagnostic-status" class="status" hidden></p>
       </div>`)}
 
@@ -324,15 +329,17 @@ export async function render(container, params = {}) {
   caFile('#ca-pdf', toPdf, 'pdf', 'application/pdf');
 
   const diagnosticStatus = container.querySelector('#diagnostic-status');
-  container.querySelector('#diagnostic-btn').addEventListener('click', async () => {
+  const saveReport = (full) => async () => {
     try {
       showStatus(diagnosticStatus, 'Preparing…', false);
-      const report = await downloadDiagnosticReport();
-      showStatus(diagnosticStatus, `Saved: ${report.counts.transactions} payments, ${report.counts.commitments} commitments (plus ${report.counts.suggestions} the app spotted), no names or reference numbers.`, false);
+      const report = await downloadDiagnosticReport(null, full);
+      showStatus(diagnosticStatus, `Saved: ${report.counts.transactions} payments, ${report.counts.commitments} commitments (plus ${report.counts.suggestions} the app spotted), ${full ? 'with real names and notes: share it only with the person helping you' : 'no names or reference numbers'}.`, false);
     } catch (err) {
       showStatus(diagnosticStatus, `Couldn't make the report: ${err.message}`, true);
     }
-  });
+  };
+  container.querySelector('#diagnostic-btn').addEventListener('click', saveReport(false));
+  container.querySelector('#diagnostic-full-btn').addEventListener('click', saveReport(true));
 
   container.querySelector('#share-app-btn').addEventListener('click', shareKawach);
   container.querySelector('#whats-new-btn').addEventListener('click', async () => {

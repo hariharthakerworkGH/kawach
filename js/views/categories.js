@@ -54,8 +54,9 @@ export async function render(container) {
   const hasBusiness = profile.business;
   if (!hasBusiness) scope = 'home';
   const shown = categories.filter((c) => isBusinessCategory(c) === (scope === 'business'));
-  const topLevel = shown.filter((c) => !c.parentId);
-  const childrenOf = (id) => shown.filter((c) => c.parentId === id);
+  // A to Z at both levels, whichever way the person reads other lists (turned round by the same "Z to A" choice).
+  const topLevel = sortCategories(shown.filter((c) => !c.parentId), 'name');
+  const childrenOf = (id) => sortCategories(shown.filter((c) => c.parentId === id), 'name');
   const editingCat = editing && editing !== 'new' ? categories.find((c) => c.id === editing) : null;
 
   container.innerHTML = `

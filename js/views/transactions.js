@@ -838,7 +838,11 @@ function openChangeSheet(container) {
   const some = (n) => `${n} payment${n === 1 ? '' : 's'}`;
   // A split was set up on purpose and is left as it is; a payment out is never Income (fitting() knows).
   const forCat = rows.filter((t) => !isSplit(t));
-  const cats = sortCategories(cache.categories.filter((c) => forCat.every((t) => fitting(t).some((x) => x.id === c.id))), 'used', usageCounts(cache.transactions));
+  const fitCats = cache.categories.filter((c) => forCat.every((t) => fitting(t).some((x) => x.id === c.id)));
+  // Closed: the six most used, so a tap is quick; open: every category A to Z. Both read A to Z within themselves (the owner's rule, 26 Nov 2026).
+  const usedFirst = sortCategories(fitCats, 'used', usageCounts(cache.transactions)).slice(0, 6);
+  const cats = [...sortCategories(usedFirst, 'name'), ...sortCategories(fitCats.filter((c) => !usedFirst.includes(c)), 'name')];
+  const catsAZ = sortCategories(fitCats, 'name');
   const movable = rows.filter((t) => !cardBill(t));
   const forCost = rows.filter((t) => t.direction === 'debit' && !paysCardLike(t) && !t.personId);
   const costs = cache.commitments;
@@ -864,7 +868,7 @@ function openChangeSheet(container) {
     el.classList.toggle('all', open[sec]);
     el.innerHTML = shown.map(([id, name]) => `<button type="button" class="upi-chip${on(id) ? ' on' : ''}" aria-pressed="${on(id)}" data-id="${escapeAttr(id)}">${escapeHtml(name)}</button>`).join('') + (!open[sec] && items.length > 6 ? '<button type="button" class="upi-chip" data-more>More…</button>' : '');
   };
-  const drawCat = () => chips('cat', cats.map((c) => [c.id, c.name]), (id) => forCat.every((t) => t.categoryId === id));
+  const drawCat = () => chips('cat', (open.cat ? catsAZ : cats).map((c) => [c.id, c.name]), (id) => forCat.every((t) => t.categoryId === id));
   const drawCost = () => chips('cost', [['', 'None']].concat(costs.map((c) => [c.id, c.label])), (id) => forCost.every((t) => (t.commitmentId || '') === id));
   const drawMoved = () =>
     wrap.querySelectorAll('.chg-seg button').forEach((b) => {
