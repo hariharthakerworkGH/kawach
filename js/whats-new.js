@@ -13,6 +13,16 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.25.1',
+    items: [
+      {
+        icon: 'shield',
+        title: "Statements no longer count purchases twice",
+        text: "If a bank gave you a new card number and you imported its statement, Kawach used to start a second card beside the old one, and every purchase counted on both, which pushed Left to spend far below zero. Kawach now offers the card that already holds those purchases, and counts a purchase once even if it is saved on two cards. Card instalments (the Principal and Interest lines of an EMI) are also recognised as the fixed cost you already planned, so they no longer count twice.",
+      },
+    ],
+  },
+  {
     version: '7.25',
     items: [
       {

@@ -83,7 +83,77 @@ export function findDuplicates(transactions) {
   // The groups above are one day each, so a copy dated a day off needs its own look.
   const gone = new Set(extra.map((t) => t.id));
   extra.push(...nextDayCopies(transactions.filter((t) => t.source !== 'unbilled' && !gone.has(t.id))));
+  const gone2 = new Set(extra.map((t) => t.id));
+  extra.push(...twinAccountCopies(transactions.filter((t) => t.source !== 'unbilled' && !gone2.has(t.id))));
   return extra;
+}
+
+// Of `accounts`, the one that already holds most of the incoming statement rows (same date, amount, direction; one saved
+// row answers for one new row), when that is at least 8 rows and 30% of the statement. null: no card is this statement's.
+export function accountHoldingRows(accounts, saved, rows) {
+  let best = null;
+  for (const a of accounts) {
+    const have = new Map();
+    for (const t of saved) {
+      if (t.accountId !== a.id || t.source === 'unbilled') continue;
+      const k = `${t.date}|${t.amount}|${t.direction}`;
+      have.set(k, (have.get(k) || 0) + 1);
+    }
+    let hits = 0;
+    for (const r of rows) {
+      const k = `${r.date}|${r.amount}|${r.direction}`;
+      if (have.get(k)) {
+        have.set(k, have.get(k) - 1);
+        hits++;
+      }
+    }
+    if (hits >= TWIN_MIN_ROWS && hits >= rows.length * 0.3 && (!best || hits > best.hits)) best = { account: a, hits };
+  }
+  return best ? best.account : null;
+}
+
+// One card saved as two accounts. A renewed card prints a new number, so its statement is not recognised as the
+// card the alerts were saved on and its rows start an account of their own: every purchase is then on both, and
+// counted twice (26 Nov 2026: ₹19,883 of a -₹83,614 "Left to spend"). Two accounts are one card when most of the
+// smaller one's rows in their shared dates are the very same date, amount and direction in the other.
+// shortcut: needs 8 such rows, so a card with fewer than 8 doubled rows is not caught; lower it only with a test
+// that two real cards of one family never reach it.
+const TWIN_MIN_ROWS = 8;
+const TWIN_SHARE = 0.6;
+function twinAccountCopies(rows) {
+  const byAccount = new Map();
+  for (const t of rows) byAccount.set(t.accountId, [...(byAccount.get(t.accountId) || []), t]);
+  if (byAccount.size < 2) return [];
+  const keyOf = (t) => `${t.date}|${t.amount}|${t.direction}`;
+  const byKey = new Map();
+  for (const [id, list] of byAccount) {
+    const m = new Map();
+    for (const t of list.sort((a, b) => (a.updatedAt || 0) - (b.updatedAt || 0))) m.set(keyOf(t), [...(m.get(keyOf(t)) || []), t]);
+    byKey.set(id, m);
+  }
+  const copies = [];
+  const ids = [...byAccount.keys()].sort();
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      const [a, b] = [byKey.get(ids[i]), byKey.get(ids[j])];
+      const pairs = []; // [rowInA, rowInB], one row answering for one row
+      for (const [key, listA] of a) {
+        const listB = b.get(key);
+        if (listB) for (let n = 0; n < Math.min(listA.length, listB.length); n++) pairs.push([listA[n], listB[n]]);
+      }
+      if (pairs.length < TWIN_MIN_ROWS) continue;
+      const dates = (list) => list.map((t) => t.date).sort();
+      const [da, db] = [dates(byAccount.get(ids[i])), dates(byAccount.get(ids[j]))];
+      const [from, to] = [da[0] > db[0] ? da[0] : db[0], da[da.length - 1] < db[db.length - 1] ? da[da.length - 1] : db[db.length - 1]];
+      const within = (list) => list.filter((t) => t.date >= from && t.date <= to).length;
+      if (pairs.length < TWIN_SHARE * Math.min(within(byAccount.get(ids[i])), within(byAccount.get(ids[j])))) continue;
+      // The account saved first is the card as it was known (its alerts carry the tags set on them); the other is the copy.
+      const firstA = Math.min(...pairs.map(([x]) => x.updatedAt || 0));
+      const firstB = Math.min(...pairs.map(([, y]) => y.updatedAt || 0));
+      copies.push(...pairs.map(([x, y]) => (firstA <= firstB ? y : x)));
+    }
+  }
+  return [...new Map(copies.map((t) => [t.id, t])).values()];
 }
 
 // The later-saved copy of a payment another import saved with the day before or after, on the bank's own reference.

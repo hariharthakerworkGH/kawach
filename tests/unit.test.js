@@ -4,7 +4,7 @@ import { test, equal, ok, paise } from './harness.js';
 import { txn, commitment, rupees } from './fixtures.js';
 import { nextOccurrence } from '../js/frequency.js';
 import { passwordErrorKind } from '../js/pdf-text.js';
-import { sameTransaction, findDuplicates } from '../js/duplicates.js';
+import { sameTransaction, findDuplicates, accountHoldingRows } from '../js/duplicates.js';
 import { commitmentFor, coveredByFixed, detectEmis, commitmentDueInWindow, commitmentMatcher, duplicateCommitments, salaryDayPayments, paidAhead, movesAhead, aheadPayments } from '../js/commitments.js';
 import { searchHit, newestFirst, dayChart } from '../js/views/transactions.js';
 import { reimbursableTally, tidyFlags, unsettledCosts, repaymentCandidates } from '../js/reimbursable.js';
@@ -216,6 +216,67 @@ test('duplicates: identical rows inside one statement are two real payments; a c
   const b = txn({ ...base, amount: 413, rawDescription: 'UPI-SWIGGY-111111111', importBatchId: 's1', updatedAt: 2 });
   const c = txn({ ...base, amount: 413, rawDescription: 'UPI/SWIGGY/111111111', importBatchId: 's2', updatedAt: 3 });
   equal(findDuplicates([a, b, c]).map((t) => t.id), [c.id]);
+});
+
+// The 26 Nov 2026 bug: a statement printed a card's new number, so its rows were saved as a second card beside
+// the one the alerts were already on, and every purchase counted twice (₹19,883 of a -₹83,614 "Left to spend").
+function cardRows(accountId, count, firstSaved, extra = {}) {
+  return Array.from({ length: count }, (_, i) =>
+    txn({
+      accountId,
+      date: `2026-11-${String(1 + (i % 20)).padStart(2, '0')}`,
+      amount: 300 + i * 37,
+      direction: 'debit',
+      rawDescription: `SHOP ${i}`,
+      updatedAt: firstSaved + i,
+      ...extra,
+    })
+  );
+}
+
+test('duplicates: one card saved under two accounts counts once, the first-saved copy kept', () => {
+  const alerts = cardRows('card-old', 20, 100, { source: 'alert' });
+  const statement = [...cardRows('card-new', 20, 5000, { source: 'statement', importBatchId: 's1' }), ...cardRows('card-new', 3, 6000, { source: 'statement', importBatchId: 's1', amount: 9999, date: '2026-11-25' })];
+  const gone = findDuplicates([...alerts, ...statement]).map((t) => t.id);
+  equal(gone.length, 20, 'the twenty copies are hidden, the three new purchases stay');
+  ok(statement.slice(0, 20).every((t) => gone.includes(t.id)), 'the later-saved account holds the copies');
+  ok(alerts.every((t) => !gone.includes(t.id)), 'the alerts, with the tags set on them, stay');
+});
+
+test('import: a statement with a new card number is offered the card that already holds its purchases', () => {
+  const accounts = [{ id: 'card-old' }, { id: 'card-other' }];
+  const saved = [...cardRows('card-old', 20, 100, { source: 'alert' }), ...cardRows('card-other', 20, 100, { amount: 7777 })];
+  const rows = cardRows('x', 20, 0).map((t) => ({ date: t.date, amount: t.amount, direction: t.direction }));
+  equal(accountHoldingRows(accounts, saved, rows)?.id, 'card-old');
+  equal(accountHoldingRows(accounts, saved, rows.slice(0, 5)), null, 'five matching rows prove nothing');
+  equal(accountHoldingRows([{ id: 'card-other' }], saved, rows), null, 'no card holds them');
+});
+
+test('duplicates: two different cards that share a few purchases are not one card', () => {
+  const a = cardRows('card-a', 20, 100);
+  // Only three rows coincide: groceries of the same size on the same days happen.
+  const b = [...cardRows('card-b', 3, 5000), ...cardRows('card-b', 20, 6000, { amount: 7777, rawDescription: 'OTHER' })];
+  equal(findDuplicates([...a, ...b]).length, 0);
+});
+
+test('duplicates: a card whose few rows all coincide with another account is still two cards under eight rows', () => {
+  equal(findDuplicates([...cardRows('card-a', 7, 100), ...cardRows('card-b', 7, 5000)]).length, 0);
+});
+
+// The 26 Nov 2026 report: a card's EMI is two statement lines (Principal, Interest) whose split moves every month and
+// whose merchant name the statement wrapped onto a second line in one month and not the next. Neither line then read as
+// the commitment holding it, so the ₹4,180 instalment came off the budget and counted as spending too.
+test('commitments: a card EMI line still matches its commitment when the statement wraps the name or the split moves', () => {
+  const interest = commitment({ id: 'emi-i', label: 'WWW EMI Interest', amount: 319.11, dayOfMonth: 8, accountId: 'card1', matchText: 'WWW', emi: { current: 7, total: 12, asOf: '2026-11-08' } });
+  const principal = commitment({ id: 'emi-p', label: 'WWW EMI Principal', amount: 3759.56, dayOfMonth: 8, accountId: 'card1', matchText: 'Principal Amount WWW' });
+  const interestRow = txn({ accountId: 'card1', date: '2026-11-08', amount: 319.11, rawDescription: 'Interest Amount Amortization - <7/12>DYSON' });
+  const principalRow = txn({ accountId: 'card1', date: '2026-11-08', amount: 3860.42, rawDescription: 'Principal Amount Amortization -' });
+  ok(commitmentMatcher(interest)(interestRow), 'the interest line');
+  ok(commitmentMatcher(principal)(principalRow), 'the principal line, ₹100 more than last month');
+  // Not an EMI line, or not that card, or not that day: still ordinary spending.
+  ok(!commitmentMatcher(interest)({ ...interestRow, accountId: 'card2' }), 'another card');
+  ok(!commitmentMatcher(interest)({ ...interestRow, date: '2026-11-20' }), 'a different day');
+  ok(!commitmentMatcher(principal)({ ...principalRow, rawDescription: 'Groceries' }), 'unrelated wording');
 });
 
 // --- Commitments ------------------------------------------------------------

@@ -331,6 +331,26 @@ export function commitmentFor(t, commitments, accounts = []) {
 }
 
 export function commitmentMatcher(item) {
+  const base = wordMatcher(item);
+  if (!item.accountId || item.spread || item.once) return base;
+  return (base && ((t) => base(t) || wrappedEmiLine(item, t))) || ((t) => wrappedEmiLine(item, t));
+}
+
+// A card's EMI is two statement lines (Principal, Interest) whose split moves every month, and a statement may wrap the
+// merchant's name onto a second line one month and not the next. The words you matched on can then be gone while it is
+// plainly the same instalment: the same card, within three days of its day, within 10% of its amount, and either sharing
+// two of its words or carrying the same "<7/12>" count. Otherwise it came off the budget AND counted as spending (26 Nov 2026).
+function wrappedEmiLine(item, t) {
+  if (t.accountId !== item.accountId || t.direction !== 'debit' || !t.date) return false;
+  if (Math.abs(Number(t.date.slice(8, 10)) - Number(item.dayOfMonth)) > 3) return false;
+  if (Math.abs(t.amount - item.amount) > item.amount * 0.1) return false;
+  const own = new Set([...phraseTokens(item.label), ...phraseTokens(item.matchText)]);
+  const shared = phraseTokens(t.rawDescription).filter((w) => own.has(w)).length;
+  const marker = BRACKET_RE.exec(t.rawDescription || '');
+  return shared >= 2 || (shared >= 1 && Boolean(item.emi) && Boolean(marker) && Number(marker[2]) === item.emi.total);
+}
+
+function wordMatcher(item) {
   const words = entryMatcher(item);
   if (words) {
     if (item.spread || !item.categoryId) return words;

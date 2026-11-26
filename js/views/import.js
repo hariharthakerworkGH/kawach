@@ -18,7 +18,7 @@ import { listTakenOn } from '../account-metrics.js';
 import { detectEmis, emiCommitment, emiCommitmentId } from '../commitments.js';
 import { sortAccounts, sortCategories } from '../list-order.js';
 import { isoLocal } from '../frequency.js';
-import { sameTransaction } from '../duplicates.js';
+import { sameTransaction, accountHoldingRows } from '../duplicates.js';
 import { readingShield, mergeTwins } from '../haven-life.js';
 import * as csvParser from '../parsers/csv.js';
 import { readerFor, BANKS } from '../parsers/any-bank.js';
@@ -379,7 +379,7 @@ async function startReview({ parser, text, last4 = null, queue }, status, result
   // A statement the app can't place for certain: you say whose it is, with
   // the likeliest account already picked.
   const accountUncertain = !pickAccount && !provisional && !account && accounts.some((a) => a.type === parser.accountType);
-  if (accountUncertain) account = likelyStatementAccount(accounts, parser);
+  if (accountUncertain) account = likelyStatementAccount(accounts, parser) || (await sameRowsAccount(accounts, parser, rows));
 
   state = {
     parser,
@@ -724,6 +724,14 @@ function sameBank(a, b) {
 function likelyStatementAccount(accounts, parser) {
   const sameKind = accounts.filter((a) => a.type === parser.accountType && sameBank(a.issuer, parser.issuerLabel));
   return sameKind.length === 1 ? sameKind[0] : null;
+}
+
+// A renewed card prints a new number, so its statement matches no card (26 Nov 2026: a second card was started beside the
+// one the alerts were on, and every purchase counted twice). When most of the statement's rows are already saved on one
+// card of the same kind (same date, amount and direction), that is the card: offered picked, still confirmable above.
+async function sameRowsAccount(accounts, parser, rows) {
+  const candidates = accounts.filter((x) => x.type === parser.accountType);
+  return candidates.length ? accountHoldingRows(candidates, await getAll('transactions'), rows.filter(Boolean)) : null;
 }
 
 // Works out what this import will match, replace and remove on the chosen
