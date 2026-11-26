@@ -32,7 +32,7 @@ import { festivalOn } from '../js/haven-motion.js';
 import { rupeeWords } from '../js/haven-life.js';
 import { shortRupees } from '../js/format.js';
 import { termFor } from '../js/explain.js';
-import { peopleStanding, personSpendEffects, lateBack, reminderText } from '../js/people.js';
+import { peopleStanding, personSpendEffects, lateBack, reminderText, equalShares, reminderAllText } from '../js/people.js';
 import { nextRenewal, renewalAfter, renewalsAhead } from '../js/calendar.js';
 import { caPeriods, buildCaReport, toXlsx, toPdf } from '../js/ca-export.js';
 import { excelDate } from '../js/xlsx.js';
@@ -2246,6 +2246,26 @@ test('lent and borrowed: where you stand, and what each payment does to spending
   equal(personSpendEffects(rows, (r) => r.id !== 'a').has('a'), false, 'an account that is not spending is left out');
   equal(lateBack([{ owed: 100, person: { backBy: '2026-09-01' } }, { owed: 0, person: { backBy: '2026-09-01' } }], '2026-09-10').length, 1, 'late only while still owed');
   ok(reminderText('Ravi Kumar', 200000, '2 Oct').startsWith('Hi Ravi, a gentle reminder about the ₹2,000 from 2 Oct'));
+});
+
+test('split with friends: equal parts in whole paise, you keep the odd paisa, shares count only on a payment you made, one message for all', () => {
+  const part = equalShares(480000, ['a', 'b', 'c']);
+  equal(part.map((s) => s.amount), [120000, 120000, 120000], '₹4,800 four ways: ₹1,200 each');
+  const odd = equalShares(10000, ['a', 'b']);
+  equal(odd.map((s) => s.amount), [3333, 3333], '₹100 three ways: ₹33.33 each');
+  equal(10000 - odd.reduce((s, x) => s + x.amount, 0), 3334, 'and the odd paisa is yours');
+  const dinner = { id: 'd', accountId: 'bank', direction: 'debit', amount: 480000, date: '2026-09-10', merchant: 'Toit', friendShares: part.map((s, i) => ({ ...s, personId: ['a', 'b', 'c'][i] })) };
+  const standing = peopleStanding([dinner], [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }, { id: 'c', name: 'C' }]);
+  equal(standing.map((s) => s.owed), [120000, 120000, 120000], 'each owes their part');
+  equal([standing[0].since, standing[0].entries[0].fromId], ['2026-09-10', 'd'], 'since the day of the payment, and which payment');
+  equal(personSpendEffects([dinner]).size, 0, 'splitting adds and takes off nothing from spending');
+  const back = { id: 'r', personId: 'a', direction: 'credit', amount: 120000, date: '2026-09-12', accountId: 'bank' };
+  equal(personSpendEffects([dinner, back]).get('r'), -120000, 'a friend paying their part takes it off what was spent');
+  const sameDay = { ...back, id: '0-first', date: '2026-09-10' };
+  equal(personSpendEffects([dinner, sameDay]).get('0-first'), -120000, 'paying back on the day it was split still counts, whatever the ids sort like');
+  equal(peopleStanding([{ ...dinner, direction: 'credit' }], [{ id: 'a', name: 'A' }])[0].owed, 0, 'a received payment owes nothing');
+  equal(peopleStanding([{ ...dinner, isTransfer: true }], [{ id: 'a', name: 'A' }])[0].owed, 0, 'and neither does a move between your accounts');
+  equal(reminderAllText([{ name: 'Ravi Kumar', amount: 120000 }, { name: 'Meera', amount: 120000 }]), 'Hi all, a gentle reminder for what is still due: Ravi ₹1,200, Meera ₹1,200. Thank you!');
 });
 
 test('renewals: the next date steps a whole period on, keeps a 31st, and waits a few days after it passes', () => {

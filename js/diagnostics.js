@@ -232,6 +232,8 @@ export async function buildDiagnosticReport(now = new Date(), describe = null) {
       // month's end, 5.21.1), and whose money it was (lent and borrowed, 5.20).
       countsFor: t.countsFor || undefined,
       personId: t.personId ? idFor('p', t.personId) : undefined,
+      // Who a payment was split with (7.25), by the same stand-in ids as above, so a report can show a split without a name.
+      friendShares: Array.isArray(t.friendShares) && t.friendShares.length ? t.friendShares.map((s) => ({ personId: idFor('p', s.personId), amount: s.amount })) : undefined,
       paysStatement: t.paysStatement ? `${idFor('a', String(t.paysStatement).split('|')[0])}|${String(t.paysStatement).split('|')[1] || ''}` : undefined,
       // The month History files it under, only when that is not the month of its date (the "For Nov" tag).
       filedFor: countsFor(t) !== t.date.slice(0, 7) ? countsFor(t) : undefined,

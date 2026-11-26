@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.25',
+    items: [
+      {
+        icon: 'history',
+        title: "Split a payment with friends",
+        text: "Paid a dinner or a trip for everyone? Open the payment in History and tap Split with friends: pick who was with you and Kawach splits it equally or by their own amounts. The whole bill still counts as spent, so Left to spend does not jump; each friend's part shows as owed to you on Accounts, and goes back on as they pay you. Remind all sends one message to everyone who still owes.",
+        guide: [{ view: 'transactions', target: '#txn-list', text: "Open a payment you made for others, then tap Split with friends. Each part shows as owed to you on Accounts." }],
+      },
+    ],
+  },
+  {
     version: '7.24',
     items: [
       {

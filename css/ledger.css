@@ -998,5 +998,47 @@ html:root[data-style="haven"] #tabs .nav-ind.is-ready { transition: transform 28
 .sm-switch[aria-checked="true"] .sm-tog::after { left: 23px; background: var(--lg-tide-ink); }
 .sm-said { margin: 0; font-size: 13px; color: var(--lg-ink2); text-align: center; }
 .sm-said:empty { display: none; }
+/* 7.25 Split a payment with friends: the sheet from History (values from the approved mockup 7.24-split). */
+.fs-back { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.5); }
+.fs-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 61; max-height: 94vh; overflow-y: auto; overscroll-behavior: contain; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--lg-s1); color: var(--lg-ink); border-radius: 20px 20px 0 0; box-shadow: 0 -1px 0 var(--lg-line); box-sizing: border-box; max-width: 640px; margin: 0 auto; }
+.fs-grip { width: 36px; height: 4px; margin: 0; border-radius: 2px; background: var(--lg-line); justify-self: center; }
+.fs-sheet h3 { margin: 0; font-size: 17px; font-weight: 600; color: var(--lg-ink); }
+.fs-sheet h3 small { display: block; margin-top: 2px; font-size: 13px; font-weight: 400; color: var(--lg-ink2); }
+.fs-lab { margin: 0; font-size: 13px; color: var(--lg-ink2); }
+.fs-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0; }
+.fs-chip { flex: none; min-height: 44px; padding: 0 14px 0 6px; border: 0; border-radius: 22px; background: var(--lg-s2); color: var(--lg-ink); font: inherit; font-size: 14px; display: flex; align-items: center; gap: 8px; box-shadow: inset 0 0 0 1px var(--lg-line); cursor: pointer; }
+.fs-chip i { font-style: normal; width: 28px; height: 28px; border-radius: 14px; display: grid; place-items: center; font-size: 12px; font-weight: 600; background: var(--lg-s3); color: var(--lg-ink2); }
+.fs-chip.on { background: var(--lg-tide-soft); color: var(--lg-tide); box-shadow: inset 0 0 0 2px var(--lg-tide); font-weight: 600; }
+.fs-chip.on i { background: var(--lg-tide); color: var(--lg-tide-ink); }
+.fs-chip.add { padding-left: 14px; color: var(--lg-ink2); }
+.fs-addrow { display: flex; gap: 8px; }
+.fs-addrow[hidden] { display: none; }
+.fs-addrow input { flex: 1; min-width: 0; min-height: 44px; }
+.fs-addgo { flex: none; min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px; background: var(--lg-s2); color: var(--lg-ink); font: inherit; font-size: 15px; font-weight: 600; box-shadow: inset 0 0 0 1px var(--lg-line); cursor: pointer; }
+.fs-seg { display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: 12px; background: var(--lg-s2); box-shadow: inset 0 0 0 1px var(--lg-line); }
+.fs-seg button { min-height: 44px; border: 0; border-radius: 10px; background: none; color: var(--lg-ink2); font: inherit; font-size: 14px; cursor: pointer; }
+.fs-seg button.on { background: var(--lg-s1); color: var(--lg-ink); font-weight: 600; box-shadow: 0 0 0 1px var(--lg-line); }
+.fs-list { display: grid; }
+.fs-row { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 4px 0; box-sizing: border-box; border-top: 1px solid var(--lg-line); }
+.fs-row:first-child { border-top: 0; }
+.fs-row b { flex: 1; min-width: 0; font-size: 15px; font-weight: 500; overflow-wrap: anywhere; }
+.fs-row span { font-size: 13px; color: var(--lg-ink2); }
+.fs-row em { font-style: normal; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fs-row.you b::after { content: ' · counts as your spending'; font-weight: 400; font-size: 13px; color: var(--lg-ink2); }
+.fs-amt { width: 110px; min-height: 40px; box-sizing: border-box; padding: 0 10px; border: 0; border-radius: 10px; background: var(--lg-s2); color: var(--lg-ink); font: inherit; font-size: 15px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; box-shadow: inset 0 0 0 1px var(--lg-line); }
+.fs-note { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--lg-s2); font-size: 13px; line-height: 1.4; color: var(--lg-ink2); }
+.fs-note[hidden] { display: none; }
+.fs-note b { color: var(--lg-ink); font-weight: 600; }
+.fs-said { margin: 0; font-size: 13px; color: var(--lg-ink2); text-align: center; }
+.fs-said:empty { display: none; }
+.fs-go { position: sticky; bottom: 0; z-index: 1; box-shadow: 0 0 0 8px var(--lg-s1); width: 100%; min-height: 48px; border: 0; border-radius: 12px; background: var(--lg-tide); color: var(--lg-tide-ink); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.fs-go:disabled { background: var(--lg-s2); color: var(--lg-ink2); box-shadow: 0 0 0 8px var(--lg-s1), inset 0 0 0 1px var(--lg-line); cursor: default; }
+.fs-remove { min-height: 44px; border: 0; background: none; color: var(--lg-ink2); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; }
+/* On a 320 px phone the arrow of a person's line fell onto a line of its own under the amount. */
+.k .people-sec .account-row { flex-wrap: nowrap; }
+.k .people-sec .account-row .k-row__body { flex: 1; min-width: 0; }
+.k .people-sec .account-row .account-row__chev { flex: none; }
+.people-remind-all { width: 100%; min-height: 48px; margin-top: 10px; border: 0; border-radius: 12px; background: var(--lg-s2); color: var(--lg-ink); font: inherit; font-size: 15px; font-weight: 600; box-shadow: inset 0 0 0 1px var(--lg-line); cursor: pointer; }
+@media (prefers-reduced-motion: no-preference) { .fs-sheet { animation: ps-up 0.22s ease-out 1; } }
 @media (prefers-reduced-motion: no-preference) { .sm-sheet { animation: ps-up 0.22s ease-out 1; } }
 @media (prefers-reduced-motion: no-preference) { #plan-add-sheet .ps-sheet { animation: ps-up 0.22s ease-out 1; } @keyframes ps-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } } }

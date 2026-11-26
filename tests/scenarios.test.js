@@ -1729,6 +1729,32 @@ test('lent and borrowed: a loan comes off, money back goes on in its own month, 
   equal(after.people.find((s) => s.person.id === 'meena').owed, 0);
 });
 
+// 7.25: a dinner paid for four, split with friends. The whole bill was spent, so Left to spend does not move when it is split;
+// each friend now owes their part, and it goes back on only as each one pays (the same rule as money lent, never twice).
+test('split a payment with friends: nothing moves when it is split, each part goes back on as it is paid', async () => {
+  await seedPeople();
+  const dinner = (extra = {}) => txn({ id: 'dinner', accountId: 'bank', date: '2026-09-10', amount: 4800, rawDescription: 'UPI-TOIT-1', ...extra });
+  await putAll('transactions', [dinner()]);
+  const whole = await computeFreeToSpend(day('2026-09-20'));
+  await putAll('transactions', [dinner({ friendShares: [{ personId: 'ravi', amount: rupees(1200) }, { personId: 'meena', amount: rupees(1200) }] })]);
+  const split = await computeFreeToSpend(day('2026-09-20'));
+  equal(split.free, whole.free, 'splitting changes nothing about what is left');
+  equal(split.spentThisCycle, whole.spentThisCycle, 'the whole bill is still what was spent');
+  equal(split.people.map((s) => [s.person.id, s.owed]), [['ravi', rupees(1200)], ['meena', rupees(1200)]], 'each friend owes their part');
+  equal(split.people[0].entries[0].fromId, 'dinner', 'and it says which payment it was');
+
+  await putAll('transactions', [fromPerson('back1', 'ravi', '2026-09-15', 1200)]);
+  const paid = await computeFreeToSpend(day('2026-09-20'));
+  equal(paid.free, whole.free + rupees(1200), 'Ravi paying his part puts it back on');
+  equal(paid.people.map((s) => [s.person.id, s.owed]), [['ravi', 0], ['meena', rupees(1200)]], 'and he owes nothing, Meena still does');
+  equal((await computeFreeToSpend(day('2026-09-12'))).free, whole.free, 'before he pays, the day before is as it was');
+
+  // A split only means something on money you paid out: made a received payment or a move, it is ignored.
+  await putAll('transactions', [dinner({ direction: 'credit', friendShares: [{ personId: 'ravi', amount: rupees(1200) }] })]);
+  const credit = await computeFreeToSpend(day('2026-09-20'));
+  equal(credit.people.find((s) => s.person.id === 'meena').owed, 0, 'a received payment owes nothing to anyone');
+});
+
 test('lent and borrowed: paying more than you owe lends the rest; cash moves only the debt', async () => {
   await seedPeople();
   const base = await computeFreeToSpend(day('2026-09-20'));

@@ -17,7 +17,7 @@ import { detectTransfers } from '../transfers.js';
 import { icon } from '../icons.js';
 import { brandMark } from '../brand.js';
 import { havenAccounts, softRedraw } from '../haven-ui.js';
-import { reminderText, updatePerson, shareReminder } from '../people.js';
+import { reminderText, reminderAllText, updatePerson, shareReminder } from '../people.js';
 import { allocationRing, tickGauge } from '../charts.js';
 import { appearance, setAppearance } from '../appearance.js';
 import { sortAccounts, sortPicker, flipOrder } from '../list-order.js';
@@ -812,7 +812,8 @@ function peopleGroup(standing, accounts) {
   const today = isoLocal(new Date());
   const late = (s) => s.owed > 0 && s.person.backBy && s.person.backBy < today;
   const order = (s) => (late(s) ? 0 : s.owed > 0 ? 1 : 2);
-  const toYou = open.filter((s) => s.owed > 0).reduce((t, s) => t + s.owed, 0);
+  const owing = open.filter((s) => s.owed > 0);
+  const toYou = owing.reduce((t, s) => t + s.owed, 0);
   const youOwe = open.filter((s) => s.owed < 0).reduce((t, s) => t - s.owed, 0);
   const accountName = (id) => accounts.find((a) => a.id === id)?.label || 'Cash';
   const rows = [...open].sort((a, b) => order(a) - order(b) || (a.since < b.since ? -1 : 1)).map((s) => {
@@ -832,10 +833,10 @@ function peopleGroup(standing, accounts) {
             .map(
               (t) => `<div class="k-row account-recent-row">
                 <span class="k-row__body">
-                  <span class="k-row__title">${t.direction === 'debit' ? 'Gave' : 'Got'}, ${escapeHtml(accountName(t.accountId))}</span>
+                  <span class="k-row__title">${t.isFriendShare ? `Their part of ${escapeHtml(displayName(t.rawDescription))}` : `${t.direction === 'debit' ? 'Gave' : 'Got'}, ${escapeHtml(accountName(t.accountId))}`}</span>
                   <span class="k-row__meta">${formatDateNice(t.date)}</span>
                 </span>
-                <span class="k-row__value ${t.direction === 'credit' ? 'in' : 'out'}">${t.direction === 'credit' ? '+' : '−'}${formatRupees(t.amount)}</span>
+                <span class="k-row__value ${t.isFriendShare ? '' : t.direction === 'credit' ? 'in' : 'out'}">${t.isFriendShare ? '' : t.direction === 'credit' ? '+' : '−'}${formatRupees(t.amount)}</span>
               </div>`
             )
             .join('')}</div>
@@ -871,6 +872,12 @@ function peopleGroup(standing, accounts) {
         ${youOwe ? `<div><span>You owe</span><b>${cover(formatRupees(youOwe))}</b></div>` : ''}
       </div>
       <div class="account-group k-pane k-pane--quiet">${rows.join('')}</div>
+      ${
+        // One message for everyone who owes (a split dinner), so nobody is reminded in a chat of their own.
+        owing.length > 1
+          ? `<button type="button" class="people-remind-all" data-text="${escapeAttr(reminderAllText(owing.map((s) => ({ name: s.person.name, amount: s.owed }))))}">Remind all ${owing.length}</button>`
+          : ''
+      }
     </section>`;
 }
 
@@ -898,7 +905,7 @@ function wirePeople(container) {
       );
     })
   );
-  container.querySelectorAll('.person-remind').forEach((btn) => btn.addEventListener('click', () => shareReminder(btn.dataset.text)));
+  container.querySelectorAll('.person-remind, .people-remind-all').forEach((btn) => btn.addEventListener('click', () => shareReminder(btn.dataset.text)));
 }
 
 /* One account, as one row.

@@ -3,7 +3,8 @@ import { holdFocus } from '../overlay.js';
 import { isMoney, paiseFrom } from '../records.js';
 import { countsFor, nextMonthKey, salaryLike, monthKeyOf } from '../spending-month.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
-import { personNamed } from '../people.js';
+import { personNamed, friendShareEvents } from '../people.js';
+import { openSplitSheet } from '../split-sheet.js';
 import { learnFromAssignment, fitsDirection, isIncomeCategory } from '../merchant-rules.js';
 import { filingSwipe } from '../haven-life.js';
 import { formatCurrency, formatRupees, formatMonthYear, formatDateNice } from '../format.js';
@@ -1104,6 +1105,8 @@ function subHtml(t) {
       ? `<span class="hist-tag hist-tag--in">For ${formatMonthYear(`${countsFor(t)}-01`).split(' ')[0]}</span>`
     : person
       ? `<span class="hist-tag${t.direction === 'credit' ? ' hist-tag--in' : ''}">${escapeHtml(person.name)}</span>`
+    : friendShareEvents([t]).length
+      ? `<span class="hist-tag">Split ${friendShareEvents([t]).length + 1} ways</span>`
     : t.direction === 'debit' && t.isReimbursable
       ? '<span class="hist-tag">Owed back</span>'
       : t.direction === 'credit' && t.isSettlement
@@ -1206,6 +1209,7 @@ function expandedTemplate(t) {
       <div class="hist-actions">
         <div class="hist-actions__more">
           <button type="button" class="link-btn txn-split-btn">${split ? 'Edit split' : 'Split'}</button>
+          ${canSplitWithFriends(t) ? `<button type="button" class="link-btn txn-friends-btn">${friendShareEvents([t]).length ? 'Edit friends split' : 'Split with friends'}</button>` : ''}
           ${cardBill(t) ? '' : `<button type="button" class="link-btn review-transfer-toggle">${t.isTransfer ? 'Counts as spending' : 'Moved, not spent'}</button>`}
           <button type="button" class="link-btn danger txn-delete">Delete</button>
         </div>
@@ -1380,6 +1384,12 @@ function salaryMonthField(t) {
       <input type="checkbox" class="rv-field" data-field="countsNext" ${t.countsFor === next ? 'checked' : ''}>
       <span>Count in ${monthName(next)}</span>
     </label>`;
+}
+
+// A payment you made that someone shared (7.25): money out, not a move, not already one person's, not on a business account.
+function canSplitWithFriends(t) {
+  const account = cache.accounts.find((a) => a.id === t.accountId);
+  return t.direction === 'debit' && !t.isTransfer && !t.personId && !cardBill(t) && !(account && isBusinessAccount(account));
 }
 
 // NEW (5.20): lent to or borrowed from a person. A name typed here, or one
@@ -1874,6 +1884,29 @@ async function handleClick(e, container) {
       row.scrollIntoView({ block: 'nearest' });
     }
     showToast(`Saved ${t.direction === 'debit' ? '-' : '+'}${formatRupees(t.amount)}`);
+    return;
+  }
+
+  if (e.target.closest('.txn-friends-btn')) {
+    const was = Array.isArray(t.friendShares) ? t.friendShares : null;
+    const keep = async (next) => {
+      if (next) t.friendShares = next;
+      else delete t.friendShares;
+      await save(t);
+      renderList(container);
+    };
+    openSplitSheet({
+      t,
+      title: displayName(t.rawDescription),
+      people: cache.people,
+      apply: async (shares) => {
+        await keep(shares);
+        showToast(shares ? `Split ${shares.length + 1} ways: ${formatRupees(shares.reduce((s, x) => s + x.amount, 0))} owed to you` : 'Split removed', {
+          ms: 6000,
+          action: { label: 'Undo', run: () => keep(was) },
+        });
+      },
+    });
     return;
   }
 

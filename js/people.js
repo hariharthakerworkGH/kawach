@@ -27,16 +27,47 @@
 import { getSetting, setSetting, newId } from './db.js';
 import { showToast } from './toast.js';
 
-const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : String(a.id) < String(b.id) ? -1 : 1);
+// On one day a split goes first: a friend paying back the same day it was split is paying what they now owe.
+const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : Boolean(a.isFriendShare) !== Boolean(b.isFriendShare) ? (a.isFriendShare ? -1 : 1) : String(a.id) < String(b.id) ? -1 : 1);
 
 export const isPersonMoney = (t) => Boolean(t.personId) && !t.isTransfer;
+
+/* Split with friends (7.25): a payment you made for several people carries `friendShares`, [{ personId, amount }], the part
+ * each of them owes you. It is not a second payment, so no balance, category or total ever sees it: it only moves where each
+ * person stands. It means something only on money you paid out, so a payment later turned into money received, a move, or
+ * someone's own money, shows nothing. The whole bill stays what you spent; each part goes back on as that friend pays. */
+export function friendShareEvents(transactions) {
+  const out = [];
+  for (const t of transactions) {
+    if (t.direction !== 'debit' || t.isTransfer || t.personId || !Array.isArray(t.friendShares)) continue;
+    for (const s of t.friendShares) {
+      // A part that came in from a backup or a sync damaged is skipped, never counted as a guess.
+      if (!s || typeof s.personId !== 'string' || !Number.isFinite(s.amount) || s.amount <= 0) continue;
+      out.push({ id: `${t.id}#${s.personId}`, fromId: t.id, isFriendShare: true, personId: s.personId, direction: 'debit', amount: s.amount, date: t.date, accountId: t.accountId, merchant: t.merchant, rawDescription: t.rawDescription });
+    }
+  }
+  return out;
+}
+
+/* Everyone's equal part of `amount` when you and `personIds.length` friends split it: whole paise, and the odd paisa is yours. */
+export function equalShares(amount, personIds) {
+  const each = Math.floor(amount / (personIds.length + 1));
+  return personIds.map((personId) => ({ personId, amount: each }));
+}
+
+/* The one message for everyone who still owes: [{ name, amount }]. */
+export function reminderAllText(owing) {
+  const money = (n) => `₹${(n / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  const first = (n) => String(n || '').trim().split(/\s+/)[0] || '';
+  return `Hi all, a gentle reminder for what is still due: ${owing.map((o) => `${first(o.name)} ${money(o.amount)}`).join(', ')}. Thank you!`;
+}
 
 /* Each person's standing: what they owe you (below nothing: what you owe
  * them), every payment between you, newest first, and the day the present
  * debt began, whichever way it runs. */
 export function peopleStanding(transactions, people = []) {
   const out = new Map(people.map((p) => [p.id, { person: p, owed: 0, entries: [], since: null }]));
-  for (const t of transactions.filter(isPersonMoney).sort(byDate)) {
+  for (const t of [...transactions.filter(isPersonMoney), ...friendShareEvents(transactions)].sort(byDate)) {
     if (!out.has(t.personId)) continue;
     const s = out.get(t.personId);
     const before = s.owed;
@@ -56,9 +87,14 @@ export function peopleStanding(transactions, people = []) {
 export function personSpendEffects(transactions, counts = () => true) {
   const owed = new Map();
   const effects = new Map();
-  for (const t of transactions.filter(isPersonMoney).sort(byDate)) {
+  for (const t of [...transactions.filter(isPersonMoney), ...friendShareEvents(transactions)].sort(byDate)) {
     const b = owed.get(t.personId) || 0;
     let effect;
+    if (t.isFriendShare) {
+      // Their part of a bill you paid whole: they owe it now, and spending changes only as they pay (below).
+      owed.set(t.personId, b + t.amount);
+      continue;
+    }
     if (t.direction === 'debit') {
       // What you owed them is paid back first; the rest is a loan.
       effect = t.amount - Math.min(t.amount, Math.max(0, -b));
