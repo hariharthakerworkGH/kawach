@@ -814,7 +814,7 @@ function renderGroup(title, accounts, transactions, importBatches, editingAccoun
   if (!accounts || accounts.length === 0) return '';
   return `
     <section class="account-group-sec">
-      <h3 class="account-group-label">${title}</h3>
+      <h3 class="account-group-label"><span>${title}</span><span class="account-group-n">${accounts.length}</span></h3>
       <div class="account-group k-pane k-pane--quiet">
       ${accounts
         .map((a, i) =>

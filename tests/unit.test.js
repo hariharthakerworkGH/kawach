@@ -2416,14 +2416,14 @@ test('the hero chart: a bar for each day, hatching for money not from the budget
   equal(heroChart({ ...f, limit: 0 }, true), '', 'no budget, no chart');
   // every column, even a tiny one, stands on the line under the money-left line: no column's foot is lower than it
   const big = { ...f, spendByDay: [{ date: '2026-10-01', amount: 0, other: 6800000 }, { date: '2026-10-02', amount: 20000, other: 150 }, { date: '2026-10-03', amount: 40, other: 900 }] };
-  const baseY = Number([...heroChart(big, true).matchAll(/<line x1="8" y1="([\d.]+)" x2="326" y2="[\d.]+" stroke="rgba\(255,255,255,\.25\)"/g)].map((m) => m[1]).pop());
+  const baseY = Number([...heroChart(big, true).matchAll(/<line x1="8" y1="([\d.]+)" x2="326" y2="[\d.]+" stroke="var\(--lg-line2\)"/g)].map((m) => m[1]).pop());
   const feet = [...heroChart(big, true).matchAll(/<rect x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="([\d.]+)" rx="1.5"/g)].map((m) => Number(m[1]) + Number(m[2]));
   ok(baseY > 0 && feet.length >= 4 && feet.every((foot) => foot <= baseY + 0.06), `a column's foot sank below the line: ${JSON.stringify({ baseY, feet })}`);
   // one huge day (an EMI) is cut with a zigzag top and a slanted gap, and does not flatten the ordinary days
   const six = { ...f, limit: 1000000, spendDays: [100, 300, 450, 570, 750, 820], daysIntoCycle: 6, spendByDay: [100, 200, 150, 120, 180, 70].map((a, i) => ({ date: `2026-10-0${i + 1}`, amount: a * 100, other: i === 0 ? 6800000 : 0 })) };
   const cutSvg = heroChart(six, true);
-  ok((cutSvg.match(/l[\d.]+ -4 /g) || []).length === 3 && cutSvg.includes('rgba(10,24,60,.95)'), 'the day that passes the ceiling is cut: a zigzag top and a gap');
-  const heights = [...cutSvg.matchAll(/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)" rx="1.5" fill="#7FEBDD"/g)].map((m) => Number(m[1]));
+  ok((cutSvg.match(/l[\d.]+ -4 /g) || []).length === 3 && cutSvg.includes('stroke="var(--lg-s1)" stroke-width="2.2"'), 'the day that passes the ceiling is cut: a zigzag top and a gap');
+  const heights = [...cutSvg.matchAll(/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)" rx="1.5" fill="var\(--lg-tide\)"/g)].map((m) => Number(m[1]));
   ok(heights.length === 6 && Math.min(...heights) > 6, `ordinary days stay readable beside the big one: ${JSON.stringify(heights)}`);
 });
 
@@ -2439,8 +2439,8 @@ test('the hero chart: money left falls from the whole budget, then runs dashed t
     perDay: 90000,
     free: 2400000,
   };
-  const dashed = (svg) => (svg.match(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)" stroke="rgba\(255,255,255,\.75\)" stroke-width="1\.3" stroke-dasharray="4 4"\/>/) || []).slice(1).map(Number);
-  const lastPoint = (svg) => [...(svg.match(/<path d="([^"]+)" fill="none" stroke="#7FEBDD"/) || [])[1].matchAll(/L([\d.]+) ([\d.]+)/g)].pop().slice(1, 3).map(Number);
+  const dashed = (svg) => (svg.match(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)" stroke="var\(--lg-ink2\)" stroke-width="1\.3" stroke-dasharray="4 4"\/>/) || []).slice(1).map(Number);
+  const lastPoint = (svg) => [...(svg.match(/<path d="([^"]+)" fill="none" stroke="var\(--lg-tide\)"/) || [])[1].matchAll(/L([\d.]+) ([\d.]+)/g)].pop().slice(1, 3).map(Number);
   const under = heroChart(f, true);
   const [x1, y1, x2, y2] = dashed(under);
   const [tx, ty] = lastPoint(under);
@@ -2471,12 +2471,12 @@ test('the hero chart: the owner\'s month reads as in the mockup, and the big day
   const svg = heroChart(f, true);
   const words = (svg.match(/<text[^>]*>[^<]*<\/text>/g) || []).map((t) => t.replace(/<[^>]*>/g, ''));
   for (const w of ['₹13,542 on day 1', '₹1,980 left today', '₹0 on day 30', 'An even day is ₹451', '₹73 a day from here', '₹10,717']) ok(words.includes(w), `the label "${w}" is on the chart: ${JSON.stringify(words)}`);
-  const amber = svg.match(/<text x="([\d.]+)" y="([\d.]+)"[^>]*fill="#F4B541">₹10,717</);
+  const amber = svg.match(/<text x="([\d.]+)" y="([\d.]+)"[^>]*fill="var\(--lg-amber\)">₹10,717</);
   ok(amber && Number(amber[2]) - 10.5 - 58 >= 7, `the amber label sits at least 7px under the line chart's floor: ${amber && amber[2]}`);
-  ok(/<path d="M[\d.]+ 112\.0 V[\d.]+ (l[\d.]+ -4 l[\d.]+ 4 ){3}V112\.0 Z" fill="#F4B541"/.test(svg), 'the big day is a cut amber column');
+  ok(/<path d="M[\d.]+ 112\.0 V[\d.]+ (l[\d.]+ -4 l[\d.]+ 4 ){3}V112\.0 Z" fill="var\(--lg-amber\)"/.test(svg), 'the big day is a cut amber column');
   // late in a month the labels turn round or give way rather than run off the edge or onto each other
   const late = heroChart({ ...f, spendDays: Array.from({ length: 28 }, (_, i) => 1000000 + i * 10000), spendByDay: Array.from({ length: 28 }, (_, i) => ({ date: `2026-11-${String(i + 1).padStart(2, '0')}`, amount: i ? 10000 : 1000000, other: 0 })), daysIntoCycle: 28, daysToClose: 3, perDay: 20000 }, true);
-  ok(/text-anchor="end" fill="#fff">₹[\d,]+ left today</.test(late) && !/ on day 30</.test(late.replace(/>₹[\d,]+ on day 1</, '')), 'late in the month: today\'s label turns left and the last-day label gives way');
+  ok(/text-anchor="end" fill="var\(--lg-ink\)">₹[\d,]+ left today</.test(late) && !/ on day 30</.test(late.replace(/>₹[\d,]+ on day 1</, '')), 'late in the month: today\'s label turns left and the last-day label gives way');
   const first = heroChart({ ...f, spendDays: [10000], spendByDay: [{ date: '2026-11-01', amount: 10000, other: 0 }], daysIntoCycle: 1, daysToClose: 30, perDay: 44500 }, true);
   ok(!first.includes(' on day 1<') && first.includes('left today'), 'a month only just begun: the first label gives way to today\'s, they are never on each other');
 });

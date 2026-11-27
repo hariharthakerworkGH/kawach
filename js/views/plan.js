@@ -446,11 +446,12 @@ export async function render(container) {
     if (editingId) layer = 'costs';
     if (addingBudget) layer = 'budget';
     if (addingGoal) layer = 'goals';
-    const plural = (n, one, many) => (n ? `${n} ${n === 1 ? one : many}` : 'none yet');
+    // Short counts beside the part names (8.0: "Costs · 8"); the budget figure is on the screen's own card, so Budget carries none.
+    const count = (n) => (n ? String(n) : '');
     const showLayer = layerPlan(container, {
-      costs: plural(fixed.length + loanItems.length, 'item', 'items'),
-      budget: budget == null ? 'set income' : budget < 0 ? `${formatRupees(-budget)} over` : `${formatRupees(budget)} free`,
-      goals: plural(goals.length, 'goal', 'goals'),
+      costs: count(fixed.length + loanItems.length),
+      budget: '',
+      goals: count(goals.length),
     });
     // Show me (js/guide.js) asks for a part when the thing it points at is in one that is out of sight.
     if (container._plLayer) container.removeEventListener('plan-layer', container._plLayer);
@@ -1162,7 +1163,7 @@ function layerPlan(container, counts) {
   bar.id = 'plan-layers';
   bar.setAttribute('role', 'group');
   bar.setAttribute('aria-label', 'Parts of Plan');
-  bar.innerHTML = LAYERS.map(([key, name]) => `<button type="button" data-layer-tab="${key}" aria-pressed="false">${name}<small>${escapeHtml(counts[key])}</small></button>`).join('');
+  bar.innerHTML = LAYERS.map(([key, name]) => `<button type="button" data-layer-tab="${key}" aria-pressed="false">${name}${counts[key] ? `<small>${escapeHtml(counts[key])}</small>` : ''}</button>`).join('');
   container.insertBefore(bar, kids.find((n) => layers.get(n)) || null);
   const show = (name) => {
     layer = LAYERS.some(([key]) => key === name) ? name : 'costs';

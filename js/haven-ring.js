@@ -4,8 +4,9 @@ import { escapeHtml as esc } from './ui.js';
 const R = 42;
 const CIRC = 2 * Math.PI * R;
 const GAP = 2;
-const TONES = ['#4B7BE5', '#3FD8C6', '#F4B541', '#62E3A5', '#FF8080'];
-const OTHER = '#8392AD';
+// The look's own six chart colours (css/v8.css), so the ring follows Night and Day.
+const TONES = ['var(--lg-c1)', 'var(--lg-c2)', 'var(--lg-c3)', 'var(--lg-c4)', 'var(--lg-c5)'];
+const OTHER = 'var(--lg-c6)';
 const inr = (paise) => `₹${Math.round(Math.abs(paise) / 100).toLocaleString('en-IN')}`;
 // The middle of the ring: the amount, shrunk until it fits the hole (about 62px) whatever its length: ₹2,73,170 is wider than ₹66,197.
 const mid = (paise, label) => {

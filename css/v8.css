@@ -1,0 +1,242 @@
+/* Kawach 8.0: the look shown in mockups/8.0-full (index.html), built from that file's own values.
+ *
+ * This is the last stylesheet loaded. It keeps every hook the Ledger layer (ledger.css) and the older ones use, and changes only how things look:
+ * the night is "ink blue and ice" (palette C, picked by the owner on 27 Nov 2026), the day is paper and pine; type is Geist at 500 with small
+ * uppercase labels; cards are flat with a hairline; the hero is a plain card; accounts are a flat list under tabs; the dock is 62px.
+ * Every value comes from the --lg-* tokens below, which also feed the older --hv-*, --k-* and base tokens (ledger.css), so the screens the
+ * mockups do not show (Appearance, Categories, Policies ...) take the same colours.
+ */
+
+/* ---------------------------------------------------------------- tokens: night (palette C) and day */
+html:root[data-style="haven"][data-colour="haven-night"] {
+  --lg-bg: #090d17; --lg-dock: #090d17; --lg-s1: #101626; --lg-s2: #171f33; --lg-s3: #1f2942; --lg-line: rgba(200, 215, 255, 0.08); --lg-line2: rgba(200, 215, 255, 0.17);
+  --lg-ink: #e9eef8; --lg-ink2: #a0aac0; --lg-ink3: #8791a8;
+  --lg-tide: #9cc4ff; --lg-tide-ink: #08101f; --lg-tide-soft: rgba(156, 196, 255, 0.14);
+  --lg-amber: #e0b76a; --lg-amber-soft: rgba(224, 183, 106, 0.16); --lg-coral: #f29a8c; --lg-coral-soft: rgba(242, 154, 140, 0.14);
+  --lg-ok: #7fd1b0; --lg-ok-soft: rgba(127, 209, 176, 0.14); --lg-hero1: #101626; --lg-hero2: #101626; --lg-scrim: rgba(3, 5, 12, 0.62);
+  --lg-blue: #8c9cf0; --lg-seg-on-line: rgba(200, 215, 255, 0.07);
+  --lg-c1: #6fb2d8; --lg-c2: #e0b76a; --lg-c3: #e07a72; --lg-c4: #8c9cf0; --lg-c5: #cdd8ee; --lg-c6: #7a849b;
+}
+html:root[data-style="haven"][data-colour="haven-day"] {
+  --lg-bg: #f5f3ec; --lg-dock: #f5f3ec; --lg-s1: #fffefa; --lg-s2: #ebe8dd; --lg-s3: #fffefa; --lg-line: rgba(20, 32, 27, 0.09); --lg-line2: rgba(20, 32, 27, 0.18);
+  --lg-ink: #13201a; --lg-ink2: #4a554e; --lg-ink3: #5f6a63;
+  --lg-tide: #1f4a3a; --lg-tide-ink: #f5f3ec; --lg-tide-soft: rgba(31, 74, 58, 0.12);
+  --lg-amber: #84621a; --lg-amber-soft: rgba(168, 131, 47, 0.16); --lg-coral: #9a4038; --lg-coral-soft: rgba(154, 64, 56, 0.10);
+  --lg-ok: #2d6b4e; --lg-ok-soft: rgba(45, 107, 78, 0.12); --lg-hero1: #fffefa; --lg-hero2: #fffefa; --lg-scrim: rgba(19, 32, 26, 0.34);
+  --lg-blue: #46618a; --lg-seg-on-line: rgba(20, 32, 27, 0.10);
+  --lg-c1: #2f6b52; --lg-c2: #a8832f; --lg-c3: #9a4038; --lg-c4: #46618a; --lg-c5: #b9ad8a; --lg-c6: #7b837d;
+}
+
+/* ---------------------------------------------------------------- the page, the header, the dock */
+html:root[data-style="haven"] body { font-feature-settings: "tnum", "lnum"; }
+html:root[data-style="haven"] .view-container.k { padding-inline: 16px; }
+html:root[data-style="haven"] body { padding-bottom: calc(62px + env(safe-area-inset-bottom) + 28px); }
+html:root[data-style="haven"] body .app-header #view-title, html:root[data-style="haven"] body .app-header h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 4px 0 2px; }
+html:root[data-style="haven"] .hv-hdr__hi { font-size: 11.5px; }
+html:root[data-style="haven"] .app-header { padding-inline: 16px; }
+/* the buttons in the sky: one small group, a hairline between them */
+.lg-tools { height: 34px; border-radius: 12px; background: color-mix(in srgb, var(--lg-s1) 80%, transparent); }
+.lg-tools > button, .lg-tools > .lg-tool { width: 36px; height: 34px; }
+.lg-tools > button:first-child { border-radius: 12px 0 0 12px; }
+.lg-tools > button:last-child { border-radius: 0 12px 12px 0; }
+.lg-tools > button:only-child { border-radius: 12px; }
+.lg-tools .icon, .lg-tool .icon { width: 16px; height: 16px; }
+.lg-back { width: 34px; height: 34px; border-radius: 50%; background: var(--lg-s1); }
+.lg-coach { height: 34px; border-radius: 12px; font-size: 12.5px; font-weight: 500; background: color-mix(in srgb, var(--lg-s1) 80%, transparent); }
+
+html:root[data-style="haven"] #tabs.bottom-nav { height: calc(62px + env(safe-area-inset-bottom)); grid-template-columns: repeat(2, minmax(0, 1fr)) 64px repeat(2, minmax(0, 1fr)); background: var(--lg-bg); }
+html:root[data-style="haven"] #tabs .nav-btn { height: 62px; gap: 3px; font-size: 10.5px; font-weight: 500; color: var(--lg-ink3); }
+html:root[data-style="haven"] #tabs .nav-btn > span:not(.nav-icon) { font-size: 10.5px; font-weight: 500; }
+html:root[data-style="haven"] #tabs .nav-btn.active { color: var(--lg-ink); }
+html:root[data-style="haven"] #tabs .nav-btn.active .nav-icon { color: var(--lg-tide); }
+html:root[data-style="haven"] #tabs .nav-btn .nav-icon { width: 20px; height: 20px; }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"] { min-height: 62px; }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"] .nav-icon { width: 40px; height: 40px; border-radius: 13px; }
+html:root[data-style="haven"] #tabs .nav-btn[data-view="add"] .nav-icon svg { width: 20px; height: 20px; stroke-width: 1.8; }
+
+/* ---------------------------------------------------------------- the parts */
+/* small uppercase labels: a section's name, a figure's name */
+:root[data-style=haven] .k .section-head h3, :root[data-style=haven] .lg-sec h2, :root[data-style=haven] #view-container .section-head h3 { font-size: 10.5px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--lg-ink3); }
+:root[data-style=haven] .lg-card, :root[data-style=haven] .k .totals-card, :root[data-style=haven] .k .tl-card, :root[data-style=haven] .k .add-card { border-radius: 14px; }
+:root[data-style=haven] .lg-btn { height: 44px; font-weight: 500; font-size: 14px; }
+:root[data-style=haven] .lg-btn.sm { height: 34px; font-size: 13px; }
+:root[data-style=haven] .lg-btn.s { background: transparent; box-shadow: inset 0 0 0 1px var(--lg-line2); }
+:root[data-style=haven] .lg-btn.d { background: none; box-shadow: none; }
+:root[data-style=haven] .lg-tag { height: 24px; padding: 0 9px; border-radius: 8px; font-weight: 500; }
+:root[data-style=haven] .lg-count { border-radius: 6px; font-weight: 600; }
+
+/* segmented controls: a raised track, the lit one a surface with a hairline */
+:root[data-style=haven] .lg-seg { height: 36px; border-radius: 10px; box-shadow: none; }
+:root[data-style=haven] .lg-seg > button, :root[data-style=haven] .lg-seg > b { font-size: 13px; font-weight: 500; }
+:root[data-style=haven] .lg-seg > button::after { inset: -7px 0; }
+:root[data-style=haven] .lg-seg > .on { background: var(--lg-s1); box-shadow: 0 0 0 1px var(--lg-line); }
+:root[data-style=haven] .hv-addform .direction-toggle { height: 36px; border-radius: 10px; box-shadow: none; }
+:root[data-style=haven] .hv-addform .direction-toggle .dir-btn { height: 30px; font-size: 13px; font-weight: 500; }
+:root[data-style=haven] .hv-addform .direction-toggle .seg-pill, :root[data-style=haven] .k .has-pill .seg-pill { background: var(--lg-s1); box-shadow: 0 0 0 1px var(--lg-line); border-radius: 8px; }
+/* Plan's three parts are real 44px buttons (planadd.mjs measures the box, not a strip), so the track has no padding of its own */
+.pl-layers { gap: 0; padding: 0; background: var(--lg-s2); border-radius: 12px; box-shadow: none; }
+.pl-layers button { min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 500; border-radius: 8px; position: relative; }
+.pl-layers button::after { content: ""; position: absolute; inset: -7px 0; }
+.pl-layers button small { font-size: 13px; font-weight: 500; }
+.pl-layers button[aria-pressed=true] { background: var(--lg-s1); }
+:root[data-style=haven] .lg-card.hv-sum + .pl-layers, #plan-layers { margin-block: 12px 4px; }
+
+/* the month stepper: a small chip */
+:root[data-style=haven] .lg-stepper { height: 30px; border-radius: 9px; background: var(--lg-s1); box-shadow: inset 0 0 0 1px var(--lg-line2); color: var(--lg-ink); }
+:root[data-style=haven] .lg-stepper > button { width: 28px; height: 30px; color: var(--lg-ink2); }
+:root[data-style=haven] .lg-stepper > span { font-size: 12.5px; font-weight: 500; }
+:root[data-style=haven] .app-header #hist-month.hist-month { height: 30px; border-radius: 9px; box-shadow: inset 0 0 0 1px var(--lg-line2); background: var(--lg-s1); }
+:root[data-style=haven] .app-header #hist-month .hist-month-name { height: 30px; font-size: 12.5px; font-weight: 500; }
+:root[data-style=haven] .app-header #hist-month > button { height: 30px; width: 28px; }
+
+/* one tone of tile everywhere: raised, with an icon in the accent */
+:root[data-style=haven] .lg-ico, :root[data-style=haven] .lg-ico.t1, :root[data-style=haven] .lg-ico.t2, :root[data-style=haven] .lg-ico.t3, :root[data-style=haven] .lg-ico.t4, :root[data-style=haven] .lg-ico.t5,
+:root[data-style=haven][data-theme="light"] .lg-ico.t1, :root[data-style=haven][data-theme="light"] .lg-ico.t3, :root[data-style=haven][data-theme="light"] .lg-ico.t4, :root[data-style=haven][data-theme="light"] .lg-ico.t5 { width: 32px; height: 32px; border-radius: 10px; background: var(--lg-s2); color: var(--lg-tide); }
+:root[data-style=haven] .lg-row { grid-template-columns: 32px minmax(0, 1fr) auto; }
+:root[data-style=haven] .lg-row .n, :root[data-style=haven] .hist-row .hist-name, :root[data-style=haven] .lg-link .n { font-size: 14.5px; font-weight: 500; }
+:root[data-style=haven] .lg-row .amt, :root[data-style=haven] .hist-row .txn-amount { font-size: 14.5px; font-weight: 500; }
+:root[data-style=haven] .lg-row .n i, :root[data-style=haven] .lg-row .nm .m, :root[data-style=haven] .hist-row .hist-sub { font-size: 12px; color: var(--lg-ink3); }
+:root[data-style=haven] .hist-row .hist-main { grid-template-columns: 32px minmax(0, 1fr) auto; }
+:root[data-style=haven] .hv-lp + .hv-lp .lg-row::before, :root[data-style=haven] .hist-row + .hist-row::before, :root[data-style=haven] .lg-todo .todo-row + .todo-row::before { left: 44px; }
+:root[data-style=haven] .lg-pbar, :root[data-style=haven] .lg-edge { height: 4px; border-radius: 2px; }
+:root[data-style=haven] .lg-pbar > i { border-radius: 2px; }
+
+/* ---------------------------------------------------------------- Summary: the hero is a plain card */
+:root[data-style=haven] .lg-hero { padding: 14px 16px; border-radius: 14px; background: var(--lg-s1); color: var(--lg-ink); box-shadow: 0 0 0 1px var(--lg-line); }
+:root[data-style=haven] .lg-hero .r1 { height: 30px; }
+:root[data-style=haven] .lg-hero .lab { font-size: 10.5px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--lg-ink3); }
+:root[data-style=haven] .lg-hero .figrow { margin-top: 12px; }
+:root[data-style=haven] .lg-hero .hv-vault__fig, :root[data-style=haven] .lg-hero .hv-fig { font-size: 38px; font-weight: 500; letter-spacing: -0.03em; line-height: 1; }
+:root[data-style=haven] .lg-hero .hv-fig .hv-cur { font-size: 20px; font-weight: 400; opacity: 1; color: var(--lg-ink3); margin-right: 3px; }
+:root[data-style=haven] .lg-hero.is-negative .hv-num, :root[data-style=haven] .lg-hero.is-negative .hv-cur { color: var(--lg-coral); }
+:root[data-style=haven] .lg-hero .tide { width: 38px; height: 44px; }
+:root[data-style=haven] .lg-hero .tide:not([data-mood="watch"]):not([data-mood="low"]) { --hv-tide-a: var(--lg-tide); --hv-tide-b: var(--lg-tide); }
+:root[data-style=haven] .lg-hero .sub { margin-top: 10px; font-size: 13px; color: var(--lg-ink3); }
+:root[data-style=haven] .lg-hero .sub b { color: var(--lg-ink); font-weight: 500; }
+:root[data-style=haven] .lg-hero .lg-tag { background: var(--lg-s2); color: var(--lg-ink2); }
+:root[data-style=haven] .lg-hero .lg-tag.ok { background: var(--lg-ok-soft); color: var(--lg-ok); }
+:root[data-style=haven] .lg-hero .lg-tag.warn { background: var(--lg-amber-soft); color: var(--lg-amber); }
+:root[data-style=haven] .lg-hero .lg-tag.bad { background: var(--lg-coral-soft); color: var(--lg-coral); }
+:root[data-style=haven] .lg-hero .hv-vault__cap, :root[data-style=haven] .lg-hero .hv-vault__sleep, :root[data-style=haven] .lg-hero .hv-vault__bank { color: var(--lg-ink3); }
+:root[data-style=haven] .lg-hero .lg-chartbox { margin-top: 12px; }
+:root[data-style=haven] .lg-hero .lg-chartread { background: var(--lg-s3); color: var(--lg-ink); box-shadow: 0 0 0 1px var(--lg-line2); }
+:root[data-style=haven] .lg-hero .stats { margin-top: 12px; padding-top: 12px; border-top-color: var(--lg-line); }
+:root[data-style=haven] .lg-hero .stats > div + div { border-left-color: var(--lg-line); padding-left: 14px; }
+:root[data-style=haven] .lg-hero .stats span { font-size: 10.5px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--lg-ink3); }
+:root[data-style=haven] .lg-hero .stats b { margin-top: 4px; font-size: 17px; font-weight: 500; color: var(--lg-ink); }
+:root[data-style=haven] .lg-hero .hv-kept__chev { color: var(--lg-ink3); }
+:root[data-style=haven] .lg-hero .hv-kept__top { color: var(--lg-ink); }
+:root[data-style=haven] .lg-hero .hv-kept__left { color: var(--lg-ink3); }
+:root[data-style=haven] .lg-hero .hv-kept__track { background: var(--lg-s2); }
+:root[data-style=haven] .lg-hero .hv-kept__track i { background: var(--lg-tide); }
+:root[data-style=haven] .lg-hero .hv-kept__item.is-warn .hv-kept__track i { background: var(--lg-amber); }
+:root[data-style=haven] .lg-hero .hv-kept__item.is-over .hv-kept__track i { background: var(--lg-coral); }
+:root[data-style=haven] .lg-hero .hv-kept__used > summary { color: var(--lg-tide); }
+:root[data-style=haven] .lg-hero .closed-note { color: var(--lg-ink2); }
+:root[data-style=haven] .lg-hero .hv-streak { background: var(--lg-ok-soft); color: var(--lg-ok); }
+/* the goal strip, the Latest / To do card */
+:root[data-style=haven] .lg-goal__top { font-size: 14.5px; }
+:root[data-style=haven] .lg-goal__top > b { font-size: 14.5px; font-weight: 500; }
+:root[data-style=haven] .lg-act { padding: 12px 16px 0; }
+:root[data-style=haven] .lg-todo .todo-row, :root[data-style=haven] .lg-todo .need-row { grid-template-columns: 32px minmax(0, 1fr) auto; }
+:root[data-style=haven] .lg-todo .todo-text, :root[data-style=haven] .lg-todo .need-row__t { font-size: 14.5px; font-weight: 500; }
+:root[data-style=haven] .lg-todo .btn-tiny, :root[data-style=haven] .lg-todo select.assign-card, :root[data-style=haven] .lg-todo select.assign-lump, :root[data-style=haven] .lg-todo .btn-secondary { font-weight: 500; background: transparent; box-shadow: inset 0 0 0 1px var(--lg-line2); }
+:root[data-style=haven] .lg-todo .btn-tiny.primary { background: var(--lg-tide); color: var(--lg-tide-ink); box-shadow: none; }
+:root[data-style=haven] .lg-more, :root[data-style=haven] .lg-more--link { font-size: 13px; font-weight: 500; color: var(--lg-tide); }
+:root[data-style=haven] .k details.sum-more > summary .sum-more__t { font-size: 14.5px; font-weight: 500; }
+
+/* ---------------------------------------------------------------- Accounts: two figures, tabs, a flat list under small headings */
+:root[data-style=haven] .lg-hold { padding: 14px 16px; }
+:root[data-style=haven] .lg-hold__row { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+:root[data-style=haven] .lg-hold__row .r { text-align: left; border-left: 1px solid var(--lg-line); padding-left: 16px; }
+:root[data-style=haven] .lg-hold__row small { font-size: 10.5px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--lg-ink3); }
+:root[data-style=haven] .lg-hold__row b { margin-top: 6px; font-size: 23px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; }
+:root[data-style=haven] .lg-hold__row .r b { color: var(--lg-coral); }
+:root[data-style=haven] .lg-mbar { display: none; }
+:root[data-style=haven] .hv-filter.lg-seg { display: flex; gap: 2px; margin: 12px 0 0; padding: 0 0 0 0; height: auto; border-radius: 0; background: none; border-bottom: 1px solid var(--lg-line); }
+:root[data-style=haven] .hv-filter.lg-seg > [data-f] { flex: none; height: 38px; padding: 0 10px; border-radius: 0; font-size: 13.5px; font-weight: 500; color: var(--lg-ink3); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+:root[data-style=haven] .hv-filter.lg-seg > [data-f].on { background: none; box-shadow: none; color: var(--lg-ink); border-bottom-color: var(--lg-tide); }
+:root[data-style=haven] .hv-filter.lg-seg > [data-f]:first-child { margin-left: -10px; }
+:root[data-style=haven] .hv-filter.lg-seg > [data-f]::after { inset: -3px 0; }
+:root[data-style=haven] .lg-acclist { margin: 6px 0 0; background: none; box-shadow: none; border-radius: 0; overflow: visible; }
+:root[data-style=haven] .lg-acclist .account-group-sec + .account-group-sec { margin-top: 10px; }
+:root[data-style=haven] #view-container .lg-acclist .account-group-label { display: block; margin: 10px 0 0; padding: 0; font-size: 10.5px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--lg-ink3); }
+:root[data-style=haven] .lg-acclist .account-block::before { left: 0; }
+:root[data-style=haven] #view-container .lg-acclist .account-group-label { display: flex; justify-content: space-between; }
+:root[data-style=haven] .lg-acclist .account-row .account-balance.out { color: var(--lg-coral); }
+:root[data-style=haven] .pl-layers button small::before { content: "· "; }
+:root[data-style=haven] .lg-acclist .account-block .k-row.account-row, :root[data-style=haven] .lg-acclist .account-block .account-row { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 0 8px; min-height: 0; }
+:root[data-style=haven] .lg-acclist .account-row > .lg-ico { display: none; }
+:root[data-style=haven] .lg-acclist .account-row .k-row__title { font-size: 15px; font-weight: 500; }
+:root[data-style=haven] .lg-acclist .account-row .k-row__meta { font-size: 12.5px; color: var(--lg-ink3); }
+:root[data-style=haven] .lg-acclist .account-row .account-balance, :root[data-style=haven] .lg-acclist .account-row .k-row__value { font-size: 15px; font-weight: 500; }
+:root[data-style=haven] .lg-acclist .account-block.is-open { margin: 8px 0; padding: 2px 14px 12px; border-radius: 14px; background: var(--lg-s1); box-shadow: 0 0 0 1px var(--lg-line2); }
+:root[data-style=haven] .lg-acclist .account-block.is-open::before { display: none; }
+:root[data-style=haven] .lg-acclist .account-block > .account-detail { padding: 2px 0 8px; background: none; }
+:root[data-style=haven] .lg-acclist .account-see-all, :root[data-style=haven] .lg-acclist .account-actions-inline .k-btn { font-weight: 500; }
+:root[data-style=haven] .lg-acclist .account-actions-inline .k-btn { background: transparent; box-shadow: inset 0 0 0 1px var(--lg-line2); }
+
+/* ---------------------------------------------------------------- Plan, History */
+:root[data-style=haven] .lg-month__h h2, :root[data-style=haven] .pl-top .tl-k, :root[data-style=haven] .plan-sums__head, :root[data-style=haven] #view-container .plan-sums .plan-sums__head { font-size: 10.5px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--lg-ink3); }
+:root[data-style=haven] .hv-sum__keys > button > span { font-size: 10.5px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--lg-ink3); }
+:root[data-style=haven] .hv-sum__keys > button > b, :root[data-style=haven] .pl-legend em b, :root[data-style=haven] .lg-m b { font-size: 15px; font-weight: 500; }
+:root[data-style=haven] .pl-top .tl-big { font-size: 34px; font-weight: 500; }
+:root[data-style=haven] .hv-sum__bar > i { background: var(--lg-ok); }
+:root[data-style=haven] .pl-top .pl-seg > i { background: var(--lg-c1); }
+:root[data-style=haven] .pl-legend > span > i { background: var(--lg-c1); }
+:root[data-style=haven] .lg-clist .hv-clabel { background: none; padding: 10px 16px 2px; font-size: 10.5px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--lg-ink3); }
+:root[data-style=haven] .lg-clist .hv-bill__open .nm .n { font-weight: 500; }
+:root[data-style=haven] .lg-yrow .n, :root[data-style=haven] .lg-yrow b { font-weight: 500; }
+:root[data-style=haven] .goal-card .goal-name { font-weight: 500; font-size: 14.5px; }
+:root[data-style=haven] .k .hist-day-head { font-size: 12px; font-weight: 500; color: var(--lg-ink3); }
+:root[data-style=haven] .k .hist-month-head { font-size: 10.5px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--lg-ink3); }
+:root[data-style=haven] .lg-ringcard .hv-ring__mid b { font-weight: 500; }
+:root[data-style=haven] .lg-legend .hv-ring__badge { font-size: 12.5px; }
+:root[data-style=haven] .lg-legend .hv-ring__badge > b { font-weight: 500; }
+:root[data-style=haven] .lg-search { height: 40px; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--lg-line2); }
+:root[data-style=haven] .lg-ib { border-radius: 10px; background: var(--lg-s1); box-shadow: inset 0 0 0 1px var(--lg-line2); }
+:root[data-style=haven] .hist-chips .lg-tag { height: 30px; padding: 0 10px; border-radius: 9px; font-size: 12.5px; font-weight: 500; background: var(--lg-s1); box-shadow: inset 0 0 0 1px var(--lg-line2); }
+
+/* ---------------------------------------------------------------- the + sheet and the other sheets */
+:root[data-style=haven] .hv-sheet { border-radius: 20px 20px 0 0; background: var(--lg-s1); box-shadow: 0 -1px 0 var(--lg-line2); }
+:root[data-style=haven] .hv-sheet .hv-grip { background: var(--lg-line2); opacity: 1; }
+:root[data-style=haven] .hv-addform .hv-amountbig .val { font-size: 46px; font-weight: 500; min-width: 40px; text-align: center; }
+:root[data-style=haven] .hv-addform .hv-amountbig .hv-cur { font-size: 24px; font-weight: 400; }
+:root[data-style=haven] .hv-keypad .hv-key { height: 46px; border-radius: 12px; font-size: 19px; font-weight: 500; background: var(--lg-s1); box-shadow: inset 0 0 0 1px var(--lg-line); }
+:root[data-style=haven] .hv-addform .hv-btn.lg-save { height: 42px; min-height: 42px; font-size: 14px; font-weight: 500; }
+:root[data-style=haven] .hv-addform .k-quick__chip.hv-chip { height: 30px; border-radius: 9px; font-size: 12.5px; font-weight: 500; background: var(--lg-s1); box-shadow: inset 0 0 0 1px var(--lg-line2); }
+:root[data-style=haven] .hv-addform .k-quick__chip.hv-chip.on, :root[data-style=haven] .hv-addform .k-quick__chip.hv-chip[aria-pressed="true"] { background: var(--lg-tide); color: var(--lg-tide-ink); box-shadow: none; }
+#plan-add-sheet .ps-sheet, .upi-sheet, .sm-sheet, .fs-sheet { border-radius: 20px 20px 0 0; box-shadow: 0 -1px 0 var(--lg-line2); }
+#plan-add-sheet .ps-grip, .upi-sheet .upi-sheet__grip, .sm-grip, .fs-grip { background: var(--lg-line2); }
+#plan-add-sheet .ps-step h3 { font-size: 17px; font-weight: 600; }
+#plan-add-sheet .ps-go, .upi-go, .upi-file, .sm-go, .fs-go { min-height: 44px; border-radius: 10px; font-size: 14px; font-weight: 500; }
+#plan-add-sheet .ps-chip { border-radius: 10px; min-height: 44px; font-size: 14px; }
+.upi-back, .ps-back, .sm-back, .fs-back { background: var(--lg-scrim) !important; }
+
+/* Reach: a control drawn smaller than 44px keeps a 44px strip (the audit reads the strip from the stylesheet; insets are from the padding box) */
+.lg-tools > button::after { inset: -5px -4px; }
+.lg-back::after { inset: -5px; }
+.lg-coach::after, :root[data-style=haven] .lg-btn.sm::after { inset: -5px -2px; }
+:root[data-style=haven] .lg-stepper > button::after, :root[data-style=haven] .app-header #hist-month > button::after { inset: -7px -8px; }
+:root[data-style=haven] .hv-filter.lg-seg > [data-f]::after { inset: -4px; }
+:root[data-style=haven] .lg-acclist .account-note { color: var(--lg-ink2); }
+
+/* a 320px phone: the three figures under the hero keep their names on one line */
+@media (max-width: 340px) {
+  :root[data-style=haven] .lg-hero .stats span { letter-spacing: 0.05em; white-space: nowrap; }
+  :root[data-style=haven] .lg-hero .stats > div + div { padding-left: 10px; }
+}
+
+/* ---------------------------------------------------------------- the screens the mockups do not draw: Settings, Coach and the rest take the same tiles and cards */
+:root[data-style=haven] .k .k-icon { width: 32px; height: 32px; border-radius: 10px; background: var(--lg-s2); color: var(--lg-tide); }
+:root[data-style=haven] .k .k-icon svg { color: var(--lg-tide); }
+:root[data-style=haven] .k-coach .tl-hero.ct-top { margin-inline: 0; padding: 14px 16px; border-radius: 14px; color: var(--lg-ink); background: var(--lg-s1); background-color: var(--lg-s1); box-shadow: 0 0 0 1px var(--lg-line); --hv-on-navy: var(--lg-ink); --hv-on-navy-2: var(--lg-ink3); --hv-on-navy-3: var(--lg-line); }
+:root[data-style=haven] .ct-top .tl-k { font-size: 10.5px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; }
+:root[data-style=haven] .ct-top .tl-big { font-size: 38px; font-weight: 500; margin-top: 12px; }
+:root[data-style=haven] .ct-top .tl-stats b { font-weight: 500; }
+/* The 17px figure belongs to wide screens only: style-haven.css steps it to 14.5px up to 420 so "₹8,083/day" stays on one line (coachfit.mjs). */
+@media (min-width: 421px) { :root[data-style=haven] .ct-top .tl-stats b { font-size: 17px; } }
+:root[data-style=haven] .ct-top .tl-prog { background: var(--lg-s2); box-shadow: none; color: var(--lg-ink2); }
+:root[data-style=haven] .ct-top .tl-prog > i { background: var(--lg-tide-soft); }
+:root[data-style=haven] .ct-top .tl-prog > i.bad { background: var(--lg-coral-soft); }
+:root[data-style=haven] .ct-top .tl-prog > span { color: var(--lg-ink); }

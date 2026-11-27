@@ -402,9 +402,10 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
   const bw = Math.max(3, Math.min(8, cw * 0.6));
   const hid = `hh${(heroHatches += 1)}`;
   const ZZ = 4; // the zigzag's depth: deep enough to read as a break at a glance
-  const MINT = '#7FEBDD';
-  const AMBER = '#F4B541';
-  const HALO = 'rgba(11,29,68,.85)'; // the card's own dark, round a label a line passes behind
+  // Colours are the look's own tokens (css/v8.css), so the chart follows Night and Day; var() works in SVG presentation attributes.
+  const MINT = 'var(--lg-tide)';
+  const AMBER = 'var(--lg-amber)';
+  const HALO = 'var(--lg-s1)'; // the card's own colour, round a label a line passes behind
   const HATCH = `url(#${hid})`;
   const colH = (v) => (v > 0 ? Math.max(1.5, (v / even) * ZONE) : 0);
   // One block of a column: from `bottom` up `h`; its top a zigzag when it is cut. A break (the slanted gap) is drawn across a cut block.
@@ -417,7 +418,7 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
       ? `<path d="M${l.toFixed(1)} ${bottom.toFixed(1)} V${(t + ZZ).toFixed(1)} ${teeth}V${bottom.toFixed(1)} Z" fill="${fill}"${edge}/>`
       : `<rect x="${l.toFixed(1)}" y="${t.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${fill}"${edge}/>`;
     // the break: a slanted gap across the bar, in the card's own colour, a little below the teeth
-    const gap = cut ? `<line x1="${(l - 1.4).toFixed(1)}" y1="${(t + ZZ + 7).toFixed(1)}" x2="${(l + bw + 1.4).toFixed(1)}" y2="${(t + ZZ + 3).toFixed(1)}" stroke="rgba(10,24,60,.95)" stroke-width="2.2"/>` : '';
+    const gap = cut ? `<line x1="${(l - 1.4).toFixed(1)}" y1="${(t + ZZ + 7).toFixed(1)}" x2="${(l + bw + 1.4).toFixed(1)}" y2="${(t + ZZ + 3).toFixed(1)}" stroke="var(--lg-s1)" stroke-width="2.2"/>` : '';
     return shape + gap;
   };
   const day = (iso) => {
@@ -449,7 +450,7 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
   const area = `${line} L${tx.toFixed(1)} ${BASE} L${L} ${BASE} Z`;
   let dot;
   if (!dark) {
-    dot = `<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="10" fill="rgba(255,210,94,.22)"/><circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="5.2" fill="#FFD25E" stroke="#fff" stroke-opacity=".7" stroke-width="1"/>`;
+    dot = `<circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="10" fill="rgba(255,210,94,.22)"/><circle cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="5.2" fill="#FFD25E" stroke="var(--lg-s1)" stroke-width="1.4"/>`;
   } else {
     const place = getPlace();
     const sh = moonPathD(moonAt(Date.now(), place.lat, place.lon).phase);
@@ -463,7 +464,7 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
   // The dashed run is the way on from today: straight to nothing on the last day, so staying on it ends the month with nothing over. Once the
   // budget is used up there is no way on to draw.
   const running = tot.length < days && leftNow > 0;
-  const route = running ? `<line x1="${tx.toFixed(1)}" y1="${ty.toFixed(1)}" x2="${(L + iw).toFixed(1)}" y2="${BASE}" stroke="rgba(255,255,255,.75)" stroke-width="1.3" stroke-dasharray="4 4"/>` : '';
+  const route = running ? `<line x1="${tx.toFixed(1)}" y1="${ty.toFixed(1)}" x2="${(L + iw).toFixed(1)}" y2="${BASE}" stroke="var(--lg-ink2)" stroke-width="1.3" stroke-dasharray="4 4"/>` : '';
   const perDay = running && f.free >= 0 && f.perDay > 0 ? f.perDay : 0;
   const CH = 5.6; // about how wide a character of the labels is, to keep one from running into the next
   // what the line says about today: right of its point, or left of it when there is no room on the right
@@ -477,10 +478,10 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
   const startClash = todayY - (TOP - 4) < 12 && todayRight && tx + 12 < L + 2 + startSays.length * CH;
   const startClash2 = todayY - (TOP - 4) < 12 && !todayRight && tx - 12 - todaySays.length * CH < L + 2 + startSays.length * CH;
   const labels = [
-    startClash || startClash2 ? '' : `<text x="${L + 2}" y="${TOP - 4}" font-size="10.5" fill="rgba(255,255,255,.8)">${startSays}</text>`,
-    `<text x="${(todayRight ? tx + 12 : tx - 12).toFixed(1)}" y="${todayY.toFixed(1)}" font-size="10.5" font-weight="650"${todayRight ? '' : ' text-anchor="end"'} fill="#fff">${todaySays}</text>`,
+    startClash || startClash2 ? '' : `<text x="${L + 2}" y="${TOP - 4}" font-size="10.5" fill="var(--lg-ink3)">${startSays}</text>`,
+    `<text x="${(todayRight ? tx + 12 : tx - 12).toFixed(1)}" y="${todayY.toFixed(1)}" font-size="10.5" font-weight="650"${todayRight ? '' : ' text-anchor="end"'} fill="var(--lg-ink)">${todaySays}</text>`,
     // the dashed run comes down to this corner, so the label has the card's colour round it: the line passes behind it, never through the letters
-    running && L + iw - tx >= 90 ? `<text x="${L + iw}" y="${BASE - 6}" font-size="10.5" text-anchor="end" fill="rgba(255,255,255,.8)" stroke="${HALO}" stroke-width="3" stroke-linejoin="round" paint-order="stroke">${money(0)} ${endName(endDate)}</text>` : '',
+    running && L + iw - tx >= 90 ? `<text x="${L + iw}" y="${BASE - 6}" font-size="10.5" text-anchor="end" fill="var(--lg-ink3)" stroke="${HALO}" stroke-width="3" stroke-linejoin="round" paint-order="stroke">${money(0)} ${endName(endDate)}</text>` : '',
   ].join('');
   // The even day: a dashed line across the columns, named at the right.
   const ey = CB - ZONE;
@@ -511,7 +512,7 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
   let aheadText = '';
   if (perDay > 0) {
     const hp = Math.min(CEIL, colH(perDay));
-    for (let i = tot.length; i < days; i += 1) ahead += `<rect x="${(xc(i) - bw / 2).toFixed(1)}" y="${(CB - hp).toFixed(1)}" width="${bw.toFixed(1)}" height="${hp.toFixed(1)}" rx="1.5" fill="none" stroke="rgba(127,235,221,.7)" stroke-dasharray="2 2"/>`;
+    for (let i = tot.length; i < days; i += 1) ahead += `<rect x="${(xc(i) - bw / 2).toFixed(1)}" y="${(CB - hp).toFixed(1)}" width="${bw.toFixed(1)}" height="${hp.toFixed(1)}" rx="1.5" fill="none" stroke="var(--lg-tide)" stroke-opacity=".7" stroke-dasharray="2 2"/>`;
     const says = `${money(perDay)} a day from here`;
     const w = says.length * CH;
     if ((days - tot.length) * cw >= w) {
@@ -523,16 +524,16 @@ export function heroChart(f, dark = document.documentElement.dataset.theme === '
   }
   const routeSays = running ? ` At ${money(perDay || 0)} a day the money left lasts to the end of the month.` : leftNow > 0 ? '' : ' The budget is used up.';
   return `<div class="lg-chartbox"><svg class="lg-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(`This month so far: ${money(spent)} spent of ${money(f.limit)}, ${leftNow >= 0 ? `${money(leftNow)} left` : `${money(-leftNow)} over`}.${routeSays} Under the line, one column for each day against an even day of ${money(even)}. Press and slide along it to read each day.`)}">
-    <defs><pattern id="${hid}" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" fill="rgba(244,181,65,.14)"/><rect width="1.6" height="4" fill="#F4B541"/></pattern></defs>
-    <line x1="${L}" y1="${BASE}" x2="${W - R}" y2="${BASE}" stroke="rgba(255,255,255,.25)"/>
-    <path d="${area}" fill="rgba(63,216,198,.2)"/>${route}<path d="${line}" fill="none" stroke="#7FEBDD" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dot}
+    <defs><pattern id="${hid}" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" fill="var(--lg-amber-soft)"/><rect width="1.6" height="4" fill="var(--lg-amber)"/></pattern></defs>
+    <line x1="${L}" y1="${BASE}" x2="${W - R}" y2="${BASE}" stroke="var(--lg-line2)"/>
+    <path d="${area}" fill="var(--lg-tide-soft)"/>${route}<path d="${line}" fill="none" stroke="var(--lg-tide)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dot}
     ${labels}
-    <line x1="${L}" y1="${CB}" x2="${W - R}" y2="${CB}" stroke="rgba(255,255,255,.25)"/>
-    <line x1="${L}" y1="${ey}" x2="${W - R}" y2="${ey}" stroke="rgba(255,255,255,.45)" stroke-dasharray="4 4"/>
+    <line x1="${L}" y1="${CB}" x2="${W - R}" y2="${CB}" stroke="var(--lg-line2)"/>
+    <line x1="${L}" y1="${ey}" x2="${W - R}" y2="${ey}" stroke="var(--lg-ink3)" stroke-opacity=".7" stroke-dasharray="4 4"/>
     ${bars}${ahead}
-    <text x="${W - R}" y="${ey - 4}" font-size="10" text-anchor="end" fill="rgba(255,255,255,.85)" stroke="${HALO}" stroke-width="3" stroke-linejoin="round" paint-order="stroke">${evenSays}</text>
+    <text x="${W - R}" y="${ey - 4}" font-size="10" text-anchor="end" fill="var(--lg-ink3)" stroke="${HALO}" stroke-width="3" stroke-linejoin="round" paint-order="stroke">${evenSays}</text>
     ${bigText}${aheadText}
-    <line class="lg-guide" y1="${TOP}" y2="${CB}" stroke="#fff" stroke-width="1" opacity="0"/><circle class="lg-pickdot" r="4" fill="#fff" opacity="0"/></svg><p class="lg-chartread" hidden aria-live="polite"></p></div>`;
+    <line class="lg-guide" y1="${TOP}" y2="${CB}" stroke="var(--lg-ink)" stroke-width="1" opacity="0"/><circle class="lg-pickdot" r="4" fill="var(--lg-ink)" opacity="0"/></svg><p class="lg-chartread" hidden aria-live="polite"></p></div>`;
 }
 
 // What a payment's tile is tinted: the gem number of its category, in the Ledger's five tones.

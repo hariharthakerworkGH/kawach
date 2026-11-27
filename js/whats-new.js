@@ -13,6 +13,18 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '8.0',
+    items: [
+      {
+        icon: 'eye',
+        title: "A new look: Kawach 8.0",
+        major: true,
+        text: "Every screen is redrawn to be quieter and tighter: smaller type with small capital labels, flat cards with a hairline instead of glow, a plain hero on Summary, accounts as one flat list under tabs, and a slimmer bottom bar. The night colours are now ink blue with an ice-blue accent, and the day look is paper and pine. The sky behind the title is unchanged, and so are your numbers.",
+        guide: [{ view: 'summary', target: '.lg-hero', text: "The same figures in the new look: Left to spend on top, the month's line and each day's spending under it." }],
+      },
+    ],
+  },
+  {
     version: '7.28',
     items: [
       {
