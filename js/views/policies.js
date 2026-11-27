@@ -4,7 +4,7 @@ import { isoLocal, FREQUENCIES, frequencyShort } from '../frequency.js';
 import { isLiveCommitment } from '../commitments.js';
 import { activeSpace, commitmentInSpace } from '../business.js';
 import { categoryStyle } from '../category-style.js';
-import { sortAccounts } from '../list-order.js';
+import { az, compareText } from '../list-order.js';
 import { redraw } from '../redraw.js';
 import { askConfirm } from '../dialog.js';
 import { showToast } from '../toast.js';
@@ -104,7 +104,7 @@ function formHtml(item, accounts) {
   return `${sectionHead(item ? 'Edit policy' : 'Add a policy')}
     <form class="pol-form" autocomplete="off">
       <label class="field"><span>Kind</span>
-        <select class="pf-kind">${Object.entries(KINDS).map(([k, v]) => `<option value="${k}" ${selected(k, kind)}>${v.label}</option>`).join('')}</select>
+        <select class="pf-kind">${Object.entries(KINDS).sort(([, a], [, b]) => compareText(a.label, b.label)).map(([k, v]) => `<option value="${k}" ${selected(k, kind)}>${v.label}</option>`).join('')}</select>
       </label>
       <label class="field"><span>What you call it</span>
         <input type="text" class="pf-name" placeholder="Family health cover" value="${escapeAttr((item && item.label) || '')}" required>
@@ -139,7 +139,7 @@ function formHtml(item, accounts) {
         <label class="field"><span>Grace period in days <span class="muted">(usually 30: check your policy)</span></span><input type="number" class="pf-grace" inputmode="numeric" min="0" max="120" placeholder="${KINDS[kind].grace}" value="${p.graceDays != null ? p.graceDays : ''}"></label>
         <label class="field"><span>Paid from</span>
           <select class="pf-account"><option value="">Any bank account</option>
-            ${sortAccounts(accounts).filter((a) => a.type === 'bank' || a.type === 'card').map((a) => `<option value="${a.id}" ${selected(a.id, item && item.accountId)}>${escapeHtml(a.label)}</option>`).join('')}
+            ${az(accounts).filter((a) => a.type === 'bank' || a.type === 'card').map((a) => `<option value="${a.id}" ${selected(a.id, item && item.accountId)}>${escapeHtml(a.label)}</option>`).join('')}
           </select>
         </label>
         <label class="field"><span>Its line on the bank statement contains <span class="muted">(optional)</span></span><input type="text" class="pf-match" spellcheck="false" placeholder="LIC OF INDIA" value="${escapeAttr((item && item.matchText) || '')}"></label>

@@ -9,7 +9,7 @@ import { loadLearned } from '../alert-learning.js';
 import { showToast } from '../toast.js';
 import { commitmentField, cardPaymentField } from './add.js';
 import { isLiveCommitment, byYourOrder } from '../commitments.js';
-import { sortAccounts, sortCategories } from '../list-order.js';
+import { az } from '../list-order.js';
 import { cardStandings, whatItPaid } from '../card-standing.js';
 import { isoLocal } from '../frequency.js';
 import { looksLikeCardPayment } from '../transfers.js';
@@ -180,7 +180,7 @@ function guessWhat(d) {
 function otherField(d) {
   const guess = guessOther(d);
   const what = guessWhat(d);
-  const options = sortAccounts(context.accounts.filter((a) => OTHER_TYPES.has(a.type)), undefined, null)
+  const options = az(context.accounts.filter((a) => OTHER_TYPES.has(a.type)))
     .map((a) => `<option value="${a.id}" ${a.id === guess ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
     .join('');
   return `<label class="field al-other-wrap" hidden>
@@ -267,7 +267,7 @@ function draftTemplate(d) {
         <span>Account</span>
         <select class="al-account">
           <option value="">Pick the account</option>
-          ${sortAccounts(context.accounts)
+          ${az(context.accounts)
             // A deposit (savings, such as SBI's MOD), a provident fund or a loan is not where a spend or a receipt happens; the one the alert
             // was already matched to stays on the list so nothing is taken away from a choice already made.
             .filter((a) => !['savings', 'pf', 'loan'].includes(a.type) || (d.account && d.account.id === a.id))
@@ -289,7 +289,7 @@ function draftTemplate(d) {
         <span>Category</span>
         <select class="al-category">
           <option value="">Needs a category</option>
-          ${sortCategories(context.categories)
+          ${az(context.categories, 'name')
             // Income is not offered for money going out.
             .filter((c) => fitsDirection(c, parsed.direction))
             .map((c) => `<option value="${c.id}" ${isIncomeCategory(c) ? 'data-income="1"' : ''} ${c.id === d.categoryId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)

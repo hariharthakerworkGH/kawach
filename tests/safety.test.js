@@ -10,7 +10,7 @@ import { restoreBackup, screenBackup, undoInfo, undoRestore } from '../js/backup
 import { backupsToDelete } from '../js/drive.js';
 import { comingMonths, monthsAlike } from '../js/views/plan.js';
 import { bankAhead, forecast } from '../js/forecast.js';
-import { sortCommitments, sortAccounts, sortCategories, usageCounts, setOrderDir, flipOrder } from '../js/list-order.js';
+import { sortCommitments, sortAccounts, sortCategories, usageCounts, setOrderDir, flipOrder, az, azWords } from '../js/list-order.js';
 import { byYourOrder } from '../js/commitments.js';
 import { cleanStatementText, sizeProblem, MAX_PDF_BYTES } from '../js/statement-text.js';
 import { lookLikeMoves } from '../js/tax-pack.js';
@@ -552,6 +552,19 @@ test('lists: every order can be read the other way round, and put back', () => {
   } finally {
     for (const key of ['plan', 'accountOrder', 'categoryOrder']) setOrderDir(key, 'normal');
   }
+});
+
+test('safety: dropdown lists are always A to Z, "Other" last, whatever order the screen lists use', () => {
+  // The owner's phone (27 Nov 2026): fixed costs in the order they were typed. Reverse / Biggest must not reach a dropdown.
+  const rows = [{ label: 'rent' }, { label: 'Zoom' }, { label: 'Other' }, { label: 'Apple 10' }, { label: 'Apple 9' }, { label: 'éclair' }];
+  equal(az(rows).map((r) => r.label), ['Apple 9', 'Apple 10', 'éclair', 'rent', 'Zoom', 'Other'], 'case-blind, numbers by value, Other last');
+  equal(az([{ name: 'b' }, { name: 'A' }], 'name').map((r) => r.name), ['A', 'b'], 'another key');
+  equal(azWords(['Savings', 'Other', 'FD', 'gold']), ['FD', 'gold', 'Savings', 'Other'], 'plain words');
+  const kept = rows.slice();
+  az(rows);
+  equal(rows, kept, 'the screen list itself is not reordered');
+  setOrderDir('plan', 'reverse');
+  try { equal(az(rows)[0].label, 'Apple 9', 'a reversed screen list does not reverse a dropdown'); } finally { setOrderDir('plan', 'normal'); }
 });
 
 test('safety: sync notices when the shared file is behind this phone (two devices syncing at once)', () => {

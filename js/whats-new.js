@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.28',
+    items: [
+      {
+        icon: 'accounts',
+        title: "Every list you pick from is A to Z",
+        text: "Pick-a-name lists now always read A to Z, with Other last: the fixed cost an Add counts towards, the account an entry came from or went to, the category on a History row and on Plan, the account a fixed cost is paid from, savings kinds, cards when you link a payment, and the rest. Before, some of them followed the order you typed things in, and Reverse or Biggest on a screen also reversed them. The lists on the screens themselves still follow the order you chose there.",
+        guide: [{ view: 'add', target: '#add-account', text: "Every list you pick from is A to Z now, with Other last." }],
+      },
+    ],
+  },
+  {
     version: '7.27',
     items: [
       {

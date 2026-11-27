@@ -15,7 +15,7 @@ import { FREQUENCIES, DEFAULT_FREQUENCY, monthlyAmountOf, frequencyOf, frequency
 import { isFixed, isFinished, isLiveCommitment, coveredByFixed, commitmentFromSuggestion, isSetAside, isAtmPlan, duplicateCommitments, clearSkip, commitmentFor } from '../commitments.js';
 import { displayName } from './transactions.js';
 import { appearance, setAppearance } from '../appearance.js';
-import { sortCommitments, sortAccounts, sortCategories, sortPicker, flipOrder } from '../list-order.js';
+import { sortCommitments, sortPicker, flipOrder, az } from '../list-order.js';
 import { isLoanAccount, loanCommitment } from '../loans.js';
 import { redraw } from '../redraw.js';
 import { RENEWAL_MONTHS, renews, nextRenewal, renewalsAhead } from '../calendar.js';
@@ -994,7 +994,7 @@ function budgetForm(categories) {
       <label class="field">
         <span>Category</span>
         <select class="bf-category" required>
-          ${sortCategories(categories).map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+          ${az(categories, 'name').map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
         </select>
       </label>
       <label class="field">

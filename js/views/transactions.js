@@ -27,7 +27,7 @@ import { bankBalance, balanceAt } from '../account-metrics.js';
 import { isoLocal } from '../frequency.js';
 import { icon } from '../icons.js';
 import { categoriesFor, activeSpace, accountInSpace, isBusinessAccount, isVariableIncome, moveToAccount } from '../business.js';
-import { sortCommitments, sortAccounts, sortCategories, usageCounts } from '../list-order.js';
+import { sortCommitments, sortCategories, usageCounts, az } from '../list-order.js';
 import { tidyFlags } from '../reimbursable.js';
 import { inOutBars, cashRiver } from '../charts.js';
 import { appearance } from '../appearance.js';
@@ -155,7 +155,7 @@ export async function render(container, params = {}) {
       <button type="button" id="txn-needs" class="hist-chip hist-needs lg-tag warn" hidden></button>
       <span class="lg-pick"><select id="txn-account" class="hist-chip" aria-label="Account">
         <option value="">All accounts</option>
-        ${sortAccounts(accounts, undefined, null).map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}
+        ${az(accounts).map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}
       </select></span>
       <span class="lg-pick"><select id="txn-category" class="hist-chip" aria-label="Category">
         <option value="">All categories</option>
@@ -343,7 +343,7 @@ function resetPage(container) {
 // `list`: the categories to offer; a payment is offered the ones that fit
 // its account (business or home), the filters every one.
 function categoryOptions(selectedId, list = cache.categories) {
-  return sortCategories(list, undefined, usageCounts(cache.transactions))
+  return az(list, 'name')
     .map((c) => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)
     .join('');
 }
@@ -1200,7 +1200,7 @@ function expandedTemplate(t) {
           t.isTransfer
             ? ''
             : `<select class="hist-catsel" data-field="accountId" aria-label="Paid from or into">
-                ${cache.accounts.filter((a) => a.type !== 'loan' && a.type !== 'pf' || a.id === t.accountId).map((a) => `<option value="${a.id}" ${a.id === t.accountId ? 'selected' : ''}>${escapeHtml(a.label)}</option>`).join('')}
+                ${az(cache.accounts.filter((a) => a.type !== 'loan' && a.type !== 'pf' || a.id === t.accountId)).map((a) => `<option value="${a.id}" ${a.id === t.accountId ? 'selected' : ''}>${escapeHtml(a.label)}</option>`).join('')}
               </select>`
         }
         <div class="hist-edit__pair">
@@ -1407,7 +1407,7 @@ function personField(t) {
   return `<label class="field hist-person">
       <span>${t.direction === 'debit' ? 'Lent to or paid back to' : 'Borrowed from or paid back by'}</span>
       <input type="text" class="rv-field" data-field="personName" list="hist-people-${t.id}" value="${person ? escapeAttr(person.name) : ''}" placeholder="Nobody" autocomplete="off">
-      <datalist id="hist-people-${t.id}">${cache.people.map((p) => `<option value="${escapeAttr(p.name)}"></option>`).join('')}</datalist>
+      <datalist id="hist-people-${t.id}">${az(cache.people, 'name').map((p) => `<option value="${escapeAttr(p.name)}"></option>`).join('')}</datalist>
     </label>`;
 }
 

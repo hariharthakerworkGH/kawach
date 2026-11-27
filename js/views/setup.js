@@ -7,6 +7,7 @@ import { DEFAULT_KEEP_IN_BANK } from '../free-to-spend.js';
 import { tellUser } from '../dialog.js';
 import { redraw } from '../redraw.js';
 import { BANKS as INDIAN_BANKS } from '../parsers/any-bank.js';
+import { az, azWords } from '../list-order.js';
 import { playTour } from '../tour.js';
 import { incomeType, isVariableIncome, businesses, addBusiness } from '../business.js';
 import { escapeHtml } from '../ui.js';
@@ -20,7 +21,7 @@ import { escapeHtml } from '../ui.js';
 const STEPS = ['welcome', 'income', 'bank', 'cards', 'commitments', 'done'];
 // Bank names as the statement readers write them, so an import recognises
 // the account without asking.
-const BANKS = [...INDIAN_BANKS.map(([label]) => label), 'Other'];
+const BANKS = azWords([...INDIAN_BANKS.map(([label]) => label), 'Other']);
 // Card companies that aren't banks, left out of the bank account list.
 const CARD_ONLY = new Set(['SBI Card', 'American Express', 'OneCard']);
 
@@ -172,7 +173,7 @@ function accountStep(type, list, kind, side) {
       </label>
       <label class="field">
         <span>Bank</span>
-        <select id="setup-account-bank">${BANKS.filter((b) => isCard || !CARD_ONLY.has(b)).map((b) => `<option>${b}</option>`).join('')}</select>
+        <select id="setup-account-bank">${azWords(BANKS.filter((b) => isCard || !CARD_ONLY.has(b))).map((b) => `<option>${b}</option>`).join('')}</select>
       </label>
       <label class="field">
         <span>Last 4 digits</span>
@@ -216,7 +217,7 @@ function commitmentsStep(commitments, payers) {
         <span>Paid from</span>
         <select id="setup-commitment-payer">
           <option value="">Bank account</option>
-          ${payers.filter((a) => a.type === 'card').map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}
+          ${az(payers.filter((a) => a.type === 'card')).map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}
           <option value="cash">Cash</option>
         </select>
       </label>

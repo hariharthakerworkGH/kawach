@@ -7,7 +7,7 @@
 import { formatRupees } from '../format.js';
 import { FREQUENCIES, DEFAULT_FREQUENCY, hasDueDate, toMonthly, toYearly } from '../frequency.js';
 import { COMMON_COSTS, RENEWAL_MONTHS } from '../calendar.js';
-import { sortAccounts, sortCategories } from '../list-order.js';
+import { az } from '../list-order.js';
 import { escapeHtml } from '../ui.js';
 import { holdFocus } from '../overlay.js';
 import { dragToClose } from '../sheet-drag.js';
@@ -20,15 +20,15 @@ const FIRST_PICKS = 8;
  * the Add sheet (the classes are the edit form's own, which the save reads). */
 export function moreFields(categories, accounts, v = {}) {
   const selected = (a, b) => (a === b ? 'selected' : '');
-  const list = sortAccounts(accounts);
-  const options = (type) => list.filter((a) => a.type === type).map((a) => `<option value="${a.id}" ${selected(a.id, v.accountId)}>${escapeHtml(a.label)}</option>`).join('');
+  const list = az(accounts);
+  // One A to Z list across banks and cards (the label already says which is which), not banks first and then cards.
+  const options = list.filter((a) => a.type === 'bank' || a.type === 'card').map((a) => `<option value="${a.id}" ${selected(a.id, v.accountId)}>${escapeHtml(a.label)}</option>`).join('');
   return `<label class="field">
         <span>Paid from</span>
         <select class="ff-account">
           <option value="">Any bank account</option>
           <option value="cash" ${selected('cash', v.accountId)}>Cash (from your ATM money)</option>
-          ${options('bank')}
-          ${options('card')}
+          ${options}
         </select>
       </label>
       <label class="field">
@@ -44,7 +44,7 @@ export function moreFields(categories, accounts, v = {}) {
         <span>Category <span class="muted">(so this spend isn't counted twice)</span></span>
         <select class="ff-category">
           <option value="">None</option>
-          ${sortCategories(categories).map((c) => `<option value="${c.id}" ${selected(c.id, v.categoryId)}>${escapeHtml(c.name)}</option>`).join('')}
+          ${az(categories, 'name').map((c) => `<option value="${c.id}" ${selected(c.id, v.categoryId)}>${escapeHtml(c.name)}</option>`).join('')}
         </select>
       </label>`;
 }

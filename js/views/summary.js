@@ -21,6 +21,7 @@ import { categorySlices, needsCategory } from '../splits.js';
 import { getBudgets, budgetStatusForMonth, cycleAwareEnabled, spendByCategoryForMonth, isNotSpending, cancelledByRefund } from '../budgets.js';
 import { spendingMonthOf, accountMap, currentMonthKey, previousMonthKey } from '../spending-month.js';
 import { appearance } from '../appearance.js';
+import { az } from '../list-order.js';
 import { playTour } from '../tour.js';
 import { getSyncConfig, getSyncPassphrase } from '../sync.js';
 import { dataSafety } from './settings.js';
@@ -1833,7 +1834,7 @@ async function renderAttention(container, transactions, fts = null) {
   );
   if (short) urgent.push(...lateRows, ...renewRows);
 
-  const lumpChoices = recurring.filter(isLiveCommitment).sort((a, b) => a.label.localeCompare(b.label));
+  const lumpChoices = az(recurring.filter(isLiveCommitment));
   const lumpRows = (fts ? fts.lumps || [] : [])
     .filter((l) => !dismissedLumps.has(l.id))
     .map((l) =>
@@ -1865,7 +1866,7 @@ async function renderAttention(container, transactions, fts = null) {
         icon('card'),
         `${formatRupees(p.amount)} card bill paid ${formatDateNice(p.date)}`,
         'Which card did it pay?',
-        `<select class="assign-card" data-txn="${p.id}" aria-label="Card this payment paid"><option value="">Pick card</option>${cards.map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}</select>`,
+        `<select class="assign-card" data-txn="${p.id}" aria-label="Card this payment paid"><option value="">Pick card</option>${az(cards).map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}</select>`,
         '',
         { key: `cardpay:${p.id}`, val: 1 }
       )

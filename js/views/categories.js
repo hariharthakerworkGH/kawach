@@ -1,4 +1,4 @@
-import { sortCategories } from '../list-order.js';
+import { sortCategories, az } from '../list-order.js';
 import { monthKeyOf } from '../spending-month.js';
 import { getAll, put, remove, newId, getSetting } from '../db.js';
 import { isNotSpending, cancelledByRefund } from '../budgets.js';
@@ -222,7 +222,7 @@ function categoryForm(cat, topLevel) {
         <span>Sits under <span class="muted">(optional)</span></span>
         <select class="cf-parent">
           <option value="">Nothing, it is a main category</option>
-          ${sortCategories(topLevel)
+          ${az(topLevel, 'name')
             .filter((c) => !cat || c.id !== cat.id)
             .map((c) => `<option value="${c.id}" ${cat && cat.parentId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`)
             .join('')}

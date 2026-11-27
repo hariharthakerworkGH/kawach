@@ -5,7 +5,7 @@
  */
 import { CHOICES, appearance, setAppearance } from '../appearance.js';
 import { showToast } from '../toast.js';
-import { orderDir, setOrderDir } from '../list-order.js';
+import { orderDir, setOrderDir, azWords } from '../list-order.js';
 import { CITIES, getPlace, setCity, useMyLocation, sunTimes, moonAt } from '../sun-moon.js';
 
 // One short line under Motion for the choice made; the long notes in js/appearance.js are not shown here.
@@ -34,7 +34,7 @@ function whereGroup() {
       <div class="hl-where">
         <select id="where-city" class="k-select" aria-label="City">
           ${p.device ? '<option value="" selected>My location</option>' : ''}
-          ${Object.keys(CITIES).map((c) => `<option value="${c}"${!p.device && c === p.name ? ' selected' : ''}>${c}</option>`).join('')}
+          ${['Middle of India', ...azWords(Object.keys(CITIES).filter((c) => c !== 'Middle of India'))].map((c) => `<option value="${c}"${!p.device && c === p.name ? ' selected' : ''}>${c}</option>`).join('')}
         </select>
         <button type="button" class="hl-btn" id="where-device">Use my location</button>
       </div>

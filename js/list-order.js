@@ -12,6 +12,13 @@ import { icon } from './icons.js';
 const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
 export const compareText = (a, b) => collator.compare(String(a || ''), String(b || ''));
 
+/* The options of a dropdown are always A to Z, whatever order the screen behind it keeps (Reverse, Biggest, My order): a person looks a name up in
+ * a picker, and a picker that follows a screen's order comes out looking shuffled (27 Nov 2026: fixed costs in the order they were typed).
+ * "Other" goes last, it is the catch-all. `az` sorts things by one field (label for accounts and fixed costs, name for categories and people);
+ * `azWords` sorts a plain list of words. tools/release/sortcheck.mjs fails on a dropdown that does not use them. */
+export const az = (list, key = 'label') => [...list].sort((a, b) => (a[key] === 'Other') - (b[key] === 'Other') || compareText(a[key], b[key]));
+export const azWords = (list) => [...list].sort((a, b) => (a === 'Other') - (b === 'Other') || compareText(a, b));
+
 /* What each way is called on the little control; the longer words are in Settings. */
 export const ORDER_WORDS = {
   plan: { name: 'A to Z', day: 'Due day', size: 'Biggest', yours: 'My order' },

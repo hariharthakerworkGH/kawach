@@ -21,7 +21,7 @@ import { havenAccounts, softRedraw } from '../haven-ui.js';
 import { reminderText, reminderAllText, updatePerson, shareReminder } from '../people.js';
 import { allocationRing, tickGauge } from '../charts.js';
 import { appearance, setAppearance } from '../appearance.js';
-import { sortAccounts, sortPicker, flipOrder } from '../list-order.js';
+import { sortAccounts, sortPicker, flipOrder, az, azWords } from '../list-order.js';
 import { displayName, newestFirst } from './transactions.js';
 import { moveWord } from '../transfers.js';
 import { cushion } from '../goals.js';
@@ -506,7 +506,7 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
                   <span>The new number</span>
                   <select class="af-switch-into">
                     <option value="">New digits, typed below</option>
-                    ${sortAccounts(allAccounts.filter((x) => x.type === 'card' && x.id !== account.id))
+                    ${az(allAccounts.filter((x) => x.type === 'card' && x.id !== account.id))
                       .map((x) => `<option value="${escapeAttr(x.id)}">${escapeHtml(x.label)}${x.last4 && !x.label.includes(x.last4) ? ` ••${escapeHtml(x.last4)}` : ''}, already added as a card</option>`)
                       .join('')}
                   </select>
@@ -531,7 +531,7 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
           ? `<label class="field af-business-field" ${['bank', 'card', 'cash'].includes(a.type) ? '' : 'hidden'}>
               <span>Belongs to</span>
               <select class="af-space">
-                ${[{ id: 'home', name: 'Home' }, ...profile.businesses]
+                ${[{ id: 'home', name: 'Home' }, ...az(profile.businesses, 'name')]
                   .map((sp) => {
                     const chosen = account ? (a.business ? a.space : 'home') : space;
                     return `<option value="${escapeAttr(sp.id)}" ${sp.id === chosen ? 'selected' : ''}>${escapeHtml(sp.name)}</option>`;
@@ -554,7 +554,7 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
         <label class="field">
           <span>Kind</span>
           <select class="af-savings-kind">
-            ${SAVINGS_KINDS.map((k) => `<option ${a.savingsKind === k ? 'selected' : ''}>${k}</option>`).join('')}
+            ${azWords(SAVINGS_KINDS).map((k) => `<option ${a.savingsKind === k ? 'selected' : ''}>${k}</option>`).join('')}
           </select>
         </label>
         <label class="field">
@@ -604,7 +604,7 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
           <span>Paid from</span>
           <select class="af-paid-from">
             <option value="">Pick the account</option>
-            ${sortAccounts(payFromOptions).map((p) => `<option value="${p.id}" ${a.loan?.paidFromId === p.id ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
+            ${az(payFromOptions).map((p) => `<option value="${p.id}" ${a.loan?.paidFromId === p.id ? 'selected' : ''}>${escapeHtml(p.label)}</option>`).join('')}
           </select>
         </label>
         <label class="field">
@@ -1611,7 +1611,7 @@ function billPanel(account) {
         <span class="k-label">Paid from</span>
         <select class="k-select bill-pay-source">
           <option value="">Choose an account</option>
-          ${sortAccounts(payFrom).map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}
+          ${az(payFrom).map((a) => `<option value="${a.id}">${escapeHtml(a.label)}</option>`).join('')}
         </select>
       </label>
       <label class="k-field field">

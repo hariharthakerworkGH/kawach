@@ -4,7 +4,7 @@ import { isoLocal } from '../frequency.js';
 import { isFixed } from '../commitments.js';
 import { activeSpace, commitmentInSpace } from '../business.js';
 import { categoryStyle } from '../category-style.js';
-import { sortAccounts } from '../list-order.js';
+import { az } from '../list-order.js';
 import { redraw } from '../redraw.js';
 import { askConfirm } from '../dialog.js';
 import { showToast } from '../toast.js';
@@ -68,7 +68,7 @@ function formHtml(item, accounts) {
       <label class="field"><span>Paid from</span>
         <select class="bf-account"><option value="">Any bank account</option>
           <option value="cash" ${selected('cash', item && item.accountId)}>Cash (from your ATM money)</option>
-          ${sortAccounts(accounts).filter((a) => a.type === 'bank' || a.type === 'card').map((a) => `<option value="${a.id}" ${selected(a.id, item && item.accountId)}>${escapeHtml(a.label)}</option>`).join('')}
+          ${az(accounts).filter((a) => a.type === 'bank' || a.type === 'card').map((a) => `<option value="${a.id}" ${selected(a.id, item && item.accountId)}>${escapeHtml(a.label)}</option>`).join('')}
         </select>
       </label>
       <label class="field"><span>Its line on the bank statement contains <span class="muted">(optional, so the payment is found by itself)</span></span>

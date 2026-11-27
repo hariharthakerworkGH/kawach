@@ -1,5 +1,5 @@
 import { appearance } from '../appearance.js';
-import { sortCommitments, sortAccounts, sortCategories, usageCounts } from '../list-order.js';
+import { sortCommitments, sortAccounts, sortCategories, usageCounts, az } from '../list-order.js';
 import { holdFocus } from '../overlay.js';
 import { put, getAll, newId, getSetting } from '../db.js';
 import { icon } from '../icons.js';
@@ -64,7 +64,7 @@ export async function render(container, params = {}) {
         <div class="k-picker k-picker--select">
           <span class="k-picker__mark" id="add-account-mark"></span>
           <select id="add-account" class="k-select">
-            ${sortAccounts(accounts)
+            ${az(accounts)
               // A loan or the provident fund is not somewhere you spend from.
               .filter((a) => ['bank', 'card', 'cash', 'savings'].includes(a.type))
               .map((a) => `<option value="${a.id}" ${a.id === initialAccountId ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
@@ -775,7 +775,7 @@ export function commitmentField(commitments, selected = null, id = 'add-commitme
     <span>Counts towards commitment</span>
     <select id="${id}" ${attributes}>
       <option value="">Let the app work it out</option>
-      ${commitments.map((r) => `<option value="${r.id}" ${r.id === selected ? 'selected' : ''}>${escapeHtml(r.label)}</option>`).join('')}
+      ${az(commitments).map((r) => `<option value="${r.id}" ${r.id === selected ? 'selected' : ''}>${escapeHtml(r.label)}</option>`).join('')}
     </select>
   </label>`;
 }
@@ -787,7 +787,7 @@ export function cardPaymentField(cards, selected = null, id = 'add-pays-card', a
     <span>Which card did this pay?</span>
     <select id="${id}" ${attributes}>
       <option value="">Not a card bill / let the app work it out</option>
-      ${cards.map((a) => `<option value="${a.id}" ${a.id === selected ? 'selected' : ''}>${escapeHtml(a.label)}</option>`).join('')}
+      ${az(cards).map((a) => `<option value="${a.id}" ${a.id === selected ? 'selected' : ''}>${escapeHtml(a.label)}</option>`).join('')}
     </select>
   </label>`;
 }
