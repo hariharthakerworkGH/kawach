@@ -618,6 +618,42 @@ test('the diagnostic report builds from a real month, and carries the figures', 
   ok(!text.includes('111111111111'), 'a bank reference is redacted');
 });
 
+// 26 Nov 2026: a card was reissued (…2222 -> …3076); the new digits became a card of their own, the bill was paid to it, and the old card stayed owing.
+test('switching a card to its new number moves everything onto the card you opened, and the old digits stay linked', async () => {
+  await seedBasics();
+  await put('accounts', { id: 'card-new', label: 'Test Bank ••3076', type: 'card', issuer: 'Test Bank', last4: '3076', billingCycleDay: 25, statementPeriodEnd: '2026-11-25', statementDue: rupees(9000) });
+  await put('recurring', commitment({ id: 'sub', label: 'Netflix', amount: 649, accountId: 'card-new', matchText: 'NETFLIX' }));
+  await put('importBatches', { id: 'b-new', accountId: 'card-new', txCount: 1 });
+  await putAll('transactions', [
+    txn({ id: 'old1', accountId: 'card', date: '2026-10-03', amount: 500, rawDescription: 'ZARA' }),
+    txn({ id: 'new1', accountId: 'card-new', date: '2026-11-03', amount: 700, rawDescription: 'CAFE' }),
+    txn({ id: 'bill', accountId: 'bank', date: '2026-11-20', amount: 9000, isTransfer: true, paysCardId: 'card-new', paysStatement: 'card-new|2026-11-25', rawDescription: 'CC PAYMENT 3076' }),
+  ]);
+  const { switchCard } = await import('../js/card-switch.js');
+  const r = await switchCard('card', { intoId: 'card-new' });
+  equal(r.payments, 1, 'the new card\'s one purchase moved');
+  const accounts = await getAll('accounts');
+  ok(!accounts.some((a) => a.id === 'card-new'), 'the extra card is gone');
+  const card = accounts.find((a) => a.id === 'card');
+  equal(card.last4, '3076');
+  ok(card.linkedLast4s.includes('2222'), 'the old digits are still linked');
+  equal(card.statementDue, rupees(9000), 'the later statement\'s bill came with it');
+  const t = await getAll('transactions');
+  equal(t.find((x) => x.id === 'new1').accountId, 'card');
+  equal(t.find((x) => x.id === 'bill').paysCardId, 'card', 'the bill paid to the new digits now pays the card you opened');
+  equal(t.find((x) => x.id === 'bill').paysStatement, 'card|2026-11-25');
+  equal((await getAll('recurring')).find((x) => x.id === 'sub').accountId, 'card', 'a fixed cost on the new card follows');
+  equal((await getAll('importBatches'))[0].accountId, 'card');
+  // Only new digits, no card of their own yet: the same card carries on.
+  await switchCard('card', { last4: '9999' });
+  const again = (await getAll('accounts')).find((a) => a.id === 'card');
+  equal(again.last4, '9999');
+  ok(again.linkedLast4s.includes('3076') && again.linkedLast4s.includes('2222'), 'every earlier number stays linked');
+  let said = '';
+  try { await switchCard('card', { last4: '12' }); } catch (e) { said = e.message; }
+  ok(said.includes('four numbers'), 'digits that are not four numbers are refused');
+});
+
 // The full report (26 Nov 2026) keeps the real words so the owner and a helper can read the same rows; it is a separate choice, off by default.
 test('the full diagnostic report keeps real names, notes and ids; the ordinary one still hides them', async () => {
   await seedMonth();

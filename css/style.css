@@ -1176,6 +1176,10 @@ h3 {
   margin: var(--space-sm) 0 var(--space-md);
 }
 
+/* "This card has a new number" (7.27): its own block, clear of the note above and the field below. */
+.account-form .af-switch { margin: var(--space-xs) 0 var(--space-sm); }
+.account-form .af-switch-panel { margin-top: var(--space-xs); }
+.account-form .af-switch-go { margin-top: var(--space-2xs); }
 .account-form .segmented {
   margin: 0 0 var(--space-sm);
 }

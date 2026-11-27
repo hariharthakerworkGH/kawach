@@ -940,10 +940,10 @@ function renderResults(resultsEl) {
                   .filter((a) => a.type === parser.accountType)
                   .map((a) => `<option value="${a.id}" ${account && account.id === a.id ? 'selected' : ''}>${escapeHtml(a.label)}</option>`)
                   .join('')}
-                <option value="" ${account ? '' : 'selected'}>A new account</option>
+                <option value="" ${account ? '' : 'selected'}>${parser.accountType === 'card' ? 'A different card, new to Kawach' : 'A new account'}</option>
               </select>
             </label>
-            <p class="muted-note">The statement's bank and last four digits${meta.accountLast4 ? ` (••${meta.accountLast4})` : ''} don't match an account. Pick one once; next time it's automatic.</p>`
+            <p class="muted-note">The statement's bank and last four digits${meta.accountLast4 ? ` (••${meta.accountLast4})` : ''} don't match an account. Pick one once; next time it's automatic.${parser.accountType === 'card' ? ' Did the bank reissue or upgrade a card? Pick the card it replaces, so it stays one card.' : ''}</p>`
           : ''
       }
       ${

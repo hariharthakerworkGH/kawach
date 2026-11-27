@@ -14,6 +14,7 @@ import { redraw as plainRedraw } from '../redraw.js';
 const redraw = (container, draw) => softRedraw(container, () => plainRedraw(container, draw));
 import { ensureBusinessCategories, moneyProfile, activeSpace, accountInSpace } from '../business.js';
 import { detectTransfers } from '../transfers.js';
+import { switchCard } from '../card-switch.js';
 import { icon } from '../icons.js';
 import { brandMark } from '../brand.js';
 import { havenAccounts, softRedraw } from '../haven-ui.js';
@@ -495,6 +496,32 @@ function accountForm(account, transactions, allAccounts = [], importBatches = []
         <input type="text" class="af-last4" value="${escapeAttr(a.last4 || '')}" inputmode="numeric" maxlength="4" placeholder="4321">
       </label>
       <p class="muted-note">Bank and last 4 digits match it to its statements.</p>
+      ${
+        account && a.type === 'card'
+          ? // A reissued or upgraded card: one card with new digits, not a second card (js/card-switch.js).
+            `<div class="af-switch">
+              <button type="button" class="btn-tiny af-switch-open" aria-expanded="false">This card has a new number</button>
+              <div class="af-switch-panel" hidden>
+                <label class="field">
+                  <span>The new number</span>
+                  <select class="af-switch-into">
+                    <option value="">New digits, typed below</option>
+                    ${sortAccounts(allAccounts.filter((x) => x.type === 'card' && x.id !== account.id))
+                      .map((x) => `<option value="${escapeAttr(x.id)}">${escapeHtml(x.label)}${x.last4 && !x.label.includes(x.last4) ? ` ••${escapeHtml(x.last4)}` : ''}, already added as a card</option>`)
+                      .join('')}
+                  </select>
+                </label>
+                <label class="field af-switch-digits">
+                  <span>Last 4 digits</span>
+                  <input type="text" class="af-switch-last4" inputmode="numeric" maxlength="4" placeholder="3076">
+                </label>
+                <p class="muted-note">This card keeps its history. A card already added for the new number is folded into it, and the old digits stay linked.</p>
+                <button type="button" class="btn-secondary af-switch-go">Switch to the new number</button>
+                <p class="af-switch-error status out" hidden></p>
+              </div>
+            </div>`
+          : ''
+      }
       <label class="checkbox-row af-spending-field" ${a.type === 'bank' ? '' : 'hidden'}>
         <input type="checkbox" class="af-spending" ${a.spending === false ? '' : 'checked'}>
         <span>I spend from this account<br><span class="muted-note">Off for savings or loan-only accounts: nothing from it counts as spending.</span></span>
@@ -702,6 +729,47 @@ function wireForm(form, container, accounts, transactions) {
     editing = null;
     redraw(container, () => render(container));
   });
+
+  const switchOpen = form.querySelector('.af-switch-open');
+  if (switchOpen) {
+    const panel = form.querySelector('.af-switch-panel');
+    const into = form.querySelector('.af-switch-into');
+    const digits = form.querySelector('.af-switch-digits');
+    const err = form.querySelector('.af-switch-error');
+    switchOpen.addEventListener('click', () => {
+      panel.hidden = !panel.hidden;
+      switchOpen.setAttribute('aria-expanded', String(!panel.hidden));
+    });
+    into.addEventListener('change', () => { digits.hidden = Boolean(into.value); });
+    form.querySelector('.af-switch-go').addEventListener('click', async () => {
+      const typed = form.querySelector('.af-switch-last4').value.trim();
+      if (!into.value && !/^\d{4}$/.test(typed)) {
+        err.hidden = false;
+        err.textContent = 'The new last 4 digits should be exactly four numbers.';
+        return;
+      }
+      const other = into.value ? accounts.find((x) => x.id === into.value) : null;
+      const moving = other ? transactions.filter((t) => t.accountId === other.id).length : 0;
+      const ok = await askConfirm({
+        title: 'Switch to the new number?',
+        message: other
+          ? `${other.label} is folded into this card: its ${moving} payment${moving === 1 ? '' : 's'}, statements and fixed costs move here, and it is removed. Bills paid to it now pay this card.`
+          : `This card carries on as ••${typed}. Statements and alerts that still name the old number find it too.`,
+        confirmLabel: 'Switch',
+      });
+      if (!ok) return;
+      try {
+        await switchCard(form.dataset.id, { intoId: into.value || null, last4: typed });
+      } catch (e) {
+        err.hidden = false;
+        err.textContent = e.message;
+        return;
+      }
+      await detectTransfers(); // a bill paid to the new digits is now seen as paying this card
+      editing = null;
+      redraw(container, () => render(container));
+    });
+  }
 
   const deleteBtn = form.querySelector('.account-delete');
   if (deleteBtn) {

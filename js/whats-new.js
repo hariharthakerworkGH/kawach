@@ -13,6 +13,17 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '7.27',
+    items: [
+      {
+        icon: 'accounts',
+        title: "A card with a new number stays one card",
+        text: "When a bank reissues or upgrades a card, its number changes and Kawach used to treat the new digits as a second card, so a bill paid to one left the other still owing. Open the old card on Accounts, tap Edit, then This card has a new number. Pick the card the new digits already made, or type the four digits: the history, statements and fixed costs end up on one card, and the old digits stay linked. Importing a statement from a number Kawach does not know now reminds you to pick the card it replaces.",
+        guide: [{ view: 'accounts', target: '.account-group-sec', text: "Open a card, tap Edit, then This card has a new number. It keeps one card with all its history when the bank reissues it." }],
+      },
+    ],
+  },
+  {
     version: '7.26',
     items: [
       {
