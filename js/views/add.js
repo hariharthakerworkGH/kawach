@@ -886,7 +886,7 @@ function havenArrangeAdd(container) {
   // Other ways in than typing: a bank message, a statement, a cash spend (the same three as before on Summary).
   const ways = document.createElement('div');
   ways.className = 'hv-addrow hv-addways';
-  ways.innerHTML = `<button type="button" class="lg-btn sm s" data-hv-go="inbox">${icon('inbox')} Paste SMS</button><button type="button" class="lg-btn sm s" data-hv-go="import">${icon('upload')} Import</button><button type="button" class="lg-btn sm s" id="add-cash-way">${icon('cash')} Cash spend</button>`;
+  ways.innerHTML = `<button type="button" class="lg-btn sm s" data-hv-go="inbox">${icon('inbox')} Paste SMS</button><button type="button" class="lg-btn sm s" data-hv-go="import">${icon('download')} Import</button><button type="button" class="lg-btn sm s" id="add-cash-way">${icon('cash')} Cash spend</button>`;
   ways.querySelector('#add-cash-way').addEventListener('click', () => {
     const select = container.querySelector('#add-account');
     select.value = CASH_ACCOUNT_ID;

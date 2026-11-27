@@ -314,7 +314,7 @@ function dressAccounts(container, justOpened) {
   container.querySelector('.acct-total')?.remove();
   // the two buttons that matter, and one quiet line for the rest
   const btns = el('div', 'lg-accbtns');
-  for (const [id, ic] of [['add-account-btn', 'add'], ['go-import-btn', 'upload']]) {
+  for (const [id, ic] of [['add-account-btn', 'add'], ['go-import-btn', 'download']]) {
     const b = container.querySelector(`#${id}`);
     if (!b) continue;
     b.className = 'lg-btn s';

@@ -1145,7 +1145,7 @@ export function openNotes(notes, { title }) {
           .map(
             (item, i) => `
           <div class="notes-item">
-            <span class="notes-icon">${icon(item.icon || 'info')}</span>
+            <span class="notes-icon">${icon(item.icon) || icon('info')}</span>
             <span class="notes-text"><strong>${item.title}</strong><span>${item.text}</span></span>
             ${item.guide ? `<button type="button" class="btn-tiny notes-show" data-version="${n.version}" data-index="${i}">Show me</button>` : ''}
           </div>`
