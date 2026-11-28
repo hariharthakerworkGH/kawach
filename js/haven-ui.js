@@ -255,14 +255,22 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 // A bigger change takes a little longer, so it never rushes.
 const glideMs = (from, to) => Math.min(720, 380 + Math.abs(to - from) * 0.35);
 // Grow or shrink a card from one height to another, so what sits below it glides instead of jumping.
-function glide(block, from, to) {
+function glide(block, from, to, boxFrom = {}, boxTo = {}) {
   if (!isLive() || Math.abs(from - to) < 2) return;
   block.style.overflow = 'hidden';
   block.dataset.gliding = '1';
-  const a = block.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: glideMs(from, to), easing: 'cubic-bezier(.3,.7,.2,1)' });
+  // the open box's margin and padding ease with the height, so the row inside never jumps when the box appears or goes
+  const a = block.animate([{ ...boxFrom, height: `${from}px` }, { ...boxTo, height: `${to}px` }], { duration: glideMs(from, to), easing: 'cubic-bezier(.3,.7,.2,1)' });
   const done = () => { block.style.overflow = ''; delete block.dataset.gliding; block._hvLast = block.getBoundingClientRect().height; };
   a.onfinish = done; a.oncancel = done;
 }
+// Run a change inside one card (a panel shown or hidden) and glide the card from its old height to the new one.
+export function glideAround(block, change) {
+  const from = block.getBoundingClientRect().height;
+  change();
+  glide(block, from, block.getBoundingClientRect().height);
+}
+const boxOf = (b) => { const s = getComputedStyle(b); return { margin: s.margin, padding: s.padding }; };
 const keyOf = (b) => b.querySelector('.account-row')?.dataset.id;
 
 // Accounts redraws itself when a card or bank is opened or closed (its details are worked out then). Done in plain sight that
@@ -344,7 +352,7 @@ function dressAccounts(container, justOpened) {
     if (lead && lead.t === 'tank') row.insertAdjacentHTML('beforeend', `<span class="lg-edge${type === 'loan' ? ' warn' : ''}" aria-hidden="true"><i style="width:${Math.round(lead.v * 100)}%"></i></span>`);
     // Everything but the row waits behind a tap: a card's bill and its facts, a loan's plan, the buttons. A row that opens by
     // redrawing (a card, a bank) says so itself; the others (a loan, savings, cash) open here, on the spot.
-    const opensItself = row.classList.contains('account-open');
+    const opensItself = row.classList.contains('account-open') || row.classList.contains('person-open');
     if (!opensItself) { row.setAttribute('role', 'button'); row.setAttribute('tabindex', '0'); }
     const open = opensItself ? row.getAttribute('aria-expanded') === 'true' : localOpen.has(row.dataset.id);
     row.setAttribute('aria-expanded', String(open));
@@ -361,14 +369,16 @@ function dressAccounts(container, justOpened) {
       const id = row.dataset.id;
       const open = !block.classList.contains('is-open');
       const from = block.getBoundingClientRect().height;
+      const boxFrom = boxOf(block);
       const y = window.scrollY;
       if (open) localOpen.add(id); else localOpen.delete(id);
       block.classList.toggle('is-open', open);
       row.setAttribute('aria-expanded', String(open));
       if (!isLive()) return;
       const to = block.getBoundingClientRect().height;
+      const boxTo = boxOf(block);
       if (open) {
-        glide(block, from, to);
+        glide(block, from, to, boxFrom, boxTo);
         watchGrowth(block, to);
         [...block.children].filter((c) => c !== row && getComputedStyle(c).display !== 'none').forEach((c, i) => c.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 360, delay: 80 + i * 30, easing: 'ease-out', fill: 'backwards' }));
       } else {
@@ -376,14 +386,16 @@ function dressAccounts(container, justOpened) {
         block.classList.add('is-open');
         window.scrollTo(0, y);
         block.style.overflow = 'hidden';
-        const a = block.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: glideMs(from, to), easing: 'cubic-bezier(.3,.7,.2,1)' });
+        const a = block.animate([{ ...boxFrom, height: `${from}px` }, { ...boxTo, height: `${to}px` }], { duration: glideMs(from, to), easing: 'cubic-bezier(.3,.7,.2,1)' });
         const done = () => { block.classList.toggle('is-open', localOpen.has(id)); block.style.overflow = ''; };
         a.onfinish = done; a.oncancel = done;
       }
     };
+    // Cards and banks (the row is itself a <button>) open on the spot too; accounts.js only remembers which are open.
     container.addEventListener('click', (e) => {
-      const row = e.target.closest('.account-row[role="button"]:not(.account-open)');
-      if (row && !e.target.closest('button, a, input, select, summary')) flip(row);
+      const row = e.target.closest('.account-row[role="button"], .account-row.account-open, .account-row.person-open');
+      const inner = e.target.closest('button, a, input, select, summary');
+      if (row && (!inner || inner === row)) flip(row);
     });
     container.addEventListener('keydown', (e) => {
       const row = e.target.closest?.('.account-row[role="button"]:not(.account-open)');

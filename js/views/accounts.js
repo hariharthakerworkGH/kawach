@@ -17,7 +17,7 @@ import { detectTransfers } from '../transfers.js';
 import { switchCard } from '../card-switch.js';
 import { icon } from '../icons.js';
 import { brandMark } from '../brand.js';
-import { havenAccounts, softRedraw } from '../haven-ui.js';
+import { havenAccounts, softRedraw, glideAround } from '../haven-ui.js';
 import { reminderText, reminderAllText, updatePerson, shareReminder } from '../people.js';
 import { allocationRing, tickGauge } from '../charts.js';
 import { appearance, setAppearance } from '../appearance.js';
@@ -29,7 +29,7 @@ import { limitUse, bestDay, payBy } from '../card-smarts.js';
 import { escapeHtml, escapeAttr, emptyState, hero, moneyTone, shapeLike } from '../ui.js';
 // NEW for the bill-payment panel: reading a pasted bank SMS or email, and
 // saying what happened.
-import { parseAlert, alertFingerprint } from '../alerts.js';
+import { parseAlert, alertFingerprint, acceptsAsBillPayment } from '../alerts.js';
 import { showToast } from '../toast.js';
 import { markOf } from '../marker.js';
 
@@ -71,12 +71,10 @@ let payFrom = [];
 export function onBack() {
   // An account that is open closes first (the same tap that opened it, so it closes the same smooth way).
   if (shownIn && shownIn.isConnected && editing === null && !reordering && !payingBill) {
-    // everything that is open closes together: the ones that open on the spot by their own tap, the rest by one redraw
-    const local = [...shownIn.querySelectorAll('.account-block.is-open .account-row[role="button"]:not(.account-open)')];
-    const redrawn = shownIn.querySelector('.account-open[aria-expanded="true"]');
-    local.forEach((r) => r.click());
-    if (redrawn) { opened.clear(); redraw(shownIn, () => render(shownIn)); }
-    if (local.length || redrawn) return true;
+    // everything that is open closes together, each by its own tap (all of them open and close on the spot)
+    const open = [...shownIn.querySelectorAll('.account-block.is-open .account-row[aria-expanded="true"]')];
+    open.forEach((r) => r.click());
+    if (open.length) return true;
   }
   if (!shownIn || !shownIn.isConnected || (editing === null && !reordering && !payingBill)) return false;
   editing = null;
@@ -183,14 +181,14 @@ export async function render(container) {
     })
   );
 
+  // A card, bank or cash row opens on the spot (js/haven-ui.js does the glide): every account's details are already drawn and only
+  // hidden, so a tap no longer rebuilds the whole screen - which is what made the rows blink and the card jump (28 Nov 2026).
+  // Only the remembered set is kept here, so a later redraw (a sync, Edit) puts the same cards back open.
   container.querySelectorAll('.account-open').forEach((btn) =>
     btn.addEventListener('click', () => {
       if (opened.has(btn.dataset.id)) opened.delete(btn.dataset.id);
-      else {
-        opened.add(btn.dataset.id);
-        justOpened = btn.dataset.id;
-      }
-      redraw(container, () => render(container));
+      else opened.add(btn.dataset.id);
+      if (document.documentElement.dataset.style !== 'haven') redraw(container, () => render(container));
     })
   );
   // Any payment shown on an account opens in History, ready to edit or delete.
@@ -271,7 +269,13 @@ export async function render(container) {
   container.querySelectorAll('.bill-pay-open').forEach((btn) => {
     btn.addEventListener('click', () => {
       payingBill = payingBill === btn.dataset.id ? null : btn.dataset.id;
-      redraw(container, () => render(container));
+      const show = () => {
+        container.querySelectorAll('.bill-pay').forEach((f) => { f.hidden = f.dataset.id !== payingBill; });
+        container.querySelectorAll('.bill-pay-open').forEach((b) => b.setAttribute('aria-expanded', String(b.dataset.id === payingBill)));
+      };
+      const block = btn.closest('.account-block');
+      if (document.documentElement.dataset.style === 'haven' && block) glideAround(block, show);
+      else show();
     });
   });
 
@@ -306,7 +310,7 @@ export async function render(container) {
           note.textContent = `${read.reason} Clear it to carry on without it.`;
           return;
         }
-        if (read.direction === 'credit' || read.amount !== bill.amount) {
+        if (!acceptsAsBillPayment(read, bill.amount)) {
           note.textContent = `That message says ${formatCurrency(read.amount)}${read.direction === 'credit' ? ' coming in' : ''}, and the bill is ${formatCurrency(bill.amount)}. Clear it, or paste the right one.`;
           return;
         }
@@ -894,7 +898,8 @@ function peopleGroup(standing, accounts) {
           ? `<span class="people-late">Owes you · ${days === 1 ? '1 day' : `${days} days`} late</span>`
           : `Owes you · ${person.backBy ? `back by ${formatDateNice(person.backBy)}` : `since ${formatDateNice(s.since)}`}`
         : `You owe · since ${formatDateNice(s.since)}`;
-    const detail = isOpen
+    // always drawn, hidden by the closed row's own CSS: the row opens on the spot (js/haven-ui.js) instead of the screen being rebuilt
+    const detail = true
       ? `<div class="account-detail account-recent person-detail">
           <div class="k-rows account-recent-rows">${s.entries
             .slice(0, 6)
@@ -920,7 +925,7 @@ function peopleGroup(standing, accounts) {
         </div>`
       : '';
     return `<div class="account-block">
-        <button type="button" class="k-row account-row person-open" data-person="${person.id}" aria-expanded="${isOpen}">
+        <button type="button" class="k-row account-row person-open" data-person="${person.id}" data-id="${person.id}" aria-expanded="${isOpen}">
           ${brandMark(person.name, { size: 'md' })}
           <span class="k-row__body">
             <span class="k-row__title">${escapeHtml(person.name)}</span>
@@ -955,7 +960,6 @@ function wirePeople(container) {
       const id = btn.dataset.person;
       if (openPeople.has(id)) openPeople.delete(id);
       else openPeople.add(id);
-      redraw(container, () => render(container));
     })
   );
   container.querySelectorAll('.person-backby input').forEach((input) =>
@@ -1314,8 +1318,9 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
           canOpen: true,
           place,
         }),
-        cashLine,
-        { spendable: true }
+        '',
+        // The cash pocket's sentence is long, so it waits inside the opened account instead of sitting under the row (28 Nov 2026).
+        { spendable: true, detailNote: cashLine }
       )}
     </div>
   `;
@@ -1330,18 +1335,17 @@ function accountCard(account, transactions, importBatches, allLoans = [], place 
  * shown whether or not the row is open, because a bill you cannot see yet is
  * not a detail.
  */
-function openable(account, acctTxns, row, note = '', { spendable = false } = {}) {
+function openable(account, acctTxns, row, note = '', { spendable = false, detailNote = '' } = {}) {
   if (!account) return row;
-  const open = opened.has(account.id);
-  const recent = open
-    ? [...acctTxns].sort(newestFirst).slice(0, 3)
-    : [];
+  // Always drawn, hidden by the closed card's own CSS: the card then opens on the spot instead of the screen being rebuilt.
+  const recent = [...acctTxns].sort(newestFirst).slice(0, 3);
   return `
     ${row}
     ${note ? `<p class="account-note">${note}</p>` : ''}
     ${
-      open
+      true
         ? `<div class="account-detail account-recent">
+            ${detailNote ? `<p class="muted-note account-detail-note">${detailNote}</p>` : ''}
             ${
               recent.length
                 ? `<div class="k-rows account-recent-rows">${recent
@@ -1563,7 +1567,7 @@ function renderBill(bill, account) {
     </div>
     ${payBy(bill) ? `<p class="bill-payby${overdue ? ' is-overdue' : ''}">${payBy(bill)}</p>` : ''}
     <div class="bill-actions"><button type="button" class="link-btn bill-pay-open" data-id="${account.id}" aria-expanded="${open}">Mark bill paid</button></div>
-    ${open ? billPanel(account) : ''}
+    ${billPanel(account, open)}
   `;
 }
 
@@ -1601,12 +1605,13 @@ function showPaid(container, cardId, sourceId, before) {
 
 // The inline panel behind "Mark bill paid": where it was paid from, the bank's
 // message if there is one, and Confirm. Nothing is saved until Confirm.
-function billPanel(account) {
+function billPanel(account, open) {
+  // Always drawn, shown by "Mark bill paid" on the spot (no screen rebuild, so nothing blinks).
   if (!payFrom.length) {
-    return `<div class="bill-pay"><p class="muted-note">Add the account it is paid from first.</p></div>`;
+    return `<div class="bill-pay" data-id="${account.id}"${open ? '' : ' hidden'}><p class="muted-note">Add the account it is paid from first.</p></div>`;
   }
   return `
-    <form class="bill-pay" data-id="${account.id}" novalidate>
+    <form class="bill-pay" data-id="${account.id}"${open ? '' : ' hidden'} novalidate>
       <label class="k-field field">
         <span class="k-label">Paid from</span>
         <select class="k-select bill-pay-source">

@@ -410,6 +410,15 @@ function describe(kind, party) {
 
 // --- Identity, accounts and duplicates -----------------------------------
 
+// Can this pasted message stand for "the card bill was paid"? Two messages say so: the bank's own debit ("Rs 15,001 debited ... towards
+// credit card") and the card's side of it ("PAYMENT OF Rs 15001.00 RECEIVED TOWARDS YOUR CREDIT CARD", which is what HDFC sends when the bill is
+// paid from its app). Both must match the bill to the paisa. Any other money coming in (a refund, a cashback) is not a bill being paid.
+// (28 Nov 2026: the second kind was refused as "coming in", so a bill paid from HDFC's app could not be marked paid with its own SMS.)
+export function acceptsAsBillPayment(read, billAmount) {
+  if (!read || !read.ok || read.amount !== billAmount) return false;
+  return read.direction !== 'credit' || Boolean(read.billPayment);
+}
+
 // Two drafts with the same fingerprint are the same alert shared twice.
 // Includes the time and reference where the bank gives them, so two genuine
 // ₹50 chai payments on the same card still count as two.

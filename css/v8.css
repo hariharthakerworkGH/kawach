@@ -172,6 +172,7 @@ html:root[data-style="haven"] #tabs .nav-btn[data-view="add"] .nav-icon svg { wi
 :root[data-style=haven] .lg-acclist .account-row .account-balance, :root[data-style=haven] .lg-acclist .account-row .k-row__value { font-size: 15px; font-weight: 500; }
 :root[data-style=haven] .lg-acclist .account-block.is-open { margin: 8px 0; padding: 2px 14px 12px; border-radius: 14px; background: var(--lg-s1); box-shadow: 0 0 0 1px var(--lg-line2); }
 :root[data-style=haven] .lg-acclist .account-block.is-open::before { display: none; }
+.bill-pay[hidden] { display: none !important; }
 :root[data-style=haven] .lg-acclist .account-block > .account-detail { padding: 2px 0 8px; background: none; }
 :root[data-style=haven] .lg-acclist .account-see-all, :root[data-style=haven] .lg-acclist .account-actions-inline .k-btn { font-weight: 500; }
 :root[data-style=haven] .lg-acclist .account-actions-inline .k-btn { background: transparent; box-shadow: inset 0 0 0 1px var(--lg-line2); }

@@ -13,6 +13,23 @@ import { holdFocus } from './overlay.js';
 
 const NOTES = [
   {
+    version: '8.0.1',
+    items: [
+      {
+        icon: 'card',
+        title: "Card payments from your bank's app are read",
+        text: "When you pay a card bill from the bank's own app, the text the card sends (\"payment received towards your card\") now works in Mark bill paid, as the bank's own text always did. A refund of the same amount is still refused.",
+        guide: [{ view: 'accounts', target: '.lg-acclist', text: "Open a card, tap Mark bill paid and paste the text your bank sent." }],
+      },
+      {
+        icon: 'eye',
+        title: "Cards open smoothly",
+        text: "A card, bank or person now opens and closes on the spot: nothing blinks and the rows around it stay still. The long cash sentence moved inside the opened Cash account, so the list is shorter. Lent and borrowed rows open again.",
+        guide: [{ view: 'accounts', target: '.lg-acclist', text: "Tap any account: its details open in place." }],
+      },
+    ],
+  },
+  {
     version: '8.0',
     items: [
       {
